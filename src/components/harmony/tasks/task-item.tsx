@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,13 +24,16 @@ export function TaskItem({ task }: { task: PersonalTask }) {
   const tc = useTranslations("common");
   const locale = useLocale();
   const [pending, start] = useTransition();
-  const done = task.status === "done";
+  // Optimistic completion: the checkbox flips instantly, then reconciles with
+  // the server result after revalidation (foundation pattern for Sprint 2).
+  const [done, setOptimisticDone] = useOptimistic(task.status === "done");
 
   function toggle(next: boolean) {
     const fd = new FormData();
     fd.set("id", task.id);
     fd.set("done", next ? "true" : "false");
     start(async () => {
+      setOptimisticDone(next);
       await toggleTaskComplete(fd);
     });
   }

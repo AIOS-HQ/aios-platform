@@ -15,8 +15,12 @@ export function ThemeToggle() {
   function toggle() {
     const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
+    const value = next ? "dark" : "light";
+    // Cookie is the source of truth read by ThemeScript pre-paint; keep
+    // localStorage too for backward compatibility.
+    document.cookie = `aios-theme=${value}; path=/; max-age=31536000; samesite=lax`;
     try {
-      localStorage.setItem("aios-theme", next ? "dark" : "light");
+      localStorage.setItem("aios-theme", value);
     } catch {
       // ignore storage failures (e.g. private mode)
     }

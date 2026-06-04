@@ -5,9 +5,9 @@ import { useTranslations } from "next-intl";
 import { Plus, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { GoalDialog } from "./goal-dialog";
 import { GoalCard } from "./goal-card";
-import { cn } from "@/lib/utils";
 import type { GoalStatus, PersonalGoal } from "@/types/database";
 
 type Filter = "all" | GoalStatus;
@@ -22,25 +22,15 @@ export function GoalList({ goals }: { goals: PersonalGoal[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1" role="tablist" aria-label={t("filterLabel")}>
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              role="tab"
-              aria-selected={filter === f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                filter === f
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-              )}
-            >
-              {f === "all" ? t("filter.all") : t(`status.${f}`)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel={t("filterLabel")}
+          value={filter}
+          onChange={setFilter}
+          options={FILTERS.map((f) => ({
+            value: f,
+            label: f === "all" ? t("filter.all") : t(`status.${f}`),
+          }))}
+        />
         <GoalDialog>
           <Button>
             <Plus className="size-4" aria-hidden="true" />

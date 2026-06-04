@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 
 export async function updateProfile(
@@ -15,6 +16,10 @@ export async function updateProfile(
   const t = await getTranslations("settings");
   const user = await requireUser();
   const fullName = String(formData.get("fullName") ?? "").trim();
+  if (exceedsLimits([[fullName, LIMITS.name]])) {
+    const th = await getTranslations("harmony");
+    return { status: "error", message: th("errors.tooLong") };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -62,4 +67,31 @@ export async function updatePreferences(
 
   revalidatePath("/", "layout");
   return { status: "success", message: t("saved") };
+}
+
+const THEMES = ["system", "light", "dark"] as const;
+
+/**
+ * Persists the color theme to user_settings (cross-device) and mirrors it to
+ * the `aios-theme` cookie that ThemeScript reads pre-paint. Called from the
+ * Settings appearance control, which also applies it on the client instantly.
+ */
+export async function updateThemePreference(theme: string): Promise<void> {
+  const user = await requireUser();
+  const value = (THEMES as readonly string[]).includes(theme) ? theme : "system";
+
+  const supabase = await createClient();
+  await supabase
+    .from("user_settings")
+    .update({ theme: value })
+    .eq("user_id", user.id);
+
+  const cookieStore = await cookies();
+  cookieStore.set("aios-theme", value, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+
+  revalidatePath("/", "layout");
 }
