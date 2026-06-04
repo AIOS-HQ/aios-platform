@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { createBrainEntry } from "@/lib/harmony/brain-actions";
+import { createBrainEntry, updateBrainEntry } from "@/lib/harmony/brain-actions";
 import { idleState } from "@/lib/types";
 import {
   Dialog,
@@ -18,16 +18,27 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { LIMITS } from "@/lib/limits";
+import type { PersonalBrainEntry } from "@/types/database";
 
-export function BrainEntryDialog({ children }: { children: React.ReactNode }) {
+export function BrainEntryDialog({
+  entry,
+  children,
+}: {
+  entry?: PersonalBrainEntry;
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("brain");
   const tc = useTranslations("common");
+  const editing = Boolean(entry);
 
   async function onSubmit(formData: FormData) {
     setError(null);
-    const res = await createBrainEntry(idleState, formData);
+    const res = editing
+      ? await updateBrainEntry(idleState, formData)
+      : await createBrainEntry(idleState, formData);
     if (res.status === "error") {
       setError(res.message ?? "");
       return;
@@ -47,10 +58,11 @@ export function BrainEntryDialog({ children }: { children: React.ReactNode }) {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("new")}</DialogTitle>
+          <DialogTitle>{editing ? t("edit") : t("new")}</DialogTitle>
           <DialogDescription>{t("dialogDesc")}</DialogDescription>
         </DialogHeader>
         <form action={onSubmit} className="space-y-4">
+          {entry && <input type="hidden" name="id" value={entry.id} />}
           {error && (
             <p
               role="alert"
@@ -61,15 +73,32 @@ export function BrainEntryDialog({ children }: { children: React.ReactNode }) {
           )}
           <div className="space-y-2">
             <Label htmlFor="brain-title">{t("fields.title")}</Label>
-            <Input id="brain-title" name="title" required />
+            <Input
+              id="brain-title"
+              name="title"
+              defaultValue={entry?.title ?? ""}
+              maxLength={LIMITS.title}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="brain-content">{t("fields.content")}</Label>
-            <Textarea id="brain-content" name="content" rows={6} />
+            <Textarea
+              id="brain-content"
+              name="content"
+              defaultValue={entry?.content ?? ""}
+              maxLength={LIMITS.brainContent}
+              rows={6}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="brain-tags">{t("fields.tags")}</Label>
-            <Input id="brain-tags" name="tags" placeholder={t("tagsPlaceholder")} />
+            <Input
+              id="brain-tags"
+              name="tags"
+              defaultValue={entry?.tags.join(", ") ?? ""}
+              placeholder={t("tagsPlaceholder")}
+            />
           </div>
           <DialogFooter>
             <SubmitButton pendingLabel={tc("saving")}>{tc("save")}</SubmitButton>

@@ -358,6 +358,8 @@
     "title": "Personal Brain",
     "subtitle": "Your private knowledge store — and the foundation of your future AI memory.",
     "new": "Add entry",
+    "edit": "Edit entry",
+    "filter": { "label": "Filter by type", "all": "All" },
     "dialogDesc": "Store a piece of knowledge, a preference, or a reference.",
     "searchPlaceholder": "Search your brain…",
     "searchLabel": "Search Personal Brain",

@@ -358,6 +358,8 @@
     "title": "Cerebro Personal",
     "subtitle": "Tu almacén privado de conocimiento — y la base de tu futura memoria de IA.",
     "new": "Agregar entrada",
+    "edit": "Editar entrada",
+    "filter": { "label": "Filtrar por tipo", "all": "Todas" },
     "dialogDesc": "Guarda un conocimiento, una preferencia o una referencia.",
     "searchPlaceholder": "Busca en tu cerebro…",
     "searchLabel": "Buscar en el Cerebro Personal",
