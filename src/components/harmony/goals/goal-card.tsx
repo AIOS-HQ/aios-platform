@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { GoalDialog } from "./goal-dialog";
+import { GoalProgressControl } from "./goal-progress-control";
 import { ConfirmDeleteDialog } from "../confirm-delete-dialog";
 import { deleteGoal } from "@/lib/harmony/goal-actions";
 import { formatDate } from "@/lib/format";
@@ -31,7 +32,14 @@ export function GoalCard({ goal }: { goal: PersonalGoal }) {
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-start justify-between gap-2 space-y-0">
         <div className="min-w-0 space-y-1">
-          <h3 className="font-semibold leading-snug">{goal.title}</h3>
+          <h3 className="font-semibold leading-snug">
+            <Link
+              href={`/harmony/goals/${goal.id}`}
+              className="hover:text-primary hover:underline"
+            >
+              {goal.title}
+            </Link>
+          </h3>
           <Badge variant={statusVariant[goal.status]}>
             {t(`status.${goal.status}`)}
           </Badge>
@@ -60,14 +68,10 @@ export function GoalCard({ goal }: { goal: PersonalGoal }) {
             {goal.description}
           </p>
         )}
-        <div className="mt-auto space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{t("progress")}</span>
-            <span className="font-medium text-foreground">{goal.progress}%</span>
-          </div>
-          <Progress value={goal.progress} aria-label={`${t("progress")} ${goal.progress}%`} />
+        <div className="mt-auto space-y-2">
+          <GoalProgressControl goalId={goal.id} progress={goal.progress} />
           {goal.target_date && (
-            <p className="pt-1 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {t("target")}: {formatDate(goal.target_date, locale)}
             </p>
           )}

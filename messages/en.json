@@ -291,6 +291,16 @@
     "dialogDesc": "Describe your goal and set its progress.",
     "progress": "Progress",
     "target": "Target",
+    "backToGoals": "Back to goals",
+    "decreaseProgress": "Decrease progress",
+    "increaseProgress": "Increase progress",
+    "sort": {
+      "label": "Sort",
+      "created": "Newest",
+      "progress": "Progress",
+      "target": "Target date"
+    },
+    "detail": { "overview": "Overview" },
     "filterLabel": "Filter goals by status",
     "filter": { "all": "All" },
     "fields": {

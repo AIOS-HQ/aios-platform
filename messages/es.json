@@ -291,6 +291,16 @@
     "dialogDesc": "Describe tu objetivo y define su progreso.",
     "progress": "Progreso",
     "target": "Meta",
+    "backToGoals": "Volver a objetivos",
+    "decreaseProgress": "Disminuir progreso",
+    "increaseProgress": "Aumentar progreso",
+    "sort": {
+      "label": "Ordenar",
+      "created": "Más recientes",
+      "progress": "Progreso",
+      "target": "Fecha objetivo"
+    },
+    "detail": { "overview": "Resumen" },
     "filterLabel": "Filtrar objetivos por estado",
     "filter": { "all": "Todos" },
     "fields": {
