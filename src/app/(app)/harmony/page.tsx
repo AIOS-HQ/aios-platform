@@ -39,9 +39,9 @@ export default async function DashboardPage() {
   const user = await requireUser();
   const [profile, tasks, goals, notes] = await Promise.all([
     getProfile(user.id),
-    listTasks(),
-    listGoals(),
-    listNotes(),
+    listTasks({ limit: 200 }),
+    listGoals({ limit: 200 }),
+    listNotes(undefined, 200),
   ]);
 
   const name = profile?.full_name?.trim() || user.email?.split("@")[0] || "";
