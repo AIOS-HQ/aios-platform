@@ -183,6 +183,30 @@
     "title": "Panel",
     "welcome": "Bienvenido de nuevo, {name}",
     "subtitle": "Tu vida de un vistazo.",
+    "greeting": {
+      "morning": "Buenos días, {name}",
+      "afternoon": "Buenas tardes, {name}",
+      "evening": "Buenas noches, {name}"
+    },
+    "stats": {
+      "openTasks": "Tareas abiertas",
+      "dueToday": "Para hoy",
+      "overdue": "Vencidas",
+      "activeGoals": "Objetivos activos",
+      "notes": "Notas"
+    },
+    "quickAdd": {
+      "placeholder": "Agregar una tarea…",
+      "button": "Agregar tarea",
+      "added": "Tarea agregada."
+    },
+    "onboarding": {
+      "title": "Bienvenido a Harmony",
+      "body": "Empieza capturando una tarea, fijando un objetivo o escribiendo una nota.",
+      "task": "Crear una tarea",
+      "goal": "Fijar un objetivo",
+      "note": "Escribir una nota"
+    },
     "todayTasks": "Tareas de hoy",
     "activeGoals": "Objetivos activos",
     "operator": "Operador de Vida",

@@ -183,6 +183,30 @@
     "title": "Dashboard",
     "welcome": "Welcome back, {name}",
     "subtitle": "Here's your life at a glance.",
+    "greeting": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "stats": {
+      "openTasks": "Open tasks",
+      "dueToday": "Due today",
+      "overdue": "Overdue",
+      "activeGoals": "Active goals",
+      "notes": "Notes"
+    },
+    "quickAdd": {
+      "placeholder": "Add a task…",
+      "button": "Add task",
+      "added": "Task added."
+    },
+    "onboarding": {
+      "title": "Welcome to Harmony",
+      "body": "Start by capturing a task, setting a goal, or jotting a note.",
+      "task": "Create a task",
+      "goal": "Set a goal",
+      "note": "Write a note"
+    },
     "todayTasks": "Today's tasks",
     "activeGoals": "Active goals",
     "operator": "Life Operator",

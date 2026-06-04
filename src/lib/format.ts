@@ -23,6 +23,27 @@ export function daysUntil(iso: string | null | undefined): number | null {
   return Math.round((d.getTime() - today.getTime()) / 86_400_000);
 }
 
+/** Time-of-day bucket for greetings, computed in the user's timezone. */
+export function timeOfDay(
+  timezone = "UTC",
+): "morning" | "afternoon" | "evening" {
+  let hour = new Date().getHours();
+  try {
+    const formatted = new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: timezone,
+    }).format(new Date());
+    const parsed = Number.parseInt(formatted, 10);
+    if (!Number.isNaN(parsed)) hour = parsed % 24;
+  } catch {
+    // invalid timezone — fall back to server hour
+  }
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
+}
+
 /** Whole days since an ISO timestamp. */
 export function daysSince(iso: string | null | undefined): number {
   if (!iso) return 0;

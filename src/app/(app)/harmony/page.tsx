@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import {
+  AlertTriangle,
   ArrowRight,
+  CalendarClock,
   Lightbulb,
   ListTodo,
   Sparkles,
@@ -10,11 +12,12 @@ import {
   Target,
 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
-import { getProfile } from "@/lib/data/profile";
+import { getProfile, getUserSettings } from "@/lib/data/profile";
 import { listTasks, todayTasks } from "@/lib/data/tasks";
 import { listGoals } from "@/lib/data/goals";
 import { listNotes } from "@/lib/data/notes";
 import { buildRecommendations } from "@/lib/harmony/advisor";
+import { timeOfDay } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -23,10 +26,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  StatTiles,
+  type Stat,
+} from "@/components/harmony/dashboard/stat-tiles";
+import { TodayTaskRow } from "@/components/harmony/dashboard/today-task-row";
+import { QuickAddTask } from "@/components/harmony/dashboard/quick-add-task";
 import { AdvisorPanel } from "@/components/harmony/advisor/advisor-panel";
 import { OperatorQuickInput } from "@/components/harmony/operator/operator-quick-input";
-import { formatDate } from "@/lib/format";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("dashboard");
@@ -35,27 +44,71 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function DashboardPage() {
   const t = await getTranslations("dashboard");
-  const locale = await getLocale();
   const user = await requireUser();
-  const [profile, tasks, goals, notes] = await Promise.all([
+  const [profile, settings, tasks, goals, notes] = await Promise.all([
     getProfile(user.id),
-    listTasks(),
-    listGoals(),
-    listNotes(),
+    getUserSettings(user.id),
+    listTasks({ limit: 200 }),
+    listGoals({ limit: 200 }),
+    listNotes(undefined, 200),
   ]);
 
   const name = profile?.full_name?.trim() || user.email?.split("@")[0] || "";
-  const today = todayTasks(tasks).slice(0, 5);
-  const activeGoals = goals.filter((g) => g.status === "active").slice(0, 3);
+  const greeting = t(`greeting.${timeOfDay(settings?.timezone ?? "UTC")}`, {
+    name,
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const openTasks = tasks.filter((x) => x.status !== "done");
+  const dueTodayCount = openTasks.filter((x) => x.due_date === todayStr).length;
+  const overdueCount = openTasks.filter(
+    (x) => x.due_date && x.due_date < todayStr,
+  ).length;
+  const activeGoalsAll = goals.filter((g) => g.status === "active");
+
+  const today = todayTasks(tasks).slice(0, 6);
+  const activeGoals = activeGoalsAll.slice(0, 3);
   const recentNotes = notes.slice(0, 4);
   const recommendations = buildRecommendations({ tasks, goals, notes });
+  const isNew =
+    tasks.length === 0 && goals.length === 0 && notes.length === 0;
+
+  const stats: Stat[] = [
+    { key: "open", label: t("stats.openTasks"), value: openTasks.length, icon: ListTodo, href: "/harmony/tasks" },
+    { key: "today", label: t("stats.dueToday"), value: dueTodayCount, icon: CalendarClock, href: "/harmony/tasks" },
+    { key: "overdue", label: t("stats.overdue"), value: overdueCount, icon: AlertTriangle, href: "/harmony/tasks", emphasis: true },
+    { key: "goals", label: t("stats.activeGoals"), value: activeGoalsAll.length, icon: Target, href: "/harmony/goals" },
+    { key: "notes", label: t("stats.notes"), value: notes.length, icon: StickyNote, href: "/harmony/notes" },
+  ];
 
   const linkClass =
     "inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline";
 
   return (
     <>
-      <PageHeader title={t("welcome", { name })} description={t("subtitle")} />
+      <PageHeader title={greeting} description={t("subtitle")} />
+
+      <StatTiles stats={stats} />
+
+      {isNew && (
+        <Card className="mb-6 border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base">{t("onboarding.title")}</CardTitle>
+            <CardDescription>{t("onboarding.body")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href="/harmony/tasks">{t("onboarding.task")}</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/harmony/goals">{t("onboarding.goal")}</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/harmony/notes">{t("onboarding.note")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Today's tasks */}
@@ -70,26 +123,19 @@ export default async function DashboardPage() {
               <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {today.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("noTasksToday")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("noTasksToday")}
+              </p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {today.map((task) => (
-                  <li
-                    key={task.id}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="truncate">{task.title}</span>
-                    {task.due_date && (
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {formatDate(task.due_date, locale)}
-                      </span>
-                    )}
-                  </li>
+                  <TodayTaskRow key={task.id} task={task} />
                 ))}
               </ul>
             )}
+            <QuickAddTask />
           </CardContent>
         </Card>
 
