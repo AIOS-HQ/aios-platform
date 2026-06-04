@@ -420,6 +420,9 @@
   "advisor": {
     "title": "Asesor de Vida",
     "subtitle": "Sugerencias suaves y transparentes basadas en tus datos.",
+    "view": "Ver",
+    "dismiss": "Descartar",
+    "empty": "Estás al día.",
     "ruleBasedNote": "Estas sugerencias se basan en reglas y se calculan a partir de tus propias tareas, objetivos y notas — sin automatización, nada oculto.",
     "rec": {
       "dueToday": "Tienes {count} tarea(s) para hoy.",

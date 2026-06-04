@@ -420,6 +420,9 @@
   "advisor": {
     "title": "Life Advisor",
     "subtitle": "Gentle, transparent nudges based on your data.",
+    "view": "View",
+    "dismiss": "Dismiss",
+    "empty": "You're all caught up.",
     "ruleBasedNote": "These suggestions are rule-based and computed from your own tasks, goals, and notes — no automation, nothing hidden.",
     "rec": {
       "dueToday": "You have {count} task(s) due today.",
