@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 import type { PersonalNote } from "@/types/database";
 
@@ -22,6 +23,9 @@ export async function createNote(
   const content = String(formData.get("content") ?? "").trim();
   if (!title && !content) {
     return { status: "error", message: t("errors.noteEmpty") };
+  }
+  if (exceedsLimits([[title, LIMITS.title], [content, LIMITS.noteContent]])) {
+    return { status: "error", message: t("errors.tooLong") };
   }
 
   const supabase = await createClient();
@@ -48,6 +52,9 @@ export async function updateNote(
   if (!id) return { status: "error", message: t("errors.generic") };
   if (!title && !content) {
     return { status: "error", message: t("errors.noteEmpty") };
+  }
+  if (exceedsLimits([[title, LIMITS.title], [content, LIMITS.noteContent]])) {
+    return { status: "error", message: t("errors.tooLong") };
   }
 
   const supabase = await createClient();

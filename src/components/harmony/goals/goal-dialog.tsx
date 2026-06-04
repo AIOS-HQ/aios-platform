@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { LIMITS } from "@/lib/limits";
 import type { GoalStatus, PersonalGoal } from "@/types/database";
 
 const STATUSES: GoalStatus[] = ["active", "paused", "completed", "archived"];
@@ -85,6 +86,7 @@ export function GoalDialog({
               id="goal-title"
               name="title"
               defaultValue={goal?.title ?? ""}
+              maxLength={LIMITS.title}
               required
             />
           </div>
@@ -94,6 +96,7 @@ export function GoalDialog({
               id="goal-desc"
               name="description"
               defaultValue={goal?.description ?? ""}
+              maxLength={LIMITS.description}
               rows={3}
             />
           </div>

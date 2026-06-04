@@ -77,9 +77,9 @@ export async function runOperator(input: string): Promise<OperatorResult> {
 
   if (intent === "suggest_next_steps") {
     const [tasksRes, goalsRes, notesRes] = await Promise.all([
-      supabase.from("personal_tasks").select("*"),
-      supabase.from("personal_goals").select("*"),
-      supabase.from("personal_notes").select("*"),
+      supabase.from("personal_tasks").select("*").limit(200),
+      supabase.from("personal_goals").select("*").limit(200),
+      supabase.from("personal_notes").select("*").limit(200),
     ]);
     const recs = buildRecommendations({
       tasks: (tasksRes.data as PersonalTask[] | null) ?? [],

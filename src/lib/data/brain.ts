@@ -8,6 +8,7 @@ import type { BrainKind, PersonalBrainEntry } from "@/types/database";
 export async function listBrainEntries(opts?: {
   kind?: BrainKind | "all";
   query?: string;
+  limit?: number;
 }): Promise<PersonalBrainEntry[]> {
   const supabase = await createClient();
   let q = supabase.from("personal_brains").select("*");
@@ -18,6 +19,8 @@ export async function listBrainEntries(opts?: {
   if (term) {
     q = q.or(`title.ilike.%${term}%,content.ilike.%${term}%`);
   }
-  const { data } = await q.order("created_at", { ascending: false });
+  const { data } = await q
+    .order("created_at", { ascending: false })
+    .limit(opts?.limit ?? 500);
   return (data as PersonalBrainEntry[] | null) ?? [];
 }

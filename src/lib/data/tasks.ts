@@ -6,6 +6,7 @@ import type { PersonalTask, TaskStatus } from "@/types/database";
 /** List the current user's tasks (RLS scopes to the owner). */
 export async function listTasks(opts?: {
   status?: TaskStatus | "all";
+  limit?: number;
 }): Promise<PersonalTask[]> {
   const supabase = await createClient();
   let query = supabase.from("personal_tasks").select("*");
@@ -14,7 +15,8 @@ export async function listTasks(opts?: {
   }
   const { data } = await query
     .order("due_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(opts?.limit ?? 500);
   return (data as PersonalTask[] | null) ?? [];
 }
 

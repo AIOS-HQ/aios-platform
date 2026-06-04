@@ -194,6 +194,7 @@
     "errors": {
       "titleRequired": "Please enter a title.",
       "noteEmpty": "Add a title or some content.",
+      "tooLong": "That's too long — please shorten it.",
       "generic": "Something went wrong. Please try again."
     }
   },

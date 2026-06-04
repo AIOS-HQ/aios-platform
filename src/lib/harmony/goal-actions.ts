@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 import type { GoalStatus } from "@/types/database";
 
@@ -32,11 +33,16 @@ export async function createGoal(
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { status: "error", message: t("errors.titleRequired") };
 
+  const description = orNull(formData.get("description"));
+  if (exceedsLimits([[title, LIMITS.title], [description, LIMITS.description]])) {
+    return { status: "error", message: t("errors.tooLong") };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("personal_goals").insert({
     user_id: user.id,
     title,
-    description: orNull(formData.get("description")),
+    description,
     status: String(formData.get("status") ?? "active") as GoalStatus,
     progress: clampProgress(formData.get("progress")),
     target_date: orNull(formData.get("target_date")),
@@ -58,12 +64,16 @@ export async function updateGoal(
   if (!id) return { status: "error", message: t("errors.generic") };
   if (!title) return { status: "error", message: t("errors.titleRequired") };
 
+  const description = orNull(formData.get("description"));
+  if (exceedsLimits([[title, LIMITS.title], [description, LIMITS.description]])) {
+    return { status: "error", message: t("errors.tooLong") };
+  }
   const supabase = await createClient();
   const { error } = await supabase
     .from("personal_goals")
     .update({
       title,
-      description: orNull(formData.get("description")),
+      description,
       status: String(formData.get("status") ?? "active") as GoalStatus,
       progress: clampProgress(formData.get("progress")),
       target_date: orNull(formData.get("target_date")),

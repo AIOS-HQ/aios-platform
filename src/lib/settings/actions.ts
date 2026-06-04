@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 
 export async function updateProfile(
@@ -15,6 +16,10 @@ export async function updateProfile(
   const t = await getTranslations("settings");
   const user = await requireUser();
   const fullName = String(formData.get("fullName") ?? "").trim();
+  if (exceedsLimits([[fullName, LIMITS.name]])) {
+    const th = await getTranslations("harmony");
+    return { status: "error", message: th("errors.tooLong") };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
