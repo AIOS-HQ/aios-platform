@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { LIMITS } from "@/lib/limits";
 import type { PersonalTask } from "@/types/database";
 
 export function TaskDialog({
@@ -83,6 +84,7 @@ export function TaskDialog({
               id="task-title"
               name="title"
               defaultValue={task?.title ?? ""}
+              maxLength={LIMITS.title}
               required
             />
           </div>
@@ -92,6 +94,7 @@ export function TaskDialog({
               id="task-desc"
               name="description"
               defaultValue={task?.description ?? ""}
+              maxLength={LIMITS.description}
               rows={3}
             />
           </div>

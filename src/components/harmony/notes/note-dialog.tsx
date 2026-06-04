@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { LIMITS } from "@/lib/limits";
 import type { PersonalNote } from "@/types/database";
 
 export function NoteDialog({
@@ -76,6 +77,7 @@ export function NoteDialog({
               id="note-title"
               name="title"
               defaultValue={note?.title ?? ""}
+              maxLength={LIMITS.title}
             />
           </div>
           <div className="space-y-2">
@@ -84,6 +86,7 @@ export function NoteDialog({
               id="note-content"
               name="content"
               defaultValue={note?.content ?? ""}
+              maxLength={LIMITS.noteContent}
               rows={8}
             />
           </div>

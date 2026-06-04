@@ -194,6 +194,7 @@
     "errors": {
       "titleRequired": "Escribe un título.",
       "noteEmpty": "Agrega un título o algo de contenido.",
+      "tooLong": "Es demasiado largo — por favor acórtalo.",
       "generic": "Algo salió mal. Inténtalo de nuevo."
     }
   },

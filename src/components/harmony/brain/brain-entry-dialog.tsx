@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { LIMITS } from "@/lib/limits";
 
 export function BrainEntryDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -61,11 +62,16 @@ export function BrainEntryDialog({ children }: { children: React.ReactNode }) {
           )}
           <div className="space-y-2">
             <Label htmlFor="brain-title">{t("fields.title")}</Label>
-            <Input id="brain-title" name="title" required />
+            <Input id="brain-title" name="title" maxLength={LIMITS.title} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="brain-content">{t("fields.content")}</Label>
-            <Textarea id="brain-content" name="content" rows={6} />
+            <Textarea
+              id="brain-content"
+              name="content"
+              maxLength={LIMITS.brainContent}
+              rows={6}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="brain-tags">{t("fields.tags")}</Label>
