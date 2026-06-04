@@ -5,6 +5,7 @@ import { getProfile, getUserSettings } from "@/lib/data/profile";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { PreferencesForm } from "@/components/settings/preferences-form";
+import { ThemePreference } from "@/components/settings/theme-preference";
 import { AccountCard } from "@/components/settings/account-card";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
           language={settings?.preferred_language ?? "en"}
           timezone={settings?.timezone ?? "UTC"}
         />
+        <ThemePreference theme={settings?.theme ?? "system"} />
         <AccountCard
           email={user.email ?? ""}
           role={profile?.role ?? "personal_user"}

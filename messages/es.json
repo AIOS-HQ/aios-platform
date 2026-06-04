@@ -91,7 +91,8 @@
       "subtitle": "Inicia sesión en tu cuenta de AIOS.",
       "submit": "Iniciar sesión",
       "forgot": "¿Olvidaste tu contraseña?",
-      "noAccount": "¿No tienes una cuenta?"
+      "noAccount": "¿No tienes una cuenta?",
+      "callbackError": "Ese enlace no funcionó. Inicia sesión de nuevo."
     },
     "signup": {
       "title": "Crea tu cuenta",
@@ -111,7 +112,10 @@
     "update": {
       "title": "Define una nueva contraseña",
       "subtitle": "Elige una contraseña segura que recuerdes.",
-      "submit": "Actualizar contraseña"
+      "submit": "Actualizar contraseña",
+      "invalidTitle": "Enlace caducado",
+      "invalidBody": "Este enlace para restablecer la contraseña no es válido o ha caducado. Solicita uno nuevo.",
+      "requestNew": "Solicitar un enlace nuevo"
     },
     "errors": {
       "missingFields": "Completa todos los campos obligatorios.",
@@ -159,6 +163,13 @@
       "description": "Idioma y zona horaria.",
       "language": "Idioma preferido",
       "timezone": "Zona horaria"
+    },
+    "appearance": {
+      "title": "Apariencia",
+      "description": "Elige cómo se ve AIOS en esta cuenta.",
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
     },
     "account": {
       "title": "Cuenta",
