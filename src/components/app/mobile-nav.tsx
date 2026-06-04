@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/brand/logo";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import { primaryNav, secondaryNav } from "./nav-config";
 import { NavLink } from "./nav-link";
 
@@ -33,12 +34,12 @@ export function MobileNav() {
           <Menu className="size-5" aria-hidden="true" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="left-0 top-0 h-dvh max-w-[17rem] translate-x-0 translate-y-0 gap-0 rounded-none border-r p-0 sm:rounded-none">
+      <DialogContent className="left-0 top-0 flex h-dvh max-w-[17rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r p-0 sm:rounded-none">
         <DialogTitle className="sr-only">{t("menu")}</DialogTitle>
         <div className="flex h-16 items-center px-5">
           <Logo />
         </div>
-        <nav className="flex flex-col gap-1 p-3" aria-label="Mobile">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Mobile">
           {primaryNav.map((item) => (
             <NavLink key={item.href} item={item} onNavigate={close} />
           ))}
@@ -47,6 +48,9 @@ export function MobileNav() {
             <NavLink key={item.href} item={item} onNavigate={close} />
           ))}
         </nav>
+        <div className="border-t p-3">
+          <LocaleSwitcher />
+        </div>
       </DialogContent>
     </Dialog>
   );

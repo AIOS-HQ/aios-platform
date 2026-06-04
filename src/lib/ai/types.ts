@@ -15,6 +15,14 @@ export interface OperatorResult {
     type: "task_created" | "goal_created";
     label: string;
   };
+  /**
+   * A write the Operator wants to make but has NOT executed yet. The UI shows a
+   * confirm step; only on confirmation is it performed (human in control).
+   */
+  proposedAction?: {
+    type: "create_task" | "create_goal";
+    title: string;
+  };
 }
 
 /**

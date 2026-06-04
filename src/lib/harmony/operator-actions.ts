@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/user";
 import { detectIntent } from "@/lib/ai/intents";
 import { getProvider, isRealProviderConfigured } from "@/lib/ai/provider";
 import { buildRecommendations } from "@/lib/harmony/advisor";
+import { LIMITS } from "@/lib/limits";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -20,36 +21,33 @@ import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database"
 export async function runOperator(input: string): Promise<OperatorResult> {
   const to = await getTranslations("operator");
   const ta = await getTranslations("advisor");
-  const user = await requireUser();
+  await requireUser();
   const text = (input ?? "").trim();
   if (!text) return { intent: "general", reply: to("empty") };
 
   const { intent, title } = detectIntent(text);
-  const supabase = await createClient();
 
+  // Writes are PROPOSED, not executed (human in control). The client shows a
+  // confirm step; confirmOperatorAction performs the insert on approval.
   if (intent === "create_task") {
     if (!title) return { intent, reply: to("needTaskTitle") };
-    await supabase.from("personal_tasks").insert({ user_id: user.id, title });
-    revalidatePath("/harmony");
-    revalidatePath("/harmony/tasks");
     return {
       intent,
-      reply: to("taskCreated", { title }),
-      actionTaken: { type: "task_created", label: title },
+      reply: to("proposeTask", { title }),
+      proposedAction: { type: "create_task", title },
     };
   }
 
   if (intent === "create_goal") {
     if (!title) return { intent, reply: to("needGoalTitle") };
-    await supabase.from("personal_goals").insert({ user_id: user.id, title });
-    revalidatePath("/harmony");
-    revalidatePath("/harmony/goals");
     return {
       intent,
-      reply: to("goalCreated", { title }),
-      actionTaken: { type: "goal_created", label: title },
+      reply: to("proposeGoal", { title }),
+      proposedAction: { type: "create_goal", title },
     };
   }
+
+  const supabase = await createClient();
 
   if (intent === "summarize_notes") {
     const { data } = await supabase
@@ -77,9 +75,9 @@ export async function runOperator(input: string): Promise<OperatorResult> {
 
   if (intent === "suggest_next_steps") {
     const [tasksRes, goalsRes, notesRes] = await Promise.all([
-      supabase.from("personal_tasks").select("*"),
-      supabase.from("personal_goals").select("*"),
-      supabase.from("personal_notes").select("*"),
+      supabase.from("personal_tasks").select("*").limit(200),
+      supabase.from("personal_goals").select("*").limit(200),
+      supabase.from("personal_notes").select("*").limit(200),
     ]);
     const recs = buildRecommendations({
       tasks: (tasksRes.data as PersonalTask[] | null) ?? [],
@@ -98,4 +96,40 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     return { intent: "general", reply };
   }
   return { intent: "general", reply: to("capabilities") };
+}
+
+/** Executes a previously-proposed Operator write, after the user confirms. */
+export async function confirmOperatorAction(
+  type: "create_task" | "create_goal",
+  title: string,
+): Promise<OperatorResult> {
+  const to = await getTranslations("operator");
+  const user = await requireUser();
+  const clean = (title ?? "").trim().slice(0, LIMITS.title);
+  if (!clean) return { intent: "general", reply: to("empty") };
+
+  const supabase = await createClient();
+  if (type === "create_task") {
+    await supabase
+      .from("personal_tasks")
+      .insert({ user_id: user.id, title: clean });
+    revalidatePath("/harmony");
+    revalidatePath("/harmony/tasks");
+    return {
+      intent: "create_task",
+      reply: to("taskCreated", { title: clean }),
+      actionTaken: { type: "task_created", label: clean },
+    };
+  }
+
+  await supabase
+    .from("personal_goals")
+    .insert({ user_id: user.id, title: clean });
+  revalidatePath("/harmony");
+  revalidatePath("/harmony/goals");
+  return {
+    intent: "create_goal",
+    reply: to("goalCreated", { title: clean }),
+    actionTaken: { type: "goal_created", label: clean },
+  };
 }
