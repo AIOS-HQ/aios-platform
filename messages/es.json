@@ -332,6 +332,18 @@
     "savedToBrain": "Guardado en tu Cerebro Personal.",
     "searchPlaceholder": "Buscar notas…",
     "searchLabel": "Buscar notas",
+    "filter": {
+      "label": "Filtrar por fecha",
+      "all": "Todas",
+      "week": "Esta semana",
+      "month": "Este mes"
+    },
+    "sort": {
+      "label": "Ordenar",
+      "updated": "Actualizadas",
+      "created": "Creadas",
+      "title": "Título A–Z"
+    },
     "fields": { "title": "Título", "content": "Contenido" },
     "empty": {
       "title": "Aún no hay notas",

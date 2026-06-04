@@ -332,6 +332,18 @@
     "savedToBrain": "Saved to your Personal Brain.",
     "searchPlaceholder": "Search notes…",
     "searchLabel": "Search notes",
+    "filter": {
+      "label": "Filter by date",
+      "all": "All",
+      "week": "This week",
+      "month": "This month"
+    },
+    "sort": {
+      "label": "Sort",
+      "updated": "Updated",
+      "created": "Created",
+      "title": "Title A–Z"
+    },
     "fields": { "title": "Title", "content": "Content" },
     "empty": {
       "title": "No notes yet",
