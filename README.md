@@ -49,8 +49,8 @@ cp .env.example .env.local
 ```
 
 Fill in the values (see [Environment variables](#environment-variables)). At minimum you need
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from
-**Supabase → Project Settings → API**.
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the
+publishable/anon key) from **Supabase → Project Settings → API**.
 
 > The landing page and UI run without Supabase configured, but authentication and data
 > features (Sprint 1+) require it.
@@ -86,7 +86,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Required | Description |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon/public key |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Supabase publishable/anon key (legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` also accepted) |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | Server-only key for maintenance tooling (never exposed to the browser) |
 | `NEXT_PUBLIC_SITE_URL` | — | Public site URL for auth email redirect links (default `http://localhost:3000`) |
 | `AI_PROVIDER` | — | `mock` (default), `openai`, or `anthropic` for the Life Operator |

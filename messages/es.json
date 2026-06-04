@@ -122,6 +122,7 @@
       "passwordMismatch": "Las contraseñas no coinciden.",
       "rateLimit": "Demasiados intentos. Inténtalo más tarde.",
       "validationFailed": "Revisa tus datos e inténtalo de nuevo.",
+      "notConfigured": "La autenticación aún no está configurada. Inténtalo en breve.",
       "generic": "Algo salió mal. Inténtalo de nuevo."
     }
   },
@@ -194,6 +195,7 @@
     "errors": {
       "titleRequired": "Escribe un título.",
       "noteEmpty": "Agrega un título o algo de contenido.",
+      "tooLong": "Es demasiado largo — por favor acórtalo.",
       "generic": "Algo salió mal. Inténtalo de nuevo."
     }
   },

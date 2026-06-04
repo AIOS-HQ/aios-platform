@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { env } from "@/lib/env";
+import { env, isSupabaseConfigured } from "@/lib/env";
 import type { ActionState } from "@/lib/types";
 
 /** Maps a Supabase auth error to a localized, user-friendly message. */
@@ -35,6 +35,10 @@ export async function signIn(
     return { status: "error", message: t("missingFields") };
   }
 
+  if (!isSupabaseConfigured()) {
+    return { status: "error", message: t("notConfigured") };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
@@ -58,6 +62,10 @@ export async function signUp(
   }
   if (password.length < 8) {
     return { status: "error", message: t("errors.weakPassword") };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return { status: "error", message: t("errors.notConfigured") };
   }
 
   const supabase = await createClient();
@@ -93,6 +101,10 @@ export async function requestPasswordReset(
     return { status: "error", message: t("errors.missingFields") };
   }
 
+  if (!isSupabaseConfigured()) {
+    return { status: "error", message: t("errors.notConfigured") };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${env.siteUrl}/auth/callback?next=/update-password`,
@@ -121,6 +133,10 @@ export async function updatePassword(
     return { status: "error", message: t("errors.passwordMismatch") };
   }
 
+  if (!isSupabaseConfigured()) {
+    return { status: "error", message: t("errors.notConfigured") };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
@@ -131,7 +147,9 @@ export async function updatePassword(
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  }
   redirect("/login");
 }
