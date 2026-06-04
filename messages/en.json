@@ -91,7 +91,8 @@
       "subtitle": "Log in to your AIOS account.",
       "submit": "Log in",
       "forgot": "Forgot password?",
-      "noAccount": "Don't have an account?"
+      "noAccount": "Don't have an account?",
+      "callbackError": "That sign-in link didn't work. Please log in again."
     },
     "signup": {
       "title": "Create your account",
@@ -111,7 +112,10 @@
     "update": {
       "title": "Set a new password",
       "subtitle": "Choose a strong password you'll remember.",
-      "submit": "Update password"
+      "submit": "Update password",
+      "invalidTitle": "Link expired",
+      "invalidBody": "This password reset link is invalid or has expired. Request a new one.",
+      "requestNew": "Request a new link"
     },
     "errors": {
       "missingFields": "Please fill in all required fields.",
@@ -159,6 +163,13 @@
       "description": "Language and time zone.",
       "language": "Preferred language",
       "timezone": "Time zone"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Choose how AIOS looks on this account.",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
     },
     "account": {
       "title": "Account",
