@@ -3,16 +3,23 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ArrowRight, Send } from "lucide-react";
-import { runOperator } from "@/lib/harmony/operator-actions";
+import { ArrowRight, Check, Send, X } from "lucide-react";
+import {
+  confirmOperatorAction,
+  runOperator,
+} from "@/lib/harmony/operator-actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import type { OperatorResult } from "@/lib/ai/types";
 
-/** Compact Life Operator input for the dashboard. */
+/** Compact Life Operator input for the dashboard (with confirm-before-write). */
 export function OperatorQuickInput() {
   const t = useTranslations("operator");
   const [input, setInput] = useState("");
   const [reply, setReply] = useState<string | null>(null);
+  const [proposed, setProposed] = useState<
+    OperatorResult["proposedAction"] | null
+  >(null);
   const [pending, start] = useTransition();
 
   function send() {
@@ -21,8 +28,24 @@ export function OperatorQuickInput() {
     start(async () => {
       const res = await runOperator(value);
       setReply(res.reply);
+      setProposed(res.proposedAction ?? null);
       setInput("");
     });
+  }
+
+  function confirm() {
+    if (!proposed || pending) return;
+    const p = proposed;
+    start(async () => {
+      const res = await confirmOperatorAction(p.type, p.title);
+      setReply(res.reply);
+      setProposed(null);
+    });
+  }
+
+  function cancel() {
+    setProposed(null);
+    setReply(t("cancelled"));
   }
 
   return (
@@ -50,11 +73,30 @@ export function OperatorQuickInput() {
           <Send className="size-4" aria-hidden="true" />
         </Button>
       </form>
+
       {reply && (
-        <p className="whitespace-pre-wrap rounded-lg bg-muted p-3 text-sm">
-          {reply}
-        </p>
+        <div className="space-y-2 rounded-lg bg-muted p-3">
+          <p className="whitespace-pre-wrap text-sm">{reply}</p>
+          {proposed && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={confirm} disabled={pending}>
+                <Check className="size-3.5" aria-hidden="true" />
+                {t("confirm")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={cancel}
+                disabled={pending}
+              >
+                <X className="size-3.5" aria-hidden="true" />
+                {t("cancel")}
+              </Button>
+            </div>
+          )}
+        </div>
       )}
+
       <Link
         href="/harmony/operator"
         className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
