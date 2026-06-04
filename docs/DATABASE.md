@@ -51,7 +51,8 @@ Add to `.env.local` (from **Project Settings → API**):
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+# "publishable" in newer dashboards, "anon" in older ones — either env name works
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 

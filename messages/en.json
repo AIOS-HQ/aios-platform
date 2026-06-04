@@ -122,6 +122,7 @@
       "passwordMismatch": "Passwords do not match.",
       "rateLimit": "Too many attempts. Please try again later.",
       "validationFailed": "Please check your details and try again.",
+      "notConfigured": "Authentication isn't configured yet. Please try again shortly.",
       "generic": "Something went wrong. Please try again."
     }
   },
@@ -194,6 +195,7 @@
     "errors": {
       "titleRequired": "Please enter a title.",
       "noteEmpty": "Add a title or some content.",
+      "tooLong": "That's too long — please shorten it.",
       "generic": "Something went wrong. Please try again."
     }
   },
