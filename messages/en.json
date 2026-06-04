@@ -177,6 +177,24 @@
       "email": "Email",
       "role": "Role",
       "signOut": "Sign out"
+    },
+    "data": {
+      "title": "Your data",
+      "description": "Export or delete your AIOS data.",
+      "export": "Export your data",
+      "exportHint": "Download all your tasks, goals, notes, and Brain entries as JSON.",
+      "exportButton": "Export JSON"
+    },
+    "danger": {
+      "title": "Delete account",
+      "description": "Permanently delete your account and all associated data. This cannot be undone.",
+      "button": "Delete account",
+      "confirmTitle": "Delete your account?",
+      "confirmBody": "This permanently deletes your account and all of your data. This cannot be undone.",
+      "confirmLabel": "Type your email ({email}) to confirm",
+      "confirmError": "That doesn't match your account email.",
+      "notAvailable": "Account deletion isn't available — server configuration required.",
+      "deleting": "Deleting…"
     }
   },
   "dashboard": {

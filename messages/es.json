@@ -177,6 +177,24 @@
       "email": "Correo electrónico",
       "role": "Rol",
       "signOut": "Cerrar sesión"
+    },
+    "data": {
+      "title": "Tus datos",
+      "description": "Exporta o elimina tus datos de AIOS.",
+      "export": "Exporta tus datos",
+      "exportHint": "Descarga todas tus tareas, objetivos, notas y entradas del Cerebro en JSON.",
+      "exportButton": "Exportar JSON"
+    },
+    "danger": {
+      "title": "Eliminar cuenta",
+      "description": "Elimina permanentemente tu cuenta y todos los datos asociados. No se puede deshacer.",
+      "button": "Eliminar cuenta",
+      "confirmTitle": "¿Eliminar tu cuenta?",
+      "confirmBody": "Esto elimina permanentemente tu cuenta y todos tus datos. No se puede deshacer.",
+      "confirmLabel": "Escribe tu correo ({email}) para confirmar",
+      "confirmError": "Eso no coincide con el correo de tu cuenta.",
+      "notAvailable": "La eliminación de cuenta no está disponible — se requiere configuración del servidor.",
+      "deleting": "Eliminando…"
     }
   },
   "dashboard": {

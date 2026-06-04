@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/user";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
@@ -94,4 +96,38 @@ export async function updateThemePreference(theme: string): Promise<void> {
   });
 
   revalidatePath("/", "layout");
+}
+
+/**
+ * Permanently deletes the account + all data. Requires typing the account email
+ * to confirm, and the service-role key to be configured (Auth admin API). The
+ * `on delete cascade` FKs remove profile/settings/tasks/goals/notes/brain.
+ */
+export async function deleteAccount(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const t = await getTranslations("settings");
+  const user = await requireUser();
+  const confirmEmail = String(formData.get("confirmEmail") ?? "")
+    .trim()
+    .toLowerCase();
+  if (!user.email || confirmEmail !== user.email.toLowerCase()) {
+    return { status: "error", message: t("danger.confirmError") };
+  }
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return { status: "error", message: t("danger.notAvailable") };
+  }
+
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  // Clear the now-defunct session, then leave.
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/");
 }
