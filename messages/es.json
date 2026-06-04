@@ -91,7 +91,8 @@
       "subtitle": "Inicia sesión en tu cuenta de AIOS.",
       "submit": "Iniciar sesión",
       "forgot": "¿Olvidaste tu contraseña?",
-      "noAccount": "¿No tienes una cuenta?"
+      "noAccount": "¿No tienes una cuenta?",
+      "callbackError": "Ese enlace no funcionó. Inicia sesión de nuevo."
     },
     "signup": {
       "title": "Crea tu cuenta",
@@ -111,7 +112,10 @@
     "update": {
       "title": "Define una nueva contraseña",
       "subtitle": "Elige una contraseña segura que recuerdes.",
-      "submit": "Actualizar contraseña"
+      "submit": "Actualizar contraseña",
+      "invalidTitle": "Enlace caducado",
+      "invalidBody": "Este enlace para restablecer la contraseña no es válido o ha caducado. Solicita uno nuevo.",
+      "requestNew": "Solicitar un enlace nuevo"
     },
     "errors": {
       "missingFields": "Completa todos los campos obligatorios.",
@@ -160,18 +164,67 @@
       "language": "Idioma preferido",
       "timezone": "Zona horaria"
     },
+    "appearance": {
+      "title": "Apariencia",
+      "description": "Elige cómo se ve AIOS en esta cuenta.",
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
     "account": {
       "title": "Cuenta",
       "description": "Los detalles de tu cuenta.",
       "email": "Correo electrónico",
       "role": "Rol",
       "signOut": "Cerrar sesión"
+    },
+    "data": {
+      "title": "Tus datos",
+      "description": "Exporta o elimina tus datos de AIOS.",
+      "export": "Exporta tus datos",
+      "exportHint": "Descarga todas tus tareas, objetivos, notas y entradas del Cerebro en JSON.",
+      "exportButton": "Exportar JSON"
+    },
+    "danger": {
+      "title": "Eliminar cuenta",
+      "description": "Elimina permanentemente tu cuenta y todos los datos asociados. No se puede deshacer.",
+      "button": "Eliminar cuenta",
+      "confirmTitle": "¿Eliminar tu cuenta?",
+      "confirmBody": "Esto elimina permanentemente tu cuenta y todos tus datos. No se puede deshacer.",
+      "confirmLabel": "Escribe tu correo ({email}) para confirmar",
+      "confirmError": "Eso no coincide con el correo de tu cuenta.",
+      "notAvailable": "La eliminación de cuenta no está disponible — se requiere configuración del servidor.",
+      "deleting": "Eliminando…"
     }
   },
   "dashboard": {
     "title": "Panel",
     "welcome": "Bienvenido de nuevo, {name}",
     "subtitle": "Tu vida de un vistazo.",
+    "greeting": {
+      "morning": "Buenos días, {name}",
+      "afternoon": "Buenas tardes, {name}",
+      "evening": "Buenas noches, {name}"
+    },
+    "stats": {
+      "openTasks": "Tareas abiertas",
+      "dueToday": "Para hoy",
+      "overdue": "Vencidas",
+      "activeGoals": "Objetivos activos",
+      "notes": "Notas"
+    },
+    "quickAdd": {
+      "placeholder": "Agregar una tarea…",
+      "button": "Agregar tarea",
+      "added": "Tarea agregada."
+    },
+    "onboarding": {
+      "title": "Bienvenido a Harmony",
+      "body": "Empieza capturando una tarea, fijando un objetivo o escribiendo una nota.",
+      "task": "Crear una tarea",
+      "goal": "Fijar un objetivo",
+      "note": "Escribir una nota"
+    },
     "todayTasks": "Tareas de hoy",
     "activeGoals": "Objetivos activos",
     "operator": "Operador de Vida",
@@ -211,6 +264,29 @@
     "markIncomplete": "Marcar como pendiente",
     "filterLabel": "Filtrar tareas por estado",
     "filter": { "all": "Todas" },
+    "search": { "placeholder": "Buscar tareas…", "label": "Buscar tareas" },
+    "sort": {
+      "label": "Ordenar",
+      "due": "Fecha de vencimiento",
+      "priority": "Prioridad",
+      "created": "Más recientes"
+    },
+    "groupBy": {
+      "label": "Agrupar por",
+      "due": "Fecha",
+      "status": "Estado",
+      "priority": "Prioridad"
+    },
+    "groups": {
+      "overdue": "Vencidas",
+      "today": "Hoy",
+      "upcoming": "Próximas",
+      "noDate": "Sin fecha"
+    },
+    "noResults": {
+      "title": "No hay tareas que coincidan",
+      "description": "Prueba con otro término de búsqueda."
+    },
     "fields": {
       "title": "Título",
       "description": "Descripción",
@@ -233,6 +309,16 @@
     "dialogDesc": "Describe tu objetivo y define su progreso.",
     "progress": "Progreso",
     "target": "Meta",
+    "backToGoals": "Volver a objetivos",
+    "decreaseProgress": "Disminuir progreso",
+    "increaseProgress": "Aumentar progreso",
+    "sort": {
+      "label": "Ordenar",
+      "created": "Más recientes",
+      "progress": "Progreso",
+      "target": "Fecha objetivo"
+    },
+    "detail": { "overview": "Resumen" },
     "filterLabel": "Filtrar objetivos por estado",
     "filter": { "all": "Todos" },
     "fields": {
@@ -264,6 +350,18 @@
     "savedToBrain": "Guardado en tu Cerebro Personal.",
     "searchPlaceholder": "Buscar notas…",
     "searchLabel": "Buscar notas",
+    "filter": {
+      "label": "Filtrar por fecha",
+      "all": "Todas",
+      "week": "Esta semana",
+      "month": "Este mes"
+    },
+    "sort": {
+      "label": "Ordenar",
+      "updated": "Actualizadas",
+      "created": "Creadas",
+      "title": "Título A–Z"
+    },
     "fields": { "title": "Título", "content": "Contenido" },
     "empty": {
       "title": "Aún no hay notas",
@@ -278,6 +376,8 @@
     "title": "Cerebro Personal",
     "subtitle": "Tu almacén privado de conocimiento — y la base de tu futura memoria de IA.",
     "new": "Agregar entrada",
+    "edit": "Editar entrada",
+    "filter": { "label": "Filtrar por tipo", "all": "Todas" },
     "dialogDesc": "Guarda un conocimiento, una preferencia o una referencia.",
     "searchPlaceholder": "Busca en tu cerebro…",
     "searchLabel": "Buscar en el Cerebro Personal",
@@ -315,6 +415,13 @@
     "needGoalTitle": "¿Cuál es el objetivo? Prueba “Nuevo objetivo: correr 5K”.",
     "taskCreated": "Listo — agregué la tarea “{title}”.",
     "goalCreated": "Listo — creé el objetivo “{title}”.",
+    "proposeTask": "¿Crear esta tarea: “{title}”?",
+    "proposeGoal": "¿Fijar este objetivo: “{title}”?",
+    "confirm": "Crear",
+    "cancel": "Cancelar",
+    "cancelled": "De acuerdo, cancelado — no se creó nada.",
+    "copy": "Copiar",
+    "copied": "Copiado al portapapeles.",
     "noNotes": "Aún no tienes notas.",
     "summaryIntro": "Tienes {count} notas. Más recientes:",
     "summaryPrompt": "Resume las siguientes notas personales en algunos puntos breves:",
@@ -331,6 +438,9 @@
   "advisor": {
     "title": "Asesor de Vida",
     "subtitle": "Sugerencias suaves y transparentes basadas en tus datos.",
+    "view": "Ver",
+    "dismiss": "Descartar",
+    "empty": "Estás al día.",
     "ruleBasedNote": "Estas sugerencias se basan en reglas y se calculan a partir de tus propias tareas, objetivos y notas — sin automatización, nada oculto.",
     "rec": {
       "dueToday": "Tienes {count} tarea(s) para hoy.",

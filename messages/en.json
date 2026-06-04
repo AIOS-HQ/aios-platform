@@ -91,7 +91,8 @@
       "subtitle": "Log in to your AIOS account.",
       "submit": "Log in",
       "forgot": "Forgot password?",
-      "noAccount": "Don't have an account?"
+      "noAccount": "Don't have an account?",
+      "callbackError": "That sign-in link didn't work. Please log in again."
     },
     "signup": {
       "title": "Create your account",
@@ -111,7 +112,10 @@
     "update": {
       "title": "Set a new password",
       "subtitle": "Choose a strong password you'll remember.",
-      "submit": "Update password"
+      "submit": "Update password",
+      "invalidTitle": "Link expired",
+      "invalidBody": "This password reset link is invalid or has expired. Request a new one.",
+      "requestNew": "Request a new link"
     },
     "errors": {
       "missingFields": "Please fill in all required fields.",
@@ -160,18 +164,67 @@
       "language": "Preferred language",
       "timezone": "Time zone"
     },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Choose how AIOS looks on this account.",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "account": {
       "title": "Account",
       "description": "Your account details.",
       "email": "Email",
       "role": "Role",
       "signOut": "Sign out"
+    },
+    "data": {
+      "title": "Your data",
+      "description": "Export or delete your AIOS data.",
+      "export": "Export your data",
+      "exportHint": "Download all your tasks, goals, notes, and Brain entries as JSON.",
+      "exportButton": "Export JSON"
+    },
+    "danger": {
+      "title": "Delete account",
+      "description": "Permanently delete your account and all associated data. This cannot be undone.",
+      "button": "Delete account",
+      "confirmTitle": "Delete your account?",
+      "confirmBody": "This permanently deletes your account and all of your data. This cannot be undone.",
+      "confirmLabel": "Type your email ({email}) to confirm",
+      "confirmError": "That doesn't match your account email.",
+      "notAvailable": "Account deletion isn't available — server configuration required.",
+      "deleting": "Deleting…"
     }
   },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome back, {name}",
     "subtitle": "Here's your life at a glance.",
+    "greeting": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "stats": {
+      "openTasks": "Open tasks",
+      "dueToday": "Due today",
+      "overdue": "Overdue",
+      "activeGoals": "Active goals",
+      "notes": "Notes"
+    },
+    "quickAdd": {
+      "placeholder": "Add a task…",
+      "button": "Add task",
+      "added": "Task added."
+    },
+    "onboarding": {
+      "title": "Welcome to Harmony",
+      "body": "Start by capturing a task, setting a goal, or jotting a note.",
+      "task": "Create a task",
+      "goal": "Set a goal",
+      "note": "Write a note"
+    },
     "todayTasks": "Today's tasks",
     "activeGoals": "Active goals",
     "operator": "Life Operator",
@@ -211,6 +264,29 @@
     "markIncomplete": "Mark incomplete",
     "filterLabel": "Filter tasks by status",
     "filter": { "all": "All" },
+    "search": { "placeholder": "Search tasks…", "label": "Search tasks" },
+    "sort": {
+      "label": "Sort",
+      "due": "Due date",
+      "priority": "Priority",
+      "created": "Newest"
+    },
+    "groupBy": {
+      "label": "Group by",
+      "due": "Due date",
+      "status": "Status",
+      "priority": "Priority"
+    },
+    "groups": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "noDate": "No date"
+    },
+    "noResults": {
+      "title": "No matching tasks",
+      "description": "Try a different search term."
+    },
     "fields": {
       "title": "Title",
       "description": "Description",
@@ -233,6 +309,16 @@
     "dialogDesc": "Describe your goal and set its progress.",
     "progress": "Progress",
     "target": "Target",
+    "backToGoals": "Back to goals",
+    "decreaseProgress": "Decrease progress",
+    "increaseProgress": "Increase progress",
+    "sort": {
+      "label": "Sort",
+      "created": "Newest",
+      "progress": "Progress",
+      "target": "Target date"
+    },
+    "detail": { "overview": "Overview" },
     "filterLabel": "Filter goals by status",
     "filter": { "all": "All" },
     "fields": {
@@ -264,6 +350,18 @@
     "savedToBrain": "Saved to your Personal Brain.",
     "searchPlaceholder": "Search notes…",
     "searchLabel": "Search notes",
+    "filter": {
+      "label": "Filter by date",
+      "all": "All",
+      "week": "This week",
+      "month": "This month"
+    },
+    "sort": {
+      "label": "Sort",
+      "updated": "Updated",
+      "created": "Created",
+      "title": "Title A–Z"
+    },
     "fields": { "title": "Title", "content": "Content" },
     "empty": {
       "title": "No notes yet",
@@ -278,6 +376,8 @@
     "title": "Personal Brain",
     "subtitle": "Your private knowledge store — and the foundation of your future AI memory.",
     "new": "Add entry",
+    "edit": "Edit entry",
+    "filter": { "label": "Filter by type", "all": "All" },
     "dialogDesc": "Store a piece of knowledge, a preference, or a reference.",
     "searchPlaceholder": "Search your brain…",
     "searchLabel": "Search Personal Brain",
@@ -315,6 +415,13 @@
     "needGoalTitle": "What's the goal? Try “New goal: run a 5K”.",
     "taskCreated": "Done — I added the task “{title}”.",
     "goalCreated": "Done — I created the goal “{title}”.",
+    "proposeTask": "Create this task: “{title}”?",
+    "proposeGoal": "Set this goal: “{title}”?",
+    "confirm": "Create",
+    "cancel": "Cancel",
+    "cancelled": "Okay, cancelled — nothing was created.",
+    "copy": "Copy",
+    "copied": "Copied to clipboard.",
     "noNotes": "You don't have any notes yet.",
     "summaryIntro": "You have {count} notes. Most recent:",
     "summaryPrompt": "Summarize the following personal notes into a few concise bullet points:",
@@ -331,6 +438,9 @@
   "advisor": {
     "title": "Life Advisor",
     "subtitle": "Gentle, transparent nudges based on your data.",
+    "view": "View",
+    "dismiss": "Dismiss",
+    "empty": "You're all caught up.",
     "ruleBasedNote": "These suggestions are rule-based and computed from your own tasks, goals, and notes — no automation, nothing hidden.",
     "rec": {
       "dueToday": "You have {count} task(s) due today.",

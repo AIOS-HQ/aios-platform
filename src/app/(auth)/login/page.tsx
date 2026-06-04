@@ -15,9 +15,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const t = await getTranslations("auth");
   const tc = await getTranslations("common");
+  const { error } = await searchParams;
+  const callbackError = error === "auth_callback";
 
   return (
     <Card>
@@ -26,6 +32,14 @@ export default async function LoginPage() {
         <CardDescription>{t("login.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {callbackError && (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            {t("login.callbackError")}
+          </p>
+        )}
         <LoginForm />
         <p className="text-center text-sm text-muted-foreground">
           {t("login.noAccount")}{" "}
