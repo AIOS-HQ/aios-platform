@@ -1,0 +1,41 @@
+import { Sidebar } from "./sidebar";
+import { MobileNav } from "./mobile-nav";
+import { UserMenu } from "./user-menu";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+/** Authenticated application chrome: sidebar + top bar + content region. */
+export function AppShell({
+  name,
+  email,
+  initials,
+  children,
+}: {
+  name: string;
+  email: string;
+  initials: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-dvh">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur sm:px-6">
+          <MobileNav />
+          <div className="flex-1" />
+          <div className="hidden sm:block">
+            <LocaleSwitcher />
+          </div>
+          <ThemeToggle />
+          <UserMenu name={name} email={email} initials={initials} />
+        </header>
+        <main
+          id="main-content"
+          className="flex-1 px-4 py-6 sm:px-6 lg:px-8"
+        >
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}
