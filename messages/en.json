@@ -1,0 +1,82 @@
+{
+  "common": {
+    "appName": "AIOS",
+    "product": "AIOS Platform",
+    "logIn": "Log in",
+    "signUp": "Sign up",
+    "getStarted": "Get started",
+    "learnMore": "Learn more",
+    "comingSoon": "Coming soon",
+    "available": "Available now",
+    "language": "Language",
+    "theme": "Theme",
+    "toggleTheme": "Toggle theme",
+    "skipToContent": "Skip to main content",
+    "backHome": "Back to home",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "close": "Close",
+    "confirm": "Confirm"
+  },
+  "landing": {
+    "hero": {
+      "badge": "Intelligent operating systems",
+      "title": "Achieve more, with less effort.",
+      "subtitle": "AIOS builds secure, accessible, AI-powered operating systems for your life and your business.",
+      "ctaPrimary": "Get started free",
+      "ctaSecondary": "Explore Harmony"
+    },
+    "products": {
+      "title": "One platform. Two operating systems.",
+      "subtitle": "AIOS Core powers every product on a single, shared foundation.",
+      "harmony": {
+        "tagline": "Personal Operating System",
+        "description": "Organize life, manage goals, complete tasks, capture knowledge, and grow with AI-powered assistance.",
+        "cta": "Enter Harmony"
+      },
+      "opera": {
+        "tagline": "Business Operating System",
+        "description": "Run operations, manage company knowledge, and accelerate growth. Arriving in a future release."
+      }
+    },
+    "principles": {
+      "title": "Built on principles that put you first",
+      "subtitle": "How AIOS earns your trust.",
+      "humanControl": {
+        "title": "Human in control",
+        "description": "AI assists, you decide. Nothing happens without your say-so."
+      },
+      "trust": {
+        "title": "Trust before automation",
+        "description": "Visibility and transparency always come before autonomy."
+      },
+      "global": {
+        "title": "Global first",
+        "description": "Multi-language from day one, starting with English and Spanish."
+      },
+      "accessibility": {
+        "title": "Accessibility first",
+        "description": "Designed to be usable by everyone, on any device."
+      },
+      "ownData": {
+        "title": "You own your data",
+        "description": "Export or delete your data whenever you want."
+      }
+    },
+    "footer": {
+      "tagline": "Intelligent operating systems for life and business.",
+      "rights": "AIOS. All rights reserved."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist or has moved.",
+    "cta": "Back to home"
+  }
+}

@@ -1,214 +1,147 @@
 # AIOS Platform
 
-## Artificial Intelligence Operating Systems
+**Artificial Intelligence Operating Systems** — secure, accessible, AI-powered operating systems for life and business.
 
-AIOS is building intelligent operating systems for life and business.
+AIOS Core is the shared foundation that powers two products:
 
-Our mission is to help people and businesses achieve more with less effort through secure, accessible, and intelligent AI.
+- **Harmony** — the Personal Operating System (students, parents, families, seniors, professionals, accessibility users).
+- **Opera** — the Business Operating System _(planned for a later phase — not in this build)._
 
----
+This repository currently contains the **AIOS Core foundation** and **Harmony Lite** (the first working product). Opera, the marketplace, mobile apps, and billing are intentionally **not** built yet.
 
-# Ecosystem
-
-## Harmony
-
-Harmony is the Personal Operating System.
-
-Designed for:
-
-* Students
-* Parents
-* Families
-* Seniors
-* Professionals
-* Accessibility users
-
-Harmony helps users organize life, manage goals, complete tasks, learn, and grow through AI-powered assistance.
-
-Core experiences include:
-
-* Life Command Center
-* Life Operator
-* Life Advisor
-* Personal Brain
-* Tasks
-* Goals
-* Calendar
-* Multi-language support
+> Guiding principles: **Human in control · Trust before automation · Global first · Accessibility first · Users own their data.**
 
 ---
 
-## Opera
+## Tech stack
 
-Opera is the Business Operating System.
-
-Designed for:
-
-* Entrepreneurs
-* Small Businesses
-* Agencies
-* Growing Companies
-
-Opera helps businesses organize operations, manage knowledge, improve productivity, and accelerate growth through AI-powered assistance.
-
-Core experiences include:
-
-* Owner Command Center
-* Business Operator
-* Business Advisor
-* Company Brain
-* Social Hub
-* Tasks
-* Approvals
-* Analytics
-* Multi-language support
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js (App Router) + React 19 |
+| Language | TypeScript (strict mode) |
+| Styling | Tailwind CSS v4 + shadcn/ui-style components |
+| Auth & data | Supabase (Auth + Postgres with Row Level Security) |
+| i18n | next-intl (English + Spanish, cookie-driven, no URL segment) |
+| Icons / toasts | lucide-react / sonner |
 
 ---
 
-# AIOS Core
+## Quick start (local)
 
-AIOS Core is the shared platform powering Harmony and Opera.
+### 1. Prerequisites
 
-Core services include:
+- Node.js **20+** (Node 22/24 recommended)
+- npm **10+**
+- A free [Supabase](https://supabase.com) project (for Sprint 1 auth + data)
 
-* Identity Engine
-* Brain Engine
-* Translation Engine
-* Notification Engine
-* Integration Engine
-* Billing Engine
+### 2. Install
 
-AIOS Core provides the shared infrastructure that allows all AIOS products to operate on a single foundation.
+```bash
+git clone https://github.com/AIOS-HQ/aios-platform.git
+cd aios-platform
+npm install
+```
 
----
+### 3. Configure environment
 
-# Core AI Architecture
+```bash
+cp .env.example .env.local
+```
 
-AIOS Core is powered by four executive AI systems:
+Fill in the values (see [Environment variables](#environment-variables)). At minimum you need
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from
+**Supabase → Project Settings → API**.
 
-## Architect AI
+> The landing page and UI run without Supabase configured, but authentication and data
+> features (Sprint 1+) require it.
 
-Responsible for building and configuring systems.
+### 4. Set up the database (Sprint 1+)
 
-## Operator AI
+Apply the schema to your Supabase project. See **[docs/DATABASE.md](docs/DATABASE.md)** for both
+options (Supabase CLI migrations _and_ a copy-paste SQL script). _(Added in Sprint 1.)_
 
-Responsible for execution, organization, and task management.
+### 5. Run
 
-## Guardian AI
+```bash
+npm run dev
+```
 
-Responsible for permissions, security, compliance, and approvals.
-
-## Advisor AI
-
-Responsible for recommendations, growth opportunities, and optimization.
-
----
-
-# Guiding Principles
-
-## Human In Control
-
-AI assists humans.
-
-Humans remain in control.
-
-## Trust Before Automation
-
-Visibility and transparency come before autonomy.
-
-## Global First
-
-Multi-language support is a foundational requirement.
-
-Launch languages:
-
-* English
-* Spanish
-
-## Accessibility First
-
-AIOS is designed to be accessible to all users.
-
-## Users Own Their Data
-
-Users can export and delete their data at any time.
+Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-# Technology Stack
+## Scripts
 
-## Frontend
-
-* Next.js
-* TypeScript
-* Tailwind CSS
-* shadcn/ui
-
-## Mobile
-
-* React Native
-* Expo
-
-## Backend
-
-* Supabase
-* PostgreSQL
-
-## Infrastructure
-
-* Vercel
-* Resend
-* PostHog
-* Sentry
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | Lint with ESLint |
 
 ---
 
-# Development Strategy
+## Environment variables
 
-AIOS is built using a shared platform architecture.
+| Variable | Required | Description |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | — | Server-only key for maintenance tooling (never exposed to the browser) |
+| `NEXT_PUBLIC_SITE_URL` | — | Public site URL for auth email redirect links (default `http://localhost:3000`) |
+| `AI_PROVIDER` | — | `mock` (default), `openai`, or `anthropic` for the Life Operator |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | — | Provider key; only needed if `AI_PROVIDER` is set to a real provider |
+| `AI_MODEL` | — | Optional model override |
 
-Products are developed on top of AIOS Core.
-
-Current build streams:
-
-1. AIOS Core Foundation
-2. Harmony Lite
-3. Opera Lite
-
-Development is GitHub-first and HyperAgent-first.
-
----
-
-# Roadmap
-
-## Phase 1
-
-* AIOS Core
-* Harmony Lite
-* Opera Lite
-
-## Phase 2
-
-* Mobile Expansion
-* Additional Integrations
-
-## Phase 3
-
-* Marketplace
-
-## Phase 4
-
-* Enterprise Features
-
-## Phase 5
-
-* Developer Platform
+All `.env*` files are gitignored except `.env.example`.
 
 ---
 
-# Vision
+## Project structure
 
-Build operating systems that help people and businesses achieve more with less effort.
+```
+src/
+  app/                # App Router routes (landing, auth, dashboard…)
+  components/
+    ui/               # shadcn/ui-style primitives
+    brand/            # AIOS logo + branding
+  i18n/               # next-intl config, request resolver, locale actions
+  lib/
+    supabase/         # browser + server Supabase clients
+    utils.ts          # cn() class helper
+    env.ts            # centralized env access
+    constants.ts      # shared branding constants
+messages/             # en.json, es.json translation catalogs
+docs/                 # architecture + setup documentation
+supabase/             # migrations + config (Sprint 1+)
+```
 
-Welcome to AIOS.
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full design.
 
+---
+
+## Localization
+
+AIOS is **global-first**. English and Spanish ship from day one; user-facing strings live in
+`messages/<locale>.json` (never hardcoded in components). Adding Portuguese, French, German, or
+Italian later is a matter of adding a `messages/<locale>.json` file and extending the `locales`
+array in `src/i18n/config.ts`.
+
+## Accessibility
+
+Semantic HTML, keyboard-friendly navigation, visible focus rings, a skip-to-content link,
+labelled controls, reduced-motion support, and AA-minded color contrast are built in from the
+foundation.
+
+---
+
+## Roadmap
+
+- ✅ **Foundation** — Next.js + TS + Tailwind + shadcn/ui + Supabase clients + i18n + branding
+- ✅ **Sprint 1 — AIOS Core** — auth, profiles, roles, settings, schema, protected shell
+- ✅ **Sprint 2 — Harmony Lite** — dashboard, tasks, goals, notes, Personal Brain, Life Operator, Life Advisor
+- ⬜ Opera (Business OS), mobile, marketplace, billing — _future phases_
+
+## License
+
+Proprietary — © AIOS. All rights reserved.

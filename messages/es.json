@@ -1,0 +1,82 @@
+{
+  "common": {
+    "appName": "AIOS",
+    "product": "AIOS Platform",
+    "logIn": "Iniciar sesión",
+    "signUp": "Crear cuenta",
+    "getStarted": "Comenzar",
+    "learnMore": "Saber más",
+    "comingSoon": "Próximamente",
+    "available": "Disponible ahora",
+    "language": "Idioma",
+    "theme": "Tema",
+    "toggleTheme": "Cambiar tema",
+    "skipToContent": "Saltar al contenido principal",
+    "backHome": "Volver al inicio",
+    "loading": "Cargando…",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "close": "Cerrar",
+    "confirm": "Confirmar"
+  },
+  "landing": {
+    "hero": {
+      "badge": "Sistemas operativos inteligentes",
+      "title": "Logra más, con menos esfuerzo.",
+      "subtitle": "AIOS crea sistemas operativos seguros, accesibles y potenciados por IA para tu vida y tu negocio.",
+      "ctaPrimary": "Comenzar gratis",
+      "ctaSecondary": "Explorar Harmony"
+    },
+    "products": {
+      "title": "Una plataforma. Dos sistemas operativos.",
+      "subtitle": "AIOS Core impulsa cada producto sobre una única base compartida.",
+      "harmony": {
+        "tagline": "Sistema Operativo Personal",
+        "description": "Organiza tu vida, gestiona objetivos, completa tareas, captura conocimiento y crece con asistencia de IA.",
+        "cta": "Entrar a Harmony"
+      },
+      "opera": {
+        "tagline": "Sistema Operativo Empresarial",
+        "description": "Gestiona operaciones, administra el conocimiento de la empresa y acelera el crecimiento. Llegará en una versión futura."
+      }
+    },
+    "principles": {
+      "title": "Construido sobre principios que te ponen primero",
+      "subtitle": "Cómo AIOS se gana tu confianza.",
+      "humanControl": {
+        "title": "Las personas tienen el control",
+        "description": "La IA asiste, tú decides. Nada ocurre sin tu aprobación."
+      },
+      "trust": {
+        "title": "Confianza antes que automatización",
+        "description": "La visibilidad y la transparencia siempre van antes que la autonomía."
+      },
+      "global": {
+        "title": "Global desde el inicio",
+        "description": "Multilingüe desde el primer día, comenzando con inglés y español."
+      },
+      "accessibility": {
+        "title": "Accesibilidad primero",
+        "description": "Diseñado para ser usable por todos, en cualquier dispositivo."
+      },
+      "ownData": {
+        "title": "Tus datos son tuyos",
+        "description": "Exporta o elimina tus datos cuando quieras."
+      }
+    },
+    "footer": {
+      "tagline": "Sistemas operativos inteligentes para la vida y los negocios.",
+      "rights": "AIOS. Todos los derechos reservados."
+    }
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o ha sido movida.",
+    "cta": "Volver al inicio"
+  }
+}
