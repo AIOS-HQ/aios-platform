@@ -246,6 +246,29 @@
     "markIncomplete": "Mark incomplete",
     "filterLabel": "Filter tasks by status",
     "filter": { "all": "All" },
+    "search": { "placeholder": "Search tasks…", "label": "Search tasks" },
+    "sort": {
+      "label": "Sort",
+      "due": "Due date",
+      "priority": "Priority",
+      "created": "Newest"
+    },
+    "groupBy": {
+      "label": "Group by",
+      "due": "Due date",
+      "status": "Status",
+      "priority": "Priority"
+    },
+    "groups": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "noDate": "No date"
+    },
+    "noResults": {
+      "title": "No matching tasks",
+      "description": "Try a different search term."
+    },
     "fields": {
       "title": "Title",
       "description": "Description",

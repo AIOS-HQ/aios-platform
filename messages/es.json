@@ -246,6 +246,29 @@
     "markIncomplete": "Marcar como pendiente",
     "filterLabel": "Filtrar tareas por estado",
     "filter": { "all": "Todas" },
+    "search": { "placeholder": "Buscar tareas…", "label": "Buscar tareas" },
+    "sort": {
+      "label": "Ordenar",
+      "due": "Fecha de vencimiento",
+      "priority": "Prioridad",
+      "created": "Más recientes"
+    },
+    "groupBy": {
+      "label": "Agrupar por",
+      "due": "Fecha",
+      "status": "Estado",
+      "priority": "Prioridad"
+    },
+    "groups": {
+      "overdue": "Vencidas",
+      "today": "Hoy",
+      "upcoming": "Próximas",
+      "noDate": "Sin fecha"
+    },
+    "noResults": {
+      "title": "No hay tareas que coincidan",
+      "description": "Prueba con otro término de búsqueda."
+    },
     "fields": {
       "title": "Título",
       "description": "Descripción",

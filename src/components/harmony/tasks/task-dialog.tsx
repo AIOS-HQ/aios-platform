@@ -25,20 +25,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
+import { LIMITS } from "@/lib/limits";
 import type { PersonalTask } from "@/types/database";
 
 export function TaskDialog({
   task,
   children,
+  open: openProp,
+  onOpenChange,
 }: {
   task?: PersonalTask;
   children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("tasks");
   const tc = useTranslations("common");
   const editing = Boolean(task);
+  const open = openProp ?? internalOpen;
+
+  function handleOpenChange(next: boolean) {
+    if (openProp === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+    if (!next) setError(null);
+  }
 
   async function onSubmit(formData: FormData) {
     setError(null);
@@ -50,17 +62,11 @@ export function TaskDialog({
       return;
     }
     toast.success(res.message ?? tc("save"));
-    setOpen(false);
+    handleOpenChange(false);
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (!o) setError(null);
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -83,6 +89,7 @@ export function TaskDialog({
               id="task-title"
               name="title"
               defaultValue={task?.title ?? ""}
+              maxLength={LIMITS.title}
               required
             />
           </div>
@@ -92,6 +99,7 @@ export function TaskDialog({
               id="task-desc"
               name="description"
               defaultValue={task?.description ?? ""}
+              maxLength={LIMITS.description}
               rows={3}
             />
           </div>
