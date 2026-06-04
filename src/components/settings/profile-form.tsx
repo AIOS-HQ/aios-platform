@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { FormMessage } from "@/components/shared/form-message";
+import { LIMITS } from "@/lib/limits";
 
 export function ProfileForm({ fullName }: { fullName: string }) {
   const t = useTranslations("settings");
@@ -36,6 +37,7 @@ export function ProfileForm({ fullName }: { fullName: string }) {
               id="fullName"
               name="fullName"
               defaultValue={fullName}
+              maxLength={LIMITS.name}
               autoComplete="name"
             />
           </div>
