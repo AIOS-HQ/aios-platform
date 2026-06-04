@@ -1,0 +1,23 @@
+import "server-only";
+
+import { createClient } from "@/lib/supabase/server";
+import { sanitizeSearch } from "@/lib/utils";
+import type { BrainKind, PersonalBrainEntry } from "@/types/database";
+
+/** List the current user's Personal Brain entries. */
+export async function listBrainEntries(opts?: {
+  kind?: BrainKind | "all";
+  query?: string;
+}): Promise<PersonalBrainEntry[]> {
+  const supabase = await createClient();
+  let q = supabase.from("personal_brains").select("*");
+  if (opts?.kind && opts.kind !== "all") {
+    q = q.eq("kind", opts.kind);
+  }
+  const term = opts?.query ? sanitizeSearch(opts.query) : "";
+  if (term) {
+    q = q.or(`title.ilike.%${term}%,content.ilike.%${term}%`);
+  }
+  const { data } = await q.order("created_at", { ascending: false });
+  return (data as PersonalBrainEntry[] | null) ?? [];
+}

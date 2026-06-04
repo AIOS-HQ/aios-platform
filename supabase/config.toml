@@ -1,0 +1,33 @@
+# Supabase configuration. Docs: https://supabase.com/docs/guides/cli/config
+# `project_id` is a local label; link to your hosted project with:
+#   supabase link --project-ref <your-project-ref>
+project_id = "aios-platform"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# For quick local testing we don't require email confirmation, so signup
+# returns a session immediately. Enable this in production.
+enable_confirmations = false

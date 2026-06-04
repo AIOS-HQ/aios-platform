@@ -78,5 +78,268 @@
     "title": "Página no encontrada",
     "description": "La página que buscas no existe o ha sido movida.",
     "cta": "Volver al inicio"
+  },
+  "auth": {
+    "fields": {
+      "fullName": "Nombre completo",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña"
+    },
+    "login": {
+      "title": "Bienvenido de nuevo",
+      "subtitle": "Inicia sesión en tu cuenta de AIOS.",
+      "submit": "Iniciar sesión",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "noAccount": "¿No tienes una cuenta?"
+    },
+    "signup": {
+      "title": "Crea tu cuenta",
+      "subtitle": "Comienza tu recorrido con AIOS.",
+      "submit": "Crear cuenta",
+      "haveAccount": "¿Ya tienes una cuenta?",
+      "passwordHint": "Usa al menos 8 caracteres.",
+      "checkEmail": "Revisa tu correo para confirmar tu cuenta y luego inicia sesión."
+    },
+    "reset": {
+      "title": "Restablece tu contraseña",
+      "subtitle": "Te enviaremos un enlace seguro para restablecerla.",
+      "submit": "Enviar enlace",
+      "sent": "Si ese correo está registrado, el enlace va en camino.",
+      "backToLogin": "Volver a iniciar sesión"
+    },
+    "update": {
+      "title": "Define una nueva contraseña",
+      "subtitle": "Elige una contraseña segura que recuerdes.",
+      "submit": "Actualizar contraseña"
+    },
+    "errors": {
+      "missingFields": "Completa todos los campos obligatorios.",
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "emailNotConfirmed": "Confirma tu correo antes de iniciar sesión.",
+      "userExists": "Ya existe una cuenta con este correo.",
+      "weakPassword": "La contraseña debe tener al menos 8 caracteres.",
+      "passwordMismatch": "Las contraseñas no coinciden.",
+      "rateLimit": "Demasiados intentos. Inténtalo más tarde.",
+      "validationFailed": "Revisa tus datos e inténtalo de nuevo.",
+      "generic": "Algo salió mal. Inténtalo de nuevo."
+    }
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "settings": "Ajustes",
+    "account": "Cuenta",
+    "signOut": "Cerrar sesión",
+    "menu": "Menú",
+    "openMenu": "Abrir menú",
+    "tasks": "Tareas",
+    "goals": "Objetivos",
+    "notes": "Notas",
+    "brain": "Cerebro Personal",
+    "operator": "Operador de Vida",
+    "advisor": "Asesor de Vida"
+  },
+  "roles": {
+    "personal_user": "Personal",
+    "business_owner": "Propietario de negocio",
+    "admin": "Administrador"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Gestiona tu perfil y preferencias.",
+    "saved": "Guardado.",
+    "profile": {
+      "title": "Perfil",
+      "description": "Tu información personal.",
+      "fullName": "Nombre completo"
+    },
+    "preferences": {
+      "title": "Preferencias",
+      "description": "Idioma y zona horaria.",
+      "language": "Idioma preferido",
+      "timezone": "Zona horaria"
+    },
+    "account": {
+      "title": "Cuenta",
+      "description": "Los detalles de tu cuenta.",
+      "email": "Correo electrónico",
+      "role": "Rol",
+      "signOut": "Cerrar sesión"
+    }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "welcome": "Bienvenido de nuevo, {name}",
+    "subtitle": "Tu vida de un vistazo.",
+    "todayTasks": "Tareas de hoy",
+    "activeGoals": "Objetivos activos",
+    "operator": "Operador de Vida",
+    "operatorHint": "Pídeme crear una tarea, fijar un objetivo o resumir tus notas.",
+    "advisor": "Asesor de Vida",
+    "recentNotes": "Notas recientes",
+    "viewAll": "Ver todo",
+    "noTasksToday": "Nada para hoy. Disfruta la calma.",
+    "noGoals": "Aún no hay objetivos activos.",
+    "noNotes": "Aún no hay notas.",
+    "untitledNote": "Sin título"
+  },
+  "harmony": {
+    "saved": "Guardado.",
+    "deleted": "Eliminado.",
+    "confirmDelete": {
+      "title": "¿Eliminar este elemento?",
+      "body": "“{title}” se eliminará permanentemente. No se puede deshacer.",
+      "bodyGeneric": "Esto se eliminará permanentemente. No se puede deshacer."
+    },
+    "errors": {
+      "titleRequired": "Escribe un título.",
+      "noteEmpty": "Agrega un título o algo de contenido.",
+      "generic": "Algo salió mal. Inténtalo de nuevo."
+    }
+  },
+  "tasks": {
+    "title": "Tareas",
+    "subtitle": "Captura lo que hay que hacer y llévalo hasta el final.",
+    "new": "Nueva tarea",
+    "edit": "Editar tarea",
+    "dialogDesc": "Agrega los detalles y guarda.",
+    "due": "Vence",
+    "actions": "Acciones de la tarea",
+    "markComplete": "Marcar como completada",
+    "markIncomplete": "Marcar como pendiente",
+    "filterLabel": "Filtrar tareas por estado",
+    "filter": { "all": "Todas" },
+    "fields": {
+      "title": "Título",
+      "description": "Descripción",
+      "priority": "Prioridad",
+      "status": "Estado",
+      "dueDate": "Fecha de vencimiento"
+    },
+    "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
+    "status": { "todo": "Por hacer", "in_progress": "En progreso", "done": "Hecha" },
+    "empty": {
+      "title": "No hay tareas",
+      "description": "Crea tu primera tarea para empezar."
+    }
+  },
+  "goals": {
+    "title": "Objetivos",
+    "subtitle": "Define objetivos y sigue tu progreso.",
+    "new": "Nuevo objetivo",
+    "edit": "Editar objetivo",
+    "dialogDesc": "Describe tu objetivo y define su progreso.",
+    "progress": "Progreso",
+    "target": "Meta",
+    "filterLabel": "Filtrar objetivos por estado",
+    "filter": { "all": "Todos" },
+    "fields": {
+      "title": "Título",
+      "description": "Descripción",
+      "status": "Estado",
+      "progress": "Progreso (%)",
+      "targetDate": "Fecha objetivo"
+    },
+    "status": {
+      "active": "Activo",
+      "paused": "En pausa",
+      "completed": "Completado",
+      "archived": "Archivado"
+    },
+    "empty": {
+      "title": "Aún no hay objetivos",
+      "description": "Define tu primer objetivo para empezar a avanzar."
+    }
+  },
+  "notes": {
+    "title": "Notas",
+    "subtitle": "Captura ideas y conocimiento.",
+    "new": "Nueva nota",
+    "edit": "Editar nota",
+    "dialogDesc": "Dale un título y escribe.",
+    "untitled": "Sin título",
+    "saveToBrain": "Guardar en el Cerebro",
+    "savedToBrain": "Guardado en tu Cerebro Personal.",
+    "searchPlaceholder": "Buscar notas…",
+    "searchLabel": "Buscar notas",
+    "fields": { "title": "Título", "content": "Contenido" },
+    "empty": {
+      "title": "Aún no hay notas",
+      "description": "Escribe tu primera nota para recordarla."
+    },
+    "noResults": {
+      "title": "No hay notas que coincidan",
+      "description": "Prueba con otro término de búsqueda."
+    }
+  },
+  "brain": {
+    "title": "Cerebro Personal",
+    "subtitle": "Tu almacén privado de conocimiento — y la base de tu futura memoria de IA.",
+    "new": "Agregar entrada",
+    "dialogDesc": "Guarda un conocimiento, una preferencia o una referencia.",
+    "searchPlaceholder": "Busca en tu cerebro…",
+    "searchLabel": "Buscar en el Cerebro Personal",
+    "tagsPlaceholder": "etiquetas, separadas, por comas",
+    "fields": { "title": "Título", "content": "Contenido", "tags": "Etiquetas" },
+    "kind": {
+      "note": "Nota",
+      "preference": "Preferencia",
+      "goal": "Objetivo",
+      "manual": "Entrada"
+    },
+    "empty": {
+      "title": "Tu cerebro está vacío",
+      "description": "Agrega conocimiento o guarda notas aquí para construir tu capa de memoria."
+    },
+    "noResults": {
+      "title": "No se encontró nada",
+      "description": "Prueba con otro término de búsqueda."
+    }
+  },
+  "operator": {
+    "title": "Operador de Vida",
+    "subtitle": "Tu asistente de IA para lograr cosas.",
+    "placeholder": "Pregúntame lo que sea, o dime qué hacer…",
+    "quickPlaceholder": "Crea una tarea, fija un objetivo…",
+    "inputLabel": "Escribir al Operador de Vida",
+    "send": "Enviar",
+    "thinking": "Pensando…",
+    "openFull": "Abrir el Operador de Vida",
+    "empty": "Escribe un mensaje para empezar.",
+    "emptyTitle": "¿En qué te ayudo?",
+    "emptyBody": "Puedo crear tareas y objetivos, resumir tus notas y sugerir próximos pasos.",
+    "mockBanner": "En modo simulado — configura AI_PROVIDER y una clave de API para respuestas con IA. Crear tareas y objetivos funciona igual.",
+    "needTaskTitle": "¿Cuál es la tarea? Prueba “Agregar tarea: llamar al dentista”.",
+    "needGoalTitle": "¿Cuál es el objetivo? Prueba “Nuevo objetivo: correr 5K”.",
+    "taskCreated": "Listo — agregué la tarea “{title}”.",
+    "goalCreated": "Listo — creé el objetivo “{title}”.",
+    "noNotes": "Aún no tienes notas.",
+    "summaryIntro": "Tienes {count} notas. Más recientes:",
+    "summaryPrompt": "Resume las siguientes notas personales en algunos puntos breves:",
+    "suggestIntro": "Esto es en lo que me enfocaría a continuación:",
+    "capabilities": "Puedo ayudarte a crear tareas y objetivos, resumir tus notas y sugerir próximos pasos. Prueba “Agregar tarea: …” o “Resume mis notas”.",
+    "system": "Eres el Operador de Vida de AIOS, un asistente personal conciso y útil. Responde de forma breve y accionable.",
+    "examples": {
+      "task": "Agregar tarea: llamar al dentista",
+      "goal": "Nuevo objetivo: leer 12 libros este año",
+      "summarize": "Resume mis notas",
+      "next": "¿Qué debería hacer ahora?"
+    }
+  },
+  "advisor": {
+    "title": "Asesor de Vida",
+    "subtitle": "Sugerencias suaves y transparentes basadas en tus datos.",
+    "ruleBasedNote": "Estas sugerencias se basan en reglas y se calculan a partir de tus propias tareas, objetivos y notas — sin automatización, nada oculto.",
+    "rec": {
+      "dueToday": "Tienes {count} tarea(s) para hoy.",
+      "overdue": "{count} tarea(s) están vencidas — considera reprogramarlas o terminarlas.",
+      "staleGoals": "{count} objetivo(s) activo(s) llevan tiempo sin actualizarse.",
+      "almostThere": "{count} objetivo(s) están casi completos — dales el empujón final.",
+      "organizeNotes": "Tienes {count} notas. Organiza las clave en tu Cerebro Personal.",
+      "firstTask": "Crea tu primera tarea para empezar a organizar tu día.",
+      "firstGoal": "Define tu primer objetivo para darle rumbo a tu semana.",
+      "allClear": "Todo al día — no hay tareas pendientes. ¡Bien hecho!",
+      "onTrack": "Vas por buen camino. ¡Mantén el impulso!"
+    }
   }
 }

@@ -78,5 +78,268 @@
     "title": "Page not found",
     "description": "The page you are looking for does not exist or has moved.",
     "cta": "Back to home"
+  },
+  "auth": {
+    "fields": {
+      "fullName": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to your AIOS account.",
+      "submit": "Log in",
+      "forgot": "Forgot password?",
+      "noAccount": "Don't have an account?"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Start your AIOS journey.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "passwordHint": "Use at least 8 characters.",
+      "checkEmail": "Check your email to confirm your account, then log in."
+    },
+    "reset": {
+      "title": "Reset your password",
+      "subtitle": "We'll email you a secure link to reset it.",
+      "submit": "Send reset link",
+      "sent": "If that email is registered, a reset link is on its way.",
+      "backToLogin": "Back to log in"
+    },
+    "update": {
+      "title": "Set a new password",
+      "subtitle": "Choose a strong password you'll remember.",
+      "submit": "Update password"
+    },
+    "errors": {
+      "missingFields": "Please fill in all required fields.",
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotConfirmed": "Please confirm your email before logging in.",
+      "userExists": "An account with this email already exists.",
+      "weakPassword": "Password must be at least 8 characters.",
+      "passwordMismatch": "Passwords do not match.",
+      "rateLimit": "Too many attempts. Please try again later.",
+      "validationFailed": "Please check your details and try again.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "account": "Account",
+    "signOut": "Sign out",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "tasks": "Tasks",
+    "goals": "Goals",
+    "notes": "Notes",
+    "brain": "Personal Brain",
+    "operator": "Life Operator",
+    "advisor": "Life Advisor"
+  },
+  "roles": {
+    "personal_user": "Personal",
+    "business_owner": "Business owner",
+    "admin": "Admin"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your profile and preferences.",
+    "saved": "Saved.",
+    "profile": {
+      "title": "Profile",
+      "description": "Your personal information.",
+      "fullName": "Full name"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Language and time zone.",
+      "language": "Preferred language",
+      "timezone": "Time zone"
+    },
+    "account": {
+      "title": "Account",
+      "description": "Your account details.",
+      "email": "Email",
+      "role": "Role",
+      "signOut": "Sign out"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {name}",
+    "subtitle": "Here's your life at a glance.",
+    "todayTasks": "Today's tasks",
+    "activeGoals": "Active goals",
+    "operator": "Life Operator",
+    "operatorHint": "Ask me to create a task, set a goal, or summarize your notes.",
+    "advisor": "Life Advisor",
+    "recentNotes": "Recent notes",
+    "viewAll": "View all",
+    "noTasksToday": "Nothing due today. Enjoy the calm.",
+    "noGoals": "No active goals yet.",
+    "noNotes": "No notes yet.",
+    "untitledNote": "Untitled"
+  },
+  "harmony": {
+    "saved": "Saved.",
+    "deleted": "Deleted.",
+    "confirmDelete": {
+      "title": "Delete this item?",
+      "body": "“{title}” will be permanently removed. This can't be undone.",
+      "bodyGeneric": "This will be permanently removed. This can't be undone."
+    },
+    "errors": {
+      "titleRequired": "Please enter a title.",
+      "noteEmpty": "Add a title or some content.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "subtitle": "Capture what needs doing and track it to done.",
+    "new": "New task",
+    "edit": "Edit task",
+    "dialogDesc": "Add the details and save.",
+    "due": "Due",
+    "actions": "Task actions",
+    "markComplete": "Mark complete",
+    "markIncomplete": "Mark incomplete",
+    "filterLabel": "Filter tasks by status",
+    "filter": { "all": "All" },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "priority": "Priority",
+      "status": "Status",
+      "dueDate": "Due date"
+    },
+    "priority": { "low": "Low", "medium": "Medium", "high": "High" },
+    "status": { "todo": "To do", "in_progress": "In progress", "done": "Done" },
+    "empty": {
+      "title": "No tasks here",
+      "description": "Create your first task to get started."
+    }
+  },
+  "goals": {
+    "title": "Goals",
+    "subtitle": "Set goals and track your progress.",
+    "new": "New goal",
+    "edit": "Edit goal",
+    "dialogDesc": "Describe your goal and set its progress.",
+    "progress": "Progress",
+    "target": "Target",
+    "filterLabel": "Filter goals by status",
+    "filter": { "all": "All" },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "status": "Status",
+      "progress": "Progress (%)",
+      "targetDate": "Target date"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "empty": {
+      "title": "No goals yet",
+      "description": "Set your first goal to start making progress."
+    }
+  },
+  "notes": {
+    "title": "Notes",
+    "subtitle": "Capture ideas and knowledge.",
+    "new": "New note",
+    "edit": "Edit note",
+    "dialogDesc": "Give it a title and write away.",
+    "untitled": "Untitled",
+    "saveToBrain": "Save to Brain",
+    "savedToBrain": "Saved to your Personal Brain.",
+    "searchPlaceholder": "Search notes…",
+    "searchLabel": "Search notes",
+    "fields": { "title": "Title", "content": "Content" },
+    "empty": {
+      "title": "No notes yet",
+      "description": "Write your first note to remember it."
+    },
+    "noResults": {
+      "title": "No matching notes",
+      "description": "Try a different search term."
+    }
+  },
+  "brain": {
+    "title": "Personal Brain",
+    "subtitle": "Your private knowledge store — and the foundation of your future AI memory.",
+    "new": "Add entry",
+    "dialogDesc": "Store a piece of knowledge, a preference, or a reference.",
+    "searchPlaceholder": "Search your brain…",
+    "searchLabel": "Search Personal Brain",
+    "tagsPlaceholder": "comma, separated, tags",
+    "fields": { "title": "Title", "content": "Content", "tags": "Tags" },
+    "kind": {
+      "note": "Note",
+      "preference": "Preference",
+      "goal": "Goal",
+      "manual": "Entry"
+    },
+    "empty": {
+      "title": "Your brain is empty",
+      "description": "Add knowledge or save notes here to build your memory layer."
+    },
+    "noResults": {
+      "title": "Nothing found",
+      "description": "Try a different search term."
+    }
+  },
+  "operator": {
+    "title": "Life Operator",
+    "subtitle": "Your AI assistant for getting things done.",
+    "placeholder": "Ask me anything, or tell me what to do…",
+    "quickPlaceholder": "Create a task, set a goal…",
+    "inputLabel": "Message the Life Operator",
+    "send": "Send",
+    "thinking": "Thinking…",
+    "openFull": "Open Life Operator",
+    "empty": "Type a message to get started.",
+    "emptyTitle": "How can I help?",
+    "emptyBody": "I can create tasks and goals, summarize your notes, and suggest next steps.",
+    "mockBanner": "Running in mock mode — set AI_PROVIDER and an API key for AI replies. Task and goal creation work either way.",
+    "needTaskTitle": "What should the task be? Try “Add task: call the dentist”.",
+    "needGoalTitle": "What's the goal? Try “New goal: run a 5K”.",
+    "taskCreated": "Done — I added the task “{title}”.",
+    "goalCreated": "Done — I created the goal “{title}”.",
+    "noNotes": "You don't have any notes yet.",
+    "summaryIntro": "You have {count} notes. Most recent:",
+    "summaryPrompt": "Summarize the following personal notes into a few concise bullet points:",
+    "suggestIntro": "Here's what I'd focus on next:",
+    "capabilities": "I can help you create tasks and goals, summarize your notes, and suggest next steps. Try “Add task: …” or “Summarize my notes”.",
+    "system": "You are the AIOS Life Operator, a concise and helpful personal assistant. Keep answers short and actionable.",
+    "examples": {
+      "task": "Add task: call the dentist",
+      "goal": "New goal: read 12 books this year",
+      "summarize": "Summarize my notes",
+      "next": "What should I do next?"
+    }
+  },
+  "advisor": {
+    "title": "Life Advisor",
+    "subtitle": "Gentle, transparent nudges based on your data.",
+    "ruleBasedNote": "These suggestions are rule-based and computed from your own tasks, goals, and notes — no automation, nothing hidden.",
+    "rec": {
+      "dueToday": "You have {count} task(s) due today.",
+      "overdue": "{count} task(s) are overdue — consider rescheduling or finishing them.",
+      "staleGoals": "{count} active goal(s) haven't been updated in a while.",
+      "almostThere": "{count} goal(s) are almost complete — push them over the line.",
+      "organizeNotes": "You have {count} notes. Consider organizing key ones into your Personal Brain.",
+      "firstTask": "Create your first task to start organizing your day.",
+      "firstGoal": "Set your first goal to give your week direction.",
+      "allClear": "All caught up — no open tasks. Nicely done!",
+      "onTrack": "You're on track. Keep the momentum going!"
+    }
   }
 }
