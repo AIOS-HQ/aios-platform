@@ -2,8 +2,8 @@
  * Department / agent autonomy model — AIOS Founder Harmony.
  *
  * Five levels with rising autonomy (and cost):
- *   0 Manual · 1 Assistant ($) · 2 Coordinator ($$) · 3 Operator ($$$) ·
- *   4 Executive Autonomous ($$$$)
+ *   0 Manual ($) · 1 Assistant ($$) · 2 Coordinator ($$$) · 3 Operator ($$$$) ·
+ *   4 Executive Autonomous ($$$$$)
  *
  * The founder sets a per-department level (and may override per agent); anything
  * below "Operator" (level 3) routes execution through the Approval Center. The
@@ -14,15 +14,15 @@
 
 export type AutonomyLevel = 0 | 1 | 2 | 3 | 4;
 
-/** Rising spend indicator shown alongside each level ("" → "$$$$"). */
-export type AutonomyCostTier = "" | "$" | "$$" | "$$$" | "$$$$";
+/** Rising spend indicator shown alongside each level ("$" → "$$$$$"). */
+export type AutonomyCostTier = "" | "$" | "$$" | "$$$" | "$$$$" | "$$$$$";
 
 export const AUTONOMY_LEVELS = [
-  { level: 0, key: "manual", costTier: "" },
-  { level: 1, key: "assisted", costTier: "$" },
-  { level: 2, key: "supervised", costTier: "$$" },
-  { level: 3, key: "autonomous", costTier: "$$$" },
-  { level: 4, key: "executive", costTier: "$$$$" },
+  { level: 0, key: "manual", costTier: "$" },
+  { level: 1, key: "assisted", costTier: "$$" },
+  { level: 2, key: "supervised", costTier: "$$$" },
+  { level: 3, key: "autonomous", costTier: "$$$$" },
+  { level: 4, key: "executive", costTier: "$$$$$" },
 ] as const;
 
 export type AutonomyKey = (typeof AUTONOMY_LEVELS)[number]["key"];
