@@ -1,5 +1,11 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { sortTasks, groupTasks, tasksForGoal } from "@/lib/harmony/task-view";
+import {
+  sortTasks,
+  groupTasks,
+  tasksForGoal,
+  sortByPosition,
+  moveId,
+} from "@/lib/harmony/task-view";
 import { makeTask } from "../helpers/factories";
 
 afterEach(() => {
@@ -97,5 +103,44 @@ describe("tasksForGoal", () => {
 
   it("returns an empty array when no tasks are linked", () => {
     expect(tasksForGoal([makeTask({ goal_id: null })], "goal-x")).toEqual([]);
+  });
+});
+
+describe("sortByPosition", () => {
+  it("orders by position ascending with unpositioned tasks last", () => {
+    const a = makeTask({ position: 2 });
+    const b = makeTask({ position: 0 });
+    const c = makeTask({ position: 1 });
+    const olderNull = makeTask({ position: null, created_at: "2026-01-02T00:00:00Z" });
+    const newerNull = makeTask({ position: null, created_at: "2026-01-05T00:00:00Z" });
+    expect(
+      sortByPosition([a, b, c, olderNull, newerNull]).map((t) => t.id),
+    ).toEqual([b.id, c.id, a.id, newerNull.id, olderNull.id]);
+  });
+
+  it("does not mutate the input array", () => {
+    const arr = [makeTask({ position: 1 }), makeTask({ position: 0 })];
+    const before = arr.map((t) => t.id);
+    sortByPosition(arr);
+    expect(arr.map((t) => t.id)).toEqual(before);
+  });
+});
+
+describe("moveId", () => {
+  it("moves an id up and down to a target index", () => {
+    expect(moveId(["a", "b", "c", "d"], "c", 1)).toEqual(["a", "c", "b", "d"]);
+    expect(moveId(["a", "b", "c", "d"], "b", 2)).toEqual(["a", "c", "b", "d"]);
+  });
+
+  it("clamps out-of-range target indices", () => {
+    expect(moveId(["a", "b", "c"], "a", 99)).toEqual(["b", "c", "a"]);
+    expect(moveId(["a", "b", "c"], "c", -5)).toEqual(["c", "a", "b"]);
+  });
+
+  it("returns an unchanged copy when the id is missing", () => {
+    const ids = ["a", "b"];
+    const out = moveId(ids, "z", 0);
+    expect(out).toEqual(["a", "b"]);
+    expect(out).not.toBe(ids);
   });
 });

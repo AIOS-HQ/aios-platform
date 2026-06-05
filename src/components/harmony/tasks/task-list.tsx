@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { ListTodo, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,17 @@ import {
 } from "@/components/ui/select";
 import { TaskDialog } from "./task-dialog";
 import { TaskItem } from "./task-item";
-import { groupTasks, type GroupBy, type SortBy } from "@/lib/harmony/task-view";
+import {
+  groupTasks,
+  moveId,
+  sortByPosition,
+  type GroupBy,
+  type SortBy,
+} from "@/lib/harmony/task-view";
+import { reorderTasks } from "@/lib/harmony/task-actions";
 import type { PersonalGoal, PersonalTask } from "@/types/database";
+
+type ViewMode = GroupBy | "manual";
 
 export function TaskList({
   tasks,
@@ -28,10 +37,12 @@ export function TaskList({
 }) {
   const t = useTranslations("tasks");
   const [query, setQuery] = useState("");
-  const [groupBy, setGroupBy] = useState<GroupBy>("due");
+  const [groupBy, setGroupBy] = useState<ViewMode>("due");
   const [sort, setSort] = useState<SortBy>("due");
   const [newOpen, setNewOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [reorderBusy, startReorder] = useTransition();
+  const dragId = useRef<string | null>(null);
 
   // Keyboard shortcuts: "/" focuses search, "n" opens a new task.
   useEffect(() => {
@@ -71,9 +82,36 @@ export function TaskList({
   }, [tasks, query]);
 
   const groups = useMemo(
-    () => groupTasks(filtered, groupBy, sort),
+    () => (groupBy === "manual" ? [] : groupTasks(filtered, groupBy, sort)),
     [filtered, groupBy, sort],
   );
+
+  const manualOrdered = useMemo(() => sortByPosition(filtered), [filtered]);
+  // Reordering is only meaningful against the full list, so it is disabled
+  // while a search filter is narrowing what is shown.
+  const canReorder = query.trim() === "";
+
+  function persistOrder(ids: string[]) {
+    const fd = new FormData();
+    fd.set("ids", ids.join(","));
+    startReorder(async () => {
+      await reorderTasks(fd);
+    });
+  }
+
+  function moveTask(id: string, dir: "up" | "down") {
+    const ids = manualOrdered.map((tk) => tk.id);
+    const idx = ids.indexOf(id);
+    persistOrder(moveId(ids, id, dir === "up" ? idx - 1 : idx + 1));
+  }
+
+  function dropOnTask(targetId: string) {
+    const id = dragId.current;
+    dragId.current = null;
+    if (!id || id === targetId) return;
+    const ids = manualOrdered.map((tk) => tk.id);
+    persistOrder(moveId(ids, id, ids.indexOf(targetId)));
+  }
 
   function groupLabel(key: string): string {
     const [kind, value] = key.split(":");
@@ -102,16 +140,21 @@ export function TaskList({
           />
         </div>
         <div className="flex items-center gap-2">
-          <Select value={sort} onValueChange={(v) => setSort(v as SortBy)}>
-            <SelectTrigger className="h-9 w-[150px]" aria-label={t("sort.label")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="due">{t("sort.due")}</SelectItem>
-              <SelectItem value="priority">{t("sort.priority")}</SelectItem>
-              <SelectItem value="created">{t("sort.created")}</SelectItem>
-            </SelectContent>
-          </Select>
+          {groupBy !== "manual" && (
+            <Select value={sort} onValueChange={(v) => setSort(v as SortBy)}>
+              <SelectTrigger
+                className="h-9 w-[150px]"
+                aria-label={t("sort.label")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="due">{t("sort.due")}</SelectItem>
+                <SelectItem value="priority">{t("sort.priority")}</SelectItem>
+                <SelectItem value="created">{t("sort.created")}</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <TaskDialog open={newOpen} onOpenChange={setNewOpen} goals={goals}>
             <Button>
               <Plus className="size-4" aria-hidden="true" />
@@ -121,7 +164,7 @@ export function TaskList({
         </div>
       </div>
 
-      <SegmentedControl<GroupBy>
+      <SegmentedControl<ViewMode>
         ariaLabel={t("groupBy.label")}
         value={groupBy}
         onChange={setGroupBy}
@@ -129,6 +172,7 @@ export function TaskList({
           { value: "due", label: t("groupBy.due") },
           { value: "status", label: t("groupBy.status") },
           { value: "priority", label: t("groupBy.priority") },
+          { value: "manual", label: t("groupBy.manual") },
         ]}
       />
 
@@ -145,6 +189,46 @@ export function TaskList({
             </Button>
           </TaskDialog>
         </EmptyState>
+      ) : groupBy === "manual" ? (
+        manualOrdered.length === 0 ? (
+          <EmptyState
+            icon={Search}
+            title={t("noResults.title")}
+            description={t("noResults.description")}
+          />
+        ) : (
+          <div className="space-y-3">
+            {!canReorder && (
+              <p className="text-xs text-muted-foreground">
+                {t("reorderSearchHint")}
+              </p>
+            )}
+            <ul className="space-y-2">
+              {manualOrdered.map((task, i) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  goals={goals}
+                  reorder={
+                    canReorder
+                      ? {
+                          index: i,
+                          count: manualOrdered.length,
+                          busy: reorderBusy,
+                          onMove: (dir) => moveTask(task.id, dir),
+                          onDragStart: () => {
+                            dragId.current = task.id;
+                          },
+                          onDragOver: (e) => e.preventDefault(),
+                          onDrop: () => dropOnTask(task.id),
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+            </ul>
+          </div>
+        )
       ) : groups.length === 0 ? (
         <EmptyState
           icon={Search}
