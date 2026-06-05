@@ -162,6 +162,7 @@
       "title": "Centro de Mando",
       "greeting": "Bienvenido de nuevo, {name}",
       "subtitle": "Tus empresas, objetivos y operaciones de un vistazo.",
+      "delegate": "Delegar a Harmony",
       "companies": "Empresas",
       "newCompany": "Nueva empresa",
       "activity": "Actividad reciente",
@@ -219,11 +220,11 @@
       "autonomyLabel": "Nivel de autonomía",
       "autonomyUpdated": "Autonomía actualizada.",
       "autonomyHint": {
-        "manual": "Tú haces todo; los agentes solo asisten cuando se les pide.",
-        "assistant": "Los agentes redactan y sugieren; tú ejecutas.",
-        "coordinator": "Los agentes coordinan el trabajo rutinario; tú apruebas las acciones.",
-        "operator": "Los agentes ejecutan e informan; las acciones de alto riesgo requieren aprobación.",
-        "executive": "Los agentes dirigen el departamento; solo surgen las acciones de alto riesgo."
+        "manual": "Tú haces todo; los helpers solo asisten cuando se les pide.",
+        "assisted": "Los helpers redactan y sugieren; tú ejecutas.",
+        "supervised": "Los helpers hacen el trabajo; cada acción necesita tu aprobación.",
+        "autonomous": "Los helpers ejecutan e informan; las acciones de alto riesgo requieren aprobación.",
+        "executive": "Los helpers dirigen el departamento; solo surgen las acciones de alto riesgo."
       },
       "fields": { "name": "Nombre del departamento", "description": "Descripción" },
       "agentStatus": { "active": "Activo", "paused": "Pausado" }
@@ -283,6 +284,8 @@
       "title": "Cola de trabajo",
       "subtitle": "Todo lo que Harmony y tus departamentos están ejecutando.",
       "new": "Nuevo elemento",
+      "delegate": "Delegar a Harmony",
+      "run": "Ejecutar ahora",
       "edit": "Editar elemento",
       "dialogDesc": "Asigna trabajo a un departamento y agente.",
       "unassigned": "Sin asignar",
@@ -316,6 +319,27 @@
       "completed": "Completado"
     },
     "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
+    "delegate": {
+      "dialogTitle": "Delegar a Harmony",
+      "dialogDesc": "Dile a Harmony qué hacer. Enruta el trabajo al departamento helper adecuado, que ejecuta o pide tu aprobación según su autonomía.",
+      "button": "Delegar",
+      "working": "Delegando…",
+      "done": "Harmony completó la tarea.",
+      "routed": "Enviado al Centro de Aprobaciones para tu visto bueno.",
+      "instructionPlaceholder": "p. ej. Redactar un anuncio de lanzamiento",
+      "unassigned": "Que Harmony decida",
+      "fields": {
+        "instruction": "Instrucción",
+        "details": "Detalles",
+        "company": "Empresa",
+        "department": "Departamento"
+      }
+    },
+    "execution": {
+      "system": "Eres el helper de {department} dentro de Harmony, el sistema operativo del fundador. Completa la tarea e informa el resultado de forma concisa.",
+      "resultLabel": "— Resultado —",
+      "failed": "El helper no pudo completarlo automáticamente. Revísalo y reintenta."
+    },
     "approvals": {
       "title": "Centro de Aprobaciones",
       "subtitle": "Decisiones que Harmony te dirige antes de actuar.",
@@ -386,10 +410,10 @@
     },
     "autonomy": {
       "manual": "Manual",
-      "assistant": "Asistente",
-      "coordinator": "Coordinador",
-      "operator": "Operador",
-      "executive": "Ejecutivo"
+      "assisted": "Asistido",
+      "supervised": "Supervisado",
+      "autonomous": "Autónomo",
+      "executive": "Autónomo Ejecutivo"
     },
     "activity": {
       "companyCreated": "Empresa creada: {name}",
@@ -397,7 +421,10 @@
       "objectiveCreated": "Objetivo creado: {title}",
       "workCreated": "Elemento de trabajo creado: {title}",
       "approvalApproved": "Aprobado: {title}",
-      "approvalRejected": "Rechazado: {title}"
+      "approvalRejected": "Rechazado: {title}",
+      "delegated": "Delegado a Harmony: {title}",
+      "workRouted": "Enviado a aprobación: {title}",
+      "workCompleted": "Completado: {title}"
     }
   },
   "roles": {

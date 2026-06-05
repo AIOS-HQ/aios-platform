@@ -121,7 +121,7 @@ export function AgentDialog({
                 <SelectItem value="inherit">{t("inherit")}</SelectItem>
                 {AUTONOMY_LEVELS.map((l) => (
                   <SelectItem key={l.level} value={String(l.level)}>
-                    {l.level} · {ta(l.key)} {l.cost}
+                    {l.level} · {ta(l.key)}
                   </SelectItem>
                 ))}
               </SelectContent>

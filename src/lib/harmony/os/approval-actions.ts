@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
+import { executeWorkItem } from "@/lib/harmony/os/execution";
 import { APPROVAL_TYPES } from "@/lib/harmony/os/catalog";
 import type { ActionState } from "@/lib/types";
-import type { ApprovalType, TaskPriority } from "@/types/database";
+import type { ApprovalType, TaskPriority, WorkItem } from "@/types/database";
 
 function orNull(v: FormDataEntryValue | null): string | null {
   const s = (v ? String(v) : "").trim();
@@ -75,14 +76,29 @@ export async function decideApproval(formData: FormData): Promise<void> {
     .update({ status: decision, decided_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("title, company_id")
+    .select("title, company_id, work_item_id")
     .maybeSingle();
   if (error) {
     console.error("[approval-actions] decideApproval", error);
     return;
   }
 
-  const row = data as { title: string; company_id: string | null } | null;
+  const row = data as {
+    title: string;
+    company_id: string | null;
+    work_item_id: string | null;
+  } | null;
+
+  // Approving a gated work item runs it (forced past the autonomy gate).
+  if (decision === "approved" && row?.work_item_id) {
+    const { data: wi } = await supabase
+      .from("work_items")
+      .select("*")
+      .eq("id", row.work_item_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (wi) await executeWorkItem(supabase, user.id, wi as WorkItem, { force: true });
+  }
   const to = await getTranslations("os");
   await emitActivity({
     userId: user.id,

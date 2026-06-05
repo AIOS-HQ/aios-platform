@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import {
-  createDepartment,
-  updateDepartment,
-} from "@/lib/harmony/os/department-actions";
+import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
 import { idleState } from "@/lib/types";
 import {
   Dialog,
@@ -29,30 +26,33 @@ import {
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { LIMITS } from "@/lib/limits";
-import { AUTONOMY_LEVELS } from "@/lib/harmony/os/autonomy";
-import type { Department } from "@/types/database";
 
-export function DepartmentDialog({
-  companyId,
-  department,
+type CompanyOpt = { id: string; name: string };
+type DeptOpt = { id: string; name: string; company_id: string };
+
+/**
+ * "Tell Harmony what to do." Creates a work item and routes it to the chosen
+ * helper department, which executes or requests approval per its autonomy.
+ */
+export function HarmonyDelegateDialog({
+  companies,
+  departments,
   children,
 }: {
-  companyId?: string;
-  department?: Department;
+  companies: CompanyOpt[];
+  departments: DeptOpt[];
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const t = useTranslations("os.departments");
-  const ta = useTranslations("os.autonomy");
+  const [companyId, setCompanyId] = useState(companies[0]?.id ?? "");
+  const t = useTranslations("os.delegate");
   const tc = useTranslations("common");
-  const editing = Boolean(department);
+  const deptOptions = departments.filter((d) => d.company_id === companyId);
 
   async function onSubmit(formData: FormData) {
     setError(null);
-    const res = editing
-      ? await updateDepartment(idleState, formData)
-      : await createDepartment(idleState, formData);
+    const res = await delegateToHarmony(idleState, formData);
     if (res.status === "error") {
       setError(res.message ?? "");
       return;
@@ -72,14 +72,11 @@ export function DepartmentDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editing ? t("edit") : t("new")}</DialogTitle>
+          <DialogTitle>{t("dialogTitle")}</DialogTitle>
           <DialogDescription>{t("dialogDesc")}</DialogDescription>
         </DialogHeader>
         <form action={onSubmit} className="space-y-4">
-          {department && <input type="hidden" name="id" value={department.id} />}
-          {companyId && (
-            <input type="hidden" name="company_id" value={companyId} />
-          )}
+          <input type="hidden" name="company_id" value={companyId} />
           {error && (
             <p
               role="alert"
@@ -89,46 +86,59 @@ export function DepartmentDialog({
             </p>
           )}
           <div className="space-y-2">
-            <Label htmlFor="dept-name">{t("fields.name")}</Label>
+            <Label htmlFor="delegate-title">{t("fields.instruction")}</Label>
             <Input
-              id="dept-name"
-              name="name"
-              defaultValue={department?.name ?? ""}
-              maxLength={LIMITS.name}
+              id="delegate-title"
+              name="title"
+              maxLength={LIMITS.title}
+              placeholder={t("instructionPlaceholder")}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dept-desc">{t("fields.description")}</Label>
+            <Label htmlFor="delegate-desc">{t("fields.details")}</Label>
             <Textarea
-              id="dept-desc"
+              id="delegate-desc"
               name="description"
-              defaultValue={department?.description ?? ""}
               maxLength={LIMITS.description}
               rows={3}
             />
           </div>
-          {!editing && (
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="dept-autonomy-new">{t("autonomyLabel")}</Label>
-              <Select name="autonomy_level" defaultValue="1">
-                <SelectTrigger id="dept-autonomy-new">
+              <Label htmlFor="delegate-company">{t("fields.company")}</Label>
+              <Select value={companyId} onValueChange={setCompanyId}>
+                <SelectTrigger id="delegate-company">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AUTONOMY_LEVELS.map((l) => (
-                    <SelectItem key={l.level} value={String(l.level)}>
-                      {l.level} · {ta(l.key)}
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
+            <div className="space-y-2">
+              <Label htmlFor="delegate-dept">{t("fields.department")}</Label>
+              <Select name="department_id" defaultValue="none">
+                <SelectTrigger id="delegate-dept">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("unassigned")}</SelectItem>
+                  {deptOptions.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <DialogFooter>
-            <SubmitButton pendingLabel={tc("saving")}>
-              {editing ? tc("save") : tc("create")}
-            </SubmitButton>
+            <SubmitButton pendingLabel={t("working")}>{t("button")}</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

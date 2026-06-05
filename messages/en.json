@@ -162,6 +162,7 @@
       "title": "Command Center",
       "greeting": "Welcome back, {name}",
       "subtitle": "Your companies, objectives, and operations at a glance.",
+      "delegate": "Delegate to Harmony",
       "companies": "Companies",
       "newCompany": "New company",
       "activity": "Recent activity",
@@ -219,11 +220,11 @@
       "autonomyLabel": "Autonomy level",
       "autonomyUpdated": "Autonomy updated.",
       "autonomyHint": {
-        "manual": "You do everything; agents only assist on request.",
-        "assistant": "Agents draft and suggest; you execute.",
-        "coordinator": "Agents coordinate routine work; you approve actions.",
-        "operator": "Agents execute and report; high-risk actions need approval.",
-        "executive": "Agents run the department; only high-risk actions surface."
+        "manual": "You do everything; helpers only assist on request.",
+        "assisted": "Helpers draft and suggest; you execute.",
+        "supervised": "Helpers do the work; every action needs your approval.",
+        "autonomous": "Helpers execute and report; high-risk actions need approval.",
+        "executive": "Helpers run the department; only high-risk actions surface."
       },
       "fields": { "name": "Department name", "description": "Description" },
       "agentStatus": { "active": "Active", "paused": "Paused" }
@@ -283,6 +284,8 @@
       "title": "Work Queue",
       "subtitle": "Everything Harmony and your departments are executing.",
       "new": "New work item",
+      "delegate": "Delegate to Harmony",
+      "run": "Run now",
       "edit": "Edit work item",
       "dialogDesc": "Assign work to a department and agent.",
       "unassigned": "Unassigned",
@@ -316,6 +319,27 @@
       "completed": "Completed"
     },
     "priority": { "low": "Low", "medium": "Medium", "high": "High" },
+    "delegate": {
+      "dialogTitle": "Delegate to Harmony",
+      "dialogDesc": "Tell Harmony what to do. It routes the work to the right helper department, which executes or requests your approval based on its autonomy.",
+      "button": "Delegate",
+      "working": "Delegating…",
+      "done": "Harmony completed the task.",
+      "routed": "Routed to the Approval Center for your sign-off.",
+      "instructionPlaceholder": "e.g. Draft a launch announcement",
+      "unassigned": "Let Harmony decide",
+      "fields": {
+        "instruction": "Instruction",
+        "details": "Details",
+        "company": "Company",
+        "department": "Department"
+      }
+    },
+    "execution": {
+      "system": "You are the {department} helper inside Harmony, the founder's operating system. Complete the task and report the outcome concisely.",
+      "resultLabel": "— Result —",
+      "failed": "The helper could not complete this automatically. Review and retry."
+    },
     "approvals": {
       "title": "Approval Center",
       "subtitle": "Decisions Harmony routes to you before acting.",
@@ -386,10 +410,10 @@
     },
     "autonomy": {
       "manual": "Manual",
-      "assistant": "Assistant",
-      "coordinator": "Coordinator",
-      "operator": "Operator",
-      "executive": "Executive"
+      "assisted": "Assisted",
+      "supervised": "Supervised",
+      "autonomous": "Autonomous",
+      "executive": "Executive Autonomous"
     },
     "activity": {
       "companyCreated": "Company created: {name}",
@@ -397,7 +421,10 @@
       "objectiveCreated": "Objective created: {title}",
       "workCreated": "Work item created: {title}",
       "approvalApproved": "Approved: {title}",
-      "approvalRejected": "Rejected: {title}"
+      "approvalRejected": "Rejected: {title}",
+      "delegated": "Delegated to Harmony: {title}",
+      "workRouted": "Routed for approval: {title}",
+      "workCompleted": "Completed: {title}"
     }
   },
   "roles": {
