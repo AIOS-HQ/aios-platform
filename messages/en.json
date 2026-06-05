@@ -153,6 +153,7 @@
     "objectives": "Objectives",
     "work": "Work Queue",
     "approvals": "Approvals",
+    "activity": "Activity",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {
@@ -348,6 +349,23 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
+    },
+    "activityFeed": {
+      "title": "Activity",
+      "subtitle": "Everything happening across your companies and departments.",
+      "empty": {
+        "title": "No activity yet",
+        "description": "Actions across Harmony will show up here."
+      }
+    },
+    "activityKind": {
+      "agent_action": "Agent",
+      "department_action": "Department",
+      "approval": "Approval",
+      "objective": "Objective",
+      "project": "Project",
+      "recommendation": "Recommendation",
+      "system": "System"
     },
     "autonomy": {
       "manual": "Manual",

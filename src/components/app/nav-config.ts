@@ -1,4 +1,5 @@
 import {
+  Activity,
   BrainCircuit,
   Building2,
   LayoutDashboard,
@@ -42,7 +43,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/objectives", labelKey: "objectives", icon: Target },
       { href: "/harmony/work", labelKey: "work", icon: ListChecks },
       { href: "/harmony/approvals", labelKey: "approvals", icon: ShieldCheck },
-      // Activity link is added by its PR as the page ships.
+      { href: "/harmony/activity", labelKey: "activity", icon: Activity },
     ],
   },
   {
