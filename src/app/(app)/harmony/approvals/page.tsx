@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Check, Plus, ShieldCheck, Trash2, X } from "lucide-react";
+import { Activity, Check, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listApprovals } from "@/lib/data/os/approvals";
 import { listCompanies } from "@/lib/data/os/companies";
@@ -185,7 +186,14 @@ export default async function ApprovalsPage() {
           icon={ShieldCheck}
           title={t("empty.title")}
           description={t("empty.description")}
-        />
+        >
+          <Button asChild variant="outline">
+            <Link href="/harmony/activity">
+              <Activity className="size-4" aria-hidden="true" />
+              {t("empty.cta")}
+            </Link>
+          </Button>
+        </EmptyState>
       ) : (
         <div className="space-y-6">
           <Card>

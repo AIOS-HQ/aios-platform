@@ -229,6 +229,13 @@
         "autonomous": "Los helpers ejecutan e informan; las acciones de alto riesgo requieren aprobación.",
         "executive": "Los helpers dirigen el departamento; solo surgen las acciones de alto riesgo."
       },
+      "legendTitle": "¿Qué significan los niveles?",
+      "legendHint": "Quién aprueba, qué se ejecuta automáticamente y el riesgo en cada nivel.",
+      "risk": {
+        "low": "Riesgo bajo",
+        "medium": "Riesgo medio",
+        "high": "Riesgo alto"
+      },
       "fields": { "name": "Nombre del departamento", "description": "Descripción" },
       "agentStatus": { "active": "Activo", "paused": "Pausado" }
     },
@@ -378,7 +385,8 @@
       },
       "empty": {
         "title": "No hay aprobaciones",
-        "description": "Cuando un departamento necesite tu visto bueno, las solicitudes aparecerán aquí."
+        "description": "Cuando un departamento necesite tu visto bueno, las solicitudes aparecerán aquí.",
+        "cta": "Ver feed de actividad"
       }
     },
     "approvalType": {
@@ -531,6 +539,19 @@
       "comments": "Comentarios",
       "shares": "Compartidos",
       "impressions": "Impresiones"
+    },
+    "onboarding": {
+      "title": "Pon en marcha tu OS",
+      "subtitle": "{done} de {total} pasos completados",
+      "start": "Empezar",
+      "steps": {
+        "hasCompany": "Crea tu primera empresa",
+        "hasDepartment": "Configura un departamento",
+        "autonomyConfigured": "Revisa la autonomía de un departamento",
+        "hasObjective": "Crea tu primer objetivo",
+        "hasWork": "Delega tu primera tarea",
+        "approvalReviewed": "Revisa el Centro de Aprobaciones"
+      }
     },
     "code": {
       "title": "Departamento de Código",

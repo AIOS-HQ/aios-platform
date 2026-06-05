@@ -22,3 +22,13 @@ export async function listWorkItems(opts?: {
   if (error) console.error("[data/os/work-items] listWorkItems", error);
   return (data as WorkItem[] | null) ?? [];
 }
+
+/** Count work items (owner-scoped via RLS). Used by the first-run checklist. */
+export async function countWorkItems(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("work_items")
+    .select("id", { count: "exact", head: true });
+  if (error) console.error("[data/os/work-items] countWorkItems", error);
+  return count ?? 0;
+}
