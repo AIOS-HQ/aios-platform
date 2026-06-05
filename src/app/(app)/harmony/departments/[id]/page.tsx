@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, Bot, Pencil, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Bot, Pause, Pencil, Play, Plus, Trash2, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getDepartment } from "@/lib/data/os/departments";
 import { getCompany } from "@/lib/data/os/companies";
 import { listAgents } from "@/lib/data/os/agents";
 import { clampAutonomy } from "@/lib/harmony/os/autonomy";
 import { deleteDepartment } from "@/lib/harmony/os/department-actions";
+import { deleteAgent, setAgentStatus } from "@/lib/harmony/os/agent-actions";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -20,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AutonomyControl } from "@/components/harmony/os/autonomy-control";
 import { DepartmentDialog } from "@/components/harmony/os/department-dialog";
+import { AgentDialog } from "@/components/harmony/os/agent-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
 
 export async function generateMetadata({
@@ -40,6 +42,7 @@ export default async function DepartmentDetailPage({
 }) {
   const { id } = await params;
   const t = await getTranslations("os.departments");
+  const tg = await getTranslations("os.agents");
   const tc = await getTranslations("common");
   await requireUser();
 
@@ -104,6 +107,12 @@ export default async function DepartmentDetailPage({
                 {agents.length}
               </span>
             </CardTitle>
+            <AgentDialog departmentId={dept.id}>
+              <Button size="sm" variant="outline">
+                <Plus className="size-4" aria-hidden="true" />
+                {tg("add")}
+              </Button>
+            </AgentDialog>
           </CardHeader>
           <CardContent>
             {agents.length === 0 ? (
@@ -117,7 +126,7 @@ export default async function DepartmentDetailPage({
                   >
                     <Bot className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
                         <span className="truncate text-sm font-medium">{a.name}</span>
                         <Badge
                           variant={a.status === "active" ? "secondary" : "outline"}
@@ -131,6 +140,44 @@ export default async function DepartmentDetailPage({
                           {a.role}
                         </p>
                       )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <form action={setAgentStatus}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <input
+                          type="hidden"
+                          name="status"
+                          value={a.status === "active" ? "paused" : "active"}
+                        />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          aria-label={a.status === "active" ? tg("pause") : tg("resume")}
+                        >
+                          {a.status === "active" ? (
+                            <Pause className="size-4" aria-hidden="true" />
+                          ) : (
+                            <Play className="size-4" aria-hidden="true" />
+                          )}
+                        </Button>
+                      </form>
+                      <AgentDialog agent={a}>
+                        <Button variant="ghost" size="icon" className="size-8" aria-label={tc("edit")}>
+                          <Pencil className="size-4" aria-hidden="true" />
+                        </Button>
+                      </AgentDialog>
+                      <ConfirmDeleteDialog action={deleteAgent} id={a.id} itemTitle={a.name}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-destructive"
+                          aria-label={tc("delete")}
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </Button>
+                      </ConfirmDeleteDialog>
                     </div>
                   </li>
                 ))}

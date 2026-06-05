@@ -217,6 +217,18 @@
       "fields": { "name": "Nombre del departamento", "description": "Descripción" },
       "agentStatus": { "active": "Activo", "paused": "Pausado" }
     },
+    "agents": {
+      "new": "Nuevo agente",
+      "edit": "Editar agente",
+      "add": "Añadir agente",
+      "dialogDesc": "Los agentes ejecutan el trabajo de un departamento.",
+      "rolePlaceholder": "p. ej. Redacta publicaciones de LinkedIn",
+      "autonomyLabel": "Autonomía",
+      "inherit": "Heredar del departamento",
+      "pause": "Pausar agente",
+      "resume": "Reanudar agente",
+      "fields": { "name": "Nombre del agente", "role": "Rol" }
+    },
     "autonomy": {
       "manual": "Manual",
       "approval": "Requiere aprobación",
