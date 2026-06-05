@@ -225,6 +225,7 @@ export interface Approval {
   department_id: string | null;
   agent_id: string | null;
   work_item_id: string | null;
+  message_id: string | null;
   type: ApprovalType;
   title: string;
   summary: string | null;
