@@ -1,4 +1,9 @@
 {
+  "errors": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred. You can try again, or head back and retry.",
+    "retry": "Try again"
+  },
   "common": {
     "appName": "AIOS",
     "product": "AIOS Platform",

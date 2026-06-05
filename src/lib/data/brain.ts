@@ -19,8 +19,9 @@ export async function listBrainEntries(opts?: {
   if (term) {
     q = q.or(`title.ilike.%${term}%,content.ilike.%${term}%`);
   }
-  const { data } = await q
+  const { data, error } = await q
     .order("created_at", { ascending: false })
     .limit(opts?.limit ?? 500);
+  if (error) console.error("[data/brain] listBrainEntries", error);
   return (data as PersonalBrainEntry[] | null) ?? [];
 }

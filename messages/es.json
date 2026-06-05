@@ -1,4 +1,9 @@
 {
+  "errors": {
+    "title": "Algo salió mal",
+    "body": "Ocurrió un error inesperado. Puedes reintentar o volver e intentarlo de nuevo.",
+    "retry": "Reintentar"
+  },
   "common": {
     "appName": "AIOS",
     "product": "AIOS Platform",

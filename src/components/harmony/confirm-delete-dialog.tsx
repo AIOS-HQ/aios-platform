@@ -32,9 +32,14 @@ export function ConfirmDeleteDialog({
   const th = useTranslations("harmony");
 
   async function onConfirm(formData: FormData) {
-    await action(formData);
-    setOpen(false);
-    toast.success(th("deleted"));
+    try {
+      await action(formData);
+      setOpen(false);
+      toast.success(th("deleted"));
+    } catch (err) {
+      console.error("[confirm-delete] action failed", err);
+      toast.error(th("errors.generic"));
+    }
   }
 
   return (
