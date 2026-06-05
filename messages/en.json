@@ -150,6 +150,7 @@
     "advisor": "Life Advisor",
     "commandCenter": "Command Center",
     "companies": "Companies",
+    "objectives": "Objectives",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {
@@ -229,6 +230,45 @@
       "resume": "Resume agent",
       "fields": { "name": "Agent name", "role": "Role" }
     },
+    "objectives": {
+      "title": "Objectives",
+      "subtitle": "Outcomes you own; Harmony drives the work.",
+      "new": "New objective",
+      "edit": "Edit objective",
+      "dialogDesc": "Define the outcome, owner, and deadline.",
+      "outcomePlaceholder": "What does success look like?",
+      "progress": "Progress",
+      "increase": "Increase progress",
+      "decrease": "Decrease progress",
+      "outcomeTitle": "Outcome",
+      "noOutcome": "No outcome described yet.",
+      "detailsTitle": "Details",
+      "noDepartment": "No department owner",
+      "backToObjectives": "Back to objectives",
+      "fields": {
+        "title": "Title",
+        "outcome": "Outcome",
+        "company": "Company",
+        "department": "Department owner",
+        "dueDate": "Deadline",
+        "status": "Status"
+      },
+      "empty": {
+        "title": "No objectives yet",
+        "description": "Create an objective and Harmony will help drive it to done."
+      },
+      "noCompanies": {
+        "title": "Create a company first",
+        "description": "Objectives belong to a company. Create one to get started.",
+        "cta": "Go to companies"
+      }
+    },
+    "objectiveStatus": {
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
     "autonomy": {
       "manual": "Manual",
       "approval": "Approval required",
@@ -237,7 +277,8 @@
     },
     "activity": {
       "companyCreated": "Company created: {name}",
-      "autonomyChanged": "{name} autonomy set to {level}"
+      "autonomyChanged": "{name} autonomy set to {level}",
+      "objectiveCreated": "Objective created: {title}"
     }
   },
   "roles": {

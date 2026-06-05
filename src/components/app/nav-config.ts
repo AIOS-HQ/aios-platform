@@ -37,8 +37,8 @@ export const navSections: NavSection[] = [
     items: [
       { href: "/harmony", labelKey: "commandCenter", icon: LayoutDashboard, exact: true },
       { href: "/harmony/companies", labelKey: "companies", icon: Building2 },
-      // Objectives, Work Queues, Approvals, Activity links are added by their
-      // respective Sprint 3 PRs as those pages ship.
+      { href: "/harmony/objectives", labelKey: "objectives", icon: Target },
+      // Work Queues, Approvals, Activity links are added by their PRs as pages ship.
     ],
   },
   {
