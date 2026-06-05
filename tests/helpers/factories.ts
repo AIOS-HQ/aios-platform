@@ -51,6 +51,8 @@ export function makeNote(overrides: Partial<PersonalNote> = {}): PersonalNote {
     user_id: "user-1",
     title: "Note",
     content: "",
+    tags: [],
+    pinned: false,
     created_at: BASE_TS,
     updated_at: BASE_TS,
     ...overrides,

@@ -90,6 +90,15 @@ export function NoteDialog({
               rows={8}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="note-tags">{t("fields.tags")}</Label>
+            <Input
+              id="note-tags"
+              name="tags"
+              defaultValue={note?.tags?.join(", ") ?? ""}
+              placeholder={t("tagsPlaceholder")}
+            />
+          </div>
           <DialogFooter>
             <SubmitButton pendingLabel={tc("saving")}>{tc("save")}</SubmitButton>
           </DialogFooter>
