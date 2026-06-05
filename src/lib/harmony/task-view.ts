@@ -36,6 +36,34 @@ export function tasksForGoal(
   return tasks.filter((t) => t.goal_id === goalId);
 }
 
+const POSITION_LAST = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Order tasks for the manual ("My order") view: by `position` ascending, with
+ * unpositioned tasks last, falling back to newest-created for stable ties.
+ */
+export function sortByPosition(tasks: PersonalTask[]): PersonalTask[] {
+  return [...tasks].sort(
+    (a, b) =>
+      (a.position ?? POSITION_LAST) - (b.position ?? POSITION_LAST) ||
+      b.created_at.localeCompare(a.created_at),
+  );
+}
+
+/**
+ * Move `id` to a new index within an ordered id list and return the new order.
+ * `toIndex` is clamped to the valid range; a missing id returns the list as-is.
+ */
+export function moveId(ids: string[], id: string, toIndex: number): string[] {
+  const from = ids.indexOf(id);
+  if (from === -1) return [...ids];
+  const next = [...ids];
+  next.splice(from, 1);
+  const clamped = Math.max(0, Math.min(toIndex, next.length));
+  next.splice(clamped, 0, id);
+  return next;
+}
+
 export type TaskGroup = { key: string; tasks: PersonalTask[] };
 
 /** Group tasks for display. Empty groups are omitted. */

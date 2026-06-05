@@ -90,6 +90,32 @@ export async function updateTask(
   return { status: "success", message: t("saved") };
 }
 
+/**
+ * Persist a manual task order. Receives the full ordered list of task ids
+ * (comma-separated) and writes each task's `position` to its index. All writes
+ * are owner-scoped via RLS + an explicit user_id filter.
+ */
+export async function reorderTasks(formData: FormData) {
+  const user = await requireUser();
+  const ids = String(formData.get("ids") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0) return;
+
+  const supabase = await createClient();
+  await Promise.all(
+    ids.map((id, index) =>
+      supabase
+        .from("personal_tasks")
+        .update({ position: index })
+        .eq("id", id)
+        .eq("user_id", user.id),
+    ),
+  );
+  revalidateTasks();
+}
+
 export async function deleteTask(formData: FormData) {
   const user = await requireUser();
   const id = String(formData.get("id") ?? "");

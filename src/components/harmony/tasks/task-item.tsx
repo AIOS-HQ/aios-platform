@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Pencil, Target, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  GripVertical,
+  Pencil,
+  Target,
+  Trash2,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,12 +27,24 @@ const priorityVariant = {
   high: "destructive",
 } as const;
 
+export type TaskReorder = {
+  index: number;
+  count: number;
+  busy: boolean;
+  onMove: (dir: "up" | "down") => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: () => void;
+};
+
 export function TaskItem({
   task,
   goals = [],
+  reorder,
 }: {
   task: PersonalTask;
   goals?: PersonalGoal[];
+  reorder?: TaskReorder;
 }) {
   const t = useTranslations("tasks");
   const tc = useTranslations("common");
@@ -56,7 +75,19 @@ export function TaskItem({
         "flex items-start gap-3 rounded-lg border bg-card p-3",
         done && "opacity-65",
       )}
+      onDragOver={reorder?.onDragOver}
+      onDrop={reorder?.onDrop}
     >
+      {reorder && (
+        <span
+          draggable
+          onDragStart={reorder.onDragStart}
+          className="mt-0.5 cursor-grab text-muted-foreground active:cursor-grabbing"
+          aria-hidden="true"
+        >
+          <GripVertical className="size-4" />
+        </span>
+      )}
       <Checkbox
         checked={done}
         onCheckedChange={(v) => toggle(Boolean(v))}
@@ -101,6 +132,30 @@ export function TaskItem({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
+        {reorder && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => reorder.onMove("up")}
+              disabled={reorder.busy || reorder.index === 0}
+              aria-label={t("moveUp")}
+            >
+              <ChevronUp className="size-4" aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => reorder.onMove("down")}
+              disabled={reorder.busy || reorder.index === reorder.count - 1}
+              aria-label={t("moveDown")}
+            >
+              <ChevronDown className="size-4" aria-hidden="true" />
+            </Button>
+          </>
+        )}
         <TaskDialog task={task} goals={goals}>
           <Button variant="ghost" size="icon" className="size-8" aria-label={t("edit")}>
             <Pencil className="size-4" aria-hidden="true" />

@@ -275,8 +275,12 @@
       "label": "Group by",
       "due": "Due date",
       "status": "Status",
-      "priority": "Priority"
+      "priority": "Priority",
+      "manual": "Manual"
     },
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "reorderSearchHint": "Clear the search to reorder tasks.",
     "groups": {
       "overdue": "Overdue",
       "today": "Today",

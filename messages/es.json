@@ -275,8 +275,12 @@
       "label": "Agrupar por",
       "due": "Fecha",
       "status": "Estado",
-      "priority": "Prioridad"
+      "priority": "Prioridad",
+      "manual": "Manual"
     },
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "reorderSearchHint": "Borra la búsqueda para reordenar las tareas.",
     "groups": {
       "overdue": "Vencidas",
       "today": "Hoy",

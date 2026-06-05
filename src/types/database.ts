@@ -41,6 +41,7 @@ export interface PersonalTask {
   priority: TaskPriority;
   due_date: string | null;
   goal_id: string | null;
+  position: number | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
