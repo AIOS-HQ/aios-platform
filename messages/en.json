@@ -147,7 +147,65 @@
     "notes": "Notes",
     "brain": "Personal Brain",
     "operator": "Life Operator",
-    "advisor": "Life Advisor"
+    "advisor": "Life Advisor",
+    "commandCenter": "Command Center",
+    "companies": "Companies",
+    "sections": { "command": "Command Center", "personal": "Personal" }
+  },
+  "os": {
+    "commandCenter": {
+      "title": "Command Center",
+      "greeting": "Welcome back, {name}",
+      "subtitle": "Your companies, objectives, and operations at a glance.",
+      "companies": "Companies",
+      "newCompany": "New company",
+      "activity": "Recent activity",
+      "activityHint": "Latest actions across your companies.",
+      "noActivity": "No activity yet.",
+      "stats": {
+        "companies": "Companies",
+        "objectives": "Active objectives",
+        "approvals": "Pending approvals"
+      },
+      "empty": {
+        "title": "Set up your first company",
+        "description": "Harmony is your Founder OS. Create a company to spin up its departments and agents.",
+        "cta": "Create company"
+      }
+    },
+    "companies": {
+      "title": "Companies",
+      "subtitle": "The businesses you operate through Harmony.",
+      "new": "New company",
+      "newDesc": "Name it — standard departments and agents are created automatically.",
+      "namePlaceholder": "e.g. AirBid",
+      "seedHint": "Creates the 8 standard departments (Code, Marketing, Research, Operations, Engineering, Sales, Support, Finance) with starter agents.",
+      "allCompanies": "All companies",
+      "switchLabel": "Switch company",
+      "noDescription": "No description.",
+      "backToCompanies": "Back to companies",
+      "departments": "Departments",
+      "noDepartments": "No departments yet.",
+      "fields": { "name": "Company name", "description": "Description" },
+      "stats": {
+        "departments": "Departments",
+        "objectives": "Objectives",
+        "projects": "Projects"
+      },
+      "empty": {
+        "title": "No companies yet",
+        "description": "Create your first company to start operating through Harmony."
+      }
+    },
+    "autonomy": {
+      "manual": "Manual",
+      "approval": "Approval required",
+      "assisted": "Assisted",
+      "autonomous": "Autonomous"
+    },
+    "activity": {
+      "companyCreated": "Company created: {name}"
+    }
   },
   "roles": {
     "personal_user": "Personal",
