@@ -10,13 +10,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/brand/logo";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { primaryNav, secondaryNav } from "./nav-config";
+import { navSections } from "./nav-config";
 import { NavLink } from "./nav-link";
 
-/** Slide-in navigation drawer for small screens. */
+/** Slide-in navigation drawer for small screens (Founder OS). */
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
@@ -39,13 +38,24 @@ export function MobileNav() {
         <div className="flex h-16 items-center px-5">
           <Logo />
         </div>
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Mobile">
-          {primaryNav.map((item) => (
-            <NavLink key={item.href} item={item} onNavigate={close} />
-          ))}
-          <Separator className="my-2" />
-          {secondaryNav.map((item) => (
-            <NavLink key={item.href} item={item} onNavigate={close} />
+        <nav
+          className="flex flex-1 flex-col gap-4 overflow-y-auto p-3"
+          aria-label="Mobile"
+        >
+          {navSections.map((section, i) => (
+            <div
+              key={section.titleKey ?? `section-${i}`}
+              className="flex flex-col gap-1"
+            >
+              {section.titleKey && (
+                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  {t(`sections.${section.titleKey}`)}
+                </p>
+              )}
+              {section.items.map((item) => (
+                <NavLink key={item.href} item={item} onNavigate={close} />
+              ))}
+            </div>
           ))}
         </nav>
         <div className="border-t p-3">

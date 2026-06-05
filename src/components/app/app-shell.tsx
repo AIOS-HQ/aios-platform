@@ -1,6 +1,7 @@
 import { Sidebar } from "./sidebar";
 import { MobileNav } from "./mobile-nav";
 import { UserMenu } from "./user-menu";
+import { CompanySwitcher } from "@/components/harmony/os/company-switcher";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -9,11 +10,13 @@ export function AppShell({
   name,
   email,
   initials,
+  companies,
   children,
 }: {
   name: string;
   email: string;
   initials: string;
+  companies: { id: string; name: string; slug: string }[];
   children: React.ReactNode;
 }) {
   return (
@@ -22,6 +25,7 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur sm:px-6">
           <MobileNav />
+          <CompanySwitcher companies={companies} />
           <div className="flex-1" />
           <div className="hidden sm:block">
             <LocaleSwitcher />

@@ -15,8 +15,9 @@ export function NavLink({
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const active =
-    pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
 
   return (

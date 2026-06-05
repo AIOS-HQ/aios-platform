@@ -147,7 +147,65 @@
     "notes": "Notas",
     "brain": "Cerebro Personal",
     "operator": "Operador de Vida",
-    "advisor": "Asesor de Vida"
+    "advisor": "Asesor de Vida",
+    "commandCenter": "Centro de Mando",
+    "companies": "Empresas",
+    "sections": { "command": "Centro de Mando", "personal": "Personal" }
+  },
+  "os": {
+    "commandCenter": {
+      "title": "Centro de Mando",
+      "greeting": "Bienvenido de nuevo, {name}",
+      "subtitle": "Tus empresas, objetivos y operaciones de un vistazo.",
+      "companies": "Empresas",
+      "newCompany": "Nueva empresa",
+      "activity": "Actividad reciente",
+      "activityHint": "Últimas acciones en tus empresas.",
+      "noActivity": "Aún no hay actividad.",
+      "stats": {
+        "companies": "Empresas",
+        "objectives": "Objetivos activos",
+        "approvals": "Aprobaciones pendientes"
+      },
+      "empty": {
+        "title": "Configura tu primera empresa",
+        "description": "Harmony es tu OS de Fundador. Crea una empresa para generar sus departamentos y agentes.",
+        "cta": "Crear empresa"
+      }
+    },
+    "companies": {
+      "title": "Empresas",
+      "subtitle": "Los negocios que operas a través de Harmony.",
+      "new": "Nueva empresa",
+      "newDesc": "Ponle nombre — los departamentos y agentes estándar se crean automáticamente.",
+      "namePlaceholder": "p. ej. AirBid",
+      "seedHint": "Crea los 8 departamentos estándar (Código, Marketing, Investigación, Operaciones, Ingeniería, Ventas, Soporte, Finanzas) con agentes iniciales.",
+      "allCompanies": "Todas las empresas",
+      "switchLabel": "Cambiar de empresa",
+      "noDescription": "Sin descripción.",
+      "backToCompanies": "Volver a empresas",
+      "departments": "Departamentos",
+      "noDepartments": "Aún no hay departamentos.",
+      "fields": { "name": "Nombre de la empresa", "description": "Descripción" },
+      "stats": {
+        "departments": "Departamentos",
+        "objectives": "Objetivos",
+        "projects": "Proyectos"
+      },
+      "empty": {
+        "title": "Aún no hay empresas",
+        "description": "Crea tu primera empresa para empezar a operar a través de Harmony."
+      }
+    },
+    "autonomy": {
+      "manual": "Manual",
+      "approval": "Requiere aprobación",
+      "assisted": "Asistido",
+      "autonomous": "Autónomo"
+    },
+    "activity": {
+      "companyCreated": "Empresa creada: {name}"
+    }
   },
   "roles": {
     "personal_user": "Personal",
