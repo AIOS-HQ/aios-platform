@@ -631,7 +631,8 @@
       "workCompleted": "Completed: {title}",
       "contentRequested": "Content requested: {title}",
       "contentEnabled": "Content department enabled",
-      "contentItemCreated": "Content added: {title}"
+      "contentItemCreated": "Content added: {title}",
+      "providerError": "AI provider error while running: {title}"
     }
   },
   "roles": {

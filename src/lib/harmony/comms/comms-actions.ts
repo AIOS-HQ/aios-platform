@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import { canUseDiagnostics } from "@/lib/auth/roles";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { clampAutonomy, requiresApproval } from "@/lib/harmony/os/autonomy";
@@ -304,6 +305,9 @@ export async function approveMessage(formData: FormData): Promise<void> {
 /** Simulate an inbound message (for testing routing without live channels). */
 export async function simulateInbound(formData: FormData): Promise<void> {
   const user = await requireUser();
+  // Production-safety: this is a test affordance. No-op in production unless the
+  // caller is an admin (dev/preview keep it available for everyone).
+  if (!(await canUseDiagnostics())) return;
   const conversationId = String(formData.get("conversation_id") ?? "");
   const body = String(formData.get("body") ?? "").trim();
   if (!conversationId || !body) return;

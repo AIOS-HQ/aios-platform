@@ -108,6 +108,16 @@ export async function executeWorkItem(
   } catch (err) {
     console.error("[execution] provider.generate failed", err);
     result = to("execution.failed");
+    // Provider health monitoring: surface failures in the audit feed.
+    await emitActivity({
+      userId,
+      companyId: item.company_id,
+      departmentId: item.department_id,
+      kind: "system",
+      summary: to("activity.providerError", { title: item.title }),
+      refType: "work_item",
+      refId: item.id,
+    });
   }
 
   const note = `\n\n${to("execution.resultLabel")}\n${result}`;
