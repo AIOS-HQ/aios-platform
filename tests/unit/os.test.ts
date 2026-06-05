@@ -18,18 +18,20 @@ import {
 } from "@/lib/harmony/os/catalog";
 
 describe("autonomy", () => {
-  it("defines four ordered levels 0–3", () => {
-    expect(AUTONOMY_LEVELS.map((l) => l.level)).toEqual([0, 1, 2, 3]);
+  it("defines five ordered levels 0–4", () => {
+    expect(AUTONOMY_LEVELS.map((l) => l.level)).toEqual([0, 1, 2, 3, 4]);
     expect(autonomyKey(0)).toBe("manual");
-    expect(autonomyKey(3)).toBe("autonomous");
+    expect(autonomyKey(3)).toBe("operator");
+    expect(autonomyKey(4)).toBe("executive");
   });
 
   it("validates and clamps levels", () => {
     expect(isAutonomyLevel(2)).toBe(true);
-    expect(isAutonomyLevel(4)).toBe(false);
+    expect(isAutonomyLevel(4)).toBe(true);
+    expect(isAutonomyLevel(5)).toBe(false);
     expect(isAutonomyLevel("2")).toBe(false);
     expect(clampAutonomy(-3)).toBe(0);
-    expect(clampAutonomy(9)).toBe(3);
+    expect(clampAutonomy(9)).toBe(4);
     expect(clampAutonomy(1.6)).toBe(2);
     expect(clampAutonomy(Number.NaN)).toBe(0);
   });
@@ -41,23 +43,23 @@ describe("autonomy", () => {
     expect(resolveAutonomy(2, null)).toBe(2);
   });
 
-  it("requires approval below autonomous, and always for high-risk", () => {
+  it("requires approval below operator, and always for high-risk", () => {
     expect(requiresApproval(0)).toBe(true);
     expect(requiresApproval(1)).toBe(true);
     expect(requiresApproval(2)).toBe(true);
     expect(requiresApproval(3)).toBe(false);
+    expect(requiresApproval(4)).toBe(false);
     expect(requiresApproval(3, { highRisk: true })).toBe(true);
   });
 });
 
 describe("department catalog", () => {
-  it("defines the eight initial departments with unique keys", () => {
-    expect(DEPARTMENT_TEMPLATES).toHaveLength(8);
-    expect(new Set(DEPARTMENT_KEYS).size).toBe(8);
+  it("defines the seven initial departments with unique keys (no Engineering)", () => {
+    expect(DEPARTMENT_TEMPLATES).toHaveLength(7);
+    expect(new Set(DEPARTMENT_KEYS).size).toBe(7);
     for (const key of [
       "marketing",
       "operations",
-      "engineering",
       "code",
       "research",
       "sales",
@@ -66,16 +68,16 @@ describe("department catalog", () => {
     ]) {
       expect(DEPARTMENT_KEYS).toContain(key);
     }
+    expect(DEPARTMENT_KEYS).not.toContain("engineering");
   });
 
-  it("encodes the spec's default autonomy levels", () => {
+  it("encodes the default autonomy levels (0–4 scale)", () => {
     const lvl = (k: string) => getDepartmentTemplate(k)?.defaultAutonomy;
     expect(lvl("marketing")).toBe(3);
     expect(lvl("research")).toBe(3);
     expect(lvl("operations")).toBe(2);
-    expect(lvl("engineering")).toBe(2);
     expect(lvl("code")).toBe(2);
-    expect(lvl("finance")).toBe(1);
+    expect(lvl("finance")).toBe(0);
   });
 
   it("every department has a valid default autonomy and at least one agent", () => {

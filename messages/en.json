@@ -187,7 +187,7 @@
       "backToCompanies": "Back to companies",
       "departments": "Departments",
       "noDepartments": "No departments yet.",
-      "fields": { "name": "Company name", "description": "Description" },
+      "fields": { "name": "Company name", "description": "Description", "domain": "Domain" },
       "stats": {
         "departments": "Departments",
         "objectives": "Objectives",
@@ -197,6 +197,11 @@
         "title": "No companies yet",
         "description": "Create your first company to start operating through Harmony."
       }
+    },
+    "domains": {
+      "household": "Household",
+      "personal": "Personal",
+      "business": "Business"
     },
     "departments": {
       "new": "New department",
@@ -210,10 +215,11 @@
       "autonomyLabel": "Autonomy level",
       "autonomyUpdated": "Autonomy updated.",
       "autonomyHint": {
-        "manual": "You do everything manually; agents only assist on request.",
-        "approval": "Agents propose actions; every action needs your approval.",
-        "assisted": "Agents handle routine work; significant actions need approval.",
-        "autonomous": "Agents act on their own; high-risk actions still need approval."
+        "manual": "You do everything; agents only assist on request.",
+        "assistant": "Agents draft and suggest; you execute.",
+        "coordinator": "Agents coordinate routine work; you approve actions.",
+        "operator": "Agents execute and report; high-risk actions need approval.",
+        "executive": "Agents run the department; only high-risk actions surface."
       },
       "fields": { "name": "Department name", "description": "Description" },
       "agentStatus": { "active": "Active", "paused": "Paused" }
@@ -271,9 +277,10 @@
     },
     "autonomy": {
       "manual": "Manual",
-      "approval": "Approval required",
-      "assisted": "Assisted",
-      "autonomous": "Autonomous"
+      "assistant": "Assistant",
+      "coordinator": "Coordinator",
+      "operator": "Operator",
+      "executive": "Executive"
     },
     "activity": {
       "companyCreated": "Company created: {name}",

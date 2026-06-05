@@ -15,6 +15,7 @@ import { listCompanies } from "@/lib/data/os/companies";
 import { listObjectives } from "@/lib/data/os/objectives";
 import { countPendingApprovals } from "@/lib/data/os/approvals";
 import { listActivity } from "@/lib/data/os/activity";
+import { DOMAINS } from "@/lib/harmony/os/catalog";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -39,6 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CommandCenterPage() {
   const t = await getTranslations("os.commandCenter");
+  const td = await getTranslations("os.domains");
   const user = await requireUser();
   const locale = await getLocale();
 
@@ -99,26 +101,37 @@ export default async function CommandCenterPage() {
               </Button>
             </CreateCompanyDialog>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {companies.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/harmony/companies/${c.slug}`}
-                  className="group rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-accent"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-semibold">{c.name}</span>
-                    <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          <CardContent className="space-y-4">
+            {DOMAINS.filter((d) => companies.some((c) => c.domain === d)).map(
+              (d) => (
+                <div key={d}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                    {td(d)}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {companies
+                      .filter((c) => c.domain === d)
+                      .map((c) => (
+                        <Link
+                          key={c.id}
+                          href={`/harmony/companies/${c.slug}`}
+                          className="group rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-accent"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate font-semibold">{c.name}</span>
+                            <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                          </div>
+                          {c.description && (
+                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                              {c.description}
+                            </p>
+                          )}
+                        </Link>
+                      ))}
                   </div>
-                  {c.description && (
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {c.description}
-                    </p>
-                  )}
-                </Link>
-              ))}
-            </div>
+                </div>
+              ),
+            )}
           </CardContent>
         </Card>
 

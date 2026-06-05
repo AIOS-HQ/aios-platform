@@ -118,7 +118,7 @@ export function DepartmentDialog({
                 <SelectContent>
                   {AUTONOMY_LEVELS.map((l) => (
                     <SelectItem key={l.level} value={String(l.level)}>
-                      {l.level} · {ta(l.key)}
+                      {l.level} · {ta(l.key)} {l.cost}
                     </SelectItem>
                   ))}
                 </SelectContent>

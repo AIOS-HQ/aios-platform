@@ -17,13 +17,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { LIMITS } from "@/lib/limits";
+import { DOMAINS } from "@/lib/harmony/os/catalog";
 
 export function CreateCompanyDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("os.companies");
+  const td = useTranslations("os.domains");
   const tc = useTranslations("common");
 
   async function onSubmit(formData: FormData) {
@@ -60,6 +69,21 @@ export function CreateCompanyDialog({ children }: { children: React.ReactNode })
               {error}
             </p>
           )}
+          <div className="space-y-2">
+            <Label htmlFor="company-domain">{t("fields.domain")}</Label>
+            <Select name="domain" defaultValue="business">
+              <SelectTrigger id="company-domain">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DOMAINS.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {td(d)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="company-name">{t("fields.name")}</Label>
             <Input
