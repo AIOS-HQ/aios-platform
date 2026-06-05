@@ -77,7 +77,7 @@ export async function decideApproval(formData: FormData): Promise<void> {
     .update({ status: decision, decided_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("title, company_id, work_item_id, message_id")
+    .select("title, company_id, work_item_id")
     .maybeSingle();
   if (error) {
     console.error("[approval-actions] decideApproval", error);
@@ -88,7 +88,6 @@ export async function decideApproval(formData: FormData): Promise<void> {
     title: string;
     company_id: string | null;
     work_item_id: string | null;
-    message_id: string | null;
   } | null;
 
   // Approving a gated work item runs it (forced past the autonomy gate).
@@ -103,15 +102,26 @@ export async function decideApproval(formData: FormData): Promise<void> {
   }
 
   // Approving/rejecting a gated communications message delivers or cancels it
-  // (D4 — same effect as approving from the conversation thread).
-  if (row?.message_id) {
+  // (D4 — same effect as approving from the conversation thread). The link is
+  // read in a separate, error-tolerant query so the decision flow keeps working
+  // even before migration 1100 (approvals.message_id) is applied — a message
+  // approval can only exist once that column does, so pre-migration this is null.
+  const { data: linkRow } = await supabase
+    .from("approvals")
+    .select("message_id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const messageId =
+    (linkRow as { message_id: string | null } | null)?.message_id ?? null;
+  if (messageId) {
     if (decision === "approved") {
-      await deliverMessageById(supabase, user.id, row.message_id);
+      await deliverMessageById(supabase, user.id, messageId);
     } else {
       await supabase
         .from("messages")
         .update({ status: "failed" })
-        .eq("id", row.message_id)
+        .eq("id", messageId)
         .eq("user_id", user.id);
     }
   }
