@@ -2,6 +2,7 @@ import {
   Activity,
   BrainCircuit,
   Building2,
+  Code2,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
@@ -44,6 +45,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/work", labelKey: "work", icon: ListChecks },
       { href: "/harmony/approvals", labelKey: "approvals", icon: ShieldCheck },
       { href: "/harmony/activity", labelKey: "activity", icon: Activity },
+      { href: "/harmony/code", labelKey: "code", icon: Code2 },
     ],
   },
   {
