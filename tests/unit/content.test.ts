@@ -155,13 +155,13 @@ describe("autonomy cost tiers", () => {
   it("assigns a rising cost tier to each of the five levels", () => {
     expect(AUTONOMY_LEVELS).toHaveLength(5);
     expect(AUTONOMY_LEVELS.map((l) => l.costTier)).toEqual([
-      "",
       "$",
       "$$",
       "$$$",
       "$$$$",
+      "$$$$$",
     ]);
-    expect(autonomyCostTier(0)).toBe("");
-    expect(autonomyCostTier(4)).toBe("$$$$");
+    expect(autonomyCostTier(0)).toBe("$");
+    expect(autonomyCostTier(4)).toBe("$$$$$");
   });
 });
