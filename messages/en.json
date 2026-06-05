@@ -154,6 +154,7 @@
     "work": "Work Queue",
     "approvals": "Approvals",
     "activity": "Activity",
+    "comms": "Communications",
     "code": "Code Dept",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
@@ -407,6 +408,88 @@
         "description": "Create a company to spin up its Code department.",
         "cta": "Go to companies"
       }
+    },
+    "comms": {
+      "title": "Communications",
+      "subtitle": "One inbox for every channel — routed, queued, and approved by Harmony.",
+      "channels": "Channels",
+      "inbox": "Inbox",
+      "addChannel": "Add channel",
+      "addChannelDesc": "Connect a communications channel. Channels that need credentials stay mocked until configured.",
+      "newConversation": "New conversation",
+      "newConversationDesc": "Start a thread with a contact on a channel.",
+      "noChannels": "No channels yet.",
+      "noConversations": "No conversations yet.",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "needs": "Needs",
+      "ownerWide": "Owner-wide",
+      "unassigned": "Unassigned",
+      "contactPlaceholder": "e.g. +1 555 123 4567 or a name",
+      "handlePlaceholder": "Number, address, or handle",
+      "thread": "Thread",
+      "noMessages": "No messages yet.",
+      "reply": "Reply",
+      "replyPlaceholder": "Write a reply…",
+      "send": "Send",
+      "queuedForApproval": "Queued for your approval.",
+      "sent": "Message sent.",
+      "approveSend": "Approve & send",
+      "simulate": "Simulate inbound",
+      "simulateHint": "Test routing without a live channel — adds an inbound message.",
+      "simulatePlaceholder": "Incoming message…",
+      "simulateButton": "Add inbound",
+      "backToComms": "Back to communications",
+      "close": "Close",
+      "reopen": "Reopen",
+      "empty": {
+        "title": "Add your first channel",
+        "description": "Connect a channel (Website Chat and Telegram need no paid setup) to start managing conversations."
+      },
+      "fields": {
+        "channel": "Channel",
+        "name": "Name",
+        "handle": "Handle",
+        "company": "Company",
+        "department": "Department",
+        "contact": "Contact",
+        "subject": "Subject"
+      },
+      "activity": {
+        "channelAdded": "Channel added: {name}",
+        "replyQueued": "Reply queued for approval to {contact}",
+        "received": "Message received from {contact}",
+        "sent": "Message sent to {contact}",
+        "failed": "Message failed to {contact}"
+      }
+    },
+    "channelKind": {
+      "whatsapp": "WhatsApp Business",
+      "email": "Email",
+      "sms": "SMS",
+      "telegram": "Telegram",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn",
+      "x": "X",
+      "web_chat": "Website Chat"
+    },
+    "conversationStatus": {
+      "open": "Open",
+      "pending": "Pending",
+      "snoozed": "Snoozed",
+      "closed": "Closed"
+    },
+    "messageStatus": {
+      "received": "Received",
+      "queued": "Queued",
+      "awaiting_approval": "Awaiting approval",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read",
+      "failed": "Failed"
     },
     "autonomy": {
       "manual": "Manual",

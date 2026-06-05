@@ -154,6 +154,7 @@
     "work": "Cola de trabajo",
     "approvals": "Aprobaciones",
     "activity": "Actividad",
+    "comms": "Comunicaciones",
     "code": "Depto. de Código",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
@@ -407,6 +408,88 @@
         "description": "Crea una empresa para generar su Departamento de Código.",
         "cta": "Ir a empresas"
       }
+    },
+    "comms": {
+      "title": "Comunicaciones",
+      "subtitle": "Una bandeja para cada canal — enrutado, en cola y aprobado por Harmony.",
+      "channels": "Canales",
+      "inbox": "Bandeja",
+      "addChannel": "Añadir canal",
+      "addChannelDesc": "Conecta un canal de comunicación. Los canales que requieren credenciales quedan simulados hasta configurarse.",
+      "newConversation": "Nueva conversación",
+      "newConversationDesc": "Inicia un hilo con un contacto en un canal.",
+      "noChannels": "Aún no hay canales.",
+      "noConversations": "Aún no hay conversaciones.",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "connect": "Conectar",
+      "disconnect": "Desconectar",
+      "needs": "Requiere",
+      "ownerWide": "Global del propietario",
+      "unassigned": "Sin asignar",
+      "contactPlaceholder": "p. ej. +34 600 123 456 o un nombre",
+      "handlePlaceholder": "Número, dirección o identificador",
+      "thread": "Hilo",
+      "noMessages": "Aún no hay mensajes.",
+      "reply": "Responder",
+      "replyPlaceholder": "Escribe una respuesta…",
+      "send": "Enviar",
+      "queuedForApproval": "En cola para tu aprobación.",
+      "sent": "Mensaje enviado.",
+      "approveSend": "Aprobar y enviar",
+      "simulate": "Simular entrante",
+      "simulateHint": "Prueba el enrutamiento sin un canal en vivo — añade un mensaje entrante.",
+      "simulatePlaceholder": "Mensaje entrante…",
+      "simulateButton": "Añadir entrante",
+      "backToComms": "Volver a comunicaciones",
+      "close": "Cerrar",
+      "reopen": "Reabrir",
+      "empty": {
+        "title": "Añade tu primer canal",
+        "description": "Conecta un canal (Web Chat y Telegram no requieren pago) para empezar a gestionar conversaciones."
+      },
+      "fields": {
+        "channel": "Canal",
+        "name": "Nombre",
+        "handle": "Identificador",
+        "company": "Empresa",
+        "department": "Departamento",
+        "contact": "Contacto",
+        "subject": "Asunto"
+      },
+      "activity": {
+        "channelAdded": "Canal añadido: {name}",
+        "replyQueued": "Respuesta en cola para aprobación a {contact}",
+        "received": "Mensaje recibido de {contact}",
+        "sent": "Mensaje enviado a {contact}",
+        "failed": "Mensaje fallido a {contact}"
+      }
+    },
+    "channelKind": {
+      "whatsapp": "WhatsApp Business",
+      "email": "Correo",
+      "sms": "SMS",
+      "telegram": "Telegram",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn",
+      "x": "X",
+      "web_chat": "Chat web"
+    },
+    "conversationStatus": {
+      "open": "Abierta",
+      "pending": "Pendiente",
+      "snoozed": "Pospuesta",
+      "closed": "Cerrada"
+    },
+    "messageStatus": {
+      "received": "Recibido",
+      "queued": "En cola",
+      "awaiting_approval": "Esperando aprobación",
+      "sent": "Enviado",
+      "delivered": "Entregado",
+      "read": "Leído",
+      "failed": "Fallido"
     },
     "autonomy": {
       "manual": "Manual",

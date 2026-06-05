@@ -15,6 +15,7 @@ import type {
   DepartmentKey,
   WorkStatus,
 } from "@/lib/harmony/os/catalog";
+import type { ChannelKind } from "@/lib/harmony/comms/catalog";
 
 // Re-export the shared OS domain unions so `@/types/database` stays the single
 // row-type home for consumers (data layer, components).
@@ -26,6 +27,7 @@ export type {
   DepartmentKey,
   WorkStatus,
 } from "@/lib/harmony/os/catalog";
+export type { ChannelKind } from "@/lib/harmony/comms/catalog";
 
 export type UserRole = "personal_user" | "business_owner" | "admin";
 
@@ -236,5 +238,60 @@ export interface ActivityEvent {
   summary: string;
   ref_type: string | null;
   ref_id: string | null;
+  created_at: string;
+}
+
+// ===========================================================================
+// Communications layer (channels → conversations → messages)
+// ===========================================================================
+
+export type ChannelStatus = "disconnected" | "connected" | "error";
+export type ConversationStatus = "open" | "pending" | "snoozed" | "closed";
+export type MessageDirection = "inbound" | "outbound";
+export type MessageStatus =
+  | "received"
+  | "queued"
+  | "awaiting_approval"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
+
+export interface Channel {
+  id: string;
+  user_id: string;
+  company_id: string | null;
+  department_id: string | null;
+  kind: ChannelKind;
+  name: string;
+  handle: string | null;
+  status: ChannelStatus;
+  credential_ref: string | null;
+  autonomy_level: AutonomyLevel | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  user_id: string;
+  channel_id: string;
+  company_id: string | null;
+  assigned_agent_id: string | null;
+  contact: string;
+  subject: string | null;
+  status: ConversationStatus;
+  last_message_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Message {
+  id: string;
+  user_id: string;
+  conversation_id: string;
+  direction: MessageDirection;
+  body: string;
+  status: MessageStatus;
   created_at: string;
 }
