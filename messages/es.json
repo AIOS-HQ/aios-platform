@@ -150,6 +150,7 @@
     "advisor": "Asesor de Vida",
     "commandCenter": "Centro de Mando",
     "companies": "Empresas",
+    "objectives": "Objetivos",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {
@@ -229,6 +230,45 @@
       "resume": "Reanudar agente",
       "fields": { "name": "Nombre del agente", "role": "Rol" }
     },
+    "objectives": {
+      "title": "Objetivos",
+      "subtitle": "Resultados que diriges; Harmony ejecuta el trabajo.",
+      "new": "Nuevo objetivo",
+      "edit": "Editar objetivo",
+      "dialogDesc": "Define el resultado, el responsable y la fecha límite.",
+      "outcomePlaceholder": "¿Cómo se ve el éxito?",
+      "progress": "Progreso",
+      "increase": "Aumentar progreso",
+      "decrease": "Disminuir progreso",
+      "outcomeTitle": "Resultado",
+      "noOutcome": "Aún no hay resultado descrito.",
+      "detailsTitle": "Detalles",
+      "noDepartment": "Sin departamento responsable",
+      "backToObjectives": "Volver a objetivos",
+      "fields": {
+        "title": "Título",
+        "outcome": "Resultado",
+        "company": "Empresa",
+        "department": "Departamento responsable",
+        "dueDate": "Fecha límite",
+        "status": "Estado"
+      },
+      "empty": {
+        "title": "Aún no hay objetivos",
+        "description": "Crea un objetivo y Harmony ayudará a llevarlo a cabo."
+      },
+      "noCompanies": {
+        "title": "Crea una empresa primero",
+        "description": "Los objetivos pertenecen a una empresa. Crea una para empezar.",
+        "cta": "Ir a empresas"
+      }
+    },
+    "objectiveStatus": {
+      "active": "Activo",
+      "paused": "Pausado",
+      "completed": "Completado",
+      "archived": "Archivado"
+    },
     "autonomy": {
       "manual": "Manual",
       "approval": "Requiere aprobación",
@@ -237,7 +277,8 @@
     },
     "activity": {
       "companyCreated": "Empresa creada: {name}",
-      "autonomyChanged": "Autonomía de {name} fijada en {level}"
+      "autonomyChanged": "Autonomía de {name} fijada en {level}",
+      "objectiveCreated": "Objetivo creado: {title}"
     }
   },
   "roles": {
