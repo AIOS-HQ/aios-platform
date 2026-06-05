@@ -13,19 +13,21 @@ export async function listGoals(opts?: {
   if (opts?.status && opts.status !== "all") {
     query = query.eq("status", opts.status);
   }
-  const { data } = await query
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .limit(opts?.limit ?? 500);
+  if (error) console.error("[data/goals] listGoals", error);
   return (data as PersonalGoal[] | null) ?? [];
 }
 
 /** Fetch a single goal by id (RLS restricts to the owner). */
 export async function getGoal(id: string): Promise<PersonalGoal | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("personal_goals")
     .select("*")
     .eq("id", id)
     .maybeSingle();
+  if (error) console.error("[data/goals] getGoal", error);
   return (data as PersonalGoal | null) ?? null;
 }

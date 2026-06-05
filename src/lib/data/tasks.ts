@@ -13,10 +13,11 @@ export async function listTasks(opts?: {
   if (opts?.status && opts.status !== "all") {
     query = query.eq("status", opts.status);
   }
-  const { data } = await query
+  const { data, error } = await query
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(opts?.limit ?? 500);
+  if (error) console.error("[data/tasks] listTasks", error);
   return (data as PersonalTask[] | null) ?? [];
 }
 

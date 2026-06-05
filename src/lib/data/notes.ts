@@ -15,9 +15,10 @@ export async function listNotes(
   if (term) {
     q = q.or(`title.ilike.%${term}%,content.ilike.%${term}%`);
   }
-  const { data } = await q
+  const { data, error } = await q
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
     .limit(limit);
+  if (error) console.error("[data/notes] listNotes", error);
   return (data as PersonalNote[] | null) ?? [];
 }
