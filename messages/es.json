@@ -187,7 +187,7 @@
       "backToCompanies": "Volver a empresas",
       "departments": "Departamentos",
       "noDepartments": "Aún no hay departamentos.",
-      "fields": { "name": "Nombre de la empresa", "description": "Descripción" },
+      "fields": { "name": "Nombre de la empresa", "description": "Descripción", "domain": "Dominio" },
       "stats": {
         "departments": "Departamentos",
         "objectives": "Objetivos",
@@ -197,6 +197,11 @@
         "title": "Aún no hay empresas",
         "description": "Crea tu primera empresa para empezar a operar a través de Harmony."
       }
+    },
+    "domains": {
+      "household": "Hogar",
+      "personal": "Personal",
+      "business": "Negocio"
     },
     "departments": {
       "new": "Nuevo departamento",
@@ -210,10 +215,11 @@
       "autonomyLabel": "Nivel de autonomía",
       "autonomyUpdated": "Autonomía actualizada.",
       "autonomyHint": {
-        "manual": "Tú haces todo manualmente; los agentes solo asisten cuando se les pide.",
-        "approval": "Los agentes proponen acciones; cada acción necesita tu aprobación.",
-        "assisted": "Los agentes gestionan el trabajo rutinario; las acciones importantes requieren aprobación.",
-        "autonomous": "Los agentes actúan por su cuenta; las acciones de alto riesgo aún requieren aprobación."
+        "manual": "Tú haces todo; los agentes solo asisten cuando se les pide.",
+        "assistant": "Los agentes redactan y sugieren; tú ejecutas.",
+        "coordinator": "Los agentes coordinan el trabajo rutinario; tú apruebas las acciones.",
+        "operator": "Los agentes ejecutan e informan; las acciones de alto riesgo requieren aprobación.",
+        "executive": "Los agentes dirigen el departamento; solo surgen las acciones de alto riesgo."
       },
       "fields": { "name": "Nombre del departamento", "description": "Descripción" },
       "agentStatus": { "active": "Activo", "paused": "Pausado" }
@@ -271,9 +277,10 @@
     },
     "autonomy": {
       "manual": "Manual",
-      "approval": "Requiere aprobación",
-      "assisted": "Asistido",
-      "autonomous": "Autónomo"
+      "assistant": "Asistente",
+      "coordinator": "Coordinador",
+      "operator": "Operador",
+      "executive": "Ejecutivo"
     },
     "activity": {
       "companyCreated": "Empresa creada: {name}",

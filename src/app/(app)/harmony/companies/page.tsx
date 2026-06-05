@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { ArrowRight, Building2, Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listCompanies } from "@/lib/data/os/companies";
+import { DOMAINS } from "@/lib/harmony/os/catalog";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CompaniesPage() {
   const t = await getTranslations("os.companies");
+  const td = await getTranslations("os.domains");
   await requireUser();
   const companies = await listCompanies();
 
@@ -44,25 +46,38 @@ export default async function CompaniesPage() {
           </CreateCompanyDialog>
         </EmptyState>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {companies.map((c) => (
-            <Link
-              key={c.id}
-              href={`/harmony/companies/${c.slug}`}
-              className="group flex flex-col rounded-xl border p-5 transition-colors hover:border-primary/40 hover:bg-accent"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-lg font-semibold">{c.name}</span>
-                <ArrowRight
-                  className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
-                {c.description || t("noDescription")}
-              </p>
-            </Link>
-          ))}
+        <div className="space-y-6">
+          {DOMAINS.filter((d) => companies.some((c) => c.domain === d)).map(
+            (d) => (
+              <section key={d}>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  {td(d)}
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {companies
+                    .filter((c) => c.domain === d)
+                    .map((c) => (
+                      <Link
+                        key={c.id}
+                        href={`/harmony/companies/${c.slug}`}
+                        className="group flex flex-col rounded-xl border p-5 transition-colors hover:border-primary/40 hover:bg-accent"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-lg font-semibold">{c.name}</span>
+                          <ArrowRight
+                            className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                            aria-hidden="true"
+                          />
+                        </div>
+                        <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+                          {c.description || t("noDescription")}
+                        </p>
+                      </Link>
+                    ))}
+                </div>
+              </section>
+            ),
+          )}
         </div>
       )}
     </>

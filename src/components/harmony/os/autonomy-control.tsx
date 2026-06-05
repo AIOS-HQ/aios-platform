@@ -47,7 +47,7 @@ export function AutonomyControl({
         <SelectContent>
           {AUTONOMY_LEVELS.map((l) => (
             <SelectItem key={l.level} value={String(l.level)}>
-              {l.level} · {t(l.key)}
+              {l.level} · {t(l.key)} {l.cost}
             </SelectItem>
           ))}
         </SelectContent>

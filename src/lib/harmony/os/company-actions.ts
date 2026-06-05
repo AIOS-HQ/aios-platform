@@ -9,8 +9,9 @@ import { uniqueSlug } from "@/lib/harmony/os/slug";
 import { buildStandardDepartmentSeed } from "@/lib/harmony/os/seed";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { listCompanies } from "@/lib/data/os/companies";
+import { DOMAINS } from "@/lib/harmony/os/catalog";
 import type { ActionState } from "@/lib/types";
-import type { Company } from "@/types/database";
+import type { Company, CompanyDomain } from "@/types/database";
 
 /**
  * Create a company and seed its standard departments + agents (Code-first).
@@ -26,6 +27,8 @@ export async function createCompany(
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
+  const domainRaw = String(formData.get("domain") ?? "business") as CompanyDomain;
+  const domain = DOMAINS.includes(domainRaw) ? domainRaw : "business";
   if (!name) return { status: "error", message: t("errors.titleRequired") };
   if (exceedsLimits([[name, LIMITS.name], [description, LIMITS.description]])) {
     return { status: "error", message: t("errors.tooLong") };
@@ -42,6 +45,7 @@ export async function createCompany(
       name,
       slug,
       description,
+      domain,
       position: existing.length,
     })
     .select("*")

@@ -11,6 +11,7 @@ import type { AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import type {
   ActivityKind,
   ApprovalType,
+  CompanyDomain,
   DepartmentKey,
   WorkStatus,
 } from "@/lib/harmony/os/catalog";
@@ -21,6 +22,7 @@ export type { AutonomyLevel } from "@/lib/harmony/os/autonomy";
 export type {
   ActivityKind,
   ApprovalType,
+  CompanyDomain,
   DepartmentKey,
   WorkStatus,
 } from "@/lib/harmony/os/catalog";
@@ -124,6 +126,7 @@ export interface Company {
   name: string;
   slug: string;
   description: string | null;
+  domain: CompanyDomain;
   status: CompanyStatus;
   color: string | null;
   position: number;

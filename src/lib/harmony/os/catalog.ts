@@ -8,10 +8,19 @@
  */
 import type { AutonomyLevel } from "./autonomy";
 
+/** Top-level life/business domains the owner operates through Harmony. */
+export type CompanyDomain = "household" | "personal" | "business";
+
+/** Display order for domains in the Command Center. */
+export const DOMAINS: readonly CompanyDomain[] = [
+  "business",
+  "household",
+  "personal",
+] as const;
+
 export type DepartmentKey =
   | "marketing"
   | "operations"
-  | "engineering"
   | "code"
   | "research"
   | "sales"
@@ -132,16 +141,6 @@ export const DEPARTMENT_TEMPLATES: readonly DepartmentTemplate[] = [
     ],
   },
   {
-    key: "engineering",
-    name: "Engineering",
-    description: "Systems, infrastructure, and platform engineering.",
-    defaultAutonomy: 2,
-    agents: [
-      { key: "systems", name: "Systems Agent", role: "Architecture and infrastructure" },
-      { key: "devops", name: "DevOps Agent", role: "CI/CD and reliability" },
-    ],
-  },
-  {
     key: "sales",
     name: "Sales",
     description: "Pipeline, outreach, and revenue.",
@@ -165,7 +164,7 @@ export const DEPARTMENT_TEMPLATES: readonly DepartmentTemplate[] = [
     key: "finance",
     name: "Finance",
     description: "Bookkeeping, reporting, and forecasting.",
-    defaultAutonomy: 1,
+    defaultAutonomy: 0,
     agents: [
       { key: "bookkeeping", name: "Bookkeeping Agent", role: "Categorizes and records transactions" },
       { key: "reporting", name: "Reporting Agent", role: "Financial statements and dashboards" },

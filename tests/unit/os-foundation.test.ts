@@ -33,9 +33,9 @@ describe("uniqueSlug", () => {
 });
 
 describe("buildStandardDepartmentSeed", () => {
-  it("produces the 8 departments in order with ordered agents", () => {
+  it("produces the 7 departments in order with ordered agents", () => {
     const seed = buildStandardDepartmentSeed();
-    expect(seed).toHaveLength(8);
+    expect(seed).toHaveLength(7);
     expect(seed[0].key).toBe("code"); // Code is first-class / first
     seed.forEach((d, i) => {
       expect(d.position).toBe(i);
@@ -44,11 +44,11 @@ describe("buildStandardDepartmentSeed", () => {
     });
   });
 
-  it("carries default autonomy from the catalog", () => {
+  it("carries default autonomy from the catalog (0–4 scale)", () => {
     const seed = buildStandardDepartmentSeed();
     const byKey = Object.fromEntries(seed.map((d) => [d.key, d]));
     expect(byKey.marketing.autonomy_level).toBe(3);
-    expect(byKey.finance.autonomy_level).toBe(1);
+    expect(byKey.finance.autonomy_level).toBe(0);
     expect(byKey.code.autonomy_level).toBe(2);
   });
 });
