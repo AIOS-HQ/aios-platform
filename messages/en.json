@@ -156,6 +156,7 @@
     "activity": "Activity",
     "comms": "Communications",
     "code": "Code Dept",
+    "content": "Content",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {
@@ -393,6 +394,61 @@
       "recommendation": "Recommendation",
       "system": "System"
     },
+    "content": {
+      "title": "Content Department",
+      "subtitle": "Plan, generate, and ship content across every channel.",
+      "generateButton": "Generate",
+      "generateTitle": "Generate content",
+      "generateDesc": "Pick what you need, give Harmony a topic, and it routes the work to the right content helper.",
+      "working": "Generating…",
+      "generated": "Harmony generated your draft.",
+      "routed": "Routed to the Approval Center for your sign-off.",
+      "noDepartment": "Enable the Content department for this company first.",
+      "topicPlaceholder": "e.g. How we cut churn 30% with better onboarding",
+      "fields": {
+        "capability": "What to create",
+        "topic": "Topic",
+        "company": "Company"
+      },
+      "capabilities": "What Harmony can create",
+      "board": "Content board",
+      "noWork": "No content work yet. Generate something to get started.",
+      "helpers": "Content helpers",
+      "noHelpers": "No content helpers yet.",
+      "engines": "Engines",
+      "enginesHint": "Connect these as integrations land to automate production and publishing.",
+      "enable": {
+        "title": "Add the Content department",
+        "description": "These companies don't have a Content department yet. Add it to start generating.",
+        "button": "Add to {company}"
+      },
+      "empty": {
+        "title": "No companies yet",
+        "description": "Create a company to spin up its Content department.",
+        "cta": "Go to companies"
+      }
+    },
+    "contentTask": {
+      "content_strategy": { "label": "Content strategy", "desc": "Audience, pillars, channels, and cadence." },
+      "content_plan": { "label": "Content plan", "desc": "A 30-day plan of pieces to ship." },
+      "content_calendar": { "label": "Content calendar", "desc": "A 4-week, day-by-day schedule." },
+      "youtube_idea": { "label": "YouTube ideas", "desc": "10 titled video ideas with hooks." },
+      "youtube_script": { "label": "YouTube script", "desc": "A full script with hook, segments, and CTA." },
+      "tiktok_script": { "label": "TikTok script", "desc": "A punchy 30–45s short-form script." },
+      "shorts_concept": { "label": "Shorts concepts", "desc": "5 short-form concepts with hooks." },
+      "blog_outline": { "label": "Blog outline", "desc": "An SEO-minded outline with headings." },
+      "thumbnail_concept": { "label": "Thumbnail concepts", "desc": "3 click-worthy thumbnail directions." },
+      "seo_plan": { "label": "SEO plan", "desc": "Keywords, on-page fixes, and priorities." }
+    },
+    "contentHelper": {
+      "hint": "Helpers run behind the scenes; Harmony routes work to them by autonomy level."
+    },
+    "contentEngineCategory": {
+      "llm": "Text & ideation",
+      "video": "Video",
+      "voice": "Voice",
+      "social": "Social APIs"
+    },
     "code": {
       "title": "Code Department",
       "subtitle": "Software development operations across your companies.",
@@ -493,9 +549,9 @@
     },
     "autonomy": {
       "manual": "Manual",
-      "assisted": "Assisted",
-      "supervised": "Supervised",
-      "autonomous": "Autonomous",
+      "assisted": "Assistant",
+      "supervised": "Coordinator",
+      "autonomous": "Operator",
       "executive": "Executive Autonomous"
     },
     "activity": {
@@ -507,7 +563,9 @@
       "approvalRejected": "Rejected: {title}",
       "delegated": "Delegated to Harmony: {title}",
       "workRouted": "Routed for approval: {title}",
-      "workCompleted": "Completed: {title}"
+      "workCompleted": "Completed: {title}",
+      "contentRequested": "Content requested: {title}",
+      "contentEnabled": "Content department enabled"
     }
   },
   "roles": {

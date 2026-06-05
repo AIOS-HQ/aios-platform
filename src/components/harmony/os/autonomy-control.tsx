@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { setDepartmentAutonomy } from "@/lib/harmony/os/department-actions";
 import { AUTONOMY_LEVELS } from "@/lib/harmony/os/autonomy";
 
-/** Inline 0–3 autonomy selector for a department. */
+/** Inline 0–4 autonomy selector for a department. */
 export function AutonomyControl({
   departmentId,
   level,
@@ -48,6 +48,7 @@ export function AutonomyControl({
           {AUTONOMY_LEVELS.map((l) => (
             <SelectItem key={l.level} value={String(l.level)}>
               {l.level} · {t(l.key)}
+              {l.costTier ? ` · ${l.costTier}` : ""}
             </SelectItem>
           ))}
         </SelectContent>

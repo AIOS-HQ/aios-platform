@@ -156,6 +156,7 @@
     "activity": "Actividad",
     "comms": "Comunicaciones",
     "code": "Depto. de Código",
+    "content": "Contenido",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {
@@ -393,6 +394,61 @@
       "recommendation": "Recomendación",
       "system": "Sistema"
     },
+    "content": {
+      "title": "Departamento de Contenido",
+      "subtitle": "Planifica, genera y publica contenido en todos los canales.",
+      "generateButton": "Generar",
+      "generateTitle": "Generar contenido",
+      "generateDesc": "Elige qué necesitas, dale un tema a Harmony y enrutará el trabajo al helper de contenido adecuado.",
+      "working": "Generando…",
+      "generated": "Harmony generó tu borrador.",
+      "routed": "Enviado al Centro de Aprobaciones para tu visto bueno.",
+      "noDepartment": "Primero habilita el departamento de Contenido para esta empresa.",
+      "topicPlaceholder": "p. ej. Cómo redujimos la fuga 30% con mejor onboarding",
+      "fields": {
+        "capability": "Qué crear",
+        "topic": "Tema",
+        "company": "Empresa"
+      },
+      "capabilities": "Lo que Harmony puede crear",
+      "board": "Tablero de contenido",
+      "noWork": "Aún no hay trabajo de contenido. Genera algo para empezar.",
+      "helpers": "Helpers de contenido",
+      "noHelpers": "Aún no hay helpers de contenido.",
+      "engines": "Motores",
+      "enginesHint": "Conéctalos a medida que lleguen las integraciones para automatizar la producción y la publicación.",
+      "enable": {
+        "title": "Agregar el departamento de Contenido",
+        "description": "Estas empresas aún no tienen un departamento de Contenido. Agrégalo para empezar a generar.",
+        "button": "Agregar a {company}"
+      },
+      "empty": {
+        "title": "Aún no hay empresas",
+        "description": "Crea una empresa para activar su departamento de Contenido.",
+        "cta": "Ir a empresas"
+      }
+    },
+    "contentTask": {
+      "content_strategy": { "label": "Estrategia de contenido", "desc": "Audiencia, pilares, canales y cadencia." },
+      "content_plan": { "label": "Plan de contenido", "desc": "Un plan de 30 días de piezas a publicar." },
+      "content_calendar": { "label": "Calendario de contenido", "desc": "Un calendario de 4 semanas, día a día." },
+      "youtube_idea": { "label": "Ideas de YouTube", "desc": "10 ideas de video con título y gancho." },
+      "youtube_script": { "label": "Guion de YouTube", "desc": "Un guion completo con gancho, segmentos y CTA." },
+      "tiktok_script": { "label": "Guion de TikTok", "desc": "Un guion corto y directo de 30–45 s." },
+      "shorts_concept": { "label": "Conceptos de Shorts", "desc": "5 conceptos de formato corto con ganchos." },
+      "blog_outline": { "label": "Esquema de blog", "desc": "Un esquema con enfoque SEO y encabezados." },
+      "thumbnail_concept": { "label": "Conceptos de miniatura", "desc": "3 ideas de miniatura que invitan al clic." },
+      "seo_plan": { "label": "Plan SEO", "desc": "Palabras clave, mejoras on-page y prioridades." }
+    },
+    "contentHelper": {
+      "hint": "Los helpers trabajan tras bambalinas; Harmony les enruta el trabajo según su nivel de autonomía."
+    },
+    "contentEngineCategory": {
+      "llm": "Texto e ideación",
+      "video": "Video",
+      "voice": "Voz",
+      "social": "APIs sociales"
+    },
     "code": {
       "title": "Departamento de Código",
       "subtitle": "Operaciones de desarrollo de software en tus empresas.",
@@ -493,9 +549,9 @@
     },
     "autonomy": {
       "manual": "Manual",
-      "assisted": "Asistido",
-      "supervised": "Supervisado",
-      "autonomous": "Autónomo",
+      "assisted": "Asistente",
+      "supervised": "Coordinador",
+      "autonomous": "Operador",
       "executive": "Autónomo Ejecutivo"
     },
     "activity": {
@@ -507,7 +563,9 @@
       "approvalRejected": "Rechazado: {title}",
       "delegated": "Delegado a Harmony: {title}",
       "workRouted": "Enviado a aprobación: {title}",
-      "workCompleted": "Completado: {title}"
+      "workCompleted": "Completado: {title}",
+      "contentRequested": "Contenido solicitado: {title}",
+      "contentEnabled": "Departamento de Contenido habilitado"
     }
   },
   "roles": {

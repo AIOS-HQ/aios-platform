@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
-import { clampAutonomy } from "@/lib/harmony/os/autonomy";
+import { autonomyKey, clampAutonomy } from "@/lib/harmony/os/autonomy";
 import { emitActivity } from "@/lib/harmony/os/events";
 import type { ActionState } from "@/lib/types";
 import type { Department } from "@/types/database";
@@ -110,7 +110,7 @@ export async function setDepartmentAutonomy(
     kind: "department_action",
     summary: to("activity.autonomyChanged", {
       name: dept?.name ?? "",
-      level: to(`autonomy.${["manual", "approval", "assisted", "autonomous"][autonomy]}`),
+      level: to(`autonomy.${autonomyKey(autonomy)}`),
     }),
     refType: "department",
     refId: id,

@@ -55,11 +55,12 @@ describe("autonomy", () => {
 });
 
 describe("department catalog", () => {
-  it("defines the seven initial departments with unique keys (no Engineering)", () => {
-    expect(DEPARTMENT_TEMPLATES).toHaveLength(7);
-    expect(new Set(DEPARTMENT_KEYS).size).toBe(7);
+  it("defines the eight initial departments with unique keys (no Engineering)", () => {
+    expect(DEPARTMENT_TEMPLATES).toHaveLength(8);
+    expect(new Set(DEPARTMENT_KEYS).size).toBe(8);
     for (const key of [
       "marketing",
+      "content",
       "operations",
       "code",
       "research",
