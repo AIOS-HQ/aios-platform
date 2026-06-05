@@ -153,6 +153,7 @@
     "objectives": "Objetivos",
     "work": "Cola de trabajo",
     "approvals": "Aprobaciones",
+    "activity": "Actividad",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {
@@ -348,6 +349,23 @@
       "pending": "Pendiente",
       "approved": "Aprobado",
       "rejected": "Rechazado"
+    },
+    "activityFeed": {
+      "title": "Actividad",
+      "subtitle": "Todo lo que ocurre en tus empresas y departamentos.",
+      "empty": {
+        "title": "Aún no hay actividad",
+        "description": "Las acciones en Harmony aparecerán aquí."
+      }
+    },
+    "activityKind": {
+      "agent_action": "Agente",
+      "department_action": "Departamento",
+      "approval": "Aprobación",
+      "objective": "Objetivo",
+      "project": "Proyecto",
+      "recommendation": "Recomendación",
+      "system": "Sistema"
     },
     "autonomy": {
       "manual": "Manual",
