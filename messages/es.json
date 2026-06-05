@@ -631,7 +631,8 @@
       "workCompleted": "Completado: {title}",
       "contentRequested": "Contenido solicitado: {title}",
       "contentEnabled": "Departamento de Contenido habilitado",
-      "contentItemCreated": "Contenido agregado: {title}"
+      "contentItemCreated": "Contenido agregado: {title}",
+      "providerError": "Error del proveedor de IA al ejecutar: {title}"
     }
   },
   "roles": {

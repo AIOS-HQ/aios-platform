@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, Check } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
+import { canUseDiagnostics } from "@/lib/auth/roles";
 import { getConversation } from "@/lib/data/comms/conversations";
 import { getChannel } from "@/lib/data/comms/channels";
 import { listMessages } from "@/lib/data/comms/messages";
@@ -52,9 +53,10 @@ export default async function ConversationPage({
   const conversation = await getConversation(id);
   if (!conversation) notFound();
 
-  const [channel, messages] = await Promise.all([
+  const [channel, messages, showSimulate] = await Promise.all([
     getChannel(conversation.channel_id),
     listMessages(conversation.id),
+    canUseDiagnostics(),
   ]);
   const isClosed = conversation.status === "closed";
 
@@ -131,23 +133,25 @@ export default async function ConversationPage({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("simulate")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-2 text-xs text-muted-foreground">{t("simulateHint")}</p>
-            <form action={simulateInbound} className="space-y-2">
-              <input type="hidden" name="conversation_id" value={conversation.id} />
-              <Textarea name="body" rows={3} placeholder={t("simulatePlaceholder")} />
-              <div className="flex justify-end">
-                <Button type="submit" variant="outline" size="sm">
-                  {t("simulateButton")}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        {showSimulate && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{t("simulate")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2 text-xs text-muted-foreground">{t("simulateHint")}</p>
+              <form action={simulateInbound} className="space-y-2">
+                <input type="hidden" name="conversation_id" value={conversation.id} />
+                <Textarea name="body" rows={3} placeholder={t("simulatePlaceholder")} />
+                <div className="flex justify-end">
+                  <Button type="submit" variant="outline" size="sm">
+                    {t("simulateButton")}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </>
   );
