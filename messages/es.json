@@ -424,6 +424,7 @@
     "thinking": "Pensando…",
     "openFull": "Abrir el Operador de Vida",
     "empty": "Escribe un mensaje para empezar.",
+    "tooLong": "Ese mensaje es demasiado largo — acórtalo.",
     "emptyTitle": "¿En qué te ayudo?",
     "emptyBody": "Puedo crear tareas y objetivos, resumir tus notas y sugerir próximos pasos.",
     "mockBanner": "En modo simulado — configura AI_PROVIDER y una clave de API para respuestas con IA. Crear tareas y objetivos funciona igual.",

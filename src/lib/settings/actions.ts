@@ -9,7 +9,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/user";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
+import { isValidTimeZone } from "@/lib/timezones";
 import type { ActionState } from "@/lib/types";
+
+const COOKIE_BASE = {
+  path: "/",
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+} as const;
 
 export async function updateProfile(
   _prev: ActionState,
@@ -30,7 +38,11 @@ export async function updateProfile(
     .eq("id", user.id);
 
   if (error) {
-    return { status: "error", message: error.message };
+    console.error("[settings-actions] db error", error);
+    return {
+      status: "error",
+      message: (await getTranslations("harmony"))("errors.generic"),
+    };
   }
 
   revalidatePath("/settings");
@@ -44,8 +56,11 @@ export async function updatePreferences(
 ): Promise<ActionState> {
   const t = await getTranslations("settings");
   const user = await requireUser();
-  const language = String(formData.get("language") ?? "en");
-  const timezone = String(formData.get("timezone") ?? "UTC");
+  const rawLanguage = String(formData.get("language") ?? "en");
+  const rawTimezone = String(formData.get("timezone") ?? "UTC");
+  // Validate before persisting — never trust client-supplied values.
+  const language = isLocale(rawLanguage) ? rawLanguage : "en";
+  const timezone = isValidTimeZone(rawTimezone) ? rawTimezone : "UTC";
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -54,17 +69,17 @@ export async function updatePreferences(
     .eq("user_id", user.id);
 
   if (error) {
-    return { status: "error", message: error.message };
+    console.error("[settings-actions] db error", error);
+    return {
+      status: "error",
+      message: (await getTranslations("harmony"))("errors.generic"),
+    };
   }
 
   // Keep the UI language cookie in sync with the saved preference.
   if (isLocale(language)) {
     const cookieStore = await cookies();
-    cookieStore.set(LOCALE_COOKIE, language, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax",
-    });
+    cookieStore.set(LOCALE_COOKIE, language, COOKIE_BASE);
   }
 
   revalidatePath("/", "layout");
@@ -89,11 +104,7 @@ export async function updateThemePreference(theme: string): Promise<void> {
     .eq("user_id", user.id);
 
   const cookieStore = await cookies();
-  cookieStore.set("aios-theme", value, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-  });
+  cookieStore.set("aios-theme", value, COOKIE_BASE);
 
   revalidatePath("/", "layout");
 }
@@ -123,7 +134,11 @@ export async function deleteAccount(
 
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
-    return { status: "error", message: error.message };
+    console.error("[settings-actions] db error", error);
+    return {
+      status: "error",
+      message: (await getTranslations("harmony"))("errors.generic"),
+    };
   }
 
   // Clear the now-defunct session, then leave.

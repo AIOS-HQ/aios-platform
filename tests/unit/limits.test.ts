@@ -10,6 +10,7 @@ describe("LIMITS", () => {
     expect(LIMITS.name).toBe(120);
     expect(LIMITS.tag).toBe(40);
     expect(LIMITS.tagsCount).toBe(12);
+    expect(LIMITS.operatorInput).toBe(2000);
   });
 });
 

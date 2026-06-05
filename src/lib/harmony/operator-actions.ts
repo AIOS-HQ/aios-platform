@@ -21,9 +21,13 @@ import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database"
 export async function runOperator(input: string): Promise<OperatorResult> {
   const to = await getTranslations("operator");
   const ta = await getTranslations("advisor");
-  await requireUser();
+  const user = await requireUser();
   const text = (input ?? "").trim();
   if (!text) return { intent: "general", reply: to("empty") };
+  // Cap input length to bound AI token cost / abuse (no rate limiter yet — #43).
+  if (text.length > LIMITS.operatorInput) {
+    return { intent: "general", reply: to("tooLong") };
+  }
 
   const { intent, title } = detectIntent(text);
 
@@ -53,6 +57,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     const { data } = await supabase
       .from("personal_notes")
       .select("title,content")
+      .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20);
     const notes = (data as { title: string; content: string }[] | null) ?? [];
@@ -75,9 +80,9 @@ export async function runOperator(input: string): Promise<OperatorResult> {
 
   if (intent === "suggest_next_steps") {
     const [tasksRes, goalsRes, notesRes] = await Promise.all([
-      supabase.from("personal_tasks").select("*").limit(200),
-      supabase.from("personal_goals").select("*").limit(200),
-      supabase.from("personal_notes").select("*").limit(200),
+      supabase.from("personal_tasks").select("*").eq("user_id", user.id).limit(200),
+      supabase.from("personal_goals").select("*").eq("user_id", user.id).limit(200),
+      supabase.from("personal_notes").select("*").eq("user_id", user.id).limit(200),
     ]);
     const recs = buildRecommendations({
       tasks: (tasksRes.data as PersonalTask[] | null) ?? [],
