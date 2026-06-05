@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AutonomyControl } from "@/components/harmony/os/autonomy-control";
+import { AutonomyLegend } from "@/components/harmony/os/autonomy-legend";
 import { DepartmentDialog } from "@/components/harmony/os/department-dialog";
 import { AgentDialog } from "@/components/harmony/os/agent-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
@@ -97,6 +98,7 @@ export default async function DepartmentDetailPage({
               departmentId={dept.id}
               level={clampAutonomy(dept.autonomy_level)}
             />
+            <AutonomyLegend />
           </CardContent>
         </Card>
 

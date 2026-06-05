@@ -27,3 +27,14 @@ export async function countPendingApprovals(): Promise<number> {
   if (error) console.error("[data/os/approvals] countPendingApprovals", error);
   return count ?? 0;
 }
+
+/** Count decided (approved or rejected) approvals. Used by the first-run checklist. */
+export async function countDecidedApprovals(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("approvals")
+    .select("id", { count: "exact", head: true })
+    .neq("status", "pending");
+  if (error) console.error("[data/os/approvals] countDecidedApprovals", error);
+  return count ?? 0;
+}

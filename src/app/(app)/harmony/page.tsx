@@ -13,13 +13,22 @@ import { requireUser } from "@/lib/auth/user";
 import { getProfile } from "@/lib/data/profile";
 import { listCompanies } from "@/lib/data/os/companies";
 import { listDepartments } from "@/lib/data/os/departments";
-import { listObjectives } from "@/lib/data/os/objectives";
-import { countPendingApprovals } from "@/lib/data/os/approvals";
+import { listObjectives, countObjectives } from "@/lib/data/os/objectives";
+import { countWorkItems } from "@/lib/data/os/work-items";
+import {
+  countPendingApprovals,
+  countDecidedApprovals,
+} from "@/lib/data/os/approvals";
 import { listActivity } from "@/lib/data/os/activity";
-import { DOMAINS } from "@/lib/harmony/os/catalog";
+import { DOMAINS, getDepartmentTemplate } from "@/lib/harmony/os/catalog";
+import {
+  buildOnboardingSteps,
+  onboardingComplete,
+} from "@/lib/harmony/os/onboarding";
 import { formatDate } from "@/lib/format";
 import { Sparkles } from "lucide-react";
 import { HarmonyDelegateDialog } from "@/components/harmony/os/harmony-delegate-dialog";
+import { FirstRunChecklist } from "@/components/harmony/os/first-run-checklist";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { InlineEmpty } from "@/components/shared/inline-empty";
@@ -48,15 +57,27 @@ export default async function CommandCenterPage() {
   const user = await requireUser();
   const locale = await getLocale();
 
-  const [profile, companies, departments, objectives, pendingApprovals, activity] =
-    await Promise.all([
-      getProfile(user.id),
-      listCompanies(),
-      listDepartments(),
-      listObjectives({ status: "active" }),
-      countPendingApprovals(),
-      listActivity({ limit: 8 }),
-    ]);
+  const [
+    profile,
+    companies,
+    departments,
+    objectives,
+    pendingApprovals,
+    activity,
+    objectivesTotal,
+    workTotal,
+    decidedApprovals,
+  ] = await Promise.all([
+    getProfile(user.id),
+    listCompanies(),
+    listDepartments(),
+    listObjectives({ status: "active" }),
+    countPendingApprovals(),
+    listActivity({ limit: 8 }),
+    countObjectives(),
+    countWorkItems(),
+    countDecidedApprovals(),
+  ]);
   const deptOpts = departments.map((d) => ({
     id: d.id,
     name: d.name,
@@ -92,6 +113,20 @@ export default async function CommandCenterPage() {
     { key: "approvals", label: t("stats.approvals"), value: pendingApprovals, icon: ShieldCheck, emphasis: pendingApprovals > 0 },
   ];
 
+  // First-run checklist — derived from real state (auto-hides once complete).
+  const autonomyConfigured = departments.some((d) => {
+    const tpl = getDepartmentTemplate(d.key);
+    return tpl ? d.autonomy_level !== tpl.defaultAutonomy : false;
+  });
+  const onboardingSteps = buildOnboardingSteps({
+    hasCompany: companies.length > 0,
+    hasDepartment: departments.length > 0,
+    autonomyConfigured,
+    hasObjective: objectivesTotal > 0,
+    hasWork: workTotal > 0,
+    approvalReviewed: decidedApprovals > 0,
+  });
+
   return (
     <>
       <PageHeader title={t("greeting", { name })} description={t("subtitle")}>
@@ -104,6 +139,13 @@ export default async function CommandCenterPage() {
       </PageHeader>
 
       <StatTiles stats={stats} />
+
+      {!onboardingComplete(onboardingSteps) && (
+        <FirstRunChecklist
+          steps={onboardingSteps}
+          firstDepartmentId={departments[0]?.id}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

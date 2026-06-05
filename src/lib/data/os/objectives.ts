@@ -19,6 +19,16 @@ export async function listObjectives(opts?: {
   return (data as Objective[] | null) ?? [];
 }
 
+/** Count objectives (any status, owner-scoped). Used by the first-run checklist. */
+export async function countObjectives(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("objectives")
+    .select("id", { count: "exact", head: true });
+  if (error) console.error("[data/os/objectives] countObjectives", error);
+  return count ?? 0;
+}
+
 export async function getObjective(id: string): Promise<Objective | null> {
   const supabase = await createClient();
   const { data, error } = await supabase

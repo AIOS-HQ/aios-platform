@@ -229,6 +229,13 @@
         "autonomous": "Helpers execute and report; high-risk actions need approval.",
         "executive": "Helpers run the department; only high-risk actions surface."
       },
+      "legendTitle": "What do the levels mean?",
+      "legendHint": "Who approves, what runs automatically, and the risk at each level.",
+      "risk": {
+        "low": "Low risk",
+        "medium": "Medium risk",
+        "high": "Higher risk"
+      },
       "fields": { "name": "Department name", "description": "Description" },
       "agentStatus": { "active": "Active", "paused": "Paused" }
     },
@@ -378,7 +385,8 @@
       },
       "empty": {
         "title": "No approvals",
-        "description": "When a department needs sign-off, requests appear here."
+        "description": "When a department needs sign-off, requests appear here.",
+        "cta": "Review activity feed"
       }
     },
     "approvalType": {
@@ -531,6 +539,19 @@
       "comments": "Comments",
       "shares": "Shares",
       "impressions": "Impressions"
+    },
+    "onboarding": {
+      "title": "Get your OS running",
+      "subtitle": "{done} of {total} steps complete",
+      "start": "Start",
+      "steps": {
+        "hasCompany": "Create your first company",
+        "hasDepartment": "Set up a department",
+        "autonomyConfigured": "Review a department's autonomy",
+        "hasObjective": "Create your first objective",
+        "hasWork": "Delegate your first task",
+        "approvalReviewed": "Review the Approval Center"
+      }
     },
     "code": {
       "title": "Code Department",
