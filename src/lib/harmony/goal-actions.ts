@@ -48,7 +48,10 @@ export async function createGoal(
     progress: clampProgress(formData.get("progress")),
     target_date: orNull(formData.get("target_date")),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    console.error("[goal-actions] db error", error);
+    return { status: "error", message: t("errors.generic") };
+  }
 
   revalidateGoals();
   return { status: "success", message: t("saved") };
@@ -81,7 +84,10 @@ export async function updateGoal(
     })
     .eq("id", id)
     .eq("user_id", user.id);
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    console.error("[goal-actions] db error", error);
+    return { status: "error", message: t("errors.generic") };
+  }
 
   revalidateGoals();
   return { status: "success", message: t("saved") };

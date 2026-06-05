@@ -16,10 +16,10 @@ export async function GET() {
   const [profile, settings, tasks, goals, notes, brain] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
-    supabase.from("personal_tasks").select("*"),
-    supabase.from("personal_goals").select("*"),
-    supabase.from("personal_notes").select("*"),
-    supabase.from("personal_brains").select("*"),
+    supabase.from("personal_tasks").select("*").eq("user_id", user.id),
+    supabase.from("personal_goals").select("*").eq("user_id", user.id),
+    supabase.from("personal_notes").select("*").eq("user_id", user.id),
+    supabase.from("personal_brains").select("*").eq("user_id", user.id),
   ]);
 
   const payload = {

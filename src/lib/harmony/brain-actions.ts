@@ -29,7 +29,10 @@ export async function createBrainEntry(
     kind: "manual",
     tags: parseTags(formData.get("tags")),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    console.error("[brain-actions] db error", error);
+    return { status: "error", message: t("errors.generic") };
+  }
 
   revalidatePath("/harmony/brain");
   return { status: "success", message: t("saved") };
@@ -56,7 +59,10 @@ export async function updateBrainEntry(
     .update({ title, content, tags: parseTags(formData.get("tags")) })
     .eq("id", id)
     .eq("user_id", user.id);
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    console.error("[brain-actions] db error", error);
+    return { status: "error", message: t("errors.generic") };
+  }
 
   revalidatePath("/harmony/brain");
   return { status: "success", message: t("saved") };

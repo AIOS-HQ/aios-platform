@@ -12,6 +12,7 @@ export const LIMITS = {
   name: 120,
   tag: 40,
   tagsCount: 12,
+  operatorInput: 2000,
 } as const;
 
 /** Returns true if any [value, max] pair exceeds its max length. */

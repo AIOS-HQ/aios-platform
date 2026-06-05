@@ -48,7 +48,10 @@ export async function createTask(
     due_date: orNull(formData.get("due_date")),
     goal_id: goalIdOrNull(formData.get("goal_id")),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    console.error("[task-actions] db error", error);
+    return { status: "error", message: t("errors.generic") };
+  }
 
   revalidateTasks();
   return { status: "success", message: t("saved") };
@@ -84,7 +87,10 @@ export async function updateTask(
     })
     .eq("id", id)
     .eq("user_id", user.id);
-  if (error) return { status: "error", message: error.message };
+  if (error) {
+    console.error("[task-actions] db error", error);
+    return { status: "error", message: t("errors.generic") };
+  }
 
   revalidateTasks();
   return { status: "success", message: t("saved") };
