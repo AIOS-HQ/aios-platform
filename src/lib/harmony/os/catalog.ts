@@ -20,6 +20,7 @@ export const DOMAINS: readonly CompanyDomain[] = [
 
 export type DepartmentKey =
   | "marketing"
+  | "content"
   | "operations"
   | "code"
   | "research"
@@ -107,16 +108,30 @@ export const DEPARTMENT_TEMPLATES: readonly DepartmentTemplate[] = [
     ],
   },
   {
+    key: "content",
+    name: "Content",
+    description:
+      "End-to-end content engine: strategy, calendar, scripts, and production across YouTube, TikTok, Instagram, blog, thumbnails, and SEO.",
+    defaultAutonomy: 3,
+    agents: [
+      { key: "youtube", name: "YouTube Helper", role: "Video ideas, scripts, titles, and channel growth" },
+      { key: "tiktok", name: "TikTok Helper", role: "Short-form hooks, scripts, and trends" },
+      { key: "instagram", name: "Instagram Helper", role: "Reels, carousels, and captions" },
+      { key: "blog", name: "Blog Helper", role: "Outlines and long-form articles" },
+      { key: "thumbnail", name: "Thumbnail Helper", role: "Thumbnail and cover concepts" },
+      { key: "seo", name: "SEO Helper", role: "Keyword and search optimization plans" },
+    ],
+  },
+  {
     key: "marketing",
     name: "Marketing",
-    description: "Brand, content, and demand across channels.",
+    description: "Brand, demand, and lifecycle across channels.",
     defaultAutonomy: 3,
     agents: [
       { key: "linkedin", name: "LinkedIn Agent", role: "LinkedIn content and engagement" },
-      { key: "youtube", name: "YouTube Agent", role: "Video content and channel growth" },
-      { key: "seo", name: "SEO Agent", role: "Search optimization and rankings" },
-      { key: "blog", name: "Blog Agent", role: "Long-form articles" },
       { key: "email", name: "Email Agent", role: "Newsletters and lifecycle email" },
+      { key: "ads", name: "Ads Agent", role: "Paid acquisition and campaigns" },
+      { key: "brand", name: "Brand Agent", role: "Positioning and messaging" },
     ],
   },
   {

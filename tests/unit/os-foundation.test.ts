@@ -33,9 +33,9 @@ describe("uniqueSlug", () => {
 });
 
 describe("buildStandardDepartmentSeed", () => {
-  it("produces the 7 departments in order with ordered agents", () => {
+  it("produces the 8 departments in order with ordered agents", () => {
     const seed = buildStandardDepartmentSeed();
-    expect(seed).toHaveLength(7);
+    expect(seed).toHaveLength(8);
     expect(seed[0].key).toBe("code"); // Code is first-class / first
     seed.forEach((d, i) => {
       expect(d.position).toBe(i);
