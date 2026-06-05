@@ -558,6 +558,8 @@
       "queuedForApproval": "En cola para tu aprobación.",
       "sent": "Mensaje enviado.",
       "approveSend": "Aprobar y enviar",
+      "approvalTitle": "Aprobar respuesta a {contact}",
+      "pendingApproval": "Pendiente de aprobación",
       "simulate": "Simular entrante",
       "simulateHint": "Prueba el enrutamiento sin un canal en vivo — añade un mensaje entrante.",
       "simulatePlaceholder": "Mensaje entrante…",

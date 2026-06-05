@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/user";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { executeWorkItem } from "@/lib/harmony/os/execution";
+import { deliverMessageById } from "@/lib/harmony/comms/delivery";
 import { APPROVAL_TYPES } from "@/lib/harmony/os/catalog";
 import type { ActionState } from "@/lib/types";
 import type { ApprovalType, TaskPriority, WorkItem } from "@/types/database";
@@ -76,7 +77,7 @@ export async function decideApproval(formData: FormData): Promise<void> {
     .update({ status: decision, decided_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("title, company_id, work_item_id")
+    .select("title, company_id, work_item_id, message_id")
     .maybeSingle();
   if (error) {
     console.error("[approval-actions] decideApproval", error);
@@ -87,6 +88,7 @@ export async function decideApproval(formData: FormData): Promise<void> {
     title: string;
     company_id: string | null;
     work_item_id: string | null;
+    message_id: string | null;
   } | null;
 
   // Approving a gated work item runs it (forced past the autonomy gate).
@@ -98,6 +100,20 @@ export async function decideApproval(formData: FormData): Promise<void> {
       .eq("user_id", user.id)
       .maybeSingle();
     if (wi) await executeWorkItem(supabase, user.id, wi as WorkItem, { force: true });
+  }
+
+  // Approving/rejecting a gated communications message delivers or cancels it
+  // (D4 — same effect as approving from the conversation thread).
+  if (row?.message_id) {
+    if (decision === "approved") {
+      await deliverMessageById(supabase, user.id, row.message_id);
+    } else {
+      await supabase
+        .from("messages")
+        .update({ status: "failed" })
+        .eq("id", row.message_id)
+        .eq("user_id", user.id);
+    }
   }
   const to = await getTranslations("os");
   await emitActivity({

@@ -558,6 +558,8 @@
       "queuedForApproval": "Queued for your approval.",
       "sent": "Message sent.",
       "approveSend": "Approve & send",
+      "approvalTitle": "Approve reply to {contact}",
+      "pendingApproval": "Pending approval",
       "simulate": "Simulate inbound",
       "simulateHint": "Test routing without a live channel — adds an inbound message.",
       "simulatePlaceholder": "Incoming message…",

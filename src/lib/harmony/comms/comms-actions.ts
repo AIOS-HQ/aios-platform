@@ -9,7 +9,7 @@ import { canUseDiagnostics } from "@/lib/auth/roles";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { clampAutonomy, requiresApproval } from "@/lib/harmony/os/autonomy";
-import { getAdapter } from "@/lib/harmony/comms/adapters";
+import { deliver, deliverMessageById } from "@/lib/harmony/comms/delivery";
 import { CHANNEL_KINDS } from "@/lib/harmony/comms/catalog";
 import type { ActionState } from "@/lib/types";
 import type {
@@ -244,16 +244,29 @@ export async function sendMessage(
     return { status: "error", message: t("errors.generic") };
   }
 
+  const messageId = (msgData as { id: string }).id;
   if (!gated) {
-    await deliver(supabase, user.id, (msgData as { id: string }).id, channel, conversation, body);
+    await deliver(supabase, user.id, messageId, channel, conversation, body);
   } else {
+    // Surface the queued reply in the unified Approval Center (D4) in addition
+    // to the in-thread approve affordance.
+    await supabase.from("approvals").insert({
+      user_id: user.id,
+      company_id: conversation.company_id,
+      department_id: channel?.department_id ?? null,
+      message_id: messageId,
+      type: "content",
+      title: tcm("approvalTitle", { contact: conversation.contact }),
+      summary: body.slice(0, LIMITS.description),
+      risk: "medium",
+    });
     await emitActivity({
       userId: user.id,
       companyId: conversation.company_id,
       kind: "approval",
       summary: tcm("activity.replyQueued", { contact: conversation.contact }),
       refType: "message",
-      refId: (msgData as { id: string }).id,
+      refId: messageId,
     });
   }
 
@@ -270,7 +283,8 @@ export async function sendMessage(
   };
 }
 
-/** Approve a queued/awaiting outbound message → deliver it. */
+/** Approve a queued/awaiting outbound message → deliver it. Also resolves the
+ * linked Approval Center row so both surfaces stay in sync (D4). */
 export async function approveMessage(formData: FormData): Promise<void> {
   const user = await requireUser();
   const id = String(formData.get("id") ?? "");
@@ -278,27 +292,24 @@ export async function approveMessage(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { data: msgData } = await supabase
     .from("messages")
-    .select("*")
+    .select("conversation_id")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
-  const msg = msgData as
-    | { id: string; conversation_id: string; body: string }
-    | null;
+  const msg = msgData as { conversation_id: string } | null;
   if (!msg) return;
-  const { data: convData } = await supabase
-    .from("conversations")
-    .select("*")
-    .eq("id", msg.conversation_id)
-    .maybeSingle();
-  const conversation = convData as Conversation | null;
-  if (!conversation) return;
-  const { data: chData } = await supabase
-    .from("channels")
-    .select("*")
-    .eq("id", conversation.channel_id)
-    .maybeSingle();
-  await deliver(supabase, user.id, msg.id, chData as Channel | null, conversation, msg.body);
+
+  const delivered = await deliverMessageById(supabase, user.id, id);
+  if (!delivered) return;
+
+  // Keep the unified Approval Center in sync with the in-thread approval.
+  await supabase
+    .from("approvals")
+    .update({ status: "approved", decided_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("message_id", id)
+    .eq("status", "pending");
+
   revalidateComms(msg.conversation_id);
 }
 
@@ -342,37 +353,4 @@ export async function simulateInbound(formData: FormData): Promise<void> {
     refId: conversationId,
   });
   revalidateComms(conversationId);
-}
-
-/** Deliver an outbound message via the channel's adapter (mock for now). */
-async function deliver(
-  supabase: SupabaseClient,
-  userId: string,
-  messageId: string,
-  channel: Channel | null,
-  conversation: Conversation,
-  body: string,
-): Promise<void> {
-  const tcm = await getTranslations("os.comms");
-  let status: "sent" | "failed" = "sent";
-  if (channel) {
-    const result = await getAdapter(channel.kind).send(conversation.contact, body);
-    status = result.status;
-  }
-  await supabase
-    .from("messages")
-    .update({ status })
-    .eq("id", messageId)
-    .eq("user_id", userId);
-  await emitActivity({
-    userId,
-    companyId: conversation.company_id,
-    kind: "agent_action",
-    summary:
-      status === "sent"
-        ? tcm("activity.sent", { contact: conversation.contact })
-        : tcm("activity.failed", { contact: conversation.contact }),
-    refType: "message",
-    refId: messageId,
-  });
 }

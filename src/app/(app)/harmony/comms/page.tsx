@@ -5,6 +5,7 @@ import { MessageSquare, Plug, Plus, Trash2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listChannels } from "@/lib/data/comms/channels";
 import { listConversations } from "@/lib/data/comms/conversations";
+import { listAwaitingApprovalMessages } from "@/lib/data/comms/messages";
 import { listCompanies } from "@/lib/data/os/companies";
 import { listDepartments } from "@/lib/data/os/departments";
 import { getChannelTemplate } from "@/lib/harmony/comms/catalog";
@@ -51,13 +52,22 @@ export default async function CommsPage() {
   const locale = await getLocale();
   await requireUser();
 
-  const [channels, conversations, companies, departments] = await Promise.all([
-    listChannels(),
-    listConversations(),
-    listCompanies(),
-    listDepartments(),
-  ]);
+  const [channels, conversations, companies, departments, pendingMsgs] =
+    await Promise.all([
+      listChannels(),
+      listConversations(),
+      listCompanies(),
+      listDepartments(),
+      listAwaitingApprovalMessages(),
+    ]);
   const channelName = new Map(channels.map((c) => [c.id, c.name]));
+  const pendingByConversation = new Map<string, number>();
+  for (const m of pendingMsgs) {
+    pendingByConversation.set(
+      m.conversation_id,
+      (pendingByConversation.get(m.conversation_id) ?? 0) + 1,
+    );
+  }
   const companyOpts = companies.map((c) => ({ id: c.id, name: c.name }));
   const deptOpts = departments.map((d) => ({ id: d.id, name: d.name, company_id: d.company_id }));
   const channelOpts = channels.map((c) => ({ id: c.id, name: c.name }));
@@ -147,6 +157,11 @@ export default async function CommsPage() {
             <CardTitle className="flex items-center gap-2 text-base">
               <MessageSquare className="size-4 text-primary" aria-hidden="true" />
               {t("inbox")}
+              {pendingMsgs.length > 0 && (
+                <Badge variant="warning" className="ml-auto">
+                  {pendingMsgs.length} · {t("pendingApproval")}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -174,6 +189,9 @@ export default async function CommsPage() {
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
+                        {(pendingByConversation.get(cv.id) ?? 0) > 0 && (
+                          <Badge variant="warning">{t("pendingApproval")}</Badge>
+                        )}
                         <Badge variant={convStatusVariant[cv.status]}>{ts(cv.status)}</Badge>
                         {cv.last_message_at && (
                           <span className="text-xs text-muted-foreground">
