@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
+import { parseTags } from "@/lib/harmony/tags";
 import type { ActionState } from "@/lib/types";
 import type { PersonalNote } from "@/types/database";
 
@@ -33,6 +34,7 @@ export async function createNote(
     user_id: user.id,
     title,
     content,
+    tags: parseTags(formData.get("tags")),
   });
   if (error) return { status: "error", message: error.message };
 
@@ -60,13 +62,28 @@ export async function updateNote(
   const supabase = await createClient();
   const { error } = await supabase
     .from("personal_notes")
-    .update({ title, content })
+    .update({ title, content, tags: parseTags(formData.get("tags")) })
     .eq("id", id)
     .eq("user_id", user.id);
   if (error) return { status: "error", message: error.message };
 
   revalidateNotes();
   return { status: "success", message: t("saved") };
+}
+
+/** Pin or unpin a note. Receives the desired pinned state. */
+export async function toggleNotePinned(formData: FormData) {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const pinned = String(formData.get("pinned") ?? "") === "true";
+  const supabase = await createClient();
+  await supabase
+    .from("personal_notes")
+    .update({ pinned })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  revalidateNotes();
 }
 
 export async function deleteNote(formData: FormData) {
@@ -112,6 +129,7 @@ export async function saveNoteToBrain(formData: FormData) {
     content: note.content,
     kind: "note",
     source_id: note.id,
+    tags: note.tags ?? [],
   });
 
   revalidatePath("/harmony/brain");

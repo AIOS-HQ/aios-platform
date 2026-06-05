@@ -5,15 +5,8 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
+import { parseTags } from "@/lib/harmony/tags";
 import type { ActionState } from "@/lib/types";
-
-function parseTags(v: FormDataEntryValue | null): string[] {
-  return String(v ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s.length <= LIMITS.tag)
-    .slice(0, LIMITS.tagsCount);
-}
 
 export async function createBrainEntry(
   _prev: ActionState,

@@ -16,6 +16,7 @@ export async function listNotes(
     q = q.or(`title.ilike.%${term}%,content.ilike.%${term}%`);
   }
   const { data } = await q
+    .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
     .limit(limit);
   return (data as PersonalNote[] | null) ?? [];

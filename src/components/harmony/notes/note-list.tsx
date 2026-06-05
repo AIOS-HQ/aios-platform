@@ -17,6 +17,7 @@ import {
 import { NoteDialog } from "./note-dialog";
 import { NoteCard } from "./note-card";
 import { daysSince } from "@/lib/format";
+import { uniqueTags } from "@/lib/harmony/tags";
 import type { PersonalNote } from "@/types/database";
 
 type Recency = "all" | "week" | "month";
@@ -27,6 +28,9 @@ export function NoteList({ notes }: { notes: PersonalNote[] }) {
   const [query, setQuery] = useState("");
   const [recency, setRecency] = useState<Recency>("all");
   const [sort, setSort] = useState<Sort>("updated");
+  const [tag, setTag] = useState<string>("all");
+
+  const allTags = useMemo(() => uniqueTags(notes), [notes]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -35,26 +39,30 @@ export function NoteList({ notes }: { notes: PersonalNote[] }) {
         q &&
         !(
           n.title.toLowerCase().includes(q) ||
-          n.content.toLowerCase().includes(q)
+          n.content.toLowerCase().includes(q) ||
+          n.tags.some((tg) => tg.toLowerCase().includes(q))
         )
       ) {
         return false;
       }
+      if (tag !== "all" && !n.tags.includes(tag)) return false;
       if (recency === "week" && daysSince(n.updated_at) >= 7) return false;
       if (recency === "month" && daysSince(n.updated_at) >= 31) return false;
       return true;
     });
-    if (sort === "title") {
-      arr.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-    } else if (sort === "created") {
-      arr.sort((a, b) => b.created_at.localeCompare(a.created_at));
-    } else {
-      arr.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    }
+    const bySort = (a: PersonalNote, b: PersonalNote) =>
+      sort === "title"
+        ? (a.title || "").localeCompare(b.title || "")
+        : sort === "created"
+          ? b.created_at.localeCompare(a.created_at)
+          : b.updated_at.localeCompare(a.updated_at);
+    // Pinned notes always float to the top, then the chosen sort applies.
+    arr.sort((a, b) => Number(b.pinned) - Number(a.pinned) || bySort(a, b));
     return arr;
-  }, [notes, query, recency, sort]);
+  }, [notes, query, recency, sort, tag]);
 
-  const isFiltering = query.trim() !== "" || recency !== "all";
+  const isFiltering =
+    query.trim() !== "" || recency !== "all" || tag !== "all";
 
   return (
     <div className="space-y-4">
@@ -84,6 +92,24 @@ export function NoteList({ notes }: { notes: PersonalNote[] }) {
               { value: "month", label: t("filter.month") },
             ]}
           />
+          {allTags.length > 0 && (
+            <Select value={tag} onValueChange={setTag}>
+              <SelectTrigger
+                className="h-9 w-[150px]"
+                aria-label={t("filterTag.label")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("filterTag.all")}</SelectItem>
+                {allTags.map((tg) => (
+                  <SelectItem key={tg} value={tg}>
+                    {tg}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
             <SelectTrigger className="h-9 w-[150px]" aria-label={t("sort.label")}>
               <SelectValue />

@@ -362,7 +362,13 @@
       "created": "Created",
       "title": "Title A–Z"
     },
-    "fields": { "title": "Title", "content": "Content" },
+    "fields": { "title": "Title", "content": "Content", "tags": "Tags" },
+    "tagsPlaceholder": "Comma-separated tags",
+    "pin": "Pin note",
+    "unpin": "Unpin note",
+    "pinnedToast": "Note pinned.",
+    "unpinned": "Note unpinned.",
+    "filterTag": { "label": "Filter by tag", "all": "All tags" },
     "empty": {
       "title": "No notes yet",
       "description": "Write your first note to remember it."

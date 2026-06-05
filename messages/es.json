@@ -362,7 +362,13 @@
       "created": "Creadas",
       "title": "Título A–Z"
     },
-    "fields": { "title": "Título", "content": "Contenido" },
+    "fields": { "title": "Título", "content": "Contenido", "tags": "Etiquetas" },
+    "tagsPlaceholder": "Etiquetas separadas por comas",
+    "pin": "Fijar nota",
+    "unpin": "Quitar fijado",
+    "pinnedToast": "Nota fijada.",
+    "unpinned": "Nota desfijada.",
+    "filterTag": { "label": "Filtrar por etiqueta", "all": "Todas las etiquetas" },
     "empty": {
       "title": "Aún no hay notas",
       "description": "Escribe tu primera nota para recordarla."
