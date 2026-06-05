@@ -197,6 +197,26 @@
         "description": "Create your first company to start operating through Harmony."
       }
     },
+    "departments": {
+      "new": "New department",
+      "edit": "Edit department",
+      "dialogDesc": "Departments group agents and work for a company.",
+      "addDepartment": "Add department",
+      "manage": "Manage",
+      "agents": "Agents",
+      "noAgents": "No agents yet.",
+      "autonomyTitle": "Autonomy",
+      "autonomyLabel": "Autonomy level",
+      "autonomyUpdated": "Autonomy updated.",
+      "autonomyHint": {
+        "manual": "You do everything manually; agents only assist on request.",
+        "approval": "Agents propose actions; every action needs your approval.",
+        "assisted": "Agents handle routine work; significant actions need approval.",
+        "autonomous": "Agents act on their own; high-risk actions still need approval."
+      },
+      "fields": { "name": "Department name", "description": "Description" },
+      "agentStatus": { "active": "Active", "paused": "Paused" }
+    },
     "autonomy": {
       "manual": "Manual",
       "approval": "Approval required",
@@ -204,7 +224,8 @@
       "autonomous": "Autonomous"
     },
     "activity": {
-      "companyCreated": "Company created: {name}"
+      "companyCreated": "Company created: {name}",
+      "autonomyChanged": "{name} autonomy set to {level}"
     }
   },
   "roles": {
