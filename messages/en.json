@@ -154,6 +154,7 @@
     "work": "Work Queue",
     "approvals": "Approvals",
     "activity": "Activity",
+    "code": "Code Dept",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {
@@ -366,6 +367,22 @@
       "project": "Project",
       "recommendation": "Recommendation",
       "system": "System"
+    },
+    "code": {
+      "title": "Code Department",
+      "subtitle": "Software development operations across your companies.",
+      "newWork": "New work item",
+      "board": "Engineering board",
+      "noWork": "No engineering work yet.",
+      "departments": "Code departments",
+      "integrations": "Integrations",
+      "integrationsHint": "Connect these in a future sprint to automate engineering work.",
+      "comingSoon": "Coming soon",
+      "empty": {
+        "title": "No Code department yet",
+        "description": "Create a company to spin up its Code department.",
+        "cta": "Go to companies"
+      }
     },
     "autonomy": {
       "manual": "Manual",

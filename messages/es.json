@@ -154,6 +154,7 @@
     "work": "Cola de trabajo",
     "approvals": "Aprobaciones",
     "activity": "Actividad",
+    "code": "Depto. de Código",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {
@@ -366,6 +367,22 @@
       "project": "Proyecto",
       "recommendation": "Recomendación",
       "system": "Sistema"
+    },
+    "code": {
+      "title": "Departamento de Código",
+      "subtitle": "Operaciones de desarrollo de software en tus empresas.",
+      "newWork": "Nuevo elemento",
+      "board": "Tablero de ingeniería",
+      "noWork": "Aún no hay trabajo de ingeniería.",
+      "departments": "Departamentos de código",
+      "integrations": "Integraciones",
+      "integrationsHint": "Conéctalas en un sprint futuro para automatizar el trabajo de ingeniería.",
+      "comingSoon": "Próximamente",
+      "empty": {
+        "title": "Aún no hay Departamento de Código",
+        "description": "Crea una empresa para generar su Departamento de Código.",
+        "cta": "Ir a empresas"
+      }
     },
     "autonomy": {
       "manual": "Manual",
