@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { generateContent } from "@/lib/harmony/content/content-actions";
@@ -52,6 +53,7 @@ export function GenerateContentDialog({
   const t = useTranslations("os.content");
   const tt = useTranslations("os.contentTask");
   const tc = useTranslations("common");
+  const router = useRouter();
 
   async function onSubmit(formData: FormData) {
     setError(null);
@@ -60,7 +62,19 @@ export function GenerateContentDialog({
       setError(res.message ?? "");
       return;
     }
-    toast.success(res.message ?? tc("save"));
+    const draftId = res.meta?.workItemId;
+    toast.success(
+      res.message ?? tc("save"),
+      draftId
+        ? {
+            action: {
+              label: t("viewDraft"),
+              onClick: () =>
+                router.push(`/harmony/content?item=${draftId}#item-${draftId}`),
+            },
+          }
+        : undefined,
+    );
     setOpen(false);
   }
 

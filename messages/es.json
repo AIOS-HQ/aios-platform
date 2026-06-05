@@ -242,6 +242,8 @@
       "inherit": "Heredar del departamento",
       "pause": "Pausar agente",
       "resume": "Reanudar agente",
+      "pausedToast": "Agente en pausa",
+      "resumedToast": "Agente reanudado",
       "fields": { "name": "Nombre del agente", "role": "Rol" }
     },
     "objectives": {
@@ -289,6 +291,7 @@
       "new": "Nuevo elemento",
       "delegate": "Delegar a Harmony",
       "run": "Ejecutar ahora",
+      "runToast": "Enviado a Harmony",
       "edit": "Editar elemento",
       "dialogDesc": "Asigna trabajo a un departamento y agente.",
       "unassigned": "Sin asignar",
@@ -353,6 +356,18 @@
       "history": "Historial",
       "approve": "Aprobar",
       "reject": "Rechazar",
+      "approveToast": "Aprobado",
+      "rejectToast": "Rechazado",
+      "group": {
+        "work": "Trabajo",
+        "content": "Contenido",
+        "comms": "Comunicaciones"
+      },
+      "reason": {
+        "belowOperator": "Por debajo del umbral Operador",
+        "comms": "La comunicación requiere aprobación",
+        "highPriority": "Elemento de alta prioridad"
+      },
       "noCompany": "Sin empresa",
       "fields": {
         "title": "Título",
@@ -427,8 +442,10 @@
       "enable": {
         "title": "Agregar el departamento de Contenido",
         "description": "Estas empresas aún no tienen un departamento de Contenido. Agrégalo para empezar a generar.",
-        "button": "Agregar a {company}"
+        "button": "Agregar a {company}",
+        "added": "Departamento de Contenido agregado"
       },
+      "viewDraft": "Ver borrador",
       "tabs": {
         "hub": "Inicio",
         "calendar": "Calendario",

@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
+import { ActionButton } from "@/components/shared/action-button";
 import { ChannelDialog } from "@/components/harmony/comms/channel-dialog";
 import { ConversationDialog } from "@/components/harmony/comms/conversation-dialog";
 import type { ConversationStatus } from "@/types/database";
@@ -125,13 +126,15 @@ export default async function CommsPage() {
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-0.5">
-                          <form action={setChannelConnected}>
-                            <input type="hidden" name="id" value={ch.id} />
-                            <input type="hidden" name="connected" value={connected ? "false" : "true"} />
-                            <Button type="submit" size="sm" variant={connected ? "outline" : "secondary"}>
-                              {connected ? t("disconnect") : t("connect")}
-                            </Button>
-                          </form>
+                          <ActionButton
+                            action={setChannelConnected}
+                            fields={{ id: ch.id, connected: connected ? "false" : "true" }}
+                            size="sm"
+                            variant={connected ? "outline" : "secondary"}
+                            successMessage={connected ? t("disconnected") : t("connected")}
+                          >
+                            {connected ? t("disconnect") : t("connect")}
+                          </ActionButton>
                           <ConfirmDeleteDialog action={deleteChannel} id={ch.id} itemTitle={ch.name}>
                             <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-destructive" aria-label={tc("delete")}>
                               <Trash2 className="size-4" aria-hidden="true" />

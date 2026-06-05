@@ -242,6 +242,8 @@
       "inherit": "Inherit from department",
       "pause": "Pause agent",
       "resume": "Resume agent",
+      "pausedToast": "Agent paused",
+      "resumedToast": "Agent resumed",
       "fields": { "name": "Agent name", "role": "Role" }
     },
     "objectives": {
@@ -289,6 +291,7 @@
       "new": "New work item",
       "delegate": "Delegate to Harmony",
       "run": "Run now",
+      "runToast": "Sent to Harmony",
       "edit": "Edit work item",
       "dialogDesc": "Assign work to a department and agent.",
       "unassigned": "Unassigned",
@@ -353,6 +356,18 @@
       "history": "History",
       "approve": "Approve",
       "reject": "Reject",
+      "approveToast": "Approved",
+      "rejectToast": "Rejected",
+      "group": {
+        "work": "Work items",
+        "content": "Content",
+        "comms": "Communications"
+      },
+      "reason": {
+        "belowOperator": "Below Operator threshold",
+        "comms": "Communication requires approval",
+        "highPriority": "High-priority work item"
+      },
       "noCompany": "No company",
       "fields": {
         "title": "Title",
@@ -427,8 +442,10 @@
       "enable": {
         "title": "Add the Content department",
         "description": "These companies don't have a Content department yet. Add it to start generating.",
-        "button": "Add to {company}"
+        "button": "Add to {company}",
+        "added": "Content department added"
       },
+      "viewDraft": "View draft",
       "tabs": {
         "hub": "Hub",
         "calendar": "Calendar",

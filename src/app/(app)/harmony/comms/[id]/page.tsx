@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ReplyForm } from "@/components/harmony/comms/reply-form";
+import { ActionButton } from "@/components/shared/action-button";
 
 export async function generateMetadata({
   params,
@@ -74,13 +75,13 @@ export default async function ConversationPage({
         title={conversation.contact}
         description={conversation.subject ?? (channel ? tk(channel.kind) : undefined)}
       >
-        <form action={setConversationStatus}>
-          <input type="hidden" name="id" value={conversation.id} />
-          <input type="hidden" name="status" value={isClosed ? "open" : "closed"} />
-          <Button type="submit" variant="outline">
-            {isClosed ? t("reopen") : t("close")}
-          </Button>
-        </form>
+        <ActionButton
+          action={setConversationStatus}
+          fields={{ id: conversation.id, status: isClosed ? "open" : "closed" }}
+          variant="outline"
+        >
+          {isClosed ? t("reopen") : t("close")}
+        </ActionButton>
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -113,13 +114,16 @@ export default async function ConversationPage({
                             {tm(m.status)} · {formatDate(m.created_at, locale)}
                           </span>
                           {outbound && m.status === "awaiting_approval" && (
-                            <form action={approveMessage}>
-                              <input type="hidden" name="id" value={m.id} />
-                              <Button type="submit" size="sm" className="h-6 px-2 text-xs">
-                                <Check className="size-3" aria-hidden="true" />
-                                {t("approveSend")}
-                              </Button>
-                            </form>
+                            <ActionButton
+                              action={approveMessage}
+                              fields={{ id: m.id }}
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              successMessage={t("sent")}
+                            >
+                              <Check className="size-3" aria-hidden="true" />
+                              {t("approveSend")}
+                            </ActionButton>
                           )}
                         </div>
                       </div>

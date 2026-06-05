@@ -24,6 +24,7 @@ import { AutonomyControl } from "@/components/harmony/os/autonomy-control";
 import { DepartmentDialog } from "@/components/harmony/os/department-dialog";
 import { AgentDialog } from "@/components/harmony/os/agent-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
+import { ActionButton } from "@/components/shared/action-button";
 
 export async function generateMetadata({
   params,
@@ -143,27 +144,24 @@ export default async function DepartmentDetailPage({
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-0.5">
-                      <form action={setAgentStatus}>
-                        <input type="hidden" name="id" value={a.id} />
-                        <input
-                          type="hidden"
-                          name="status"
-                          value={a.status === "active" ? "paused" : "active"}
-                        />
-                        <Button
-                          type="submit"
-                          variant="ghost"
-                          size="icon"
-                          className="size-8"
-                          aria-label={a.status === "active" ? tg("pause") : tg("resume")}
-                        >
-                          {a.status === "active" ? (
-                            <Pause className="size-4" aria-hidden="true" />
-                          ) : (
-                            <Play className="size-4" aria-hidden="true" />
-                          )}
-                        </Button>
-                      </form>
+                      <ActionButton
+                        action={setAgentStatus}
+                        fields={{
+                          id: a.id,
+                          status: a.status === "active" ? "paused" : "active",
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        aria-label={a.status === "active" ? tg("pause") : tg("resume")}
+                        successMessage={a.status === "active" ? tg("pausedToast") : tg("resumedToast")}
+                      >
+                        {a.status === "active" ? (
+                          <Pause className="size-4" aria-hidden="true" />
+                        ) : (
+                          <Play className="size-4" aria-hidden="true" />
+                        )}
+                      </ActionButton>
                       <AgentDialog agent={a}>
                         <Button variant="ghost" size="icon" className="size-8" aria-label={tc("edit")}>
                           <Pencil className="size-4" aria-hidden="true" />

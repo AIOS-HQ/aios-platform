@@ -29,6 +29,8 @@ import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { GenerateContentDialog } from "@/components/harmony/content/generate-dialog";
 import { ContentSubnav } from "@/components/harmony/content/content-subnav";
 import { InlineEmpty } from "@/components/shared/inline-empty";
+import { ActionButton } from "@/components/shared/action-button";
+import { cn } from "@/lib/utils";
 import type { TaskPriority } from "@/types/database";
 
 const priorityVariant: Record<TaskPriority, "secondary" | "warning" | "destructive"> = {
@@ -42,7 +44,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-export default async function ContentDepartmentPage() {
+export default async function ContentDepartmentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ item?: string }>;
+}) {
+  const highlightId = (await searchParams).item;
   const t = await getTranslations("os.content");
   const tt = await getTranslations("os.contentTask");
   const th = await getTranslations("os.contentHelper");
@@ -127,13 +134,16 @@ export default async function ContentDepartmentPage() {
             <ul className="flex flex-wrap gap-2">
               {companiesWithout.map((c) => (
                 <li key={c.id}>
-                  <form action={enableContentDepartment}>
-                    <input type="hidden" name="company_id" value={c.id} />
-                    <Button type="submit" variant="outline" size="sm">
-                      <Plus className="size-4" aria-hidden="true" />
-                      {t("enable.button", { company: c.name })}
-                    </Button>
-                  </form>
+                  <ActionButton
+                    action={enableContentDepartment}
+                    fields={{ company_id: c.id }}
+                    variant="outline"
+                    size="sm"
+                    successMessage={t("enable.added")}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    {t("enable.button", { company: c.name })}
+                  </ActionButton>
                 </li>
               ))}
             </ul>
@@ -220,7 +230,12 @@ export default async function ContentDepartmentPage() {
                             .map((w) => (
                               <li
                                 key={w.id}
-                                className="flex items-center justify-between gap-2 rounded-lg border p-3"
+                                id={`item-${w.id}`}
+                                className={cn(
+                                  "flex scroll-mt-20 items-center justify-between gap-2 rounded-lg border p-3 transition-colors",
+                                  w.id === highlightId &&
+                                    "border-primary/50 bg-primary/5 ring-2 ring-primary/30",
+                                )}
                               >
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
