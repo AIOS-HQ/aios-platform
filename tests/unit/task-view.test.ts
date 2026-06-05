@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { sortTasks, groupTasks } from "@/lib/harmony/task-view";
+import { sortTasks, groupTasks, tasksForGoal } from "@/lib/harmony/task-view";
 import { makeTask } from "../helpers/factories";
 
 afterEach(() => {
@@ -80,5 +80,22 @@ describe("groupTasks", () => {
     expect(
       groups.find((g) => g.key === "due:overdue")?.tasks.map((t) => t.id),
     ).toEqual([overdue.id]);
+  });
+});
+
+describe("tasksForGoal", () => {
+  it("returns only tasks linked to the given goal, in input order", () => {
+    const a = makeTask({ goal_id: "goal-1" });
+    const b = makeTask({ goal_id: "goal-2" });
+    const c = makeTask({ goal_id: "goal-1" });
+    const d = makeTask({ goal_id: null });
+    expect(tasksForGoal([a, b, c, d], "goal-1").map((t) => t.id)).toEqual([
+      a.id,
+      c.id,
+    ]);
+  });
+
+  it("returns an empty array when no tasks are linked", () => {
+    expect(tasksForGoal([makeTask({ goal_id: null })], "goal-x")).toEqual([]);
   });
 });

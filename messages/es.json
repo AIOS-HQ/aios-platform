@@ -292,8 +292,10 @@
       "description": "Descripción",
       "priority": "Prioridad",
       "status": "Estado",
-      "dueDate": "Fecha de vencimiento"
+      "dueDate": "Fecha de vencimiento",
+      "goal": "Meta"
     },
+    "goalNone": "Sin meta",
     "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
     "status": { "todo": "Por hacer", "in_progress": "En progreso", "done": "Hecha" },
     "empty": {
@@ -318,7 +320,11 @@
       "progress": "Progreso",
       "target": "Fecha objetivo"
     },
-    "detail": { "overview": "Resumen" },
+    "detail": {
+      "overview": "Resumen",
+      "linkedTasks": "Tareas vinculadas",
+      "noLinkedTasks": "Aún no hay tareas vinculadas a esta meta."
+    },
     "filterLabel": "Filtrar objetivos por estado",
     "filter": { "all": "Todos" },
     "fields": {

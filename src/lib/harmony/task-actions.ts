@@ -13,6 +13,12 @@ function orNull(v: FormDataEntryValue | null): string | null {
   return s ? s : null;
 }
 
+/** Resolve an optional goal link; the "none" sentinel maps to no goal. */
+function goalIdOrNull(v: FormDataEntryValue | null): string | null {
+  const s = orNull(v);
+  return s && s !== "none" ? s : null;
+}
+
 function revalidateTasks() {
   revalidatePath("/harmony");
   revalidatePath("/harmony/tasks");
@@ -40,6 +46,7 @@ export async function createTask(
     status: String(formData.get("status") ?? "todo") as TaskStatus,
     priority: String(formData.get("priority") ?? "medium") as TaskPriority,
     due_date: orNull(formData.get("due_date")),
+    goal_id: goalIdOrNull(formData.get("goal_id")),
   });
   if (error) return { status: "error", message: error.message };
 
@@ -72,6 +79,7 @@ export async function updateTask(
       status,
       priority: String(formData.get("priority") ?? "medium") as TaskPriority,
       due_date: orNull(formData.get("due_date")),
+      goal_id: goalIdOrNull(formData.get("goal_id")),
       completed_at: status === "done" ? new Date().toISOString() : null,
     })
     .eq("id", id)

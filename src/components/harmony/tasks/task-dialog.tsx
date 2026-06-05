@@ -26,16 +26,18 @@ import {
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { LIMITS } from "@/lib/limits";
-import type { PersonalTask } from "@/types/database";
+import type { PersonalGoal, PersonalTask } from "@/types/database";
 
 export function TaskDialog({
   task,
   children,
+  goals = [],
   open: openProp,
   onOpenChange,
 }: {
   task?: PersonalTask;
   children: React.ReactNode;
+  goals?: PersonalGoal[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
@@ -142,6 +144,24 @@ export function TaskDialog({
               defaultValue={task?.due_date ?? ""}
             />
           </div>
+          {goals.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="task-goal">{t("fields.goal")}</Label>
+              <Select name="goal_id" defaultValue={task?.goal_id ?? "none"}>
+                <SelectTrigger id="task-goal">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("goalNone")}</SelectItem>
+                  {goals.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <DialogFooter>
             <SubmitButton pendingLabel={tc("saving")}>{tc("save")}</SubmitButton>
           </DialogFooter>
