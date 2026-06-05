@@ -9,11 +9,11 @@
 export type AutonomyLevel = 0 | 1 | 2 | 3 | 4;
 
 export const AUTONOMY_LEVELS = [
-  { level: 0, key: "manual", cost: "" },
-  { level: 1, key: "assistant", cost: "$" },
-  { level: 2, key: "coordinator", cost: "$$" },
-  { level: 3, key: "operator", cost: "$$$" },
-  { level: 4, key: "executive", cost: "$$$$" },
+  { level: 0, key: "manual" },
+  { level: 1, key: "assisted" },
+  { level: 2, key: "supervised" },
+  { level: 3, key: "autonomous" },
+  { level: 4, key: "executive" },
 ] as const;
 
 export type AutonomyKey = (typeof AUTONOMY_LEVELS)[number]["key"];
@@ -31,10 +31,6 @@ export function clampAutonomy(n: number): AutonomyLevel {
 
 export function autonomyKey(level: AutonomyLevel): AutonomyKey {
   return AUTONOMY_LEVELS[level].key;
-}
-
-export function autonomyCost(level: AutonomyLevel): string {
-  return AUTONOMY_LEVELS[level].cost;
 }
 
 /**

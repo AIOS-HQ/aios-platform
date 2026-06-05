@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
+import { ListChecks, Pencil, Play, Plus, Sparkles, Trash2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listWorkItems } from "@/lib/data/os/work-items";
 import { listCompanies } from "@/lib/data/os/companies";
@@ -10,6 +10,7 @@ import { listAllAgents } from "@/lib/data/os/agents";
 import { listProjects } from "@/lib/data/os/projects";
 import { WORK_STATUSES } from "@/lib/harmony/os/catalog";
 import { deleteWorkItem } from "@/lib/harmony/os/work-actions";
+import { runWorkItem } from "@/lib/harmony/os/delegate-actions";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { WorkDialog } from "@/components/harmony/os/work-dialog";
 import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
+import { HarmonyDelegateDialog } from "@/components/harmony/os/harmony-delegate-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
 import type { TaskPriority } from "@/types/database";
 
@@ -66,12 +68,23 @@ export default async function WorkQueuePage() {
     <>
       <PageHeader title={t("title")} description={t("subtitle")}>
         {canCreate && (
-          <WorkDialog {...dialogProps}>
-            <Button>
-              <Plus className="size-4" aria-hidden="true" />
-              {t("new")}
-            </Button>
-          </WorkDialog>
+          <>
+            <HarmonyDelegateDialog
+              companies={dialogProps.companies}
+              departments={dialogProps.departments}
+            >
+              <Button>
+                <Sparkles className="size-4" aria-hidden="true" />
+                {t("delegate")}
+              </Button>
+            </HarmonyDelegateDialog>
+            <WorkDialog {...dialogProps}>
+              <Button variant="outline">
+                <Plus className="size-4" aria-hidden="true" />
+                {t("new")}
+              </Button>
+            </WorkDialog>
+          </>
         )}
       </PageHeader>
 
@@ -140,6 +153,20 @@ export default async function WorkQueuePage() {
                             )}
                           </div>
                           <div className="flex shrink-0 items-center gap-1">
+                            {(item.status === "pending" || item.status === "blocked") && (
+                              <form action={runWorkItem}>
+                                <input type="hidden" name="id" value={item.id} />
+                                <Button
+                                  type="submit"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 text-primary"
+                                  aria-label={t("run")}
+                                >
+                                  <Play className="size-4" aria-hidden="true" />
+                                </Button>
+                              </form>
+                            )}
                             <WorkStatusSelect id={item.id} status={item.status} />
                             <WorkDialog {...dialogProps} workItem={item}>
                               <Button variant="ghost" size="icon" className="size-8" aria-label={tc("edit")}>

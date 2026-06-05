@@ -47,12 +47,14 @@ export function AutonomyControl({
         <SelectContent>
           {AUTONOMY_LEVELS.map((l) => (
             <SelectItem key={l.level} value={String(l.level)}>
-              {l.level} · {t(l.key)} {l.cost}
+              {l.level} · {t(l.key)}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground">{td(`autonomyHint.${AUTONOMY_LEVELS[Math.max(0, Math.min(3, level))].key}`)}</p>
+      <p className="text-xs text-muted-foreground">
+        {td(`autonomyHint.${AUTONOMY_LEVELS[Math.max(0, Math.min(4, level))].key}`)}
+      </p>
     </div>
   );
 }

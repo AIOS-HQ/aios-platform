@@ -12,11 +12,14 @@ import {
 import { requireUser } from "@/lib/auth/user";
 import { getProfile } from "@/lib/data/profile";
 import { listCompanies } from "@/lib/data/os/companies";
+import { listDepartments } from "@/lib/data/os/departments";
 import { listObjectives } from "@/lib/data/os/objectives";
 import { countPendingApprovals } from "@/lib/data/os/approvals";
 import { listActivity } from "@/lib/data/os/activity";
 import { DOMAINS } from "@/lib/harmony/os/catalog";
 import { formatDate } from "@/lib/format";
+import { Sparkles } from "lucide-react";
+import { HarmonyDelegateDialog } from "@/components/harmony/os/harmony-delegate-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
@@ -44,14 +47,21 @@ export default async function CommandCenterPage() {
   const user = await requireUser();
   const locale = await getLocale();
 
-  const [profile, companies, objectives, pendingApprovals, activity] =
+  const [profile, companies, departments, objectives, pendingApprovals, activity] =
     await Promise.all([
       getProfile(user.id),
       listCompanies(),
+      listDepartments(),
       listObjectives({ status: "active" }),
       countPendingApprovals(),
       listActivity({ limit: 8 }),
     ]);
+  const deptOpts = departments.map((d) => ({
+    id: d.id,
+    name: d.name,
+    company_id: d.company_id,
+  }));
+  const companyOpts = companies.map((c) => ({ id: c.id, name: c.name }));
 
   const name = profile?.full_name?.trim() || user.email?.split("@")[0] || "";
 
@@ -83,7 +93,14 @@ export default async function CommandCenterPage() {
 
   return (
     <>
-      <PageHeader title={t("greeting", { name })} description={t("subtitle")} />
+      <PageHeader title={t("greeting", { name })} description={t("subtitle")}>
+        <HarmonyDelegateDialog companies={companyOpts} departments={deptOpts}>
+          <Button>
+            <Sparkles className="size-4" aria-hidden="true" />
+            {t("delegate")}
+          </Button>
+        </HarmonyDelegateDialog>
+      </PageHeader>
 
       <StatTiles stats={stats} />
 

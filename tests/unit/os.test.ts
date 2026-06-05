@@ -21,7 +21,8 @@ describe("autonomy", () => {
   it("defines five ordered levels 0–4", () => {
     expect(AUTONOMY_LEVELS.map((l) => l.level)).toEqual([0, 1, 2, 3, 4]);
     expect(autonomyKey(0)).toBe("manual");
-    expect(autonomyKey(3)).toBe("operator");
+    expect(autonomyKey(2)).toBe("supervised");
+    expect(autonomyKey(3)).toBe("autonomous");
     expect(autonomyKey(4)).toBe("executive");
   });
 
