@@ -152,6 +152,7 @@
     "companies": "Empresas",
     "objectives": "Objetivos",
     "work": "Cola de trabajo",
+    "approvals": "Aprobaciones",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {
@@ -313,6 +314,41 @@
       "completed": "Completado"
     },
     "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
+    "approvals": {
+      "title": "Centro de Aprobaciones",
+      "subtitle": "Decisiones que Harmony te dirige antes de actuar.",
+      "new": "Nueva aprobación",
+      "dialogDesc": "Registra una decisión que necesita tu visto bueno.",
+      "pending": "Pendientes",
+      "noPending": "Nada esperando aprobación.",
+      "history": "Historial",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "noCompany": "Sin empresa",
+      "fields": {
+        "title": "Título",
+        "summary": "Resumen",
+        "type": "Tipo",
+        "risk": "Riesgo",
+        "company": "Empresa"
+      },
+      "empty": {
+        "title": "No hay aprobaciones",
+        "description": "Cuando un departamento necesite tu visto bueno, las solicitudes aparecerán aquí."
+      }
+    },
+    "approvalType": {
+      "content": "Contenido",
+      "deployment": "Despliegue",
+      "financial": "Financiero",
+      "integration": "Integración",
+      "high_risk": "Alto riesgo"
+    },
+    "approvalStatus": {
+      "pending": "Pendiente",
+      "approved": "Aprobado",
+      "rejected": "Rechazado"
+    },
     "autonomy": {
       "manual": "Manual",
       "assistant": "Asistente",
@@ -324,7 +360,9 @@
       "companyCreated": "Empresa creada: {name}",
       "autonomyChanged": "Autonomía de {name} fijada en {level}",
       "objectiveCreated": "Objetivo creado: {title}",
-      "workCreated": "Elemento de trabajo creado: {title}"
+      "workCreated": "Elemento de trabajo creado: {title}",
+      "approvalApproved": "Aprobado: {title}",
+      "approvalRejected": "Rechazado: {title}"
     }
   },
   "roles": {

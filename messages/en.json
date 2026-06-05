@@ -152,6 +152,7 @@
     "companies": "Companies",
     "objectives": "Objectives",
     "work": "Work Queue",
+    "approvals": "Approvals",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {
@@ -313,6 +314,41 @@
       "completed": "Completed"
     },
     "priority": { "low": "Low", "medium": "Medium", "high": "High" },
+    "approvals": {
+      "title": "Approval Center",
+      "subtitle": "Decisions Harmony routes to you before acting.",
+      "new": "New approval",
+      "dialogDesc": "Record a decision that needs your sign-off.",
+      "pending": "Pending",
+      "noPending": "Nothing awaiting approval.",
+      "history": "History",
+      "approve": "Approve",
+      "reject": "Reject",
+      "noCompany": "No company",
+      "fields": {
+        "title": "Title",
+        "summary": "Summary",
+        "type": "Type",
+        "risk": "Risk",
+        "company": "Company"
+      },
+      "empty": {
+        "title": "No approvals",
+        "description": "When a department needs sign-off, requests appear here."
+      }
+    },
+    "approvalType": {
+      "content": "Content",
+      "deployment": "Deployment",
+      "financial": "Financial",
+      "integration": "Integration",
+      "high_risk": "High risk"
+    },
+    "approvalStatus": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
     "autonomy": {
       "manual": "Manual",
       "assistant": "Assistant",
@@ -324,7 +360,9 @@
       "companyCreated": "Company created: {name}",
       "autonomyChanged": "{name} autonomy set to {level}",
       "objectiveCreated": "Objective created: {title}",
-      "workCreated": "Work item created: {title}"
+      "workCreated": "Work item created: {title}",
+      "approvalApproved": "Approved: {title}",
+      "approvalRejected": "Rejected: {title}"
     }
   },
   "roles": {
