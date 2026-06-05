@@ -3,6 +3,7 @@ import {
   Building2,
   LayoutDashboard,
   Lightbulb,
+  ListChecks,
   ListTodo,
   Settings,
   Sparkles,
@@ -38,7 +39,8 @@ export const navSections: NavSection[] = [
       { href: "/harmony", labelKey: "commandCenter", icon: LayoutDashboard, exact: true },
       { href: "/harmony/companies", labelKey: "companies", icon: Building2 },
       { href: "/harmony/objectives", labelKey: "objectives", icon: Target },
-      // Work Queues, Approvals, Activity links are added by their PRs as pages ship.
+      { href: "/harmony/work", labelKey: "work", icon: ListChecks },
+      // Approvals, Activity links are added by their PRs as pages ship.
     ],
   },
   {
