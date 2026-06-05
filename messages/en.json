@@ -151,6 +151,7 @@
     "commandCenter": "Command Center",
     "companies": "Companies",
     "objectives": "Objectives",
+    "work": "Work Queue",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {
@@ -275,6 +276,43 @@
       "completed": "Completed",
       "archived": "Archived"
     },
+    "work": {
+      "title": "Work Queue",
+      "subtitle": "Everything Harmony and your departments are executing.",
+      "new": "New work item",
+      "edit": "Edit work item",
+      "dialogDesc": "Assign work to a department and agent.",
+      "unassigned": "Unassigned",
+      "noProject": "No project",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "company": "Company",
+        "department": "Department",
+        "agent": "Agent",
+        "project": "Project",
+        "priority": "Priority",
+        "status": "Status",
+        "dueDate": "Due date"
+      },
+      "empty": {
+        "title": "No work yet",
+        "description": "Add a work item or let Harmony generate work from your objectives."
+      },
+      "noCompanies": {
+        "title": "Create a company first",
+        "description": "Work items belong to a company. Create one to get started.",
+        "cta": "Go to companies"
+      }
+    },
+    "workStatus": {
+      "pending": "Pending",
+      "in_progress": "In progress",
+      "blocked": "Blocked",
+      "awaiting_approval": "Awaiting approval",
+      "completed": "Completed"
+    },
+    "priority": { "low": "Low", "medium": "Medium", "high": "High" },
     "autonomy": {
       "manual": "Manual",
       "assistant": "Assistant",
@@ -285,7 +323,8 @@
     "activity": {
       "companyCreated": "Company created: {name}",
       "autonomyChanged": "{name} autonomy set to {level}",
-      "objectiveCreated": "Objective created: {title}"
+      "objectiveCreated": "Objective created: {title}",
+      "workCreated": "Work item created: {title}"
     }
   },
   "roles": {

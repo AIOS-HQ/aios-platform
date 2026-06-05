@@ -15,3 +15,14 @@ export async function listAgents(departmentId: string): Promise<Agent[]> {
   if (error) console.error("[data/os/agents] listAgents", error);
   return (data as Agent[] | null) ?? [];
 }
+
+/** All of the owner's agents (for assignment pickers). */
+export async function listAllAgents(): Promise<Agent[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agents")
+    .select("*")
+    .order("position", { ascending: true });
+  if (error) console.error("[data/os/agents] listAllAgents", error);
+  return (data as Agent[] | null) ?? [];
+}

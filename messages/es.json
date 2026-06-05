@@ -151,6 +151,7 @@
     "commandCenter": "Centro de Mando",
     "companies": "Empresas",
     "objectives": "Objetivos",
+    "work": "Cola de trabajo",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {
@@ -275,6 +276,43 @@
       "completed": "Completado",
       "archived": "Archivado"
     },
+    "work": {
+      "title": "Cola de trabajo",
+      "subtitle": "Todo lo que Harmony y tus departamentos están ejecutando.",
+      "new": "Nuevo elemento",
+      "edit": "Editar elemento",
+      "dialogDesc": "Asigna trabajo a un departamento y agente.",
+      "unassigned": "Sin asignar",
+      "noProject": "Sin proyecto",
+      "fields": {
+        "title": "Título",
+        "description": "Descripción",
+        "company": "Empresa",
+        "department": "Departamento",
+        "agent": "Agente",
+        "project": "Proyecto",
+        "priority": "Prioridad",
+        "status": "Estado",
+        "dueDate": "Fecha de vencimiento"
+      },
+      "empty": {
+        "title": "Aún no hay trabajo",
+        "description": "Añade un elemento o deja que Harmony genere trabajo a partir de tus objetivos."
+      },
+      "noCompanies": {
+        "title": "Crea una empresa primero",
+        "description": "Los elementos de trabajo pertenecen a una empresa. Crea una para empezar.",
+        "cta": "Ir a empresas"
+      }
+    },
+    "workStatus": {
+      "pending": "Pendiente",
+      "in_progress": "En progreso",
+      "blocked": "Bloqueado",
+      "awaiting_approval": "Esperando aprobación",
+      "completed": "Completado"
+    },
+    "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
     "autonomy": {
       "manual": "Manual",
       "assistant": "Asistente",
@@ -285,7 +323,8 @@
     "activity": {
       "companyCreated": "Empresa creada: {name}",
       "autonomyChanged": "Autonomía de {name} fijada en {level}",
-      "objectiveCreated": "Objetivo creado: {title}"
+      "objectiveCreated": "Objetivo creado: {title}",
+      "workCreated": "Elemento de trabajo creado: {title}"
     }
   },
   "roles": {
