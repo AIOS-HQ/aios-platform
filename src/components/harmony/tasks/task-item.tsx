@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Target, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { ConfirmDeleteDialog } from "../confirm-delete-dialog";
 import { deleteTask, toggleTaskComplete } from "@/lib/harmony/task-actions";
 import { daysUntil, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { PersonalTask } from "@/types/database";
+import type { PersonalGoal, PersonalTask } from "@/types/database";
 
 const priorityVariant = {
   low: "secondary",
@@ -19,11 +20,20 @@ const priorityVariant = {
   high: "destructive",
 } as const;
 
-export function TaskItem({ task }: { task: PersonalTask }) {
+export function TaskItem({
+  task,
+  goals = [],
+}: {
+  task: PersonalTask;
+  goals?: PersonalGoal[];
+}) {
   const t = useTranslations("tasks");
   const tc = useTranslations("common");
   const locale = useLocale();
   const [pending, start] = useTransition();
+  const linkedGoal = task.goal_id
+    ? goals.find((g) => g.id === task.goal_id)
+    : undefined;
   // Optimistic completion: the checkbox flips instantly, then reconciles with
   // the server result after revalidation (foundation pattern for Sprint 2).
   const [done, setOptimisticDone] = useOptimistic(task.status === "done");
@@ -78,10 +88,20 @@ export function TaskItem({ task }: { task: PersonalTask }) {
               {t("due")}: {formatDate(task.due_date, locale)}
             </span>
           )}
+          {linkedGoal && (
+            <Link
+              href={`/harmony/goals/${linkedGoal.id}`}
+              className="inline-flex max-w-[12rem] items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+              aria-label={`${t("fields.goal")}: ${linkedGoal.title}`}
+            >
+              <Target className="size-3" aria-hidden="true" />
+              <span className="truncate">{linkedGoal.title}</span>
+            </Link>
+          )}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
-        <TaskDialog task={task}>
+        <TaskDialog task={task} goals={goals}>
           <Button variant="ghost" size="icon" className="size-8" aria-label={t("edit")}>
             <Pencil className="size-4" aria-hidden="true" />
           </Button>

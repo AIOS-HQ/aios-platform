@@ -5,6 +5,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getGoal } from "@/lib/data/goals";
+import { listTasks } from "@/lib/data/tasks";
+import { tasksForGoal } from "@/lib/harmony/task-view";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -17,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { GoalDialog } from "@/components/harmony/goals/goal-dialog";
 import { GoalProgressControl } from "@/components/harmony/goals/goal-progress-control";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { GoalStatus } from "@/types/database";
 
 const statusVariant: Record<
@@ -47,11 +50,14 @@ export default async function GoalDetailPage({
 }) {
   const { id } = await params;
   const t = await getTranslations("goals");
+  const tt = await getTranslations("tasks");
   const locale = await getLocale();
   await requireUser();
 
   const goal = await getGoal(id);
   if (!goal) notFound();
+
+  const linkedTasks = tasksForGoal(await listTasks(), id);
 
   return (
     <>
@@ -91,6 +97,43 @@ export default async function GoalDetailPage({
               <p className="text-sm text-muted-foreground">
                 {t("target")}: {formatDate(goal.target_date, locale)}
               </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {t("detail.linkedTasks")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {linkedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("detail.noLinkedTasks")}
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {linkedTasks.map((task) => (
+                  <li
+                    key={task.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border p-3"
+                  >
+                    <span
+                      className={cn(
+                        "min-w-0 truncate text-sm",
+                        task.status === "done" &&
+                          "text-muted-foreground line-through",
+                      )}
+                    >
+                      {task.title}
+                    </span>
+                    <Badge variant="outline" className="shrink-0">
+                      {tt(`status.${task.status}`)}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>

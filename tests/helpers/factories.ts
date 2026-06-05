@@ -23,6 +23,7 @@ export function makeTask(overrides: Partial<PersonalTask> = {}): PersonalTask {
     status: "todo",
     priority: "medium",
     due_date: null,
+    goal_id: null,
     completed_at: null,
     created_at: BASE_TS,
     updated_at: BASE_TS,

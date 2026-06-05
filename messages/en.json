@@ -292,8 +292,10 @@
       "description": "Description",
       "priority": "Priority",
       "status": "Status",
-      "dueDate": "Due date"
+      "dueDate": "Due date",
+      "goal": "Goal"
     },
+    "goalNone": "No goal",
     "priority": { "low": "Low", "medium": "Medium", "high": "High" },
     "status": { "todo": "To do", "in_progress": "In progress", "done": "Done" },
     "empty": {
@@ -318,7 +320,11 @@
       "progress": "Progress",
       "target": "Target date"
     },
-    "detail": { "overview": "Overview" },
+    "detail": {
+      "overview": "Overview",
+      "linkedTasks": "Linked tasks",
+      "noLinkedTasks": "No tasks linked to this goal yet."
+    },
     "filterLabel": "Filter goals by status",
     "filter": { "all": "All" },
     "fields": {

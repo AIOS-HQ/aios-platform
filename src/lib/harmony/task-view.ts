@@ -28,6 +28,14 @@ export function sortTasks(tasks: PersonalTask[], sort: SortBy): PersonalTask[] {
   return arr;
 }
 
+/** Tasks linked to a given goal, preserving input order. */
+export function tasksForGoal(
+  tasks: PersonalTask[],
+  goalId: string,
+): PersonalTask[] {
+  return tasks.filter((t) => t.goal_id === goalId);
+}
+
 export type TaskGroup = { key: string; tasks: PersonalTask[] };
 
 /** Group tasks for display. Empty groups are omitted. */

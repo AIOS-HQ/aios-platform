@@ -17,9 +17,15 @@ import {
 import { TaskDialog } from "./task-dialog";
 import { TaskItem } from "./task-item";
 import { groupTasks, type GroupBy, type SortBy } from "@/lib/harmony/task-view";
-import type { PersonalTask } from "@/types/database";
+import type { PersonalGoal, PersonalTask } from "@/types/database";
 
-export function TaskList({ tasks }: { tasks: PersonalTask[] }) {
+export function TaskList({
+  tasks,
+  goals = [],
+}: {
+  tasks: PersonalTask[];
+  goals?: PersonalGoal[];
+}) {
   const t = useTranslations("tasks");
   const [query, setQuery] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>("due");
@@ -106,7 +112,7 @@ export function TaskList({ tasks }: { tasks: PersonalTask[] }) {
               <SelectItem value="created">{t("sort.created")}</SelectItem>
             </SelectContent>
           </Select>
-          <TaskDialog open={newOpen} onOpenChange={setNewOpen}>
+          <TaskDialog open={newOpen} onOpenChange={setNewOpen} goals={goals}>
             <Button>
               <Plus className="size-4" aria-hidden="true" />
               {t("new")}
@@ -132,7 +138,7 @@ export function TaskList({ tasks }: { tasks: PersonalTask[] }) {
           title={t("empty.title")}
           description={t("empty.description")}
         >
-          <TaskDialog>
+          <TaskDialog goals={goals}>
             <Button variant="outline">
               <Plus className="size-4" aria-hidden="true" />
               {t("new")}
@@ -157,7 +163,7 @@ export function TaskList({ tasks }: { tasks: PersonalTask[] }) {
               </h2>
               <ul className="space-y-2">
                 {g.tasks.map((task) => (
-                  <TaskItem key={task.id} task={task} />
+                  <TaskItem key={task.id} task={task} goals={goals} />
                 ))}
               </ul>
             </section>
