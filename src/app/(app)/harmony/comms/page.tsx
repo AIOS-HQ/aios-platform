@@ -16,6 +16,7 @@ import {
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { InlineEmpty } from "@/components/shared/inline-empty";
 import {
   Card,
   CardContent,
@@ -102,7 +103,7 @@ export default async function CommsPage() {
           </CardHeader>
           <CardContent>
             {channels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("noChannels")}</p>
+              <InlineEmpty icon={Plug} message={t("noChannels")} />
             ) : (
               <ul className="space-y-2">
                 {channels.map((ch) => {
@@ -172,7 +173,7 @@ export default async function CommsPage() {
                 description={t("empty.description")}
               />
             ) : conversations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("noConversations")}</p>
+              <InlineEmpty icon={MessageSquare} message={t("noConversations")} />
             ) : (
               <ul className="divide-y">
                 {conversations.map((cv) => (

@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth/user";
 import { getProfile } from "@/lib/data/profile";
 import { listCompanies } from "@/lib/data/os/companies";
+import { countPendingApprovals } from "@/lib/data/os/approvals";
 import { AppShell } from "@/components/app/app-shell";
 import { getInitials } from "@/lib/utils";
 
@@ -13,9 +14,10 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const [profile, companies] = await Promise.all([
+  const [profile, companies, pendingApprovals] = await Promise.all([
     getProfile(user.id),
     listCompanies(),
+    countPendingApprovals(),
   ]);
 
   const name =
@@ -29,6 +31,7 @@ export default async function AppLayout({
       email={email}
       initials={initials}
       companies={companies.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
+      pendingApprovals={pendingApprovals}
     >
       {children}
     </AppShell>

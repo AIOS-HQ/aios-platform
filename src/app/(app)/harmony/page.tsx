@@ -22,6 +22,7 @@ import { Sparkles } from "lucide-react";
 import { HarmonyDelegateDialog } from "@/components/harmony/os/harmony-delegate-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { InlineEmpty } from "@/components/shared/inline-empty";
 import {
   StatTiles,
   type Stat,
@@ -162,7 +163,7 @@ export default async function CommandCenterPage() {
           </CardHeader>
           <CardContent>
             {activity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("noActivity")}</p>
+              <InlineEmpty icon={Activity} message={t("noActivity")} />
             ) : (
               <ul className="space-y-3">
                 {activity.map((e) => (

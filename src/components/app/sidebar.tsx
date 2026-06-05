@@ -5,7 +5,12 @@ import { navSections } from "./nav-config";
 import { NavLink } from "./nav-link";
 
 /** Persistent desktop sidebar (Founder OS). */
-export async function Sidebar() {
+export async function Sidebar({
+  badges,
+}: {
+  /** Map of nav href → badge count (e.g. pending approvals). */
+  badges?: Record<string, number>;
+}) {
   const t = await getTranslations("nav.sections");
   return (
     <aside
@@ -26,7 +31,7 @@ export async function Sidebar() {
               </p>
             )}
             {section.items.map((item) => (
-              <NavLink key={item.href} item={item} />
+              <NavLink key={item.href} item={item} badge={badges?.[item.href]} />
             ))}
           </div>
         ))}
