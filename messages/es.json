@@ -197,6 +197,26 @@
         "description": "Crea tu primera empresa para empezar a operar a través de Harmony."
       }
     },
+    "departments": {
+      "new": "Nuevo departamento",
+      "edit": "Editar departamento",
+      "dialogDesc": "Los departamentos agrupan agentes y trabajo de una empresa.",
+      "addDepartment": "Añadir departamento",
+      "manage": "Gestionar",
+      "agents": "Agentes",
+      "noAgents": "Aún no hay agentes.",
+      "autonomyTitle": "Autonomía",
+      "autonomyLabel": "Nivel de autonomía",
+      "autonomyUpdated": "Autonomía actualizada.",
+      "autonomyHint": {
+        "manual": "Tú haces todo manualmente; los agentes solo asisten cuando se les pide.",
+        "approval": "Los agentes proponen acciones; cada acción necesita tu aprobación.",
+        "assisted": "Los agentes gestionan el trabajo rutinario; las acciones importantes requieren aprobación.",
+        "autonomous": "Los agentes actúan por su cuenta; las acciones de alto riesgo aún requieren aprobación."
+      },
+      "fields": { "name": "Nombre del departamento", "description": "Descripción" },
+      "agentStatus": { "active": "Activo", "paused": "Pausado" }
+    },
     "autonomy": {
       "manual": "Manual",
       "approval": "Requiere aprobación",
@@ -204,7 +224,8 @@
       "autonomous": "Autónomo"
     },
     "activity": {
-      "companyCreated": "Empresa creada: {name}"
+      "companyCreated": "Empresa creada: {name}",
+      "autonomyChanged": "Autonomía de {name} fijada en {level}"
     }
   },
   "roles": {
