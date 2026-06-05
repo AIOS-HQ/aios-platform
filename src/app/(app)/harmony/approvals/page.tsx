@@ -4,7 +4,13 @@ import { Check, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listApprovals } from "@/lib/data/os/approvals";
 import { listCompanies } from "@/lib/data/os/companies";
+import { listDepartments } from "@/lib/data/os/departments";
 import { decideApproval, deleteApproval } from "@/lib/harmony/os/approval-actions";
+import {
+  autonomyCostTier,
+  autonomyKey,
+  clampAutonomy,
+} from "@/lib/harmony/os/autonomy";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -18,7 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApprovalDialog } from "@/components/harmony/os/approval-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
-import type { ApprovalStatus, TaskPriority } from "@/types/database";
+import { ActionButton } from "@/components/shared/action-button";
+import type { Approval, ApprovalStatus, Department, TaskPriority } from "@/types/database";
 
 const riskVariant: Record<TaskPriority, "secondary" | "warning" | "destructive"> = {
   low: "secondary",
@@ -31,6 +38,9 @@ const statusVariant: Record<ApprovalStatus, "secondary" | "success" | "outline">
   rejected: "outline",
 };
 
+type Category = "work" | "content" | "comms";
+const CATEGORY_ORDER: Category[] = ["work", "content", "comms"];
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("os.approvals");
   return { title: t("title") };
@@ -38,21 +48,126 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ApprovalsPage() {
   const t = await getTranslations("os.approvals");
+  const tg = await getTranslations("os.approvals.group");
+  const tr = await getTranslations("os.approvals.reason");
   const tt = await getTranslations("os.approvalType");
   const ts = await getTranslations("os.approvalStatus");
+  const ta = await getTranslations("os.autonomy");
   const tp = await getTranslations("os.priority");
   const tc = await getTranslations("common");
   const locale = await getLocale();
   await requireUser();
 
-  const [approvals, companies] = await Promise.all([
+  const [approvals, companies, departments] = await Promise.all([
     listApprovals(),
     listCompanies(),
+    listDepartments(),
   ]);
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
+  const deptById = new Map<string, Department>(departments.map((d) => [d.id, d]));
   const pending = approvals.filter((a) => a.status === "pending");
   const decided = approvals.filter((a) => a.status !== "pending");
   const companyOpts = companies.map((c) => ({ id: c.id, name: c.name }));
+
+  function classify(a: Approval): Category {
+    if (a.message_id) return "comms";
+    const dept = a.department_id ? deptById.get(a.department_id) : null;
+    if (dept?.key === "content") return "content";
+    return "work";
+  }
+
+  // Reason chips explaining why the item is gated.
+  function reasons(a: Approval): { key: string; text: string; tone: "muted" | "primary" | "warning" }[] {
+    const out: { key: string; text: string; tone: "muted" | "primary" | "warning" }[] = [];
+    const dept = a.department_id ? deptById.get(a.department_id) : null;
+    if (dept) {
+      const level = clampAutonomy(dept.autonomy_level);
+      const tier = autonomyCostTier(level);
+      out.push({
+        key: "dept",
+        text: `${dept.name} · ${ta(autonomyKey(level))}${tier ? ` ${tier}` : ""}`,
+        tone: "muted",
+      });
+    }
+    out.push({
+      key: "gate",
+      text: a.message_id ? tr("comms") : tr("belowOperator"),
+      tone: "primary",
+    });
+    if (a.risk === "high") {
+      out.push({ key: "risk", text: tr("highPriority"), tone: "warning" });
+    }
+    return out;
+  }
+
+  const toneClass: Record<"muted" | "primary" | "warning", string> = {
+    muted: "bg-muted text-muted-foreground",
+    primary: "bg-primary/10 text-primary",
+    warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  };
+
+  const grouped: Record<Category, Approval[]> = { work: [], content: [], comms: [] };
+  for (const a of pending) grouped[classify(a)].push(a);
+
+  function renderPending(a: Approval) {
+    return (
+      <li key={a.id} className="rounded-lg border p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">{a.title}</span>
+          <Badge variant={riskVariant[a.risk]}>{tp(a.risk)}</Badge>
+          {a.company_id && companyName.get(a.company_id) && (
+            <span className="text-xs text-muted-foreground">
+              {companyName.get(a.company_id)}
+            </span>
+          )}
+        </div>
+        {a.summary && (
+          <p className="mt-1 text-sm text-muted-foreground">{a.summary}</p>
+        )}
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {reasons(a).map((r) => (
+            <span
+              key={r.key}
+              className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${toneClass[r.tone]}`}
+            >
+              {r.text}
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <ActionButton
+            action={decideApproval}
+            fields={{ id: a.id, decision: "approved" }}
+            size="sm"
+            successMessage={t("approveToast")}
+          >
+            <Check className="size-4" aria-hidden="true" />
+            {t("approve")}
+          </ActionButton>
+          <ActionButton
+            action={decideApproval}
+            fields={{ id: a.id, decision: "rejected" }}
+            size="sm"
+            variant="outline"
+            successMessage={t("rejectToast")}
+          >
+            <X className="size-4" aria-hidden="true" />
+            {t("reject")}
+          </ActionButton>
+          <ConfirmDeleteDialog action={deleteApproval} id={a.id} itemTitle={a.title}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-muted-foreground hover:text-destructive"
+              aria-label={tc("delete")}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </ConfirmDeleteDialog>
+        </div>
+      </li>
+    );
+  }
 
   return (
     <>
@@ -87,55 +202,19 @@ export default async function ApprovalsPage() {
               {pending.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("noPending")}</p>
               ) : (
-                <ul className="space-y-3">
-                  {pending.map((a) => (
-                    <li key={a.id} className="rounded-lg border p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{a.title}</span>
-                        <Badge variant="outline">{tt(a.type)}</Badge>
-                        <Badge variant={riskVariant[a.risk]}>{tp(a.risk)}</Badge>
-                        {a.company_id && companyName.get(a.company_id) && (
-                          <span className="text-xs text-muted-foreground">
-                            {companyName.get(a.company_id)}
-                          </span>
-                        )}
-                      </div>
-                      {a.summary && (
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {a.summary}
-                        </p>
-                      )}
-                      <div className="mt-3 flex items-center gap-2">
-                        <form action={decideApproval}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <input type="hidden" name="decision" value="approved" />
-                          <Button type="submit" size="sm">
-                            <Check className="size-4" aria-hidden="true" />
-                            {t("approve")}
-                          </Button>
-                        </form>
-                        <form action={decideApproval}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <input type="hidden" name="decision" value="rejected" />
-                          <Button type="submit" size="sm" variant="outline">
-                            <X className="size-4" aria-hidden="true" />
-                            {t("reject")}
-                          </Button>
-                        </form>
-                        <ConfirmDeleteDialog action={deleteApproval} id={a.id} itemTitle={a.title}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-muted-foreground hover:text-destructive"
-                            aria-label={tc("delete")}
-                          >
-                            <Trash2 className="size-4" aria-hidden="true" />
-                          </Button>
-                        </ConfirmDeleteDialog>
-                      </div>
-                    </li>
+                <div className="space-y-6">
+                  {CATEGORY_ORDER.filter((c) => grouped[c].length > 0).map((c) => (
+                    <section key={c} aria-label={tg(c)}>
+                      <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {tg(c)}
+                        <span className="rounded-full bg-muted px-2 py-0.5 tabular-nums">
+                          {grouped[c].length}
+                        </span>
+                      </h3>
+                      <ul className="space-y-3">{grouped[c].map(renderPending)}</ul>
+                    </section>
                   ))}
-                </ul>
+                </div>
               )}
             </CardContent>
           </Card>

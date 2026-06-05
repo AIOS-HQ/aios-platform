@@ -118,6 +118,7 @@ export async function generateContent(
     status: "success",
     message:
       outcome === "completed" ? to("content.generated") : to("content.routed"),
+    meta: { workItemId: item.id },
   };
 }
 

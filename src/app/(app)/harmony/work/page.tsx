@@ -20,6 +20,7 @@ import { WorkDialog } from "@/components/harmony/os/work-dialog";
 import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { HarmonyDelegateDialog } from "@/components/harmony/os/harmony-delegate-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
+import { ActionButton } from "@/components/shared/action-button";
 import type { TaskPriority } from "@/types/database";
 
 const priorityVariant: Record<TaskPriority, "secondary" | "warning" | "destructive"> = {
@@ -154,18 +155,17 @@ export default async function WorkQueuePage() {
                           </div>
                           <div className="flex shrink-0 items-center gap-1">
                             {(item.status === "pending" || item.status === "blocked") && (
-                              <form action={runWorkItem}>
-                                <input type="hidden" name="id" value={item.id} />
-                                <Button
-                                  type="submit"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 text-primary"
-                                  aria-label={t("run")}
-                                >
-                                  <Play className="size-4" aria-hidden="true" />
-                                </Button>
-                              </form>
+                              <ActionButton
+                                action={runWorkItem}
+                                fields={{ id: item.id }}
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-primary"
+                                aria-label={t("run")}
+                                successMessage={t("runToast")}
+                              >
+                                <Play className="size-4" aria-hidden="true" />
+                              </ActionButton>
                             )}
                             <WorkStatusSelect id={item.id} status={item.status} />
                             <WorkDialog {...dialogProps} workItem={item}>
