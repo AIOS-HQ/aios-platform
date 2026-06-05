@@ -157,6 +157,7 @@
     "comms": "Comunicaciones",
     "code": "Depto. de Código",
     "content": "Contenido",
+    "pendingCount": "{count} pendientes",
     "sections": { "command": "Centro de Mando", "personal": "Personal" }
   },
   "os": {

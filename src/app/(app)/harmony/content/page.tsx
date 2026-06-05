@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Clapperboard, Plug, Plus, Sparkles, Wand2 } from "lucide-react";
+import { Clapperboard, Plug, Plus, Sparkles, Users, Wand2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listDepartments } from "@/lib/data/os/departments";
 import { listCompanies } from "@/lib/data/os/companies";
@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { GenerateContentDialog } from "@/components/harmony/content/generate-dialog";
 import { ContentSubnav } from "@/components/harmony/content/content-subnav";
+import { InlineEmpty } from "@/components/shared/inline-empty";
 import type { TaskPriority } from "@/types/database";
 
 const priorityVariant: Record<TaskPriority, "secondary" | "warning" | "destructive"> = {
@@ -204,7 +205,7 @@ export default async function ContentDepartmentPage() {
             </CardHeader>
             <CardContent>
               {work.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("noWork")}</p>
+                <InlineEmpty icon={Clapperboard} message={t("noWork")} />
               ) : (
                 <div className="space-y-5">
                   {WORK_STATUSES.filter((s) => work.some((w) => w.status === s)).map(
@@ -254,7 +255,7 @@ export default async function ContentDepartmentPage() {
             </CardHeader>
             <CardContent>
               {helpers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("noHelpers")}</p>
+                <InlineEmpty icon={Users} message={t("noHelpers")} />
               ) : (
                 <ul className="space-y-2">
                   {contentDepts.map((d) => (

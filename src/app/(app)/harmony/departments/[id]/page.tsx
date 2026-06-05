@@ -11,6 +11,7 @@ import { clampAutonomy } from "@/lib/harmony/os/autonomy";
 import { deleteDepartment } from "@/lib/harmony/os/department-actions";
 import { deleteAgent, setAgentStatus } from "@/lib/harmony/os/agent-actions";
 import { PageHeader } from "@/components/shared/page-header";
+import { InlineEmpty } from "@/components/shared/inline-empty";
 import {
   Card,
   CardContent,
@@ -116,7 +117,7 @@ export default async function DepartmentDetailPage({
           </CardHeader>
           <CardContent>
             {agents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("noAgents")}</p>
+              <InlineEmpty icon={Bot} message={t("noAgents")} />
             ) : (
               <ul className="space-y-2">
                 {agents.map((a) => (

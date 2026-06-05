@@ -157,6 +157,7 @@
     "comms": "Communications",
     "code": "Code Dept",
     "content": "Content",
+    "pendingCount": "{count} pending",
     "sections": { "command": "Command Center", "personal": "Personal" }
   },
   "os": {

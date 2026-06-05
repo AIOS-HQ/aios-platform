@@ -11,20 +11,26 @@ export function AppShell({
   email,
   initials,
   companies,
+  pendingApprovals = 0,
   children,
 }: {
   name: string;
   email: string;
   initials: string;
   companies: { id: string; name: string; slug: string }[];
+  /** Pending approvals count → rendered as a nav badge on Approvals. */
+  pendingApprovals?: number;
   children: React.ReactNode;
 }) {
+  const navBadges = pendingApprovals
+    ? { "/harmony/approvals": pendingApprovals }
+    : undefined;
   return (
     <div className="flex min-h-dvh">
-      <Sidebar />
+      <Sidebar badges={navBadges} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur sm:px-6">
-          <MobileNav />
+          <MobileNav badges={navBadges} />
           <CompanySwitcher companies={companies} />
           <div className="flex-1" />
           <div className="hidden sm:block">

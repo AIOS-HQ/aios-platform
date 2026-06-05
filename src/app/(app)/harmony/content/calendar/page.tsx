@@ -8,6 +8,8 @@ import { deleteContentItem } from "@/lib/harmony/content/calendar-actions";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { InlineEmpty } from "@/components/shared/inline-empty";
+import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
 import {
   Card,
   CardContent,
@@ -73,12 +75,11 @@ export default async function ContentCalendarPage() {
             <Pencil className="size-4" aria-hidden="true" />
           </Button>
         </ContentItemDialog>
-        <form action={deleteContentItem}>
-          <input type="hidden" name="id" value={i.id} />
+        <ConfirmDeleteDialog action={deleteContentItem} id={i.id} itemTitle={i.title}>
           <Button variant="ghost" size="icon" aria-label={t("deleteItem")}>
             <Trash2 className="size-4" aria-hidden="true" />
           </Button>
-        </form>
+        </ConfirmDeleteDialog>
       </div>
     </li>
   );
@@ -120,7 +121,7 @@ export default async function ContentCalendarPage() {
             </CardHeader>
             <CardContent>
               {scheduled.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("noScheduled")}</p>
+                <InlineEmpty icon={CalendarDays} message={t("noScheduled")} />
               ) : (
                 <ul className="space-y-2">{scheduled.map(row)}</ul>
               )}

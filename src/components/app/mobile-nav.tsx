@@ -16,7 +16,12 @@ import { navSections } from "./nav-config";
 import { NavLink } from "./nav-link";
 
 /** Slide-in navigation drawer for small screens (Founder OS). */
-export function MobileNav() {
+export function MobileNav({
+  badges,
+}: {
+  /** Map of nav href → badge count (e.g. pending approvals). */
+  badges?: Record<string, number>;
+}) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
   const close = () => setOpen(false);
@@ -53,7 +58,12 @@ export function MobileNav() {
                 </p>
               )}
               {section.items.map((item) => (
-                <NavLink key={item.href} item={item} onNavigate={close} />
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  badge={badges?.[item.href]}
+                  onNavigate={close}
+                />
               ))}
             </div>
           ))}
