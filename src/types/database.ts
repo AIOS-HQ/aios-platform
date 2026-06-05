@@ -16,6 +16,10 @@ import type {
   WorkStatus,
 } from "@/lib/harmony/os/catalog";
 import type { ChannelKind } from "@/lib/harmony/comms/catalog";
+import type {
+  ContentFormat,
+  ContentItemStatus,
+} from "@/lib/harmony/content/catalog";
 
 // Re-export the shared OS domain unions so `@/types/database` stays the single
 // row-type home for consumers (data layer, components).
@@ -28,6 +32,10 @@ export type {
   WorkStatus,
 } from "@/lib/harmony/os/catalog";
 export type { ChannelKind } from "@/lib/harmony/comms/catalog";
+export type {
+  ContentFormat,
+  ContentItemStatus,
+} from "@/lib/harmony/content/catalog";
 
 export type UserRole = "personal_user" | "business_owner" | "admin";
 
@@ -294,4 +302,31 @@ export interface Message {
   body: string;
   status: MessageStatus;
   created_at: string;
+}
+
+// ===========================================================================
+// Content layer (calendar entries + snapshot analytics)
+// See migration 20260601000900. Owner-scoped via RLS.
+// ===========================================================================
+
+export interface ContentItem {
+  id: string;
+  user_id: string;
+  company_id: string | null;
+  department_id: string | null;
+  work_item_id: string | null;
+  title: string;
+  format: ContentFormat;
+  status: ContentItemStatus;
+  channel: string | null;
+  notes: string | null;
+  scheduled_for: string | null;
+  published_at: string | null;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  impressions: number;
+  created_at: string;
+  updated_at: string;
 }

@@ -408,7 +408,13 @@
       "fields": {
         "capability": "What to create",
         "topic": "Topic",
-        "company": "Company"
+        "company": "Company",
+        "title": "Title",
+        "format": "Format",
+        "status": "Status",
+        "scheduledFor": "Scheduled for",
+        "channel": "Channel",
+        "notes": "Notes"
       },
       "capabilities": "What Harmony can create",
       "board": "Content board",
@@ -421,6 +427,41 @@
         "title": "Add the Content department",
         "description": "These companies don't have a Content department yet. Add it to start generating.",
         "button": "Add to {company}"
+      },
+      "tabs": {
+        "hub": "Hub",
+        "calendar": "Calendar",
+        "analytics": "Analytics"
+      },
+      "newTitle": "New content",
+      "editTitle": "Edit content",
+      "itemDesc": "A piece for your content calendar.",
+      "newItem": "New item",
+      "titlePlaceholder": "e.g. Cold-start playbook walkthrough",
+      "channelPlaceholder": "e.g. @ourchannel",
+      "noCompany": "No company",
+      "deleteItem": "Delete",
+      "unscheduled": "Unscheduled",
+      "scheduledHeading": "Scheduled",
+      "noScheduled": "Nothing scheduled yet.",
+      "backlogHeading": "Backlog",
+      "metricsTitle": "Update analytics",
+      "calendarEmpty": {
+        "title": "Your content calendar is empty",
+        "description": "Add a piece or generate one from the hub to start planning."
+      },
+      "analytics": {
+        "total": "Pieces",
+        "published": "Published",
+        "scheduled": "Scheduled",
+        "engagement": "Engagement rate",
+        "totals": "Totals",
+        "top": "Top performers",
+        "hint": "Snapshot metrics — enter them per piece, or connect a social API later to sync automatically.",
+        "empty": {
+          "title": "No analytics yet",
+          "description": "Add content and record its metrics to see performance here."
+        }
       },
       "empty": {
         "title": "No companies yet",
@@ -448,6 +489,30 @@
       "video": "Video",
       "voice": "Voice",
       "social": "Social APIs"
+    },
+    "contentFormat": {
+      "youtube_video": "YouTube video",
+      "youtube_short": "YouTube Short",
+      "tiktok": "TikTok",
+      "instagram_reel": "Instagram Reel",
+      "instagram_post": "Instagram post",
+      "blog_post": "Blog post",
+      "thumbnail": "Thumbnail"
+    },
+    "contentItemStatus": {
+      "idea": "Idea",
+      "planned": "Planned",
+      "scripted": "Scripted",
+      "scheduled": "Scheduled",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "contentMetric": {
+      "views": "Views",
+      "likes": "Likes",
+      "comments": "Comments",
+      "shares": "Shares",
+      "impressions": "Impressions"
     },
     "code": {
       "title": "Code Department",
@@ -565,7 +630,8 @@
       "workRouted": "Routed for approval: {title}",
       "workCompleted": "Completed: {title}",
       "contentRequested": "Content requested: {title}",
-      "contentEnabled": "Content department enabled"
+      "contentEnabled": "Content department enabled",
+      "contentItemCreated": "Content added: {title}"
     }
   },
   "roles": {

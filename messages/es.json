@@ -408,7 +408,13 @@
       "fields": {
         "capability": "Qué crear",
         "topic": "Tema",
-        "company": "Empresa"
+        "company": "Empresa",
+        "title": "Título",
+        "format": "Formato",
+        "status": "Estado",
+        "scheduledFor": "Programado para",
+        "channel": "Canal",
+        "notes": "Notas"
       },
       "capabilities": "Lo que Harmony puede crear",
       "board": "Tablero de contenido",
@@ -421,6 +427,41 @@
         "title": "Agregar el departamento de Contenido",
         "description": "Estas empresas aún no tienen un departamento de Contenido. Agrégalo para empezar a generar.",
         "button": "Agregar a {company}"
+      },
+      "tabs": {
+        "hub": "Inicio",
+        "calendar": "Calendario",
+        "analytics": "Analíticas"
+      },
+      "newTitle": "Nuevo contenido",
+      "editTitle": "Editar contenido",
+      "itemDesc": "Una pieza para tu calendario de contenido.",
+      "newItem": "Nuevo elemento",
+      "titlePlaceholder": "p. ej. Tutorial del playbook de arranque en frío",
+      "channelPlaceholder": "p. ej. @nuestrocanal",
+      "noCompany": "Sin empresa",
+      "deleteItem": "Eliminar",
+      "unscheduled": "Sin programar",
+      "scheduledHeading": "Programado",
+      "noScheduled": "Nada programado aún.",
+      "backlogHeading": "Pendientes",
+      "metricsTitle": "Actualizar analíticas",
+      "calendarEmpty": {
+        "title": "Tu calendario de contenido está vacío",
+        "description": "Agrega una pieza o genera una desde el inicio para empezar a planificar."
+      },
+      "analytics": {
+        "total": "Piezas",
+        "published": "Publicadas",
+        "scheduled": "Programadas",
+        "engagement": "Tasa de interacción",
+        "totals": "Totales",
+        "top": "Mejor rendimiento",
+        "hint": "Métricas instantáneas: ingrésalas por pieza, o conecta una API social más adelante para sincronizar automáticamente.",
+        "empty": {
+          "title": "Aún no hay analíticas",
+          "description": "Agrega contenido y registra sus métricas para ver el rendimiento aquí."
+        }
       },
       "empty": {
         "title": "Aún no hay empresas",
@@ -448,6 +489,30 @@
       "video": "Video",
       "voice": "Voz",
       "social": "APIs sociales"
+    },
+    "contentFormat": {
+      "youtube_video": "Video de YouTube",
+      "youtube_short": "Short de YouTube",
+      "tiktok": "TikTok",
+      "instagram_reel": "Reel de Instagram",
+      "instagram_post": "Publicación de Instagram",
+      "blog_post": "Entrada de blog",
+      "thumbnail": "Miniatura"
+    },
+    "contentItemStatus": {
+      "idea": "Idea",
+      "planned": "Planeado",
+      "scripted": "Guionizado",
+      "scheduled": "Programado",
+      "published": "Publicado",
+      "archived": "Archivado"
+    },
+    "contentMetric": {
+      "views": "Vistas",
+      "likes": "Me gusta",
+      "comments": "Comentarios",
+      "shares": "Compartidos",
+      "impressions": "Impresiones"
     },
     "code": {
       "title": "Departamento de Código",
@@ -565,7 +630,8 @@
       "workRouted": "Enviado a aprobación: {title}",
       "workCompleted": "Completado: {title}",
       "contentRequested": "Contenido solicitado: {title}",
-      "contentEnabled": "Departamento de Contenido habilitado"
+      "contentEnabled": "Departamento de Contenido habilitado",
+      "contentItemCreated": "Contenido agregado: {title}"
     }
   },
   "roles": {

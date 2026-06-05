@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { GenerateContentDialog } from "@/components/harmony/content/generate-dialog";
+import { ContentSubnav } from "@/components/harmony/content/content-subnav";
 import type { TaskPriority } from "@/types/database";
 
 const priorityVariant: Record<TaskPriority, "secondary" | "warning" | "destructive"> = {
@@ -109,6 +110,8 @@ export default async function ContentDepartmentPage() {
           </GenerateContentDialog>
         )}
       </PageHeader>
+
+      <ContentSubnav active="hub" />
 
       {/* Companies still missing a Content department → one-click enable. */}
       {companiesWithout.length > 0 && (

@@ -47,6 +47,32 @@ export const CONTENT_FORMATS: readonly ContentFormat[] = [
   "thumbnail",
 ] as const;
 
+/** Calendar lifecycle for a content piece (idea → published). */
+export type ContentItemStatus =
+  | "idea"
+  | "planned"
+  | "scripted"
+  | "scheduled"
+  | "published"
+  | "archived";
+
+export const CONTENT_ITEM_STATUSES: readonly ContentItemStatus[] = [
+  "idea",
+  "planned",
+  "scripted",
+  "scheduled",
+  "published",
+  "archived",
+] as const;
+
+export function isContentItemStatus(s: string): s is ContentItemStatus {
+  return CONTENT_ITEM_STATUSES.includes(s as ContentItemStatus);
+}
+
+export function isContentFormat(s: string): s is ContentFormat {
+  return CONTENT_FORMATS.includes(s as ContentFormat);
+}
+
 /**
  * The generation capabilities Harmony exposes. Each routes to a helper (or to
  * the department as a whole when `helper` is null, e.g. cross-channel strategy).
