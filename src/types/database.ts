@@ -7,6 +7,24 @@
  * `Database` type, while still giving full type-safety to the app code.
  */
 
+import type { AutonomyLevel } from "@/lib/harmony/os/autonomy";
+import type {
+  ActivityKind,
+  ApprovalType,
+  DepartmentKey,
+  WorkStatus,
+} from "@/lib/harmony/os/catalog";
+
+// Re-export the shared OS domain unions so `@/types/database` stays the single
+// row-type home for consumers (data layer, components).
+export type { AutonomyLevel } from "@/lib/harmony/os/autonomy";
+export type {
+  ActivityKind,
+  ApprovalType,
+  DepartmentKey,
+  WorkStatus,
+} from "@/lib/harmony/os/catalog";
+
 export type UserRole = "personal_user" | "business_owner" | "admin";
 
 export type TaskStatus = "todo" | "in_progress" | "done";
@@ -80,4 +98,140 @@ export interface PersonalBrainEntry {
   tags: string[];
   created_at: string;
   updated_at: string;
+}
+
+// ===========================================================================
+// Founder Harmony (L3.5) — Owner Operating System
+// Owner → Companies → { Departments → Agents · Objectives · Projects } → Work
+// All rows owner-scoped (user_id); see migration 20260601000600.
+// ===========================================================================
+
+export type CompanyStatus = "active" | "archived";
+export type AgentStatus = "active" | "paused";
+export type ObjectiveStatus = "active" | "paused" | "completed" | "archived";
+export type ProjectStatus =
+  | "planning"
+  | "active"
+  | "blocked"
+  | "done"
+  | "archived";
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+export type ActivityActor = "founder" | "agent" | "department" | "system";
+
+export interface Company {
+  id: string;
+  user_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: CompanyStatus;
+  color: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Department {
+  id: string;
+  user_id: string;
+  company_id: string;
+  key: DepartmentKey | string;
+  name: string;
+  description: string | null;
+  autonomy_level: AutonomyLevel;
+  status: CompanyStatus;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Agent {
+  id: string;
+  user_id: string;
+  department_id: string;
+  key: string;
+  name: string;
+  role: string | null;
+  status: AgentStatus;
+  autonomy_level: AutonomyLevel | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Objective {
+  id: string;
+  user_id: string;
+  company_id: string;
+  department_id: string | null;
+  title: string;
+  outcome: string | null;
+  status: ObjectiveStatus;
+  progress: number;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Project {
+  id: string;
+  user_id: string;
+  company_id: string;
+  objective_id: string | null;
+  department_id: string | null;
+  name: string;
+  description: string | null;
+  status: ProjectStatus;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkItem {
+  id: string;
+  user_id: string;
+  company_id: string;
+  department_id: string | null;
+  project_id: string | null;
+  objective_id: string | null;
+  agent_id: string | null;
+  title: string;
+  description: string | null;
+  status: WorkStatus;
+  priority: TaskPriority;
+  position: number;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Approval {
+  id: string;
+  user_id: string;
+  company_id: string | null;
+  department_id: string | null;
+  agent_id: string | null;
+  work_item_id: string | null;
+  type: ApprovalType;
+  title: string;
+  summary: string | null;
+  status: ApprovalStatus;
+  risk: TaskPriority;
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActivityEvent {
+  id: string;
+  user_id: string;
+  company_id: string | null;
+  department_id: string | null;
+  actor_type: ActivityActor;
+  actor_id: string | null;
+  kind: ActivityKind;
+  summary: string;
+  ref_type: string | null;
+  ref_id: string | null;
+  created_at: string;
 }
