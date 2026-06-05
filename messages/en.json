@@ -217,6 +217,18 @@
       "fields": { "name": "Department name", "description": "Description" },
       "agentStatus": { "active": "Active", "paused": "Paused" }
     },
+    "agents": {
+      "new": "New agent",
+      "edit": "Edit agent",
+      "add": "Add agent",
+      "dialogDesc": "Agents carry out a department's work.",
+      "rolePlaceholder": "e.g. Drafts LinkedIn posts",
+      "autonomyLabel": "Autonomy",
+      "inherit": "Inherit from department",
+      "pause": "Pause agent",
+      "resume": "Resume agent",
+      "fields": { "name": "Agent name", "role": "Role" }
+    },
     "autonomy": {
       "manual": "Manual",
       "approval": "Approval required",
