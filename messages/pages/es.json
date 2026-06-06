@@ -483,5 +483,35 @@
     },
     "pastDueNotice": "Tu pago está vencido — actualiza tu facturación para mantener el acceso.",
     "pastDueAction": "Actualizar facturación"
+  },
+  "integrations": {
+    "title": "Integraciones",
+    "subtitle": "Conecta Harmony con las herramientas que ya usas.",
+    "manage": "Gestionar integraciones",
+    "note": "Conectar un proveedor requiere que esté configurado para tu espacio de trabajo. Llegan más integraciones pronto.",
+    "categories": {
+      "ai": "IA",
+      "productivity": "Productividad",
+      "communication": "Comunicación",
+      "social": "Social"
+    },
+    "providers": {
+      "openai": "Modelos de IA de frontera que impulsan los asistentes de Harmony.",
+      "google_calendar": "Sincroniza eventos y deja que Harmony agende por ti.",
+      "gmail": "Clasifica, redacta y envía correos desde Harmony.",
+      "youtube": "Sigue y publica tu contenido de video.",
+      "linkedin": "Comparte novedades y haz crecer tu red profesional.",
+      "tiktok": "Publica y sigue video de formato corto."
+    },
+    "status": {
+      "connected": "Conectado",
+      "active": "Activo",
+      "comingSoon": "Próximamente"
+    },
+    "actions": {
+      "connect": "Conectar",
+      "disconnect": "Desconectar",
+      "error": "Algo salió mal. Inténtalo de nuevo."
+    }
   }
 }
