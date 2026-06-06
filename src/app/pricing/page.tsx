@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Check } from "lucide-react";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
@@ -23,8 +23,14 @@ type PlanCopy = {
   features: string[];
 };
 
-export default function PricingPage() {
-  const t = useTranslations("pricing");
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const t = await getTranslations("pricing");
+  const sp = await searchParams;
+  const gated = typeof sp.from === "string";
 
   return (
     <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
@@ -38,6 +44,12 @@ export default function PricingPage() {
             aria-hidden="true"
           />
           <div className="relative mx-auto w-full max-w-4xl px-4 py-20 text-center sm:px-6 lg:px-8 lg:py-24">
+            {gated ? (
+              <div className="mx-auto mb-6 max-w-xl rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm">
+                <p className="font-semibold text-foreground">{t("gate.title")}</p>
+                <p className="mt-1 text-muted-foreground">{t("gate.body")}</p>
+              </div>
+            ) : null}
             <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
               <span className="h-px w-6 bg-primary/50" aria-hidden="true" />
               {t("eyebrow")}

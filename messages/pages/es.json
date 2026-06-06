@@ -442,6 +442,10 @@
           "Gerente de éxito dedicado y SLAs"
         ]
       }
+    },
+    "gate": {
+      "title": "Mejora tu plan para desbloquear esta sección",
+      "body": "Tu plan actual no incluye esta parte de Harmony. Elige un plan abajo para continuar."
     }
   },
   "billing": {
@@ -476,6 +480,8 @@
       "professional": "Professional",
       "business": "Business",
       "enterprise": "Enterprise"
-    }
+    },
+    "pastDueNotice": "Tu pago está vencido — actualiza tu facturación para mantener el acceso.",
+    "pastDueAction": "Actualizar facturación"
   }
 }
