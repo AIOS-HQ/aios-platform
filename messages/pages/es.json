@@ -1,0 +1,384 @@
+{
+  "faqPage": {
+    "eyebrow": "Preguntas",
+    "title": "Todo lo que necesitas saber sobre Harmony",
+    "subtitle": "Respuestas sobre el producto, los asistentes de IA, tus datos y cómo obtener acceso. ¿No lo encuentras aquí? Únete a la lista de espera y pregúntanos directamente.",
+    "categories": [
+      {
+        "id": "getting-started",
+        "icon": "Sparkles",
+        "title": "Primeros pasos",
+        "items": [
+          {
+            "q": "¿Qué es exactamente Harmony?",
+            "a": "Harmony es un sistema operativo autónomo para tu vida y tu negocio. Unifica tus tareas, calendario, documentos, equipos y operaciones en un solo lugar, y pone a trabajar a asistentes de IA para planear y completar lo rutinario — con tu aprobación en lo que importa."
+          },
+          {
+            "q": "¿En qué se diferencia Harmony de otras herramientas de IA?",
+            "a": "La mayoría de las herramientas de IA asisten: redactan, resumen o responden. Harmony ejecuta — coordina a un equipo de asistentes especializados para llevar el trabajo real hasta el final, en tus hubs personal y de negocio."
+          },
+          {
+            "q": "¿Para quién es Harmony?",
+            "a": "Fundadores, emprendedores, profesionales, familias, pequeñas empresas y empresas en crecimiento — cualquiera que gestione mucho y quiera apalancamiento sin sumar más herramientas ni carga."
+          },
+          {
+            "q": "¿Necesito conocimientos técnicos para usarlo?",
+            "a": "No. Harmony está diseñado con una simplicidad de nivel Apple. Describes lo que quieres en lenguaje natural y apruebas el trabajo; Harmony se encarga de la mecánica."
+          }
+        ]
+      },
+      {
+        "id": "product",
+        "icon": "LayoutDashboard",
+        "title": "Producto y hubs",
+        "items": [
+          {
+            "q": "¿Cuáles son los tres hubs?",
+            "a": "El Hub Personal dirige tu vida (tareas, metas, notas, calendario, asistente). El Hub de Negocio dirige tu empresa (equipos, operaciones, comunicaciones, documentos, aprobaciones, departamentos de IA). El Harmony Hub es la capa de inteligencia que coordina ambos."
+          },
+          {
+            "q": "¿Puedo usar solo el Hub Personal o solo el de Negocio?",
+            "a": "Sí. Empieza con el que se ajuste a tus necesidades hoy y añade el otro cuando estés listo — el Harmony Hub coordina lo que actives."
+          },
+          {
+            "q": "¿Qué es el Centro de Mando del Fundador?",
+            "a": "Una sola pantalla para dirigir toda la operación: mira qué hacen tus asistentes de IA, aprueba acciones de alto impacto y observa las métricas que mueven tu vida y tu negocio."
+          },
+          {
+            "q": "¿Harmony reemplaza a mi equipo?",
+            "a": "No. Harmony potencia a tu equipo al eliminar el trabajo repetitivo y ejecutar lo rutinario, para que las personas se enfoquen en el criterio, las relaciones y las decisiones que necesitan a un humano."
+          }
+        ]
+      },
+      {
+        "id": "ai",
+        "icon": "Zap",
+        "title": "Asistentes de IA y automatización",
+        "items": [
+          {
+            "q": "¿Qué pueden hacer realmente los asistentes de IA?",
+            "a": "Planean tu día, clasifican y redactan comunicaciones, preparan y ejecutan flujos de trabajo, siguen las operaciones y completan tareas aprobadas de principio a fin — coordinados por un Jefe de Gabinete de IA."
+          },
+          {
+            "q": "¿Siempre tengo el control?",
+            "a": "Siempre. Harmony funciona con aprobaciones, salvaguardas y un registro de auditoría completo. Tú decides cuánta autonomía conceder y puedes cambiarlo en cualquier momento."
+          },
+          {
+            "q": "¿Cómo aumenta la autonomía con el tiempo?",
+            "a": "Harmony avanza por niveles que tú controlas — monitorear, recomendar, preparar y luego ejecutar trabajo de bajo riesgo — ganando más autonomía solo a medida que generas confianza, nunca menos supervisión."
+          }
+        ]
+      },
+      {
+        "id": "security",
+        "icon": "ShieldCheck",
+        "title": "Seguridad, privacidad y datos",
+        "items": [
+          {
+            "q": "¿De quién son mis datos?",
+            "a": "Tuyos. La propiedad de los datos es un principio central de Harmony, y puedes exportar o eliminar tus datos."
+          },
+          {
+            "q": "¿Cómo se protegen mis datos?",
+            "a": "Harmony se construye en torno a la privacidad y la seguridad, con transparencia sobre exactamente lo que cada asistente puede ver y hacer."
+          },
+          {
+            "q": "¿Puedo ver qué hicieron los asistentes de IA?",
+            "a": "Sí. Cada acción relevante queda registrada en un historial de auditoría revisable, así nada ocurre como una caja negra."
+          }
+        ]
+      },
+      {
+        "id": "access",
+        "icon": "Bell",
+        "title": "Acceso y precios",
+        "items": [
+          {
+            "q": "¿Cómo obtengo acceso?",
+            "a": "Únete a la lista de espera. Estamos incorporando fundadores y equipos iniciales por oleadas y te enviaremos tu invitación cuando tu lugar esté listo."
+          },
+          {
+            "q": "¿Qué obtienen los miembros fundadores?",
+            "a": "Incorporación prioritaria, línea directa con el equipo, influencia sobre la hoja de ruta y precio de miembro fundador asegurado."
+          },
+          {
+            "q": "¿Cuánto cuesta Harmony?",
+            "a": "Los precios se compartirán con las invitaciones de acceso anticipado. Los miembros fundadores aseguran el precio de miembro fundador."
+          }
+        ]
+      }
+    ],
+    "cta": {
+      "title": "¿Aún tienes preguntas?",
+      "body": "Únete a la lista de espera y pregúntanos directamente — leemos cada mensaje.",
+      "button": "Unirse a la lista de espera",
+      "href": "/#waitlist"
+    }
+  },
+  "helpCenter": {
+    "eyebrow": "Centro de Ayuda",
+    "title": "¿Cómo podemos ayudarte?",
+    "subtitle": "Guías y respuestas para sacar el máximo de Harmony — en tu Hub Personal, tu Hub de Negocio y el Harmony Hub.",
+    "searchPlaceholder": "Buscar artículos de ayuda",
+    "noResults": "Ningún artículo coincide con tu búsqueda. Prueba otro término o explora las categorías.",
+    "resultsLabel": "resultados",
+    "categories": [
+      {
+        "id": "getting-started",
+        "icon": "Sparkles",
+        "title": "Primeros pasos",
+        "description": "Configura tu cuenta y oriéntate en Harmony.",
+        "articles": [
+          {
+            "title": "Crea tu cuenta",
+            "body": "Regístrate con tu correo, confirma tu dirección y elige si empezar con tu Hub Personal, tu Hub de Negocio o ambos."
+          },
+          {
+            "title": "Configura tu primer hub",
+            "body": "Elige un hub para empezar, responde unas breves preguntas y Harmony adapta tu espacio y sus primeras sugerencias a ti."
+          },
+          {
+            "title": "Oriéntate",
+            "body": "Usa el Harmony Hub como tu base — destaca lo que necesita atención y te lleva directo al lugar correcto."
+          }
+        ]
+      },
+      {
+        "id": "personal-hub",
+        "icon": "Calendar",
+        "title": "Hub Personal",
+        "description": "Dirige tu vida: tareas, metas, notas, calendario y tu asistente.",
+        "articles": [
+          {
+            "title": "Gestiona tareas y metas",
+            "body": "Captura tareas en lenguaje natural; Harmony las prioriza y divide tus metas en hitos que sigue por ti."
+          },
+          {
+            "title": "Conecta tu calendario",
+            "body": "Vincula tu calendario para que Harmony agende, proteja tu tiempo de enfoque y resuelva conflictos automáticamente."
+          },
+          {
+            "title": "Trabaja con tu asistente de IA",
+            "body": "Pídele a tu asistente que redacte, reserve, recuerde y resuelva tareas pequeñas — y aprueba su trabajo con un toque."
+          }
+        ]
+      },
+      {
+        "id": "business-hub",
+        "icon": "Building2",
+        "title": "Hub de Negocio",
+        "description": "Dirige tu empresa: equipos, operaciones, comunicaciones y aprobaciones.",
+        "articles": [
+          {
+            "title": "Configura Operaciones",
+            "body": "Define cómo funciona tu trabajo una vez, y Harmony lo mantiene en marcha sin perseguir a nadie."
+          },
+          {
+            "title": "Departamentos de IA",
+            "body": "Activa departamentos de IA especializados — marketing, soporte, finanzas y más — que se coordinan a través del Harmony Hub."
+          },
+          {
+            "title": "Aprobaciones y autonomía",
+            "body": "Envía acciones relevantes para aprobación y define el nivel de autonomía con el que opera cada departamento."
+          }
+        ]
+      },
+      {
+        "id": "harmony-hub",
+        "icon": "Brain",
+        "title": "Harmony Hub",
+        "description": "Tu Jefe de Gabinete de IA coordinándolo todo de principio a fin.",
+        "articles": [
+          {
+            "title": "Conoce a tu Jefe de Gabinete de IA",
+            "body": "El Harmony Hub entiende tus prioridades y las impulsa en tus hubs personal y de negocio."
+          },
+          {
+            "title": "Coordinación entre hubs",
+            "body": "Harmony conecta vida y negocio para que una restricción personal nunca choque con un compromiso de trabajo."
+          },
+          {
+            "title": "Revisa el historial de auditoría",
+            "body": "Mira cada acción que tomaron tus asistentes, cuándo y por qué — y ajusta la autonomía desde el mismo lugar."
+          }
+        ]
+      },
+      {
+        "id": "account-security",
+        "icon": "ShieldCheck",
+        "title": "Cuenta y seguridad",
+        "description": "Gestiona tu perfil, tus datos, la privacidad y la facturación.",
+        "articles": [
+          {
+            "title": "Cuenta y perfil",
+            "body": "Actualiza tu nombre, idioma y preferencias desde Configuración; Harmony se adapta a cómo te gusta trabajar."
+          },
+          {
+            "title": "Datos y privacidad",
+            "body": "Tus datos son tuyos. Revisa a qué puede acceder cada asistente, y exporta o elimina tus datos cuando quieras."
+          },
+          {
+            "title": "Facturación y planes",
+            "body": "Gestiona tu plan y tus datos de pago desde Configuración. Los miembros fundadores conservan el precio de miembro fundador."
+          }
+        ]
+      }
+    ],
+    "contact": {
+      "title": "¿Necesitas ayuda de una persona?",
+      "body": "Únete a la lista de espera para acceso anticipado, o escríbenos y nuestro equipo te ayudará.",
+      "button": "Unirse a la lista de espera",
+      "href": "/#waitlist"
+    }
+  },
+  "onboarding": {
+    "ui": {
+      "step": "Paso",
+      "of": "de",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "finish": "Finalizar",
+      "skip": "Omitir por ahora",
+      "restart": "Empezar de nuevo",
+      "progress": "completado"
+    },
+    "founder": {
+      "eyebrow": "Onboarding del fundador",
+      "title": "Configura Harmony para dirigir tu empresa",
+      "subtitle": "Cinco pasos rápidos para poner a trabajar tu sistema operativo de IA — con el control en tus manos en cada etapa.",
+      "steps": [
+        {
+          "icon": "Sparkles",
+          "title": "Bienvenido, fundador",
+          "body": "Harmony unifica tu vida y tu negocio y pone a trabajar a un equipo de asistentes de IA. Así lo pones en marcha.",
+          "points": [
+            "Ve toda la operación en un solo lugar",
+            "Mantén a una persona en el circuito por diseño",
+            "Empieza poco a poco y amplía la autonomía a medida que confías"
+          ]
+        },
+        {
+          "icon": "Network",
+          "title": "Conecta tu mundo",
+          "body": "Vincula las herramientas donde ya vive tu trabajo para que tus asistentes de IA actúen donde importa.",
+          "points": [
+            "Conecta calendario y correo",
+            "Añade los canales que usa tu equipo",
+            "Más integraciones llegan de forma continua"
+          ]
+        },
+        {
+          "icon": "Building2",
+          "title": "Levanta tu Hub de Negocio",
+          "body": "Reúne equipos, operaciones y comunicaciones en una sola superficie de mando.",
+          "points": [
+            "Invita a personas y asistentes de IA",
+            "Activa los departamentos de IA que necesites",
+            "Estandariza cómo se ejecuta el trabajo recurrente"
+          ]
+        },
+        {
+          "icon": "ShieldCheck",
+          "title": "Define autonomía y aprobaciones",
+          "body": "Decide hasta dónde puede llegar Harmony por su cuenta y qué debe pasar primero por ti.",
+          "points": [
+            "Elige un nivel de autonomía por departamento",
+            "Envía acciones de alto impacto para aprobación",
+            "Todo queda en un registro de auditoría"
+          ]
+        },
+        {
+          "icon": "Gauge",
+          "title": "Abre tu Centro de Mando",
+          "body": "Dirige toda la operación desde una pantalla — aprobaciones, supervisión en vivo y las métricas que importan.",
+          "points": [
+            "Aprueba lo que te necesita",
+            "Observa asistentes y flujos en tiempo real",
+            "Sigue las señales que mueven el negocio"
+          ]
+        }
+      ],
+      "done": {
+        "title": "Listo para operar",
+        "body": "Harmony está configurado para quitarte lo rutinario de encima. Crea tu cuenta para ponerlo a trabajar.",
+        "primaryCta": {
+          "label": "Crear tu cuenta",
+          "href": "/signup"
+        },
+        "secondaryCta": {
+          "label": "Volver al inicio",
+          "href": "/"
+        }
+      }
+    },
+    "harmony": {
+      "eyebrow": "Onboarding de Harmony",
+      "title": "Comienza con Harmony",
+      "subtitle": "Cinco pasos rápidos para configurar tus hubs y conocer a los asistentes de IA que hacen el trabajo.",
+      "steps": [
+        {
+          "icon": "Sparkles",
+          "title": "Bienvenido a Harmony",
+          "body": "Un solo sistema operativo para toda tu vida y toda tu empresa. Configuremos lo básico.",
+          "points": [
+            "Hubs Personal, de Negocio y Harmony",
+            "Asistentes de IA que ejecutan, no solo asisten",
+            "Tú apruebas lo que importa"
+          ]
+        },
+        {
+          "icon": "Calendar",
+          "title": "Configura tu Hub Personal",
+          "body": "Organiza tu día y deja que tu asistente se encargue de lo pequeño.",
+          "points": [
+            "Añade tus tareas y metas",
+            "Conecta tu calendario",
+            "Deja que tu asistente planee tu día"
+          ]
+        },
+        {
+          "icon": "Building2",
+          "title": "Organiza tu Hub de Negocio",
+          "body": "Reúne tus operaciones y a tu equipo en un solo lugar.",
+          "points": [
+            "Crea tu espacio de trabajo",
+            "Invita a compañeros",
+            "Configura tu primer flujo de trabajo"
+          ]
+        },
+        {
+          "icon": "Brain",
+          "title": "Conoce a tus asistentes de IA",
+          "body": "El Harmony Hub coordina a un equipo de asistentes en todo lo que gestionas.",
+          "points": [
+            "Un Jefe de Gabinete de IA marca el ritmo",
+            "Los asistentes clasifican, redactan y ejecutan",
+            "Las recomendaciones aparecen de forma proactiva"
+          ]
+        },
+        {
+          "icon": "CheckCircle2",
+          "title": "Estás listo",
+          "body": "Tus hubs están configurados y tus asistentes están listos. Crea tu cuenta para empezar.",
+          "points": [
+            "Revisa tus primeras recomendaciones",
+            "Aprueba o ajusta cuando quieras",
+            "Amplía la autonomía sobre la marcha"
+          ]
+        }
+      ],
+      "done": {
+        "title": "Todo listo",
+        "body": "Tu espacio de Harmony está listo. Crea tu cuenta para empezar a operar con Harmony.",
+        "primaryCta": {
+          "label": "Crear tu cuenta",
+          "href": "/signup"
+        },
+        "secondaryCta": {
+          "label": "Volver al inicio",
+          "href": "/"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,384 @@
+{
+  "faqPage": {
+    "eyebrow": "FAQ",
+    "title": "Everything you need to know about Harmony",
+    "subtitle": "Answers about the product, the AI helpers, your data, and getting access. Can't find it here? Join the waitlist and ask us directly.",
+    "categories": [
+      {
+        "id": "getting-started",
+        "icon": "Sparkles",
+        "title": "Getting started",
+        "items": [
+          {
+            "q": "What exactly is Harmony?",
+            "a": "Harmony is an autonomous operating system for your life and business. It unifies your tasks, calendar, documents, teams, and operations in one place, then puts AI helpers to work planning and completing the routine — with you approving what matters."
+          },
+          {
+            "q": "How is Harmony different from other AI tools?",
+            "a": "Most AI tools assist: they draft, summarize, or answer. Harmony executes — it coordinates a team of specialized helpers to take real work all the way to done, across both your personal and business hubs."
+          },
+          {
+            "q": "Who is Harmony for?",
+            "a": "Founders, entrepreneurs, professionals, families, small businesses, and growing companies — anyone who runs a lot and wants leverage without adding more tools or overhead."
+          },
+          {
+            "q": "Do I need to be technical to use it?",
+            "a": "No. Harmony is designed for Apple-level simplicity. You describe what you want in plain language and approve the work; Harmony handles the mechanics."
+          }
+        ]
+      },
+      {
+        "id": "product",
+        "icon": "LayoutDashboard",
+        "title": "Product & hubs",
+        "items": [
+          {
+            "q": "What are the three hubs?",
+            "a": "The Personal Hub runs your life (tasks, goals, notes, calendar, assistant). The Business Hub runs your company (teams, operations, communications, documents, approvals, AI departments). The Harmony Hub is the intelligence layer that coordinates both."
+          },
+          {
+            "q": "Can I use only the Personal Hub or only the Business Hub?",
+            "a": "Yes. Start with whichever fits your needs today and add the other when you are ready — the Harmony Hub coordinates whatever you turn on."
+          },
+          {
+            "q": "What is the Founder Command Center?",
+            "a": "A single screen to steer the whole operation: see what your AI helpers are doing, approve high-impact actions, and watch the metrics that move your life and business."
+          },
+          {
+            "q": "Does Harmony replace my team?",
+            "a": "No. Harmony amplifies your team by removing busywork and running the routine, so people stay focused on judgment, relationships, and decisions that need a human."
+          }
+        ]
+      },
+      {
+        "id": "ai",
+        "icon": "Zap",
+        "title": "AI helpers & automation",
+        "items": [
+          {
+            "q": "What can the AI helpers actually do?",
+            "a": "They plan your day, triage and draft communications, prepare and run workflows, track operations, and complete approved tasks end to end — coordinated by an AI Chief of Staff."
+          },
+          {
+            "q": "Am I always in control?",
+            "a": "Always. Harmony works through approvals, guardrails, and a complete audit trail. You decide how much autonomy to grant and can change it at any time."
+          },
+          {
+            "q": "How does autonomy increase over time?",
+            "a": "Harmony moves through levels you control — monitor, recommend, prepare, then execute low-risk work — earning more autonomy only as you build trust, never less oversight."
+          }
+        ]
+      },
+      {
+        "id": "security",
+        "icon": "ShieldCheck",
+        "title": "Security, privacy & data",
+        "items": [
+          {
+            "q": "Who owns my data?",
+            "a": "You do. Data ownership is a core principle of Harmony, and you can export or remove your data."
+          },
+          {
+            "q": "How is my data protected?",
+            "a": "Harmony is built around privacy and security, with transparency into exactly what each helper can see and do."
+          },
+          {
+            "q": "Can I see what the AI helpers did?",
+            "a": "Yes. Every meaningful action is logged in a reviewable audit trail, so nothing happens as a black box."
+          }
+        ]
+      },
+      {
+        "id": "access",
+        "icon": "Bell",
+        "title": "Access & pricing",
+        "items": [
+          {
+            "q": "How do I get access?",
+            "a": "Join the waitlist. We are onboarding founders and early teams in waves and will send your invite when your spot is ready."
+          },
+          {
+            "q": "What do founding members get?",
+            "a": "Priority onboarding, a direct line to the team, influence over the roadmap, and founding-member pricing locked in."
+          },
+          {
+            "q": "How much does Harmony cost?",
+            "a": "Pricing will be shared with early-access invites. Founding members lock in founding-member pricing."
+          }
+        ]
+      }
+    ],
+    "cta": {
+      "title": "Still have questions?",
+      "body": "Join the waitlist and ask us directly — we read every message.",
+      "button": "Join the waitlist",
+      "href": "/#waitlist"
+    }
+  },
+  "helpCenter": {
+    "eyebrow": "Help Center",
+    "title": "How can we help?",
+    "subtitle": "Guides and answers to get the most out of Harmony — across your Personal Hub, Business Hub, and the Harmony Hub.",
+    "searchPlaceholder": "Search help articles",
+    "noResults": "No articles match your search. Try a different term or browse the categories.",
+    "resultsLabel": "results",
+    "categories": [
+      {
+        "id": "getting-started",
+        "icon": "Sparkles",
+        "title": "Getting started",
+        "description": "Set up your account and find your way around Harmony.",
+        "articles": [
+          {
+            "title": "Create your account",
+            "body": "Sign up with your email, confirm your address, and choose whether to start with your Personal Hub, Business Hub, or both."
+          },
+          {
+            "title": "Set up your first hub",
+            "body": "Pick a hub to begin, answer a few quick prompts, and Harmony tailors your workspace and first suggestions to you."
+          },
+          {
+            "title": "Find your way around",
+            "body": "Use the Harmony Hub as your home base — it surfaces what needs attention and links you straight to the right place."
+          }
+        ]
+      },
+      {
+        "id": "personal-hub",
+        "icon": "Calendar",
+        "title": "Personal Hub",
+        "description": "Run your life: tasks, goals, notes, calendar, and your assistant.",
+        "articles": [
+          {
+            "title": "Manage tasks and goals",
+            "body": "Capture tasks in plain language; Harmony prioritizes them and breaks goals into milestones it tracks for you."
+          },
+          {
+            "title": "Connect your calendar",
+            "body": "Link your calendar so Harmony can schedule, protect focus time, and resolve conflicts automatically."
+          },
+          {
+            "title": "Work with your AI assistant",
+            "body": "Ask your assistant to draft, book, remind, and handle small tasks — then approve its work in one tap."
+          }
+        ]
+      },
+      {
+        "id": "business-hub",
+        "icon": "Building2",
+        "title": "Business Hub",
+        "description": "Run your company: teams, operations, communications, and approvals.",
+        "articles": [
+          {
+            "title": "Set up Operations",
+            "body": "Define how your work runs once, and Harmony keeps it on track without the chasing."
+          },
+          {
+            "title": "AI Departments overview",
+            "body": "Turn on specialized AI departments — marketing, support, finance and more — that coordinate through the Harmony Hub."
+          },
+          {
+            "title": "Approvals and autonomy",
+            "body": "Route meaningful actions for approval and set the autonomy level each department is allowed to operate at."
+          }
+        ]
+      },
+      {
+        "id": "harmony-hub",
+        "icon": "Brain",
+        "title": "Harmony Hub",
+        "description": "Your AI Chief of Staff coordinating everything end to end.",
+        "articles": [
+          {
+            "title": "Meet your AI Chief of Staff",
+            "body": "The Harmony Hub understands your priorities and drives them forward across your personal and business hubs."
+          },
+          {
+            "title": "Cross-hub coordination",
+            "body": "Harmony connects life and business so a personal constraint never collides with a work commitment."
+          },
+          {
+            "title": "Review the audit trail",
+            "body": "See every action your helpers took, when, and why — and adjust autonomy from the same place."
+          }
+        ]
+      },
+      {
+        "id": "account-security",
+        "icon": "ShieldCheck",
+        "title": "Account & security",
+        "description": "Manage your profile, data, privacy, and billing.",
+        "articles": [
+          {
+            "title": "Account and profile",
+            "body": "Update your name, language, and preferences from Settings; Harmony adapts to how you like to work."
+          },
+          {
+            "title": "Data and privacy",
+            "body": "Your data is yours. Review what each helper can access, and export or delete your data at any time."
+          },
+          {
+            "title": "Billing and plans",
+            "body": "Manage your plan and payment details from Settings. Founding members keep founding-member pricing."
+          }
+        ]
+      }
+    ],
+    "contact": {
+      "title": "Need a hand from a human?",
+      "body": "Join the waitlist for early access, or reach out and our team will help.",
+      "button": "Join the waitlist",
+      "href": "/#waitlist"
+    }
+  },
+  "onboarding": {
+    "ui": {
+      "step": "Step",
+      "of": "of",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Finish",
+      "skip": "Skip for now",
+      "restart": "Start over",
+      "progress": "complete"
+    },
+    "founder": {
+      "eyebrow": "Founder onboarding",
+      "title": "Set up Harmony to run your company",
+      "subtitle": "Five quick steps to put your AI operating system to work — with you in command at every stage.",
+      "steps": [
+        {
+          "icon": "Sparkles",
+          "title": "Welcome, founder",
+          "body": "Harmony unifies your life and your business and puts a team of AI helpers to work. Here is how to get it running.",
+          "points": [
+            "See the whole operation in one place",
+            "Keep a human in the loop by design",
+            "Start small and expand autonomy as you trust it"
+          ]
+        },
+        {
+          "icon": "Network",
+          "title": "Connect your world",
+          "body": "Link the tools your work already lives in so your AI helpers can act where it matters.",
+          "points": [
+            "Connect calendar and email",
+            "Add the channels your team uses",
+            "More integrations roll out continuously"
+          ]
+        },
+        {
+          "icon": "Building2",
+          "title": "Stand up your Business Hub",
+          "body": "Bring teams, operations, and communications into one command surface.",
+          "points": [
+            "Invite people and AI helpers",
+            "Turn on the AI departments you need",
+            "Standardize how recurring work runs"
+          ]
+        },
+        {
+          "icon": "ShieldCheck",
+          "title": "Set autonomy and approvals",
+          "body": "Decide how far Harmony can go on its own and what must route to you first.",
+          "points": [
+            "Choose an autonomy level per department",
+            "Send high-impact actions for approval",
+            "Everything is captured in an audit trail"
+          ]
+        },
+        {
+          "icon": "Gauge",
+          "title": "Open your Command Center",
+          "body": "Steer the whole operation from one screen — approvals, live oversight, and the metrics that matter.",
+          "points": [
+            "Approve what needs you",
+            "Watch helpers and workflows in real time",
+            "Track the signals that move the business"
+          ]
+        }
+      ],
+      "done": {
+        "title": "You're ready to run",
+        "body": "Harmony is set up to take the routine off your plate. Create your account to put it to work.",
+        "primaryCta": {
+          "label": "Create your account",
+          "href": "/signup"
+        },
+        "secondaryCta": {
+          "label": "Back to home",
+          "href": "/"
+        }
+      }
+    },
+    "harmony": {
+      "eyebrow": "Harmony onboarding",
+      "title": "Get started with Harmony",
+      "subtitle": "Five quick steps to set up your hubs and meet the AI helpers that handle the work.",
+      "steps": [
+        {
+          "icon": "Sparkles",
+          "title": "Welcome to Harmony",
+          "body": "One operating system for your whole life and your whole company. Let's set up the basics.",
+          "points": [
+            "Personal, Business, and Harmony hubs",
+            "AI helpers that execute, not just assist",
+            "You approve what matters"
+          ]
+        },
+        {
+          "icon": "Calendar",
+          "title": "Set up your Personal Hub",
+          "body": "Get your day organized and let your assistant handle the small stuff.",
+          "points": [
+            "Add your tasks and goals",
+            "Connect your calendar",
+            "Let your assistant plan your day"
+          ]
+        },
+        {
+          "icon": "Building2",
+          "title": "Organize your Business Hub",
+          "body": "Bring your operations and team into one place.",
+          "points": [
+            "Create your workspace",
+            "Invite teammates",
+            "Set up your first workflow"
+          ]
+        },
+        {
+          "icon": "Brain",
+          "title": "Meet your AI helpers",
+          "body": "The Harmony Hub coordinates a team of helpers across everything you run.",
+          "points": [
+            "An AI Chief of Staff sets the pace",
+            "Helpers triage, draft, and execute",
+            "Recommendations show up proactively"
+          ]
+        },
+        {
+          "icon": "CheckCircle2",
+          "title": "You're ready",
+          "body": "Your hubs are set up and your helpers are standing by. Create your account to begin.",
+          "points": [
+            "Review your first recommendations",
+            "Approve or adjust anytime",
+            "Expand autonomy as you go"
+          ]
+        }
+      ],
+      "done": {
+        "title": "You're all set",
+        "body": "Your Harmony workspace is ready. Create your account to start running on Harmony.",
+        "primaryCta": {
+          "label": "Create your account",
+          "href": "/signup"
+        },
+        "secondaryCta": {
+          "label": "Back to home",
+          "href": "/"
+        }
+      }
+    }
+  }
+}
