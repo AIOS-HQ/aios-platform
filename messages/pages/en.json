@@ -380,5 +380,102 @@
         }
       }
     }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Plans that grow with you",
+    "subtitle": "Start with what you need today and unlock more of Harmony as you scale. Every paid plan includes a 14-day free trial.",
+    "badgePopular": "Most popular",
+    "trialNote": "14-day free trial on every paid plan. Cancel anytime.",
+    "hubsNote": "Personal Hub on every plan · Business Hub from Professional · Harmony Hub from Business.",
+    "ctaError": "Could not start checkout. Please try again.",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "$19",
+        "priceSuffix": "/mo",
+        "tagline": "For individuals getting organized.",
+        "cta": "Start free trial",
+        "features": [
+          "Personal Hub: tasks, goals, notes, calendar",
+          "Personal AI assistant",
+          "1 user",
+          "Community support"
+        ]
+      },
+      "professional": {
+        "name": "Professional",
+        "price": "$49",
+        "priceSuffix": "/mo",
+        "tagline": "For professionals running life and work.",
+        "cta": "Start free trial",
+        "features": [
+          "Everything in Starter",
+          "Business Hub: operations, documents, approvals",
+          "AI departments (core)",
+          "Priority email support"
+        ]
+      },
+      "business": {
+        "name": "Business",
+        "price": "$99",
+        "priceSuffix": "/mo",
+        "tagline": "For teams and growing companies.",
+        "cta": "Start free trial",
+        "features": [
+          "Everything in Professional",
+          "Harmony Hub: AI Chief of Staff",
+          "Autonomous execution and workflows",
+          "Up to 10 team members"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "priceSuffix": "",
+        "tagline": "For organizations operating at scale.",
+        "cta": "Contact sales",
+        "features": [
+          "Everything in Business",
+          "Unlimited team members",
+          "Advanced security and SSO",
+          "Dedicated success manager and SLAs"
+        ]
+      }
+    }
+  },
+  "billing": {
+    "title": "Plan and billing",
+    "description": "Manage your Harmony subscription, trial, and invoices.",
+    "currentPlanLabel": "Current plan",
+    "statusLabel": "Status",
+    "trialEndsLabel": "Trial ends",
+    "renewsLabel": "Renews on",
+    "cancelsLabel": "Cancels on",
+    "manage": "Manage subscription",
+    "manageError": "Could not open the billing portal. Please try again.",
+    "viewPlans": "View plans",
+    "freeTitle": "You're on the free plan",
+    "freeBody": "Choose a plan to unlock the Business and Harmony hubs.",
+    "choosePlan": "Choose a plan",
+    "historyTitle": "Billing history",
+    "noInvoices": "No invoices yet.",
+    "view": "View",
+    "statuses": {
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Past due",
+      "canceled": "Canceled",
+      "incomplete": "Incomplete",
+      "unpaid": "Unpaid",
+      "paused": "Paused"
+    },
+    "planNames": {
+      "free": "Free",
+      "starter": "Starter",
+      "professional": "Professional",
+      "business": "Business",
+      "enterprise": "Enterprise"
+    }
   }
 }
