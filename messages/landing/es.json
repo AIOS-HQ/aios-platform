@@ -1,0 +1,554 @@
+{
+  "landing": {
+    "nav": [
+      {
+        "label": "Por qué Harmony",
+        "href": "#why"
+      },
+      {
+        "label": "Personal",
+        "href": "#personal"
+      },
+      {
+        "label": "Negocio",
+        "href": "#business"
+      },
+      {
+        "label": "Harmony Hub",
+        "href": "#harmony-hub"
+      },
+      {
+        "label": "Automatización",
+        "href": "#automation"
+      },
+      {
+        "label": "Integraciones",
+        "href": "#integrations"
+      },
+      {
+        "label": "Preguntas",
+        "href": "#faq"
+      }
+    ],
+    "cta": {
+      "login": "Iniciar sesión",
+      "getEarlyAccess": "Obtener acceso anticipado",
+      "openMenu": "Abrir menú",
+      "closeMenu": "Cerrar menú",
+      "home": "Inicio de Harmony"
+    },
+    "hero": {
+      "badge": "El Sistema Operativo Autónomo",
+      "titleLead": "Dirige tu vida. Dirige tu negocio.",
+      "titleHighlight": "Harmony se encarga del trabajo.",
+      "subtitle": "Un solo sistema operativo para toda tu vida y toda tu empresa. Harmony organiza el trabajo, coordina un equipo de asistentes de IA y ejecuta lo rutinario — para que dediques tu tiempo a decidir, no a ejecutar.",
+      "primaryCta": "Obtener acceso anticipado",
+      "secondaryCta": "Ver cómo funciona",
+      "proof": "Hecho para quienes gestionan mucho — y siempre con el control en tus manos.",
+      "stats": [
+        {
+          "value": "3",
+          "label": "Hubs, un solo SO"
+        },
+        {
+          "value": "12+",
+          "label": "Asistentes y departamentos de IA"
+        },
+        {
+          "value": "24/7",
+          "label": "Ejecución autónoma"
+        }
+      ],
+      "snapshot": {
+        "os": "Harmony OS",
+        "live": "En vivo",
+        "caption": "Una sola inteligencia, coordinándolo todo",
+        "cards": [
+          {
+            "icon": "Sparkles",
+            "name": "Hub Personal",
+            "items": [
+              "Planear mi día",
+              "Meta: lanzar en Q3"
+            ]
+          },
+          {
+            "icon": "Building2",
+            "name": "Hub de Negocio",
+            "items": [
+              "3 aprobaciones",
+              "Operación en marcha"
+            ]
+          },
+          {
+            "icon": "Brain",
+            "name": "Harmony Hub",
+            "items": [
+              "8 asistentes activos",
+              "Orquestando"
+            ]
+          }
+        ]
+      }
+    },
+    "audiences": {
+      "label": "Hecho para quienes gestionan mucho",
+      "items": [
+        "Fundadores",
+        "Emprendedores",
+        "Profesionales",
+        "Familias",
+        "Pequeñas Empresas",
+        "Empresas en Crecimiento"
+      ]
+    },
+    "problem": {
+      "eyebrow": "El problema",
+      "title": "Tu vida y tu negocio están dispersos en una decena de herramientas",
+      "subtitle": "Las tareas aquí, el calendario allá, los documentos en otro lado, un equipo en el chat y una IA que responde preguntas pero nunca hace el trabajo. El contexto se pierde en las grietas — y tú te conviertes en la capa de integración.",
+      "pains": [
+        {
+          "icon": "Boxes",
+          "title": "Fragmentado por diseño",
+          "body": "El trabajo personal y el profesional viven en apps separadas que no se hablan. Tú lo sostienes todo en tu cabeza."
+        },
+        {
+          "icon": "Clock",
+          "title": "El trabajo repetitivo se come el día",
+          "body": "Agendar, dar seguimiento, actualizar estados y coordinar consumen las horas que deberías dedicar a decisiones que importan."
+        },
+        {
+          "icon": "Bot",
+          "title": "Asistentes que solo asisten",
+          "body": "La mayoría de las herramientas de IA redactan una respuesta o resumen un documento. Nunca llevan el trabajo hasta el final."
+        },
+        {
+          "icon": "TrendingUp",
+          "title": "Crecer significa más carga",
+          "body": "Aumentar tu producción suele implicar más herramientas, más contrataciones y más procesos — no más apalancamiento."
+        }
+      ]
+    },
+    "why": {
+      "eyebrow": "Por qué Harmony",
+      "title": "No es otra app. Es un sistema operativo que ejecuta el trabajo.",
+      "subtitle": "Harmony unifica todo lo que gestionas en un único sistema inteligente y, poco a poco, te quita lo rutinario de encima — siempre bajo tu control.",
+      "pillars": [
+        {
+          "icon": "LayoutDashboard",
+          "title": "Un SO unificado",
+          "body": "Tu vida y tu negocio en un solo sistema, con contexto compartido en cada tarea, documento y conversación."
+        },
+        {
+          "icon": "Zap",
+          "title": "Autónomo, no solo asistente",
+          "body": "Los asistentes de IA no solo sugieren — planean, coordinan y completan trabajo real de principio a fin."
+        },
+        {
+          "icon": "ShieldCheck",
+          "title": "Tú mantienes el mando",
+          "body": "Aprobaciones, salvaguardas y un registro completo de auditoría. La autonomía crece solo al ritmo que tú confíes."
+        },
+        {
+          "icon": "Brain",
+          "title": "Mejora con el tiempo",
+          "body": "Harmony recuerda el contexto, aprende tus preferencias y se vuelve más agudo cuanto más lo usas."
+        }
+      ]
+    },
+    "hubs": [
+      {
+        "id": "personal",
+        "eyebrow": "Hub Personal",
+        "title": "Dirige tu vida con un sistema tranquilo y capaz",
+        "subtitle": "Todo lo personal en un solo lugar, con un asistente que convierte las intenciones en hechos — desde el plan de la mañana hasta la meta de largo plazo.",
+        "features": [
+          {
+            "icon": "ListTodo",
+            "title": "Tareas",
+            "body": "Captura, prioriza y despeja tus pendientes con un asistente que organiza tu día en torno a lo que importa."
+          },
+          {
+            "icon": "Target",
+            "title": "Metas",
+            "body": "Define metas y deja que Harmony las divida en hitos, mida el progreso y te mantenga avanzando."
+          },
+          {
+            "icon": "NotebookPen",
+            "title": "Notas",
+            "body": "Un espacio de conocimiento conectado donde las notas se enlazan con tareas, eventos y personas automáticamente."
+          },
+          {
+            "icon": "Calendar",
+            "title": "Calendario",
+            "body": "Un calendario unificado que agenda, protege tu tiempo de enfoque y resuelve conflictos por ti."
+          },
+          {
+            "icon": "Bot",
+            "title": "Asistente Personal de IA",
+            "body": "Un asistente siempre activo que redacta, reserva, recuerda y resuelve lo pequeño antes de que lo pidas."
+          },
+          {
+            "icon": "Sparkles",
+            "title": "Gestión de la Vida",
+            "body": "Rutinas, recados y la logística de la vida — organizados y atendidos en silencio en segundo plano."
+          }
+        ]
+      },
+      {
+        "id": "business",
+        "eyebrow": "Hub de Negocio",
+        "title": "Dirige tu negocio como si se dirigiera solo",
+        "subtitle": "Operaciones, equipos y comunicaciones en una sola superficie de mando — con departamentos de IA y automatización haciendo el trabajo pesado.",
+        "features": [
+          {
+            "icon": "Users",
+            "title": "Equipos",
+            "body": "Reúne a personas y asistentes de IA en espacios compartidos con roles y visibilidad claros."
+          },
+          {
+            "icon": "Cog",
+            "title": "Operaciones",
+            "body": "Estandariza cómo funciona el trabajo y deja que Harmony lo mantenga en marcha sin perseguir a nadie."
+          },
+          {
+            "icon": "MessageSquare",
+            "title": "Comunicaciones",
+            "body": "Conversaciones con clientes e internas, clasificadas, redactadas y dirigidas al lugar correcto."
+          },
+          {
+            "icon": "FileText",
+            "title": "Documentos",
+            "body": "Crea, organiza y recupera documentos con una IA que conoce el contexto de tu negocio."
+          },
+          {
+            "icon": "CheckCircle2",
+            "title": "Aprobaciones",
+            "body": "Cada acción relevante pasa por ti o por el responsable adecuado antes de ejecutarse."
+          },
+          {
+            "icon": "Building2",
+            "title": "Departamentos de IA",
+            "body": "Marketing, soporte, finanzas y más — con asistentes de IA especializados que se coordinan."
+          },
+          {
+            "icon": "Workflow",
+            "title": "Automatización",
+            "body": "Convierte procesos repetibles en flujos confiables que funcionan solos, 24/7."
+          }
+        ]
+      },
+      {
+        "id": "harmony-hub",
+        "eyebrow": "Harmony Hub",
+        "title": "Tu Jefe de Gabinete de IA, coordinándolo todo",
+        "subtitle": "La capa de inteligencia que ve a través de tus hubs personal y de negocio, decide qué debe pasar y orquesta el trabajo de principio a fin.",
+        "features": [
+          {
+            "icon": "Brain",
+            "title": "Jefe de Gabinete de IA",
+            "body": "Una sola inteligencia que entiende tus prioridades y las impulsa en ambos hubs."
+          },
+          {
+            "icon": "Network",
+            "title": "Coordinación entre Hubs",
+            "body": "Conecta vida y negocio para que una restricción personal nunca choque con un compromiso de trabajo."
+          },
+          {
+            "icon": "Sparkles",
+            "title": "Recomendaciones",
+            "body": "Sugerencias proactivas y con contexto sobre qué hacer a continuación — y la opción de que lo resuelva por ti."
+          },
+          {
+            "icon": "Gauge",
+            "title": "Monitoreo",
+            "body": "Vigila tu trabajo de forma continua, destaca lo que necesita atención y señala riesgos a tiempo."
+          },
+          {
+            "icon": "Zap",
+            "title": "Ejecución Autónoma",
+            "body": "Completa por su cuenta el trabajo aprobado y luego reporta con un registro claro y revisable."
+          },
+          {
+            "icon": "GitBranch",
+            "title": "Orquestación de Flujos",
+            "body": "Secuencia a personas, asistentes y pasos en flujos confiables que terminan lo que empiezan."
+          }
+        ]
+      }
+    ],
+    "automation": {
+      "eyebrow": "Asistentes de IA y Automatización",
+      "title": "Un equipo de asistentes de IA que de verdad hace el trabajo",
+      "subtitle": "Harmony dota de asistentes de IA especializados a tus hubs y automatiza lo rutinario — ganando más autonomía a medida que generas confianza, nunca menos supervisión.",
+      "helpers": [
+        {
+          "icon": "Brain",
+          "title": "Jefe de Gabinete",
+          "body": "Coordina las prioridades de todo lo que gestionas."
+        },
+        {
+          "icon": "MessageSquare",
+          "title": "Comunicaciones",
+          "body": "Clasifica, redacta y dirige mensajes y respuestas."
+        },
+        {
+          "icon": "BarChart3",
+          "title": "Operaciones e Insights",
+          "body": "Sigue los números y los convierte en acción."
+        },
+        {
+          "icon": "Workflow",
+          "title": "Motor de Automatización",
+          "body": "Ejecuta tus flujos repetibles en piloto automático."
+        }
+      ],
+      "ladder": {
+        "title": "Autonomía que controlas, paso a paso",
+        "body": "Tú decides hasta dónde llega Harmony. Cada nivel mantiene a una persona en el circuito y un registro de auditoría completo.",
+        "steps": [
+          {
+            "step": "01",
+            "title": "Monitorear",
+            "body": "Harmony observa y destaca lo que necesita atención."
+          },
+          {
+            "step": "02",
+            "title": "Recomendar",
+            "body": "Propone la siguiente acción para tu aprobación."
+          },
+          {
+            "step": "03",
+            "title": "Preparar",
+            "body": "Deja el trabajo listo para que apruebes y publiques en un clic."
+          },
+          {
+            "step": "04",
+            "title": "Ejecutar",
+            "body": "Completa por su cuenta el trabajo aprobado de bajo riesgo — tú revisas el registro."
+          }
+        ]
+      }
+    },
+    "integrations": {
+      "eyebrow": "Integraciones",
+      "title": "Conectado con las herramientas que ya usas",
+      "subtitle": "Harmony se conecta con tu stack para que tus asistentes de IA actúen donde de verdad sucede el trabajo. Más integraciones llegan de forma continua.",
+      "items": [
+        {
+          "name": "OpenAI",
+          "initials": "AI",
+          "note": "Inteligencia de frontera"
+        },
+        {
+          "name": "Google Calendar",
+          "initials": "GC",
+          "note": "Agenda y tiempo"
+        },
+        {
+          "name": "Gmail",
+          "initials": "GM",
+          "note": "Correo y comunicación"
+        },
+        {
+          "name": "LinkedIn",
+          "initials": "in",
+          "note": "Red y crecimiento"
+        },
+        {
+          "name": "YouTube",
+          "initials": "YT",
+          "note": "Contenido y alcance"
+        },
+        {
+          "name": "TikTok",
+          "initials": "TT",
+          "note": "Contenido y alcance"
+        }
+      ],
+      "footnote": "Y más en camino — sobre un marco de integración abierto."
+    },
+    "commandCenter": {
+      "eyebrow": "Centro de Mando del Fundador",
+      "title": "La cabina para quien está al mando",
+      "subtitle": "Una sola pantalla para dirigir toda la operación: mira qué hacen tus asistentes de IA, aprueba lo que importa y observa las métricas que mueven el negocio — sin meterte en cada detalle.",
+      "features": [
+        {
+          "icon": "CheckCircle2",
+          "title": "Cola de aprobaciones",
+          "body": "Revisa y aprueba acciones de alto impacto en un solo lugar, a tu ritmo."
+        },
+        {
+          "icon": "Gauge",
+          "title": "Supervisión en vivo",
+          "body": "Una vista en tiempo real de cada asistente, flujo y tarea en movimiento."
+        },
+        {
+          "icon": "BarChart3",
+          "title": "Métricas que importan",
+          "body": "Las señales que te dicen cómo van de verdad tu vida y tu negocio."
+        },
+        {
+          "icon": "Bell",
+          "title": "Alertas inteligentes",
+          "body": "Recibe avisos solo cuando algo necesita una decisión humana — nada más."
+        }
+      ],
+      "panel": {
+        "title": "Centro de Mando",
+        "status": "Todos los sistemas en orden",
+        "activityTitle": "Actividad reciente",
+        "rows": [
+          {
+            "label": "Aprobaciones en espera",
+            "value": "3",
+            "tone": "warn"
+          },
+          {
+            "label": "Flujos en ejecución",
+            "value": "12",
+            "tone": "ok"
+          },
+          {
+            "label": "Tareas completadas hoy",
+            "value": "47",
+            "tone": "ok"
+          },
+          {
+            "label": "Asistentes activos",
+            "value": "8",
+            "tone": "ok"
+          }
+        ],
+        "activity": [
+          "El asistente de Comunicaciones redactó 5 respuestas — en espera de aprobación",
+          "El calendario resolvió un choque de agenda para el jueves",
+          "El flujo de Operaciones cerró el reporte semanal"
+        ]
+      }
+    },
+    "faq": {
+      "eyebrow": "Preguntas",
+      "title": "Preguntas, respondidas",
+      "items": [
+        {
+          "q": "¿Qué es exactamente Harmony?",
+          "a": "Harmony es un sistema operativo autónomo para tu vida y tu negocio. Unifica tus tareas, calendario, documentos, equipos y operaciones en un solo lugar, y pone a trabajar a asistentes de IA para planear y completar lo rutinario — con tu aprobación en lo que importa."
+        },
+        {
+          "q": "¿En qué se diferencia de otros asistentes de IA?",
+          "a": "La mayoría de las herramientas de IA asisten: redactan, resumen o responden. Harmony ejecuta — coordina a un equipo de asistentes especializados para llevar el trabajo real hasta el final, en tus hubs personal y de negocio."
+        },
+        {
+          "q": "¿Sigo teniendo el control?",
+          "a": "Siempre. Harmony funciona con aprobaciones, salvaguardas y un registro de auditoría completo. Tú decides cuánta autonomía conceder y puedes subirla o bajarla en cualquier momento. Por diseño, una persona permanece en el circuito."
+        },
+        {
+          "q": "¿Para quién es Harmony?",
+          "a": "Fundadores, emprendedores, profesionales, familias, pequeñas empresas y empresas en crecimiento — cualquiera que gestione mucho y quiera apalancamiento sin sumar más herramientas ni carga."
+        },
+        {
+          "q": "¿Harmony reemplaza a mi equipo?",
+          "a": "No. Harmony potencia a tu equipo al eliminar el trabajo repetitivo y ejecutar lo rutinario. Las personas se enfocan en el criterio, las relaciones y las decisiones que necesitan a un humano."
+        },
+        {
+          "q": "¿Mis datos son privados y seguros?",
+          "a": "Tus datos son tuyos. Harmony se construye en torno a la propiedad de los datos, la privacidad y la seguridad — con transparencia sobre lo que cada asistente puede ver y hacer."
+        }
+      ]
+    },
+    "earlyAccess": {
+      "eyebrow": "Acceso anticipado",
+      "title": "Conviértete en miembro fundador de Harmony",
+      "subtitle": "Únete a la primera cohorte y ayuda a dar forma al SO autónomo. Los miembros fundadores reciben incorporación prioritaria, acceso directo al equipo y voz en la hoja de ruta.",
+      "cta": "Reclamar acceso fundador",
+      "perks": [
+        "Incorporación prioritaria y configuración personalizada",
+        "Línea directa con el equipo fundador",
+        "Influencia sobre la hoja de ruta y los nuevos asistentes",
+        "Precio de miembro fundador, asegurado"
+      ]
+    },
+    "waitlist": {
+      "eyebrow": "Únete a la lista de espera",
+      "title": "Sé de los primeros en operar con Harmony",
+      "subtitle": "Añade tu correo para reservar tu lugar. Estamos incorporando fundadores y equipos iniciales por oleadas — sin spam, solo tu invitación cuando esté lista.",
+      "emailLabel": "Correo electrónico",
+      "placeholder": "tu@empresa.com",
+      "cta": "Solicitar acceso",
+      "joining": "Uniéndote",
+      "success": "Estás en la lista. Pronto nos pondremos en contacto.",
+      "invalid": "Introduce un correo electrónico válido.",
+      "error": "Algo salió mal. Inténtalo de nuevo.",
+      "disclaimer": "Al unirte aceptas recibir novedades ocasionales sobre Harmony. Cancela cuando quieras."
+    },
+    "finalCta": {
+      "titleLead": "Dirige tu vida. Dirige tu negocio.",
+      "titleHighlight": "Harmony se encarga del trabajo.",
+      "subtitle": "Reserva tu invitación de acceso anticipado y pon a trabajar tu sistema operativo de IA.",
+      "cta": "Obtener acceso anticipado"
+    },
+    "footer": {
+      "tagline": "El Sistema Operativo Autónomo para la Vida y los Negocios",
+      "note": "Harmony es un producto de AIOS — Sistemas Operativos de Inteligencia Artificial para la vida y los negocios.",
+      "rights": "Todos los derechos reservados.",
+      "columns": [
+        {
+          "title": "Producto",
+          "links": [
+            {
+              "label": "Por qué Harmony",
+              "href": "#why"
+            },
+            {
+              "label": "Hub Personal",
+              "href": "#personal"
+            },
+            {
+              "label": "Hub de Negocio",
+              "href": "#business"
+            },
+            {
+              "label": "Harmony Hub",
+              "href": "#harmony-hub"
+            },
+            {
+              "label": "Integraciones",
+              "href": "#integrations"
+            }
+          ]
+        },
+        {
+          "title": "Empresa",
+          "links": [
+            {
+              "label": "Acceso anticipado",
+              "href": "#early-access"
+            },
+            {
+              "label": "Lista de espera",
+              "href": "#waitlist"
+            },
+            {
+              "label": "Preguntas",
+              "href": "#faq"
+            }
+          ]
+        },
+        {
+          "title": "Empezar",
+          "links": [
+            {
+              "label": "Iniciar sesión",
+              "href": "/login"
+            },
+            {
+              "label": "Registrarse",
+              "href": "/signup"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

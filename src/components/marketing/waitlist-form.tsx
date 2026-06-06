@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { WAITLIST } from "@/components/marketing/content";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,7 +15,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  *
  * Posts the email to /api/waitlist (no database write — the route validates and
  * acknowledges; persistence/CRM wiring lands with the integration framework).
- * Provides optimistic, accessible feedback via inline state + a toast.
+ * Copy is sourced from the localized `landing` namespace so EN + ES are covered.
  */
 export function WaitlistForm({
   source = "landing",
@@ -24,6 +24,7 @@ export function WaitlistForm({
   source?: string;
   className?: string;
 }) {
+  const t = useTranslations("landing");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function WaitlistForm({
     e.preventDefault();
     const value = email.trim();
     if (!EMAIL_RE.test(value)) {
-      setError(WAITLIST.invalid);
+      setError(t("waitlist.invalid"));
       return;
     }
     setError(null);
@@ -45,10 +46,10 @@ export function WaitlistForm({
       });
       if (!res.ok) throw new Error("request failed");
       setStatus("done");
-      toast.success(WAITLIST.success);
+      toast.success(t("waitlist.success"));
     } catch {
       setStatus("idle");
-      toast.error("Something went wrong. Please try again.");
+      toast.error(t("waitlist.error"));
     }
   }
 
@@ -62,7 +63,7 @@ export function WaitlistForm({
         role="status"
       >
         <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
-        {WAITLIST.success}
+        {t("waitlist.success")}
       </div>
     );
   }
@@ -72,14 +73,14 @@ export function WaitlistForm({
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
           <label htmlFor={`waitlist-${source}`} className="sr-only">
-            Email address
+            {t("waitlist.emailLabel")}
           </label>
           <Input
             id={`waitlist-${source}`}
             type="email"
             inputMode="email"
             autoComplete="email"
-            placeholder={WAITLIST.placeholder}
+            placeholder={t("waitlist.placeholder")}
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
@@ -89,20 +90,15 @@ export function WaitlistForm({
             className="h-11 border-white/15 bg-white/5 text-base text-foreground placeholder:text-muted-foreground/70"
           />
         </div>
-        <Button
-          type="submit"
-          size="lg"
-          className="h-11 shrink-0"
-          disabled={status === "loading"}
-        >
+        <Button type="submit" size="lg" className="h-11 shrink-0" disabled={status === "loading"}>
           {status === "loading" ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              Joining
+              {t("waitlist.joining")}
             </>
           ) : (
             <>
-              {WAITLIST.cta}
+              {t("waitlist.cta")}
               <ArrowRight className="size-4" aria-hidden="true" />
             </>
           )}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ComponentType } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   ArrowRight,
   BarChart3,
@@ -35,27 +36,13 @@ import { HarmonyLogo, HarmonyMark } from "@/components/brand/harmony-logo";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import { Button } from "@/components/ui/button";
-import {
-  AUDIENCES,
-  AUTOMATION,
-  COMMAND_CENTER,
-  EARLY_ACCESS,
-  FAQS,
-  FINAL_CTA,
-  FOOTER,
-  HERO,
-  HUBS,
-  INTEGRATIONS,
-  PROBLEM,
-  SITE,
-  WHY,
-} from "@/components/marketing/content";
 
 export const metadata: Metadata = {
   title: {
     absolute: "Harmony — The Autonomous Operating System for Life and Business",
   },
-  description: SITE.description,
+  description:
+    "Harmony is the autonomous operating system that unifies your personal life and your business, then puts AI helpers to work — planning, coordinating, and executing under your command.",
   keywords: [
     "Harmony",
     "AIOS",
@@ -68,7 +55,8 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Harmony — The Autonomous Operating System for Life and Business",
-    description: SITE.description,
+    description:
+      "Run your life. Run your business. Harmony handles the work — one operating system with a team of AI helpers, under your command.",
     siteName: "Harmony",
     type: "website",
     locale: "en_US",
@@ -76,10 +64,77 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Harmony — The Autonomous Operating System",
-    description: SITE.valueProp,
+    description: "Run your life. Run your business. Harmony handles the work.",
   },
 };
 
+/* ----------------------------- content shapes ----------------------------- */
+type IconText = { icon: string; title: string; body: string };
+type Stat = { value: string; label: string };
+type SnapshotCard = { icon: string; name: string; items: string[] };
+type Hero = {
+  badge: string;
+  titleLead: string;
+  titleHighlight: string;
+  subtitle: string;
+  primaryCta: string;
+  secondaryCta: string;
+  proof: string;
+  stats: Stat[];
+  snapshot: { os: string; live: string; caption: string; cards: SnapshotCard[] };
+};
+type Audiences = { label: string; items: string[] };
+type ProblemSection = { eyebrow: string; title: string; subtitle: string; pains: IconText[] };
+type WhySection = { eyebrow: string; title: string; subtitle: string; pillars: IconText[] };
+type Hub = { id: string; eyebrow: string; title: string; subtitle: string; features: IconText[] };
+type LadderStep = { step: string; title: string; body: string };
+type AutomationSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  helpers: IconText[];
+  ladder: { title: string; body: string; steps: LadderStep[] };
+};
+type IntegrationItem = { name: string; initials: string; note: string };
+type IntegrationsSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  items: IntegrationItem[];
+  footnote: string;
+};
+type PanelRow = { label: string; value: string; tone: string };
+type CommandCenterSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  features: IconText[];
+  panel: {
+    title: string;
+    status: string;
+    activityTitle: string;
+    rows: PanelRow[];
+    activity: string[];
+  };
+};
+type FaqSection = { eyebrow: string; title: string; items: { q: string; a: string }[] };
+type EarlyAccessSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  perks: string[];
+};
+type FinalCtaSection = { titleLead: string; titleHighlight: string; subtitle: string; cta: string };
+type FooterLink = { label: string; href: string };
+type FooterSection = {
+  tagline: string;
+  note: string;
+  rights: string;
+  columns: { title: string; links: FooterLink[] }[];
+};
+
+/* ------------------------------- icon lookup ------------------------------ */
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   ArrowRight,
   BarChart3,
@@ -132,15 +187,7 @@ function IconTile({ name }: { name: string }) {
   );
 }
 
-function FeatureCard({
-  icon,
-  title,
-  body,
-}: {
-  icon: string;
-  title: string;
-  body: string;
-}) {
+function FeatureCard({ icon, title, body }: IconText) {
   return (
     <div className="group flex h-full flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-primary/40 hover:bg-white/[0.05]">
       <IconTile name={icon} />
@@ -152,15 +199,7 @@ function FeatureCard({
   );
 }
 
-function HubVisualCard({
-  icon,
-  name,
-  items,
-}: {
-  icon: string;
-  name: string;
-  items: string[];
-}) {
+function HubVisualCard({ icon, name, items }: SnapshotCard) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
       <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
@@ -184,6 +223,21 @@ function HubVisualCard({
 }
 
 export default function LandingPage() {
+  const t = useTranslations("landing");
+
+  const hero = t.raw("hero") as Hero;
+  const audiences = t.raw("audiences") as Audiences;
+  const problem = t.raw("problem") as ProblemSection;
+  const why = t.raw("why") as WhySection;
+  const hubs = t.raw("hubs") as Hub[];
+  const automation = t.raw("automation") as AutomationSection;
+  const integrations = t.raw("integrations") as IntegrationsSection;
+  const commandCenter = t.raw("commandCenter") as CommandCenterSection;
+  const faq = t.raw("faq") as FaqSection;
+  const earlyAccess = t.raw("earlyAccess") as EarlyAccessSection;
+  const finalCta = t.raw("finalCta") as FinalCtaSection;
+  const footer = t.raw("footer") as FooterSection;
+
   return (
     <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
       <SiteHeader />
@@ -203,24 +257,24 @@ export default function LandingPage() {
             <div className="flex flex-col items-start">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm font-medium text-foreground/90 backdrop-blur">
                 <Sparkles className="size-4 text-primary" aria-hidden="true" />
-                {HERO.badge}
+                {hero.badge}
               </span>
 
               <h1 className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                Run your life. Run your business.{" "}
+                {hero.titleLead}{" "}
                 <span className="bg-linear-to-r from-[#8fd0ff] to-[#2f6bff] bg-clip-text text-transparent">
-                  Harmony handles the work.
+                  {hero.titleHighlight}
                 </span>
               </h1>
 
               <p className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
-                {HERO.subtitle}
+                {hero.subtitle}
               </p>
 
               <div className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <Button asChild size="lg" className="h-12 px-7 text-base">
                   <a href="#waitlist">
-                    {HERO.primaryCta}
+                    {hero.primaryCta}
                     <ArrowRight className="size-4" aria-hidden="true" />
                   </a>
                 </Button>
@@ -230,21 +284,19 @@ export default function LandingPage() {
                   variant="outline"
                   className="h-12 border-white/20 bg-transparent px-7 text-base text-foreground hover:bg-white/5"
                 >
-                  <a href="#why">{HERO.secondaryCta}</a>
+                  <a href="#why">{hero.secondaryCta}</a>
                 </Button>
               </div>
 
               <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
                 <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
-                {HERO.proof}
+                {hero.proof}
               </p>
 
               <dl className="mt-10 grid w-full max-w-md grid-cols-3 gap-4 border-t border-white/10 pt-6">
-                {HERO.stats.map((s) => (
+                {hero.stats.map((s) => (
                   <div key={s.label} className="flex flex-col">
-                    <dt className="order-2 text-xs text-muted-foreground">
-                      {s.label}
-                    </dt>
+                    <dt className="order-2 text-xs text-muted-foreground">{s.label}</dt>
                     <dd className="order-1 text-2xl font-bold tracking-tight text-foreground">
                       {s.value}
                     </dd>
@@ -266,10 +318,10 @@ export default function LandingPage() {
                       <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
                       <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
                     </span>
-                    Harmony OS
+                    {hero.snapshot.os}
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-muted-foreground">
-                    Live
+                    {hero.snapshot.live}
                   </span>
                 </div>
 
@@ -281,27 +333,13 @@ export default function LandingPage() {
                     />
                     <HarmonyMark className="relative size-20" title="Harmony" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    One intelligence, coordinating everything
-                  </p>
+                  <p className="text-sm text-muted-foreground">{hero.snapshot.caption}</p>
                 </div>
 
                 <div className="flex flex-col gap-2.5">
-                  <HubVisualCard
-                    icon="Sparkles"
-                    name="Personal Hub"
-                    items={["Plan my day", "Goal: launch Q3"]}
-                  />
-                  <HubVisualCard
-                    icon="Building2"
-                    name="Business Hub"
-                    items={["3 approvals", "Ops on track"]}
-                  />
-                  <HubVisualCard
-                    icon="Brain"
-                    name="Harmony Hub"
-                    items={["8 helpers active", "Orchestrating"]}
-                  />
+                  {hero.snapshot.cards.map((card) => (
+                    <HubVisualCard key={card.name} icon={card.icon} name={card.name} items={card.items} />
+                  ))}
                 </div>
               </div>
             </div>
@@ -311,10 +349,10 @@ export default function LandingPage() {
           <div className="relative mx-auto w-full max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-6 text-center">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Built for the people who run a lot
+                {audiences.label}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-                {AUDIENCES.map((a) => (
+                {audiences.items.map((a) => (
                   <span
                     key={a}
                     className="rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm font-medium text-foreground/90"
@@ -331,16 +369,14 @@ export default function LandingPage() {
         <section className="scroll-mt-24 border-t border-white/[0.06]">
           <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
             <div className="mx-auto max-w-3xl text-center">
-              <Eyebrow>{PROBLEM.eyebrow}</Eyebrow>
+              <Eyebrow>{problem.eyebrow}</Eyebrow>
               <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                {PROBLEM.title}
+                {problem.title}
               </h2>
-              <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                {PROBLEM.subtitle}
-              </p>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{problem.subtitle}</p>
             </div>
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {PROBLEM.pains.map((p) => (
+              {problem.pains.map((p) => (
                 <FeatureCard key={p.title} icon={p.icon} title={p.title} body={p.body} />
               ))}
             </div>
@@ -351,16 +387,14 @@ export default function LandingPage() {
         <section id="why" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
           <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
             <div className="mx-auto max-w-3xl text-center">
-              <Eyebrow>{WHY.eyebrow}</Eyebrow>
+              <Eyebrow>{why.eyebrow}</Eyebrow>
               <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                {WHY.title}
+                {why.title}
               </h2>
-              <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                {WHY.subtitle}
-              </p>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{why.subtitle}</p>
             </div>
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {WHY.pillars.map((p) => (
+              {why.pillars.map((p) => (
                 <FeatureCard key={p.title} icon={p.icon} title={p.title} body={p.body} />
               ))}
             </div>
@@ -368,13 +402,12 @@ export default function LandingPage() {
         </section>
 
         {/* ─────────────────────── Hubs ─────────────────────── */}
-        {HUBS.map((hub, i) => (
+        {hubs.map((hub, i) => (
           <section
             key={hub.id}
             id={hub.id}
             className={
-              "scroll-mt-24 border-t border-white/[0.06]" +
-              (i % 2 === 1 ? " bg-white/[0.015]" : "")
+              "scroll-mt-24 border-t border-white/[0.06]" + (i % 2 === 1 ? " bg-white/[0.015]" : "")
             }
           >
             <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
@@ -383,9 +416,7 @@ export default function LandingPage() {
                 <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                   {hub.title}
                 </h2>
-                <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                  {hub.subtitle}
-                </p>
+                <p className="mt-4 text-pretty text-lg text-muted-foreground">{hub.subtitle}</p>
               </div>
               <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {hub.features.map((f) => (
@@ -400,17 +431,15 @@ export default function LandingPage() {
         <section id="automation" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
           <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
             <div className="mx-auto max-w-3xl text-center">
-              <Eyebrow>{AUTOMATION.eyebrow}</Eyebrow>
+              <Eyebrow>{automation.eyebrow}</Eyebrow>
               <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                {AUTOMATION.title}
+                {automation.title}
               </h2>
-              <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                {AUTOMATION.subtitle}
-              </p>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{automation.subtitle}</p>
             </div>
 
             <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {AUTOMATION.helpers.map((h) => (
+              {automation.helpers.map((h) => (
                 <FeatureCard key={h.title} icon={h.icon} title={h.title} body={h.body} />
               ))}
             </div>
@@ -418,18 +447,18 @@ export default function LandingPage() {
             <div className="mt-12 rounded-3xl border border-white/10 bg-white/[0.03] p-8 sm:p-10">
               <div className="max-w-2xl">
                 <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
-                  {AUTOMATION.ladder.title}
+                  {automation.ladder.title}
                 </h3>
-                <p className="mt-3 text-muted-foreground">{AUTOMATION.ladder.body}</p>
+                <p className="mt-3 text-muted-foreground">{automation.ladder.body}</p>
               </div>
               <ol className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {AUTOMATION.ladder.steps.map((s, idx) => (
+                {automation.ladder.steps.map((s, idx) => (
                   <li key={s.step} className="relative flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <span className="inline-flex size-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-sm font-bold text-primary">
                         {s.step}
                       </span>
-                      {idx < AUTOMATION.ladder.steps.length - 1 && (
+                      {idx < automation.ladder.steps.length - 1 && (
                         <span className="hidden h-px flex-1 bg-linear-to-r from-primary/40 to-transparent lg:block" />
                       )}
                     </div>
@@ -446,16 +475,14 @@ export default function LandingPage() {
         <section id="integrations" className="scroll-mt-24 border-t border-white/[0.06]">
           <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
             <div className="mx-auto max-w-3xl text-center">
-              <Eyebrow>{INTEGRATIONS.eyebrow}</Eyebrow>
+              <Eyebrow>{integrations.eyebrow}</Eyebrow>
               <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                {INTEGRATIONS.title}
+                {integrations.title}
               </h2>
-              <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                {INTEGRATIONS.subtitle}
-              </p>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{integrations.subtitle}</p>
             </div>
             <div className="mx-auto mt-14 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {INTEGRATIONS.items.map((it) => (
+              {integrations.items.map((it) => (
                 <div
                   key={it.name}
                   className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-primary/40 hover:bg-white/[0.05]"
@@ -470,9 +497,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            <p className="mt-8 text-center text-sm text-muted-foreground">
-              {INTEGRATIONS.footnote}
-            </p>
+            <p className="mt-8 text-center text-sm text-muted-foreground">{integrations.footnote}</p>
           </div>
         </section>
 
@@ -480,24 +505,22 @@ export default function LandingPage() {
         <section id="command-center" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
           <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-28">
             <div>
-              <Eyebrow>{COMMAND_CENTER.eyebrow}</Eyebrow>
+              <Eyebrow>{commandCenter.eyebrow}</Eyebrow>
               <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                {COMMAND_CENTER.title}
+                {commandCenter.title}
               </h2>
               <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                {COMMAND_CENTER.subtitle}
+                {commandCenter.subtitle}
               </p>
               <ul className="mt-8 grid gap-5 sm:grid-cols-2">
-                {COMMAND_CENTER.features.map((f) => (
+                {commandCenter.features.map((f) => (
                   <li key={f.title} className="flex gap-3">
                     <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Icon name={f.icon} className="size-5" />
                     </span>
                     <div>
                       <p className="font-semibold text-foreground">{f.title}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                        {f.body}
-                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
                     </div>
                   </li>
                 ))}
@@ -514,15 +537,15 @@ export default function LandingPage() {
                 <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
                   <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
                     <Gauge className="size-4 text-primary" aria-hidden="true" />
-                    {COMMAND_CENTER.panel.title}
+                    {commandCenter.panel.title}
                   </span>
                   <span className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="size-2 rounded-full bg-emerald-400" aria-hidden="true" />
-                    {COMMAND_CENTER.panel.status}
+                    {commandCenter.panel.status}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-px bg-white/10">
-                  {COMMAND_CENTER.panel.rows.map((r) => (
+                  {commandCenter.panel.rows.map((r) => (
                     <div key={r.label} className="bg-[#0a1020] p-4">
                       <p className="text-xs text-muted-foreground">{r.label}</p>
                       <p
@@ -538,9 +561,9 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col gap-3 px-5 py-5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Recent activity
+                    {commandCenter.panel.activityTitle}
                   </p>
-                  {COMMAND_CENTER.panel.activity.map((a) => (
+                  {commandCenter.panel.activity.map((a) => (
                     <div key={a} className="flex items-start gap-2.5 text-sm text-foreground/90">
                       <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                       <span className="leading-snug">{a}</span>
@@ -556,13 +579,13 @@ export default function LandingPage() {
         <section id="faq" className="scroll-mt-24 border-t border-white/[0.06]">
           <div className="mx-auto w-full max-w-3xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
             <div className="text-center">
-              <Eyebrow>FAQ</Eyebrow>
+              <Eyebrow>{faq.eyebrow}</Eyebrow>
               <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Questions, answered
+                {faq.title}
               </h2>
             </div>
             <div className="mt-12 flex flex-col gap-3">
-              {FAQS.map((f) => (
+              {faq.items.map((f) => (
                 <details
                   key={f.q}
                   className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 [&>summary]:list-none"
@@ -574,9 +597,7 @@ export default function LandingPage() {
                       aria-hidden="true"
                     />
                   </summary>
-                  <p className="pb-5 text-sm leading-relaxed text-muted-foreground">
-                    {f.a}
-                  </p>
+                  <p className="pb-5 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
                 </details>
               ))}
             </div>
@@ -589,22 +610,22 @@ export default function LandingPage() {
             <div className="overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/[0.12] to-transparent p-8 sm:p-12">
               <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
                 <div>
-                  <Eyebrow>{EARLY_ACCESS.eyebrow}</Eyebrow>
+                  <Eyebrow>{earlyAccess.eyebrow}</Eyebrow>
                   <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                    {EARLY_ACCESS.title}
+                    {earlyAccess.title}
                   </h2>
                   <p className="mt-4 text-pretty text-lg text-muted-foreground">
-                    {EARLY_ACCESS.subtitle}
+                    {earlyAccess.subtitle}
                   </p>
                   <Button asChild size="lg" className="mt-8 h-12 px-7 text-base">
                     <a href="#waitlist">
-                      Claim founding access
+                      {earlyAccess.cta}
                       <ArrowRight className="size-4" aria-hidden="true" />
                     </a>
                   </Button>
                 </div>
                 <ul className="grid gap-4">
-                  {EARLY_ACCESS.perks.map((perk) => (
+                  {earlyAccess.perks.map((perk) => (
                     <li key={perk} className="flex items-start gap-3">
                       <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
                         <Check className="size-3.5" aria-hidden="true" />
@@ -621,16 +642,16 @@ export default function LandingPage() {
         {/* ─────────────────────── Waitlist ─────────────────────── */}
         <section id="waitlist" className="scroll-mt-24 border-t border-white/[0.06]">
           <div className="mx-auto w-full max-w-2xl px-4 py-20 text-center sm:px-6 lg:px-8 lg:py-28">
-            <Eyebrow>{WAITLIST.eyebrow}</Eyebrow>
+            <Eyebrow>{t("waitlist.eyebrow")}</Eyebrow>
             <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              {WAITLIST.title}
+              {t("waitlist.title")}
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-pretty text-lg text-muted-foreground">
-              {WAITLIST.subtitle}
+              {t("waitlist.subtitle")}
             </p>
             <div className="mx-auto mt-8 max-w-lg">
               <WaitlistForm source="waitlist" />
-              <p className="mt-3 text-xs text-muted-foreground">{WAITLIST.disclaimer}</p>
+              <p className="mt-3 text-xs text-muted-foreground">{t("waitlist.disclaimer")}</p>
             </div>
           </div>
         </section>
@@ -644,18 +665,18 @@ export default function LandingPage() {
           <div className="relative mx-auto w-full max-w-4xl px-4 py-24 text-center sm:px-6 lg:px-8 lg:py-32">
             <HarmonyMark className="mx-auto size-12" title="Harmony" />
             <h2 className="mt-6 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
-              {FINAL_CTA.title}{" "}
+              {finalCta.titleLead}{" "}
               <span className="bg-linear-to-r from-[#8fd0ff] to-[#2f6bff] bg-clip-text text-transparent">
-                {FINAL_CTA.highlight}
+                {finalCta.titleHighlight}
               </span>
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-pretty text-lg text-muted-foreground">
-              {FINAL_CTA.subtitle}
+              {finalCta.subtitle}
             </p>
             <div className="mt-9 flex justify-center">
               <Button asChild size="lg" className="h-12 px-8 text-base">
                 <a href="#waitlist">
-                  {FINAL_CTA.cta}
+                  {finalCta.cta}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </a>
               </Button>
@@ -670,11 +691,9 @@ export default function LandingPage() {
           <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <div className="flex flex-col gap-4">
               <HarmonyLogo />
-              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-                {FOOTER.tagline}
-              </p>
+              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{footer.tagline}</p>
             </div>
-            {FOOTER.columns.map((col) => (
+            {footer.columns.map((col) => (
               <div key={col.title} className="flex flex-col gap-3">
                 <p className="text-sm font-semibold text-foreground">{col.title}</p>
                 <ul className="flex flex-col gap-2.5">
@@ -703,8 +722,10 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-xl">{FOOTER.note}</p>
-            <p>© {new Date().getFullYear()} AIOS. All rights reserved.</p>
+            <p className="max-w-xl">{footer.note}</p>
+            <p>
+              © {new Date().getFullYear()} AIOS. {footer.rights}
+            </p>
           </div>
         </div>
       </footer>
