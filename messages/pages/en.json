@@ -477,5 +477,35 @@
       "business": "Business",
       "enterprise": "Enterprise"
     }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect Harmony to the tools you already use.",
+    "manage": "Manage integrations",
+    "note": "Connecting a provider requires it to be configured for your workspace. More integrations are on the way.",
+    "categories": {
+      "ai": "AI",
+      "productivity": "Productivity",
+      "communication": "Communication",
+      "social": "Social"
+    },
+    "providers": {
+      "openai": "Frontier AI models that power Harmony's assistants.",
+      "google_calendar": "Sync events and let Harmony schedule for you.",
+      "gmail": "Triage, draft, and send email from Harmony.",
+      "youtube": "Track and publish your video content.",
+      "linkedin": "Share updates and grow your professional network.",
+      "tiktok": "Publish and track short-form video."
+    },
+    "status": {
+      "connected": "Connected",
+      "active": "Active",
+      "comingSoon": "Coming soon"
+    },
+    "actions": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "error": "Something went wrong. Please try again."
+    }
   }
 }
