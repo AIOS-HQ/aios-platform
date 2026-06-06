@@ -12,6 +12,15 @@ import { ThemePreference } from "@/components/settings/theme-preference";
 import { AccountCard } from "@/components/settings/account-card";
 import { DataCard } from "@/components/settings/data-card";
 import { BillingCard } from "@/components/billing/billing-card";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("settings");
@@ -20,6 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SettingsPage() {
   const t = await getTranslations("settings");
+  const ti = await getTranslations("integrations");
   const user = await requireUser();
   const [profile, settings, planContext] = await Promise.all([
     getProfile(user.id),
@@ -64,6 +74,17 @@ export default async function SettingsPage() {
           isTrialing={planContext.isTrialing}
           invoices={invoices}
         />
+        <Card>
+          <CardHeader>
+            <CardTitle>{ti("title")}</CardTitle>
+            <CardDescription>{ti("subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/settings/integrations">{ti("manage")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
         <AccountCard
           email={user.email ?? ""}
           role={profile?.role ?? "personal_user"}
