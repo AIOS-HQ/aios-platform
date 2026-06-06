@@ -1,210 +1,732 @@
+import type { Metadata } from "next";
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   ArrowRight,
+  BarChart3,
+  Bell,
+  Bot,
+  Boxes,
+  Brain,
+  Building2,
+  Calendar,
+  Check,
   CheckCircle2,
-  Globe,
-  HeartHandshake,
-  Lock,
+  ChevronDown,
+  Clock,
+  Cog,
+  FileText,
+  Gauge,
+  GitBranch,
+  LayoutDashboard,
+  ListTodo,
+  MessageSquare,
+  Network,
+  NotebookPen,
   ShieldCheck,
   Sparkles,
+  Target,
+  TrendingUp,
+  Users,
+  Workflow,
+  Zap,
 } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { HarmonyLogo, HarmonyMark } from "@/components/brand/harmony-logo";
+import { SiteHeader } from "@/components/marketing/site-header";
+import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
-const principleIcons = {
-  humanControl: HeartHandshake,
-  trust: ShieldCheck,
-  global: Globe,
-  accessibility: Sparkles,
-  ownData: Lock,
-} as const;
+export const metadata: Metadata = {
+  title: {
+    absolute: "Harmony — The Autonomous Operating System for Life and Business",
+  },
+  description:
+    "Harmony is the autonomous operating system that unifies your personal life and your business, then puts AI helpers to work — planning, coordinating, and executing under your command.",
+  keywords: [
+    "Harmony",
+    "AIOS",
+    "autonomous operating system",
+    "AI assistant",
+    "AI for business",
+    "personal productivity",
+    "AI automation",
+    "AI chief of staff",
+  ],
+  openGraph: {
+    title: "Harmony — The Autonomous Operating System for Life and Business",
+    description:
+      "Run your life. Run your business. Harmony handles the work — one operating system with a team of AI helpers, under your command.",
+    siteName: "Harmony",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Harmony — The Autonomous Operating System",
+    description: "Run your life. Run your business. Harmony handles the work.",
+  },
+};
+
+/* ----------------------------- content shapes ----------------------------- */
+type IconText = { icon: string; title: string; body: string };
+type Stat = { value: string; label: string };
+type SnapshotCard = { icon: string; name: string; items: string[] };
+type Hero = {
+  badge: string;
+  titleLead: string;
+  titleHighlight: string;
+  subtitle: string;
+  primaryCta: string;
+  secondaryCta: string;
+  proof: string;
+  stats: Stat[];
+  snapshot: { os: string; live: string; caption: string; cards: SnapshotCard[] };
+};
+type Audiences = { label: string; items: string[] };
+type ProblemSection = { eyebrow: string; title: string; subtitle: string; pains: IconText[] };
+type WhySection = { eyebrow: string; title: string; subtitle: string; pillars: IconText[] };
+type Hub = { id: string; eyebrow: string; title: string; subtitle: string; features: IconText[] };
+type LadderStep = { step: string; title: string; body: string };
+type AutomationSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  helpers: IconText[];
+  ladder: { title: string; body: string; steps: LadderStep[] };
+};
+type IntegrationItem = { name: string; initials: string; note: string };
+type IntegrationsSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  items: IntegrationItem[];
+  footnote: string;
+};
+type PanelRow = { label: string; value: string; tone: string };
+type CommandCenterSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  features: IconText[];
+  panel: {
+    title: string;
+    status: string;
+    activityTitle: string;
+    rows: PanelRow[];
+    activity: string[];
+  };
+};
+type FaqSection = { eyebrow: string; title: string; items: { q: string; a: string }[] };
+type EarlyAccessSection = {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  perks: string[];
+};
+type FinalCtaSection = { titleLead: string; titleHighlight: string; subtitle: string; cta: string };
+type FooterLink = { label: string; href: string };
+type FooterSection = {
+  tagline: string;
+  note: string;
+  rights: string;
+  columns: { title: string; links: FooterLink[] }[];
+};
+
+/* ------------------------------- icon lookup ------------------------------ */
+const ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  ArrowRight,
+  BarChart3,
+  Bell,
+  Bot,
+  Boxes,
+  Brain,
+  Building2,
+  Calendar,
+  Check,
+  CheckCircle2,
+  Clock,
+  Cog,
+  FileText,
+  Gauge,
+  GitBranch,
+  LayoutDashboard,
+  ListTodo,
+  MessageSquare,
+  Network,
+  NotebookPen,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Users,
+  Workflow,
+  Zap,
+};
+
+function Icon({ name, className }: { name: string; className?: string }) {
+  const Cmp = ICONS[name] ?? Sparkles;
+  return <Cmp className={className} />;
+}
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+      <span className="h-px w-6 bg-primary/50" aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
+function IconTile({ name }: { name: string }) {
+  return (
+    <span className="inline-flex size-11 items-center justify-center rounded-xl border border-white/10 bg-primary/10 text-primary">
+      <Icon name={name} className="size-5" />
+    </span>
+  );
+}
+
+function FeatureCard({ icon, title, body }: IconText) {
+  return (
+    <div className="group flex h-full flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-primary/40 hover:bg-white/[0.05]">
+      <IconTile name={icon} />
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+function HubVisualCard({ icon, name, items }: SnapshotCard) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+      <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+        <Icon name={icon} className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{name}</p>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {items.map((it) => (
+            <span
+              key={it}
+              className="truncate rounded-md bg-white/5 px-2 py-1 text-xs text-muted-foreground"
+            >
+              {it}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const t = useTranslations("landing");
-  const tc = useTranslations("common");
 
-  const principleKeys = [
-    "humanControl",
-    "trust",
-    "global",
-    "accessibility",
-    "ownData",
-  ] as const;
+  const hero = t.raw("hero") as Hero;
+  const audiences = t.raw("audiences") as Audiences;
+  const problem = t.raw("problem") as ProblemSection;
+  const why = t.raw("why") as WhySection;
+  const hubs = t.raw("hubs") as Hub[];
+  const automation = t.raw("automation") as AutomationSection;
+  const integrations = t.raw("integrations") as IntegrationsSection;
+  const commandCenter = t.raw("commandCenter") as CommandCenterSection;
+  const faq = t.raw("faq") as FaqSection;
+  const earlyAccess = t.raw("earlyAccess") as EarlyAccessSection;
+  const finalCta = t.raw("finalCta") as FinalCtaSection;
+  const footer = t.raw("footer") as FooterSection;
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-        <nav
-          className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6"
-          aria-label="Primary"
-        >
-          <Logo />
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="hidden sm:block">
-              <LocaleSwitcher />
-            </div>
-            <ThemeToggle />
-            <Button asChild variant="ghost" className="hidden sm:inline-flex">
-              <Link href="/login">{tc("logIn")}</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">{tc("getStarted")}</Link>
-            </Button>
-          </div>
-        </nav>
-      </header>
+    <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
+      <SiteHeader />
 
-      <main id="main-content" className="flex-1">
-        {/* Hero */}
-        <section className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-          <div className="mx-auto max-w-3xl text-center">
-            <Badge variant="secondary" className="mb-5 gap-1.5">
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              {t("hero.badge")}
-            </Badge>
-            <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-6xl">
-              {t("hero.title")}
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-muted-foreground">
-              {t("hero.subtitle")}
-            </p>
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="lg" className="w-full sm:w-auto">
-                <Link href="/signup">
-                  {t("hero.ctaPrimary")}
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                <Link href="/login">{t("hero.ctaSecondary")}</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+      <main id="main-content">
+        {/* ───────────────────────── Hero ───────────────────────── */}
+        <section className="relative overflow-hidden">
+          <div
+            className="pointer-events-none absolute inset-0 harmony-grid opacity-[0.35]"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute left-1/2 top-[-10%] h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-primary/20 blur-[140px]"
+            aria-hidden="true"
+          />
+          <div className="relative mx-auto grid w-full max-w-7xl items-center gap-14 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-10 lg:py-28 lg:px-8">
+            <div className="flex flex-col items-start">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm font-medium text-foreground/90 backdrop-blur">
+                <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                {hero.badge}
+              </span>
 
-        {/* Products */}
-        <section className="border-t bg-muted/30">
-          <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                {t("products.title")}
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                {t("products.subtitle")}
+              <h1 className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+                {hero.titleLead}{" "}
+                <span className="bg-linear-to-r from-[#8fd0ff] to-[#2f6bff] bg-clip-text text-transparent">
+                  {hero.titleHighlight}
+                </span>
+              </h1>
+
+              <p className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
+                {hero.subtitle}
               </p>
-            </div>
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <div className="mb-2 flex items-center justify-between">
-                    <CardTitle className="text-xl">Harmony</CardTitle>
-                    <Badge variant="success">{tc("available")}</Badge>
-                  </div>
-                  <CardDescription>
-                    {t("products.harmony.tagline")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col justify-between gap-6">
-                  <p className="text-sm text-muted-foreground">
-                    {t("products.harmony.description")}
-                  </p>
-                  <Button asChild className="self-start">
-                    <Link href="/signup">
-                      {t("products.harmony.cta")}
-                      <ArrowRight className="size-4" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
 
-              <Card className="flex flex-col opacity-95">
-                <CardHeader>
-                  <div className="mb-2 flex items-center justify-between">
-                    <CardTitle className="text-xl">Opera</CardTitle>
-                    <Badge variant="outline">{tc("comingSoon")}</Badge>
+              <div className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <Button asChild size="lg" className="h-12 px-7 text-base">
+                  <a href="#waitlist">
+                    {hero.primaryCta}
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </a>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 border-white/20 bg-transparent px-7 text-base text-foreground hover:bg-white/5"
+                >
+                  <a href="#why">{hero.secondaryCta}</a>
+                </Button>
+              </div>
+
+              <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="size-4 text-primary" aria-hidden="true" />
+                {hero.proof}
+              </p>
+
+              <dl className="mt-10 grid w-full max-w-md grid-cols-3 gap-4 border-t border-white/10 pt-6">
+                {hero.stats.map((s) => (
+                  <div key={s.label} className="flex flex-col">
+                    <dt className="order-2 text-xs text-muted-foreground">{s.label}</dt>
+                    <dd className="order-1 text-2xl font-bold tracking-tight text-foreground">
+                      {s.value}
+                    </dd>
                   </div>
-                  <CardDescription>
-                    {t("products.opera.tagline")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col justify-between gap-6">
-                  <p className="text-sm text-muted-foreground">
-                    {t("products.opera.description")}
-                  </p>
-                  <Button variant="secondary" className="self-start" disabled>
-                    {tc("comingSoon")}
-                  </Button>
-                </CardContent>
-              </Card>
+                ))}
+              </dl>
+            </div>
+
+            {/* Hero visual: unified hubs snapshot */}
+            <div className="relative lg:pl-6">
+              <div
+                className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl"
+                aria-hidden="true"
+              />
+              <div className="relative rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <span className="relative flex size-2.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60" />
+                      <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+                    </span>
+                    {hero.snapshot.os}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs text-muted-foreground">
+                    {hero.snapshot.live}
+                  </span>
+                </div>
+
+                <div className="my-6 flex flex-col items-center justify-center gap-3 py-2">
+                  <div className="relative">
+                    <div
+                      className="pointer-events-none absolute -inset-5 rounded-full bg-primary/25 blur-2xl"
+                      aria-hidden="true"
+                    />
+                    <HarmonyMark className="relative size-20" title="Harmony" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">{hero.snapshot.caption}</p>
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  {hero.snapshot.cards.map((card) => (
+                    <HubVisualCard key={card.name} icon={card.icon} name={card.name} items={card.items} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Audience strip */}
+          <div className="relative mx-auto w-full max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {audiences.label}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+                {audiences.items.map((a) => (
+                  <span
+                    key={a}
+                    className="rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm font-medium text-foreground/90"
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Principles */}
-        <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-semibold tracking-tight">
-              {t("principles.title")}
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              {t("principles.subtitle")}
-            </p>
+        {/* ─────────────────────── Problem ─────────────────────── */}
+        <section className="scroll-mt-24 border-t border-white/[0.06]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+            <div className="mx-auto max-w-3xl text-center">
+              <Eyebrow>{problem.eyebrow}</Eyebrow>
+              <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                {problem.title}
+              </h2>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{problem.subtitle}</p>
+            </div>
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {problem.pains.map((p) => (
+                <FeatureCard key={p.title} icon={p.icon} title={p.title} body={p.body} />
+              ))}
+            </div>
           </div>
-          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {principleKeys.map((key) => {
-              const Icon = principleIcons[key];
-              return (
-                <li key={key}>
-                  <Card className="h-full">
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                          <Icon className="size-5" aria-hidden="true" />
-                        </span>
-                        <CardTitle className="text-base">
-                          {t(`principles.${key}.title`)}
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        {t(`principles.${key}.description`)}
+        </section>
+
+        {/* ─────────────────────── Why Harmony ─────────────────────── */}
+        <section id="why" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+            <div className="mx-auto max-w-3xl text-center">
+              <Eyebrow>{why.eyebrow}</Eyebrow>
+              <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                {why.title}
+              </h2>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{why.subtitle}</p>
+            </div>
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {why.pillars.map((p) => (
+                <FeatureCard key={p.title} icon={p.icon} title={p.title} body={p.body} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────── Hubs ─────────────────────── */}
+        {hubs.map((hub, i) => (
+          <section
+            key={hub.id}
+            id={hub.id}
+            className={
+              "scroll-mt-24 border-t border-white/[0.06]" + (i % 2 === 1 ? " bg-white/[0.015]" : "")
+            }
+          >
+            <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+              <div className="max-w-3xl">
+                <Eyebrow>{hub.eyebrow}</Eyebrow>
+                <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                  {hub.title}
+                </h2>
+                <p className="mt-4 text-pretty text-lg text-muted-foreground">{hub.subtitle}</p>
+              </div>
+              <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {hub.features.map((f) => (
+                  <FeatureCard key={f.title} icon={f.icon} title={f.title} body={f.body} />
+                ))}
+              </div>
+            </div>
+          </section>
+        ))}
+
+        {/* ─────────────────── AI Helpers & Automation ─────────────────── */}
+        <section id="automation" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+            <div className="mx-auto max-w-3xl text-center">
+              <Eyebrow>{automation.eyebrow}</Eyebrow>
+              <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                {automation.title}
+              </h2>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{automation.subtitle}</p>
+            </div>
+
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {automation.helpers.map((h) => (
+                <FeatureCard key={h.title} icon={h.icon} title={h.title} body={h.body} />
+              ))}
+            </div>
+
+            <div className="mt-12 rounded-3xl border border-white/10 bg-white/[0.03] p-8 sm:p-10">
+              <div className="max-w-2xl">
+                <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+                  {automation.ladder.title}
+                </h3>
+                <p className="mt-3 text-muted-foreground">{automation.ladder.body}</p>
+              </div>
+              <ol className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {automation.ladder.steps.map((s, idx) => (
+                  <li key={s.step} className="relative flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex size-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-sm font-bold text-primary">
+                        {s.step}
+                      </span>
+                      {idx < automation.ladder.steps.length - 1 && (
+                        <span className="hidden h-px flex-1 bg-linear-to-r from-primary/40 to-transparent lg:block" />
+                      )}
+                    </div>
+                    <p className="text-base font-semibold text-foreground">{s.title}</p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{s.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────── Integrations ─────────────────────── */}
+        <section id="integrations" className="scroll-mt-24 border-t border-white/[0.06]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+            <div className="mx-auto max-w-3xl text-center">
+              <Eyebrow>{integrations.eyebrow}</Eyebrow>
+              <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                {integrations.title}
+              </h2>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">{integrations.subtitle}</p>
+            </div>
+            <div className="mx-auto mt-14 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {integrations.items.map((it) => (
+                <div
+                  key={it.name}
+                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-primary/40 hover:bg-white/[0.05]"
+                >
+                  <span className="inline-flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-foreground">
+                    {it.initials}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-foreground">{it.name}</p>
+                    <p className="text-sm text-muted-foreground">{it.note}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-8 text-center text-sm text-muted-foreground">{integrations.footnote}</p>
+          </div>
+        </section>
+
+        {/* ─────────────────── Founder Command Center ─────────────────── */}
+        <section id="command-center" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
+          <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-28">
+            <div>
+              <Eyebrow>{commandCenter.eyebrow}</Eyebrow>
+              <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                {commandCenter.title}
+              </h2>
+              <p className="mt-4 text-pretty text-lg text-muted-foreground">
+                {commandCenter.subtitle}
+              </p>
+              <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+                {commandCenter.features.map((f) => (
+                  <li key={f.title} className="flex gap-3">
+                    <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Icon name={f.icon} className="size-5" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-foreground">{f.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Command center panel mock */}
+            <div className="relative">
+              <div
+                className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl"
+                aria-hidden="true"
+              />
+              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a1020]/80 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Gauge className="size-4 text-primary" aria-hidden="true" />
+                    {commandCenter.panel.title}
+                  </span>
+                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="size-2 rounded-full bg-emerald-400" aria-hidden="true" />
+                    {commandCenter.panel.status}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-px bg-white/10">
+                  {commandCenter.panel.rows.map((r) => (
+                    <div key={r.label} className="bg-[#0a1020] p-4">
+                      <p className="text-xs text-muted-foreground">{r.label}</p>
+                      <p
+                        className={
+                          "mt-1 text-2xl font-bold tracking-tight " +
+                          (r.tone === "warn" ? "text-amber-300" : "text-foreground")
+                        }
+                      >
+                        {r.value}
                       </p>
-                    </CardContent>
-                  </Card>
-                </li>
-              );
-            })}
-          </ul>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-3 px-5 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {commandCenter.panel.activityTitle}
+                  </p>
+                  {commandCenter.panel.activity.map((a) => (
+                    <div key={a} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <span className="leading-snug">{a}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────── FAQ Preview ─────────────────────── */}
+        <section id="faq" className="scroll-mt-24 border-t border-white/[0.06]">
+          <div className="mx-auto w-full max-w-3xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+            <div className="text-center">
+              <Eyebrow>{faq.eyebrow}</Eyebrow>
+              <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                {faq.title}
+              </h2>
+            </div>
+            <div className="mt-12 flex flex-col gap-3">
+              {faq.items.map((f) => (
+                <details
+                  key={f.q}
+                  className="group rounded-2xl border border-white/10 bg-white/[0.03] px-5 [&>summary]:list-none"
+                >
+                  <summary className="flex cursor-pointer items-center justify-between gap-4 py-5 text-left text-base font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                    {f.q}
+                    <ChevronDown
+                      className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <p className="pb-5 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────── Early Access ─────────────────────── */}
+        <section id="early-access" className="scroll-mt-24 border-t border-white/[0.06] bg-white/[0.015]">
+          <div className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+            <div className="overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/[0.12] to-transparent p-8 sm:p-12">
+              <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+                <div>
+                  <Eyebrow>{earlyAccess.eyebrow}</Eyebrow>
+                  <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                    {earlyAccess.title}
+                  </h2>
+                  <p className="mt-4 text-pretty text-lg text-muted-foreground">
+                    {earlyAccess.subtitle}
+                  </p>
+                  <Button asChild size="lg" className="mt-8 h-12 px-7 text-base">
+                    <a href="#waitlist">
+                      {earlyAccess.cta}
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </a>
+                  </Button>
+                </div>
+                <ul className="grid gap-4">
+                  {earlyAccess.perks.map((perk) => (
+                    <li key={perk} className="flex items-start gap-3">
+                      <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <Check className="size-3.5" aria-hidden="true" />
+                      </span>
+                      <span className="text-foreground/90">{perk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────── Waitlist ─────────────────────── */}
+        <section id="waitlist" className="scroll-mt-24 border-t border-white/[0.06]">
+          <div className="mx-auto w-full max-w-2xl px-4 py-20 text-center sm:px-6 lg:px-8 lg:py-28">
+            <Eyebrow>{t("waitlist.eyebrow")}</Eyebrow>
+            <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              {t("waitlist.title")}
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-pretty text-lg text-muted-foreground">
+              {t("waitlist.subtitle")}
+            </p>
+            <div className="mx-auto mt-8 max-w-lg">
+              <WaitlistForm source="waitlist" />
+              <p className="mt-3 text-xs text-muted-foreground">{t("waitlist.disclaimer")}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ─────────────────────── Final CTA ─────────────────────── */}
+        <section className="relative overflow-hidden border-t border-white/[0.06]">
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[150px]"
+            aria-hidden="true"
+          />
+          <div className="relative mx-auto w-full max-w-4xl px-4 py-24 text-center sm:px-6 lg:px-8 lg:py-32">
+            <HarmonyMark className="mx-auto size-12" title="Harmony" />
+            <h2 className="mt-6 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
+              {finalCta.titleLead}{" "}
+              <span className="bg-linear-to-r from-[#8fd0ff] to-[#2f6bff] bg-clip-text text-transparent">
+                {finalCta.titleHighlight}
+              </span>
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-pretty text-lg text-muted-foreground">
+              {finalCta.subtitle}
+            </p>
+            <div className="mt-9 flex justify-center">
+              <Button asChild size="lg" className="h-12 px-8 text-base">
+                <a href="#waitlist">
+                  {finalCta.cta}
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </a>
+              </Button>
+            </div>
+          </div>
         </section>
       </main>
 
-      <footer className="border-t">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6">
-          <Logo />
-          <p className="flex items-center gap-1.5">
-            <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
-            {t("footer.tagline")}
-          </p>
-          <p>
-            © {new Date().getFullYear()} {t("footer.rights")}
-          </p>
+      {/* ─────────────────────── Footer ─────────────────────── */}
+      <footer className="border-t border-white/10 bg-[#060912]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+            <div className="flex flex-col gap-4">
+              <HarmonyLogo />
+              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{footer.tagline}</p>
+            </div>
+            {footer.columns.map((col) => (
+              <div key={col.title} className="flex flex-col gap-3">
+                <p className="text-sm font-semibold text-foreground">{col.title}</p>
+                <ul className="flex flex-col gap-2.5">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      {l.href.startsWith("/") ? (
+                        <Link
+                          href={l.href}
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          {l.label}
+                        </Link>
+                      ) : (
+                        <a
+                          href={l.href}
+                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          {l.label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-xl">{footer.note}</p>
+            <p>
+              © {new Date().getFullYear()} AIOS. {footer.rights}
+            </p>
+          </div>
         </div>
       </footer>
     </div>
