@@ -14,7 +14,12 @@ const AUTH_ROUTES = ["/login", "/signup", "/reset-password"];
  * If Supabase isn't configured yet, it is a no-op so the app still runs.
  */
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Expose the current pathname to Server Components (read via `headers()`),
+  // used by the Harmony hub layout for plan/hub gating. Additive only.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   if (!env.supabaseUrl || !env.supabaseAnonKey) {
     return response;
@@ -29,7 +34,7 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
-        response = NextResponse.next({ request });
+        response = NextResponse.next({ request: { headers: requestHeaders } });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options),
         );

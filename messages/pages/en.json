@@ -442,6 +442,10 @@
           "Dedicated success manager and SLAs"
         ]
       }
+    },
+    "gate": {
+      "title": "Upgrade to unlock this area",
+      "body": "Your current plan doesn't include this part of Harmony. Choose a plan below to continue."
     }
   },
   "billing": {
@@ -476,6 +480,8 @@
       "professional": "Professional",
       "business": "Business",
       "enterprise": "Enterprise"
-    }
+    },
+    "pastDueNotice": "Your payment is past due — update your billing to keep access.",
+    "pastDueAction": "Update billing"
   }
 }
