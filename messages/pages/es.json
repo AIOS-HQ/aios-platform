@@ -380,5 +380,102 @@
         }
       }
     }
+  },
+  "pricing": {
+    "eyebrow": "Precios",
+    "title": "Planes que crecen contigo",
+    "subtitle": "Empieza con lo que necesitas hoy y desbloquea más de Harmony a medida que creces. Todos los planes de pago incluyen una prueba gratuita de 14 días.",
+    "badgePopular": "Más popular",
+    "trialNote": "Prueba gratuita de 14 días en cada plan de pago. Cancela cuando quieras.",
+    "hubsNote": "Hub Personal en todos los planes · Hub de Negocio desde Professional · Harmony Hub desde Business.",
+    "ctaError": "No se pudo iniciar el pago. Inténtalo de nuevo.",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "$19",
+        "priceSuffix": "/mes",
+        "tagline": "Para personas que se organizan.",
+        "cta": "Iniciar prueba gratis",
+        "features": [
+          "Hub Personal: tareas, metas, notas, calendario",
+          "Asistente personal de IA",
+          "1 usuario",
+          "Soporte de la comunidad"
+        ]
+      },
+      "professional": {
+        "name": "Professional",
+        "price": "$49",
+        "priceSuffix": "/mes",
+        "tagline": "Para profesionales que gestionan vida y trabajo.",
+        "cta": "Iniciar prueba gratis",
+        "features": [
+          "Todo lo de Starter",
+          "Hub de Negocio: operaciones, documentos, aprobaciones",
+          "Departamentos de IA (núcleo)",
+          "Soporte prioritario por correo"
+        ]
+      },
+      "business": {
+        "name": "Business",
+        "price": "$99",
+        "priceSuffix": "/mes",
+        "tagline": "Para equipos y empresas en crecimiento.",
+        "cta": "Iniciar prueba gratis",
+        "features": [
+          "Todo lo de Professional",
+          "Harmony Hub: Jefe de Gabinete de IA",
+          "Ejecución autónoma y flujos de trabajo",
+          "Hasta 10 miembros del equipo"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "A medida",
+        "priceSuffix": "",
+        "tagline": "Para organizaciones que operan a escala.",
+        "cta": "Contactar a ventas",
+        "features": [
+          "Todo lo de Business",
+          "Miembros del equipo ilimitados",
+          "Seguridad avanzada y SSO",
+          "Gerente de éxito dedicado y SLAs"
+        ]
+      }
+    }
+  },
+  "billing": {
+    "title": "Plan y facturación",
+    "description": "Gestiona tu suscripción de Harmony, la prueba y las facturas.",
+    "currentPlanLabel": "Plan actual",
+    "statusLabel": "Estado",
+    "trialEndsLabel": "La prueba termina",
+    "renewsLabel": "Se renueva el",
+    "cancelsLabel": "Se cancela el",
+    "manage": "Gestionar suscripción",
+    "manageError": "No se pudo abrir el portal de facturación. Inténtalo de nuevo.",
+    "viewPlans": "Ver planes",
+    "freeTitle": "Estás en el plan gratuito",
+    "freeBody": "Elige un plan para desbloquear los hubs de Negocio y Harmony.",
+    "choosePlan": "Elegir un plan",
+    "historyTitle": "Historial de facturación",
+    "noInvoices": "Aún no hay facturas.",
+    "view": "Ver",
+    "statuses": {
+      "trialing": "Prueba",
+      "active": "Activo",
+      "past_due": "Pago vencido",
+      "canceled": "Cancelado",
+      "incomplete": "Incompleto",
+      "unpaid": "Sin pagar",
+      "paused": "En pausa"
+    },
+    "planNames": {
+      "free": "Gratis",
+      "starter": "Starter",
+      "professional": "Professional",
+      "business": "Business",
+      "enterprise": "Enterprise"
+    }
   }
 }
