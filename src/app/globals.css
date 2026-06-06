@@ -190,3 +190,49 @@
 .animate-content {
   animation: aios-enter 0.16s ease-out;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Harmony marketing canvas
+   A self-contained, always-dark brand surface for the public landing page.
+   Scoped token overrides so shadcn primitives render in the Harmony palette
+   regardless of the visitor's app theme — electric blue on deep navy, matching
+   the approved Harmony logo. Used via the `.harmony-marketing` wrapper on `/`.
+   ─────────────────────────────────────────────────────────────────────────── */
+.harmony-marketing {
+  color-scheme: dark;
+
+  --background: oklch(0.16 0.028 256);
+  --foreground: oklch(0.97 0.01 255);
+
+  --card: oklch(0.21 0.03 258);
+  --card-foreground: oklch(0.97 0.01 255);
+
+  --popover: oklch(0.21 0.03 258);
+  --popover-foreground: oklch(0.97 0.01 255);
+
+  --primary: oklch(0.62 0.19 256);
+  --primary-foreground: oklch(0.99 0.01 255);
+
+  --secondary: oklch(0.27 0.03 258);
+  --secondary-foreground: oklch(0.97 0.01 255);
+
+  --muted: oklch(0.27 0.03 258);
+  --muted-foreground: oklch(0.75 0.025 256);
+
+  --accent: oklch(0.32 0.06 256);
+  --accent-foreground: oklch(0.96 0.02 255);
+
+  --border: oklch(0.34 0.02 258);
+  --input: oklch(0.34 0.02 258);
+  --ring: oklch(0.62 0.19 256);
+}
+
+/* Subtle blueprint grid behind the hero (masked to fade out). */
+.harmony-grid {
+  background-image:
+    linear-gradient(to right, rgba(120, 160, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 160, 255, 0.06) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 35%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 35%, transparent 100%);
+}
