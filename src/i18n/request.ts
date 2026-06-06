@@ -11,8 +11,9 @@ import { defaultLocale, isLocale, LOCALE_COOKIE } from "./config";
  * wrapping every route in a `[locale]` segment.
  *
  * Messages are composed from the base catalog plus feature-scoped catalogs
- * (e.g. the marketing `landing` namespace lives in `messages/landing/`), merged
- * here so each surface can own its copy without bloating the base file.
+ * (the marketing `landing` namespace and the `pages` catalog — FAQ, Help Center
+ * and onboarding), merged here so each surface can own its copy without bloating
+ * the base file.
  */
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
@@ -21,6 +22,7 @@ export default getRequestConfig(async () => {
 
   const base = (await import(`../../messages/${locale}.json`)).default;
   const landing = (await import(`../../messages/landing/${locale}.json`)).default;
+  const pages = (await import(`../../messages/pages/${locale}.json`)).default;
 
-  return { locale, messages: { ...base, ...landing } };
+  return { locale, messages: { ...base, ...landing, ...pages } };
 });

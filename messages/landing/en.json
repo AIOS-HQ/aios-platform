@@ -3,31 +3,27 @@
     "nav": [
       {
         "label": "Why Harmony",
-        "href": "#why"
+        "href": "/#why"
       },
       {
         "label": "Personal",
-        "href": "#personal"
+        "href": "/#personal"
       },
       {
         "label": "Business",
-        "href": "#business"
+        "href": "/#business"
       },
       {
         "label": "Harmony Hub",
-        "href": "#harmony-hub"
+        "href": "/#harmony-hub"
       },
       {
-        "label": "Automation",
-        "href": "#automation"
-      },
-      {
-        "label": "Integrations",
-        "href": "#integrations"
+        "label": "Help",
+        "href": "/help"
       },
       {
         "label": "FAQ",
-        "href": "#faq"
+        "href": "/faq"
       }
     ],
     "cta": {
@@ -430,6 +426,7 @@
     "faq": {
       "eyebrow": "FAQ",
       "title": "Questions, answered",
+      "seeAll": "See all FAQs",
       "items": [
         {
           "q": "What exactly is Harmony?",
@@ -498,23 +495,40 @@
           "links": [
             {
               "label": "Why Harmony",
-              "href": "#why"
+              "href": "/#why"
             },
             {
               "label": "Personal Hub",
-              "href": "#personal"
+              "href": "/#personal"
             },
             {
               "label": "Business Hub",
-              "href": "#business"
+              "href": "/#business"
             },
             {
               "label": "Harmony Hub",
-              "href": "#harmony-hub"
+              "href": "/#harmony-hub"
             },
             {
               "label": "Integrations",
-              "href": "#integrations"
+              "href": "/#integrations"
+            }
+          ]
+        },
+        {
+          "title": "Resources",
+          "links": [
+            {
+              "label": "Help Center",
+              "href": "/help"
+            },
+            {
+              "label": "FAQ",
+              "href": "/faq"
+            },
+            {
+              "label": "Get started",
+              "href": "/onboarding/harmony"
             }
           ]
         },
@@ -523,28 +537,15 @@
           "links": [
             {
               "label": "Early access",
-              "href": "#early-access"
+              "href": "/#early-access"
             },
             {
               "label": "Waitlist",
-              "href": "#waitlist"
+              "href": "/#waitlist"
             },
-            {
-              "label": "FAQ",
-              "href": "#faq"
-            }
-          ]
-        },
-        {
-          "title": "Get started",
-          "links": [
             {
               "label": "Log in",
               "href": "/login"
-            },
-            {
-              "label": "Sign up",
-              "href": "/signup"
             }
           ]
         }
