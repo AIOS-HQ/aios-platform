@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth/user";
 import type { ActionState } from "@/lib/types";
 import { deleteMemory, recordMemory } from "@/lib/memory/service";
 import { isMemoryKind } from "@/lib/memory/types";
-import { setLearningEnabled } from "@/lib/memory/learning";
+import { setLearningEnabled, setLearningApproval } from "@/lib/memory/learning";
 
 /** Manually add a memory (user action). Owner-scoped via the RLS server client. */
 export async function addMemoryAction(
@@ -70,5 +70,27 @@ export async function setLearningAction(
   return {
     status: "success",
     message: enabled ? t("enabledToast") : t("disabledToast"),
+  };
+}
+
+/** Require (or stop requiring) approval before new automatic memories are saved. */
+export async function setLearningApprovalAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const t = await getTranslations("learning");
+  const user = await getCurrentUser();
+  if (!user) return { status: "error", message: t("errors.unauthorized") };
+
+  const requireApproval = String(formData.get("requireApproval") ?? "") === "true";
+  const ok = await setLearningApproval(user.id, requireApproval);
+  if (!ok) return { status: "error", message: t("errors.saveFailed") };
+
+  revalidatePath("/settings/learning");
+  return {
+    status: "success",
+    message: requireApproval
+      ? t("approvalEnabledToast")
+      : t("approvalDisabledToast"),
   };
 }

@@ -23,13 +23,16 @@ export async function approveActionAction(
   if (!res.ok) return { status: "error", message: t("errors.approveFailed") };
 
   // Auto-learning: capture approval tendency (gated by the owner's setting).
-  await learnMemory({
-    userId: user.id,
-    kind: "approval",
-    content: "Approved a pending action",
-    source: "auto",
-    sourceId: id,
-  });
+  await learnMemory(
+    {
+      userId: user.id,
+      kind: "approval",
+      content: "Approved a pending action",
+      source: "auto",
+      sourceId: id,
+    },
+    { bypassApproval: true },
+  );
 
   revalidatePath("/settings/activity");
   return { status: "success", message: t("approvedToast") };
@@ -51,13 +54,16 @@ export async function rejectActionAction(
   if (!ok) return { status: "error", message: t("errors.rejectFailed") };
 
   // Auto-learning: capture approval tendency (gated by the owner's setting).
-  await learnMemory({
-    userId: user.id,
-    kind: "approval",
-    content: "Rejected a pending action",
-    source: "auto",
-    sourceId: id,
-  });
+  await learnMemory(
+    {
+      userId: user.id,
+      kind: "approval",
+      content: "Rejected a pending action",
+      source: "auto",
+      sourceId: id,
+    },
+    { bypassApproval: true },
+  );
 
   revalidatePath("/settings/activity");
   return { status: "success", message: t("rejectedToast") };

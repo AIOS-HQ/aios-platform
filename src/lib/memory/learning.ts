@@ -18,19 +18,35 @@ import type { MemoryKind } from "@/lib/memory/types";
  * memories. Everything is owner-scoped via RLS.
  */
 
-export async function isLearningEnabled(userId: string): Promise<boolean> {
+export interface LearningSettings {
+  enabled: boolean;
+  requireApproval: boolean;
+}
+
+const DEFAULT_SETTINGS: LearningSettings = { enabled: true, requireApproval: false };
+
+export async function getLearningSettings(userId: string): Promise<LearningSettings> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("learning_settings")
-    .select("enabled")
+    .select("enabled,require_approval")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) {
-    // Table may not exist yet (migration not applied) — default to enabled.
-    console.error("[learning] isLearningEnabled", error.message);
-    return true;
+    // Table/column may not exist yet (migration not applied) — safe defaults.
+    console.error("[learning] getLearningSettings", error.message);
+    return DEFAULT_SETTINGS;
   }
-  return data ? Boolean((data as { enabled: boolean }).enabled) : true;
+  if (!data) return DEFAULT_SETTINGS;
+  const row = data as { enabled?: boolean; require_approval?: boolean };
+  return {
+    enabled: row.enabled ?? true,
+    requireApproval: Boolean(row.require_approval),
+  };
+}
+
+export async function isLearningEnabled(userId: string): Promise<boolean> {
+  return (await getLearningSettings(userId)).enabled;
 }
 
 export async function setLearningEnabled(
@@ -51,14 +67,64 @@ export async function setLearningEnabled(
   return true;
 }
 
+export async function setLearningApproval(
+  userId: string,
+  requireApproval: boolean,
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("learning_settings")
+    .upsert(
+      {
+        user_id: userId,
+        require_approval: requireApproval,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+  if (error) {
+    console.error("[learning] setLearningApproval", error.message);
+    return false;
+  }
+  return true;
+}
+
+export interface LearnOptions {
+  /** Record directly even when require-approval is on (for low-risk meta signals). */
+  bypassApproval?: boolean;
+}
+
 /**
- * Gated auto-capture used by activity hooks. Records a memory only when learning
- * is enabled for the owner. Never throws — capture must not break the action it
- * is observing.
+ * Gated auto-capture. Records a memory only when learning is enabled. When the
+ * owner requires approval for new memories, the capture is instead queued as a
+ * pending action (tool "remember") in agent_actions for review on
+ * /settings/activity — unless bypassApproval is set. Never throws.
  */
-export async function learnMemory(input: RecordMemoryInput): Promise<void> {
+export async function learnMemory(
+  input: RecordMemoryInput,
+  options: LearnOptions = {},
+): Promise<void> {
   try {
-    if (!(await isLearningEnabled(input.userId))) return;
+    const settings = await getLearningSettings(input.userId);
+    if (!settings.enabled) return;
+
+    if (settings.requireApproval && !options.bypassApproval) {
+      const supabase = await createClient();
+      await supabase.from("agent_actions").insert({
+        user_id: input.userId,
+        tool: "remember",
+        params: {
+          kind: input.kind,
+          content: input.content,
+          source: input.source ?? "learning",
+        },
+        status: "pending",
+        requires_approval: true,
+        source: "learning",
+      });
+      return;
+    }
+
     await recordMemory({ ...input, source: input.source ?? "auto" });
   } catch (e) {
     console.error("[learning] learnMemory", e);
