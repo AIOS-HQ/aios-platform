@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Sparkles } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import {
-  isLearningEnabled,
+  getLearningSettings,
   summarizeLearning,
   LEARNING_CATEGORIES,
 } from "@/lib/memory/learning";
@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LearningToggle } from "@/components/memory/learning-toggle";
+import { LearningApprovalToggle } from "@/components/memory/learning-approval-toggle";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("learning");
@@ -33,10 +34,11 @@ export default async function LearningPage() {
   const tk = await getTranslations("memory");
   const user = await requireUser();
   const locale = await getLocale();
-  const [enabled, summary] = await Promise.all([
-    isLearningEnabled(user.id),
+  const [settings, summary] = await Promise.all([
+    getLearningSettings(user.id),
     summarizeLearning(user.id),
   ]);
+  const enabled = settings.enabled;
 
   return (
     <>
@@ -55,6 +57,21 @@ export default async function LearningPage() {
               {enabled ? t("on") : t("off")}
             </Badge>
             <LearningToggle enabled={enabled} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("approvalHeading")}</CardTitle>
+            <CardDescription>
+              {settings.requireApproval ? t("approvalOn") : t("approvalOff")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-4">
+            <Badge variant={settings.requireApproval ? "success" : "secondary"}>
+              {settings.requireApproval ? t("on") : t("off")}
+            </Badge>
+            <LearningApprovalToggle requireApproval={settings.requireApproval} />
           </CardContent>
         </Card>
 
