@@ -584,5 +584,28 @@
       "approveFailed": "No se pudo aprobar la acción. Inténtalo de nuevo.",
       "rejectFailed": "No se pudo rechazar la acción. Inténtalo de nuevo."
     }
+  },
+  "connections": {
+    "title": "Cuentas conectadas",
+    "subtitle": "Gestiona las integraciones a las que Harmony está conectado: reconecta o desconecta cuando quieras.",
+    "manage": "Gestionar conexiones",
+    "reconnect": "Reconectar",
+    "disconnect": "Desconectar",
+    "disconnectError": "Algo salió mal. Inténtalo de nuevo.",
+    "connectedLabel": "Conectado {date}",
+    "accountLabel": "Cuenta: {account}",
+    "scopesLabel": "{count} permisos",
+    "browseCta": "Explorar integraciones",
+    "empty": {
+      "title": "No hay cuentas conectadas",
+      "description": "Aún no has conectado ninguna integración. Explora el catálogo para conectar tus herramientas."
+    },
+    "status": {
+      "connected": "Conectado",
+      "expired": "Requiere reconexión",
+      "error": "Requiere acción",
+      "revoked": "Desconectado",
+      "disconnected": "Desconectado"
+    }
   }
 }

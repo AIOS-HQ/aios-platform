@@ -584,5 +584,28 @@
       "approveFailed": "Couldn't approve the action. Please try again.",
       "rejectFailed": "Couldn't reject the action. Please try again."
     }
+  },
+  "connections": {
+    "title": "Connected accounts",
+    "subtitle": "Manage the integrations Harmony is connected to — reconnect or disconnect at any time.",
+    "manage": "Manage connections",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "disconnectError": "Something went wrong. Please try again.",
+    "connectedLabel": "Connected {date}",
+    "accountLabel": "Account: {account}",
+    "scopesLabel": "{count} permissions",
+    "browseCta": "Browse integrations",
+    "empty": {
+      "title": "No connected accounts",
+      "description": "You haven't connected any integrations yet. Browse the catalog to connect your tools."
+    },
+    "status": {
+      "connected": "Connected",
+      "expired": "Reconnect needed",
+      "error": "Action needed",
+      "revoked": "Disconnected",
+      "disconnected": "Disconnected"
+    }
   }
 }
