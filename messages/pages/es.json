@@ -649,5 +649,45 @@
       "unauthorized": "Inicia sesión para gestionar el aprendizaje.",
       "saveFailed": "No se pudo actualizar el aprendizaje. Inténtalo de nuevo."
     }
+  },
+  "diagnostics": {
+    "title": "Diagnósticos",
+    "subtitle": "Comprobaciones de estado de solo lectura para tus proyectos de Supabase y Vercel conectados.",
+    "manage": "Ver diagnósticos",
+    "readOnlyNote": "Solo lectura. Harmony nunca cambia nada aquí sin tu aprobación.",
+    "connect": "Conectar",
+    "connecting": "Conectando",
+    "disconnect": "Desconectar",
+    "disconnectError": "Algo salió mal. Inténtalo de nuevo.",
+    "connectedToast": "Conectado.",
+    "securityNote": "Los tokens se almacenan en el servidor, nunca se muestran en el navegador y solo se usan para comprobaciones de solo lectura. El cifrado en reposo es un refuerzo recomendado.",
+    "capabilities": {
+      "db_health_check": "Estado de la base de datos",
+      "migration_verification": "Verificación de migraciones",
+      "public_table_inspection": "Tablas públicas",
+      "rls_diagnostics": "Diagnóstico de RLS",
+      "deployment_status": "Estado del despliegue",
+      "production_url_verification": "URL de producción",
+      "build_status": "Estado de compilación",
+      "env_var_presence": "Variables de entorno"
+    },
+    "connectHint": {
+      "supabase": "Añade un token de la API de gestión de Supabase y el ref del proyecto para ejecutar diagnósticos de solo lectura.",
+      "vercel": "Añade un token de acceso de Vercel y el ID del proyecto para ejecutar diagnósticos de solo lectura."
+    },
+    "tokenLabel": {
+      "supabase": "Token de la API de gestión de Supabase",
+      "vercel": "Token de acceso de Vercel"
+    },
+    "accountLabel": {
+      "supabase": "Ref del proyecto",
+      "vercel": "ID del proyecto"
+    },
+    "errors": {
+      "unauthorized": "Inicia sesión.",
+      "invalidProvider": "Conector no compatible.",
+      "missingToken": "Introduce un token para conectar.",
+      "saveFailed": "No se pudo guardar. Inténtalo de nuevo."
+    }
   }
 }
