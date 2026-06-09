@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { NavItem } from "./nav-config";
+import { NAV_ICONS, type NavItem } from "./nav-config";
 import { cn } from "@/lib/utils";
 
 export function NavLink({
@@ -21,7 +21,9 @@ export function NavLink({
   const active = item.exact
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
-  const Icon = item.icon;
+  // Resolve the icon key → component here (client side), so the Server Sidebar
+  // never passes a function across the Server/Client boundary.
+  const Icon = NAV_ICONS[item.icon];
   const showBadge = typeof badge === "number" && badge > 0;
 
   return (
