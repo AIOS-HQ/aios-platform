@@ -649,5 +649,45 @@
       "unauthorized": "Please sign in to manage learning.",
       "saveFailed": "Couldn't update learning. Please try again."
     }
+  },
+  "diagnostics": {
+    "title": "Diagnostics",
+    "subtitle": "Read-only health checks for your connected Supabase and Vercel projects.",
+    "manage": "View diagnostics",
+    "readOnlyNote": "Read-only. Harmony never changes anything here without your approval.",
+    "connect": "Connect",
+    "connecting": "Connecting",
+    "disconnect": "Disconnect",
+    "disconnectError": "Something went wrong. Please try again.",
+    "connectedToast": "Connected.",
+    "securityNote": "Tokens are stored server-side, never shown in the browser, and used only for read-only checks. Encryption at rest is a recommended hardening step.",
+    "capabilities": {
+      "db_health_check": "Database health",
+      "migration_verification": "Migration verification",
+      "public_table_inspection": "Public tables",
+      "rls_diagnostics": "RLS diagnostics",
+      "deployment_status": "Deployment status",
+      "production_url_verification": "Production URL",
+      "build_status": "Build status",
+      "env_var_presence": "Environment variables"
+    },
+    "connectHint": {
+      "supabase": "Add a Supabase Management API token and project ref to run read-only diagnostics.",
+      "vercel": "Add a Vercel access token and project ID to run read-only diagnostics."
+    },
+    "tokenLabel": {
+      "supabase": "Supabase Management API token",
+      "vercel": "Vercel access token"
+    },
+    "accountLabel": {
+      "supabase": "Project ref",
+      "vercel": "Project ID"
+    },
+    "errors": {
+      "unauthorized": "Please sign in.",
+      "invalidProvider": "Unsupported connector.",
+      "missingToken": "Enter a token to connect.",
+      "saveFailed": "Couldn't save. Please try again."
+    }
   }
 }
