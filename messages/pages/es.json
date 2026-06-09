@@ -586,23 +586,33 @@
     }
   },
   "connections": {
-    "title": "Cuentas conectadas",
-    "subtitle": "Gestiona las integraciones a las que Harmony está conectado: reconecta o desconecta cuando quieras.",
-    "manage": "Gestionar conexiones",
+    "title": "Conectores",
+    "subtitle": "Conectores que Harmony puede usar. Las acciones de lectura se ejecutan directamente; las de escritura siempre requieren tu aprobación.",
+    "manage": "Gestionar conectores",
     "reconnect": "Reconectar",
     "disconnect": "Desconectar",
     "disconnectError": "Algo salió mal. Inténtalo de nuevo.",
     "connectedLabel": "Conectado {date}",
     "accountLabel": "Cuenta: {account}",
     "scopesLabel": "{count} permisos",
+    "capabilitiesLabel": "{read} lectura · {write} escritura",
+    "approvalNote": "Las acciones de lectura se ejecutan directamente. Las de escritura siempre requieren tu aprobación.",
     "browseCta": "Explorar integraciones",
+    "categories": {
+      "development": "Desarrollo",
+      "communication": "Comunicación",
+      "productivity": "Productividad",
+      "data": "Datos"
+    },
     "empty": {
       "title": "No hay cuentas conectadas",
       "description": "Aún no has conectado ninguna integración. Explora el catálogo para conectar tus herramientas."
     },
     "status": {
+      "not_connected": "No conectado",
+      "ready": "Listo para autorizar",
       "connected": "Conectado",
-      "expired": "Requiere reconexión",
+      "expired": "Autorización caducada",
       "error": "Requiere acción",
       "revoked": "Desconectado",
       "disconnected": "Desconectado"

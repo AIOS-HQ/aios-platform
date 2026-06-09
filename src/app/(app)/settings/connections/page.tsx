@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { getLocale, getTranslations } from "next-intl/server";
-import { Plug } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
+import {
+  CONNECTORS,
+  CONNECTOR_CATEGORIES,
+  countCapabilities,
+} from "@/lib/integrations/connectors";
+import { getConnectorStatus } from "@/lib/integrations/connector-config";
 import { getConnections } from "@/lib/integrations/connections";
-import { getIntegration } from "@/lib/integrations/catalog";
-import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
-import { EmptyState } from "@/components/shared/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,100 +23,81 @@ const STATUS_VARIANT: Record<
   "success" | "secondary" | "outline" | "destructive"
 > = {
   connected: "success",
-  expired: "outline",
-  error: "destructive",
-  revoked: "secondary",
-  disconnected: "secondary",
+  ready: "outline",
+  expired: "destructive",
+  not_connected: "secondary",
 };
 
 /**
- * Connection dashboard — the "what's connected right now" companion to the
- * provider catalog at /settings/integrations. Owner-scoped: reads go through
- * getConnections (RLS, token columns never selected). Reconnect re-runs the
- * existing OAuth connect route; disconnect reuses the shared DisconnectButton.
+ * Connections dashboard — every connector with its current status
+ * (Not Connected / Ready for Authorization / Connected / Authorization Expired)
+ * and capability summary. Owner-scoped: connection rows come from getConnections
+ * (RLS, token columns never selected). No live OAuth is initiated here — write
+ * actions and authorization are founder-gated.
  */
 export default async function ConnectionsPage() {
   const t = await getTranslations("connections");
   const user = await requireUser();
-  const locale = await getLocale();
   const connections = await getConnections(user.id);
+  const byProvider = new Map(connections.map((c) => [c.provider, c]));
 
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <div className="flex flex-col gap-6 lg:max-w-3xl">
-        {connections.length === 0 ? (
-          <div className="flex flex-col items-start gap-4">
-            <EmptyState
-              icon={Plug}
-              title={t("empty.title")}
-              description={t("empty.description")}
-            />
-            <Button asChild variant="outline" size="sm">
-              <a href="/settings/integrations">{t("browseCta")}</a>
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {connections.map((c) => {
-              const meta = getIntegration(c.provider);
-              const name = meta?.name ?? c.provider;
-              const initials = meta?.initials ?? name.slice(0, 2).toUpperCase();
-              const isOauth = meta?.auth === "oauth2";
-              const scopeCount = c.scopes
-                ? c.scopes.split(/[ ,]+/).filter(Boolean).length
-                : 0;
-              const statusKey = c.status in STATUS_VARIANT ? c.status : "connected";
-              return (
-                <Card key={c.provider}>
-                  <CardContent className="flex items-center justify-between gap-4 p-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-muted text-sm font-bold">
-                        {initials}
-                      </span>
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold">{name}</p>
-                          <Badge variant={STATUS_VARIANT[statusKey]}>
-                            {t(`status.${statusKey}`)}
-                          </Badge>
+      <div className="flex flex-col gap-8 lg:max-w-3xl">
+        {CONNECTOR_CATEGORIES.map((cat) => {
+          const items = CONNECTORS.filter((c) => c.category === cat);
+          if (items.length === 0) return null;
+          return (
+            <section key={cat}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                {t(`categories.${cat}`)}
+              </h2>
+              <div className="flex flex-col gap-3">
+                {items.map((c) => {
+                  const connection = byProvider.get(c.id);
+                  const status = getConnectorStatus(c, connection);
+                  const caps = countCapabilities(c);
+                  return (
+                    <Card key={c.id}>
+                      <CardContent className="flex items-center justify-between gap-4 p-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-muted text-sm font-bold">
+                            {c.initials}
+                          </span>
+                          <div className="min-w-0 space-y-0.5">
+                            <p className="font-semibold">{c.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("capabilitiesLabel", {
+                                read: caps.read,
+                                write: caps.write,
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        {c.external_account ? (
-                          <p className="truncate text-sm text-muted-foreground">
-                            {t("accountLabel", { account: c.external_account })}
-                          </p>
-                        ) : null}
-                        <p className="text-xs text-muted-foreground">
-                          {t("connectedLabel", {
-                            date: formatDate(c.created_at, locale),
-                          })}
-                          {scopeCount > 0
-                            ? ` · ${t("scopesLabel", { count: scopeCount })}`
-                            : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {isOauth ? (
-                        <Button asChild size="sm" variant="outline">
-                          <a href={`/api/integrations/${c.provider}/connect`}>
-                            {t("reconnect")}
-                          </a>
-                        </Button>
-                      ) : null}
-                      <DisconnectButton
-                        provider={c.provider}
-                        label={t("disconnect")}
-                        errorLabel={t("disconnectError")}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge variant={STATUS_VARIANT[status] ?? "secondary"}>
+                            {t(`status.${status}`)}
+                          </Badge>
+                          {connection ? (
+                            <DisconnectButton
+                              provider={c.id}
+                              label={t("disconnect")}
+                              errorLabel={t("disconnectError")}
+                            />
+                          ) : null}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        <p className="text-sm text-muted-foreground">{t("approvalNote")}</p>
       </div>
     </>
   );
