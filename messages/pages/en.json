@@ -513,5 +513,45 @@
       "disconnect": "Disconnect",
       "error": "Something went wrong. Please try again."
     }
+  },
+  "memory": {
+    "title": "Memory",
+    "subtitle": "What Harmony remembers for you — view, add, and delete memories.",
+    "manage": "Manage memory",
+    "addHeading": "Add a memory",
+    "addSubtitle": "Teach Harmony something to remember. It uses memories for context.",
+    "kindLabel": "Type",
+    "contentLabel": "Memory",
+    "contentPlaceholder": "e.g. I prefer concise summaries and morning standups.",
+    "addButton": "Save memory",
+    "adding": "Saving",
+    "addedToast": "Memory saved.",
+    "deletedToast": "Memory deleted.",
+    "deleteButton": "Delete memory",
+    "deleting": "Deleting",
+    "importanceLabel": "Importance {value}/5",
+    "sourceLabel": "Source: {source}",
+    "empty": {
+      "title": "No memories yet",
+      "description": "Add your first memory above. Harmony will also remember key actions over time."
+    },
+    "kinds": {
+      "preference": "Preference",
+      "task": "Task",
+      "approval": "Approval",
+      "decision": "Decision",
+      "conversation": "Conversation",
+      "department_activity": "Department activity",
+      "workflow_outcome": "Workflow outcome",
+      "pattern": "Pattern"
+    },
+    "errors": {
+      "unauthorized": "Please sign in to manage memory.",
+      "invalidKind": "Choose a valid memory type.",
+      "empty": "Memory content can't be empty.",
+      "saveFailed": "Couldn't save the memory. Please try again.",
+      "notFound": "Memory not found.",
+      "deleteFailed": "Couldn't delete the memory. Please try again."
+    }
   }
 }
