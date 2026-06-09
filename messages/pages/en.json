@@ -586,23 +586,33 @@
     }
   },
   "connections": {
-    "title": "Connected accounts",
-    "subtitle": "Manage the integrations Harmony is connected to — reconnect or disconnect at any time.",
-    "manage": "Manage connections",
+    "title": "Connectors",
+    "subtitle": "Connectors Harmony can use. Read actions run directly; write actions always require your approval.",
+    "manage": "Manage connectors",
     "reconnect": "Reconnect",
     "disconnect": "Disconnect",
     "disconnectError": "Something went wrong. Please try again.",
     "connectedLabel": "Connected {date}",
     "accountLabel": "Account: {account}",
     "scopesLabel": "{count} permissions",
+    "capabilitiesLabel": "{read} read · {write} write",
+    "approvalNote": "Read actions run directly. Write actions always require your approval.",
     "browseCta": "Browse integrations",
+    "categories": {
+      "development": "Development",
+      "communication": "Communication",
+      "productivity": "Productivity",
+      "data": "Data"
+    },
     "empty": {
       "title": "No connected accounts",
       "description": "You haven't connected any integrations yet. Browse the catalog to connect your tools."
     },
     "status": {
+      "not_connected": "Not connected",
+      "ready": "Ready for authorization",
       "connected": "Connected",
-      "expired": "Reconnect needed",
+      "expired": "Authorization expired",
       "error": "Action needed",
       "revoked": "Disconnected",
       "disconnected": "Disconnected"
