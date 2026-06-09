@@ -33,6 +33,7 @@ export default async function SettingsPage() {
   const tm = await getTranslations("memory");
   const ta = await getTranslations("activity");
   const tc = await getTranslations("connections");
+  const tl = await getTranslations("learning");
   const user = await requireUser();
   const [profile, settings, planContext] = await Promise.all([
     getProfile(user.id),
@@ -107,6 +108,17 @@ export default async function SettingsPage() {
           <CardContent>
             <Button asChild variant="outline">
               <Link href="/settings/memory">{tm("manage")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{tl("title")}</CardTitle>
+            <CardDescription>{tl("subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/settings/learning">{tl("manage")}</Link>
             </Button>
           </CardContent>
         </Card>

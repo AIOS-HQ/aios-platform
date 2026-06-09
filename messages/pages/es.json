@@ -607,5 +607,37 @@
       "revoked": "Desconectado",
       "disconnected": "Desconectado"
     }
+  },
+  "learning": {
+    "title": "Aprendizaje automático",
+    "subtitle": "Harmony aprende de tu actividad para adaptarse a ti, y tú mantienes el control.",
+    "manage": "Gestionar aprendizaje",
+    "statusHeading": "Estado del aprendizaje",
+    "statusOn": "Harmony está aprendiendo de tu actividad. Se están capturando nuevas memorias automáticas.",
+    "statusOff": "El aprendizaje está desactivado. Harmony no capturará nuevas memorias automáticas. Aún puedes añadir y revisar memorias manualmente.",
+    "on": "Activado",
+    "off": "Desactivado",
+    "enable": "Activar aprendizaje",
+    "disable": "Desactivar aprendizaje",
+    "saving": "Guardando",
+    "enabledToast": "Aprendizaje automático activado.",
+    "disabledToast": "Aprendizaje automático desactivado.",
+    "signalsHeading": "Lo que Harmony ha aprendido",
+    "signalsSubtitle": "Los tipos de memorias capturadas de tu actividad.",
+    "decisionsHeading": "Decisiones recientes",
+    "reviewCta": "Revisar y eliminar memorias",
+    "categories": {
+      "preference": "Preferencias",
+      "episodic": "Episódica",
+      "pattern": "Patrones"
+    },
+    "empty": {
+      "title": "Aún no se ha aprendido nada",
+      "description": "A medida que usas Harmony, captura preferencias, resultados y patrones aquí. Puedes desactivarlo cuando quieras."
+    },
+    "errors": {
+      "unauthorized": "Inicia sesión para gestionar el aprendizaje.",
+      "saveFailed": "No se pudo actualizar el aprendizaje. Inténtalo de nuevo."
+    }
   }
 }
