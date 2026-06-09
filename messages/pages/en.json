@@ -607,5 +607,37 @@
       "revoked": "Disconnected",
       "disconnected": "Disconnected"
     }
+  },
+  "learning": {
+    "title": "Auto-learning",
+    "subtitle": "Harmony learns from your activity to adapt to you — and you stay in control.",
+    "manage": "Manage learning",
+    "statusHeading": "Learning status",
+    "statusOn": "Harmony is learning from your activity. New automatic memories are being captured.",
+    "statusOff": "Learning is off. Harmony won't capture new automatic memories. You can still add and review memories manually.",
+    "on": "On",
+    "off": "Off",
+    "enable": "Turn on learning",
+    "disable": "Turn off learning",
+    "saving": "Saving",
+    "enabledToast": "Auto-learning turned on.",
+    "disabledToast": "Auto-learning turned off.",
+    "signalsHeading": "What Harmony has learned",
+    "signalsSubtitle": "The kinds of memories captured from your activity.",
+    "decisionsHeading": "Recent decisions",
+    "reviewCta": "Review and delete memories",
+    "categories": {
+      "preference": "Preferences",
+      "episodic": "Episodic",
+      "pattern": "Patterns"
+    },
+    "empty": {
+      "title": "Nothing learned yet",
+      "description": "As you use Harmony, it captures preferences, outcomes, and patterns here. You can turn this off any time."
+    },
+    "errors": {
+      "unauthorized": "Please sign in to manage learning.",
+      "saveFailed": "Couldn't update learning. Please try again."
+    }
   }
 }

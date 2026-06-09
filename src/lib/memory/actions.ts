@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/user";
 import type { ActionState } from "@/lib/types";
 import { deleteMemory, recordMemory } from "@/lib/memory/service";
 import { isMemoryKind } from "@/lib/memory/types";
+import { setLearningEnabled } from "@/lib/memory/learning";
 
 /** Manually add a memory (user action). Owner-scoped via the RLS server client. */
 export async function addMemoryAction(
@@ -50,4 +51,24 @@ export async function deleteMemoryAction(
 
   revalidatePath("/settings/memory");
   return { status: "success", message: t("deletedToast") };
+}
+
+/** Enable or disable Harmony auto-learning for the current user. */
+export async function setLearningAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const t = await getTranslations("learning");
+  const user = await getCurrentUser();
+  if (!user) return { status: "error", message: t("errors.unauthorized") };
+
+  const enabled = String(formData.get("enabled") ?? "") === "true";
+  const ok = await setLearningEnabled(user.id, enabled);
+  if (!ok) return { status: "error", message: t("errors.saveFailed") };
+
+  revalidatePath("/settings/learning");
+  return {
+    status: "success",
+    message: enabled ? t("enabledToast") : t("disabledToast"),
+  };
 }
