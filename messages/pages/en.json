@@ -553,5 +553,36 @@
       "notFound": "Memory not found.",
       "deleteFailed": "Couldn't delete the memory. Please try again."
     }
+  },
+  "activity": {
+    "title": "Activity",
+    "subtitle": "Every action Harmony takes on your behalf — review, approve, and audit.",
+    "manage": "View activity",
+    "approve": "Approve",
+    "approving": "Approving",
+    "reject": "Reject",
+    "rejecting": "Rejecting",
+    "approvedToast": "Action approved.",
+    "rejectedToast": "Action rejected.",
+    "sourceLabel": "Source: {source}",
+    "errorLabel": "Error: {error}",
+    "empty": {
+      "title": "No activity yet",
+      "description": "When Harmony runs a tool or proposes an action, it appears here for you to review."
+    },
+    "statuses": {
+      "pending": "Pending approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "executed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "errors": {
+      "unauthorized": "Please sign in to manage activity.",
+      "notFound": "Action not found.",
+      "approveFailed": "Couldn't approve the action. Please try again.",
+      "rejectFailed": "Couldn't reject the action. Please try again."
+    }
   }
 }

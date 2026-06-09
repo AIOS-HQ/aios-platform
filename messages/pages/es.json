@@ -553,5 +553,36 @@
       "notFound": "Memoria no encontrada.",
       "deleteFailed": "No se pudo eliminar la memoria. Inténtalo de nuevo."
     }
+  },
+  "activity": {
+    "title": "Actividad",
+    "subtitle": "Cada acción que Harmony realiza por ti: revisa, aprueba y audita.",
+    "manage": "Ver actividad",
+    "approve": "Aprobar",
+    "approving": "Aprobando",
+    "reject": "Rechazar",
+    "rejecting": "Rechazando",
+    "approvedToast": "Acción aprobada.",
+    "rejectedToast": "Acción rechazada.",
+    "sourceLabel": "Origen: {source}",
+    "errorLabel": "Error: {error}",
+    "empty": {
+      "title": "Aún no hay actividad",
+      "description": "Cuando Harmony ejecute una herramienta o proponga una acción, aparecerá aquí para que la revises."
+    },
+    "statuses": {
+      "pending": "Pendiente de aprobación",
+      "approved": "Aprobada",
+      "rejected": "Rechazada",
+      "executed": "Completada",
+      "failed": "Fallida",
+      "cancelled": "Cancelada"
+    },
+    "errors": {
+      "unauthorized": "Inicia sesión para gestionar la actividad.",
+      "notFound": "Acción no encontrada.",
+      "approveFailed": "No se pudo aprobar la acción. Inténtalo de nuevo.",
+      "rejectFailed": "No se pudo rechazar la acción. Inténtalo de nuevo."
+    }
   }
 }
