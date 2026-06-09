@@ -30,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SettingsPage() {
   const t = await getTranslations("settings");
   const ti = await getTranslations("integrations");
+  const tm = await getTranslations("memory");
   const user = await requireUser();
   const [profile, settings, planContext] = await Promise.all([
     getProfile(user.id),
@@ -82,6 +83,17 @@ export default async function SettingsPage() {
           <CardContent>
             <Button asChild variant="outline">
               <Link href="/settings/integrations">{ti("manage")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{tm("title")}</CardTitle>
+            <CardDescription>{tm("subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/settings/memory">{tm("manage")}</Link>
             </Button>
           </CardContent>
         </Card>

@@ -513,5 +513,45 @@
       "disconnect": "Desconectar",
       "error": "Algo salió mal. Inténtalo de nuevo."
     }
+  },
+  "memory": {
+    "title": "Memoria",
+    "subtitle": "Lo que Harmony recuerda por ti — ver, añadir y eliminar memorias.",
+    "manage": "Gestionar memoria",
+    "addHeading": "Añadir una memoria",
+    "addSubtitle": "Enseña algo a Harmony para que lo recuerde. Usa las memorias como contexto.",
+    "kindLabel": "Tipo",
+    "contentLabel": "Memoria",
+    "contentPlaceholder": "p. ej. Prefiero resúmenes concisos y reuniones por la mañana.",
+    "addButton": "Guardar memoria",
+    "adding": "Guardando",
+    "addedToast": "Memoria guardada.",
+    "deletedToast": "Memoria eliminada.",
+    "deleteButton": "Eliminar memoria",
+    "deleting": "Eliminando",
+    "importanceLabel": "Importancia {value}/5",
+    "sourceLabel": "Origen: {source}",
+    "empty": {
+      "title": "Aún no hay memorias",
+      "description": "Añade tu primera memoria arriba. Harmony también recordará acciones clave con el tiempo."
+    },
+    "kinds": {
+      "preference": "Preferencia",
+      "task": "Tarea",
+      "approval": "Aprobación",
+      "decision": "Decisión",
+      "conversation": "Conversación",
+      "department_activity": "Actividad de departamento",
+      "workflow_outcome": "Resultado de flujo",
+      "pattern": "Patrón"
+    },
+    "errors": {
+      "unauthorized": "Inicia sesión para gestionar la memoria.",
+      "invalidKind": "Elige un tipo de memoria válido.",
+      "empty": "El contenido de la memoria no puede estar vacío.",
+      "saveFailed": "No se pudo guardar la memoria. Inténtalo de nuevo.",
+      "notFound": "Memoria no encontrada.",
+      "deleteFailed": "No se pudo eliminar la memoria. Inténtalo de nuevo."
+    }
   }
 }
