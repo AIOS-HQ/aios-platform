@@ -617,7 +617,8 @@
       "error": "Requiere acción",
       "revoked": "Desconectado",
       "disconnected": "Desconectado"
-    }
+    },
+    "authorize": "Autorizar"
   },
   "learning": {
     "title": "Aprendizaje automático",

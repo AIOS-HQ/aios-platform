@@ -617,7 +617,8 @@
       "error": "Action needed",
       "revoked": "Disconnected",
       "disconnected": "Disconnected"
-    }
+    },
+    "authorize": "Authorize"
   },
   "learning": {
     "title": "Auto-learning",
