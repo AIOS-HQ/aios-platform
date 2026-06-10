@@ -19,7 +19,14 @@ const AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
 const SCOPES = ["read:user", "repo"];
 
 function base(): string {
-  return (env.siteUrl || "http://localhost:3000").replace(/\/$/, "");
+  // Prefer the configured public app URL. In production we must NEVER fall back
+  // to localhost (that produced the broken OAuth redirect_uri); localhost is for
+  // local development only.
+  const configured = process.env.NEXT_PUBLIC_APP_URL || env.siteUrl;
+  if (process.env.NODE_ENV === "production") {
+    return (configured || "https://aios-platform-omega.vercel.app").replace(/\/$/, "");
+  }
+  return (configured || "http://localhost:3000").replace(/\/$/, "");
 }
 
 export async function GET() {

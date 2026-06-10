@@ -18,7 +18,15 @@ const STATE_COOKIE = "gh_oauth_state";
 const TOKEN_URL = "https://github.com/login/oauth/access_token";
 
 function base(): string {
-  return (env.siteUrl || "http://localhost:3000").replace(/\/$/, "");
+  // Prefer the configured public app URL. In production we must NEVER fall back
+  // to localhost (that produced the broken OAuth redirect_uri); localhost is for
+  // local development only. The callback redirect_uri must match the connect
+  // route exactly, so both derive from this same helper.
+  const configured = process.env.NEXT_PUBLIC_APP_URL || env.siteUrl;
+  if (process.env.NODE_ENV === "production") {
+    return (configured || "https://aios-platform-omega.vercel.app").replace(/\/$/, "");
+  }
+  return (configured || "http://localhost:3000").replace(/\/$/, "");
 }
 
 export async function GET(req: Request) {
