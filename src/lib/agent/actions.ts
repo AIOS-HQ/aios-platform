@@ -35,6 +35,7 @@ export async function approveActionAction(
   );
 
   revalidatePath("/settings/activity");
+  revalidatePath("/settings/approvals");
   return { status: "success", message: t("approvedToast") };
 }
 
@@ -66,5 +67,6 @@ export async function rejectActionAction(
   );
 
   revalidatePath("/settings/activity");
+  revalidatePath("/settings/approvals");
   return { status: "success", message: t("rejectedToast") };
 }

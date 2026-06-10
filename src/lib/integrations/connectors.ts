@@ -1,13 +1,15 @@
 /**
- * Harmony connector framework (Phase 6a).
+ * Harmony connector framework.
  *
  * Client-safe metadata describing every connector Harmony can use, the
- * capabilities each exposes (read vs write), and the credentials each will
- * eventually require. This is the source of truth for the Connections dashboard.
+ * capabilities each exposes, the risk class of each capability (which governs
+ * autonomous vs approval-gated execution), and the credentials each will
+ * eventually require. Source of truth for the Connections dashboard, the
+ * autonomy policy engine, and the Approval Center.
  *
- * It contains NO secrets — only the NAMES of the environment variables a founder
- * will set later. No live OAuth happens here. The legacy provider catalog in
- * `catalog.ts` still powers /settings/integrations; this framework is additive.
+ * Contains NO secrets — only the NAMES of env vars a founder will set later.
+ * No live OAuth happens here. The legacy catalog in `catalog.ts` still powers
+ * /settings/integrations; this framework is additive.
  */
 
 export type ConnectorAuth = "oauth2" | "api_key" | "webhook";
@@ -15,14 +17,25 @@ export type ConnectorCategory =
   | "development"
   | "communication"
   | "productivity"
-  | "data";
+  | "data"
+  | "social";
 export type OAuthFamily = "google" | "github" | "slack";
+
+/**
+ * Risk class governs autonomy:
+ *  - routine     → executes autonomously (owner-scoped + audited)
+ *  - approval    → held for founder approval before executing
+ *  - destructive → held for founder approval AND flagged high-risk / irreversible
+ */
+export type RiskClass = "routine" | "approval" | "destructive";
 
 export interface ConnectorCapability {
   /** Stable id, e.g. "list_issues". */
   id: string;
-  /** read = safe, runs directly; write = requires founder approval first. */
+  /** read = data only; write = changes state somewhere. */
   mode: "read" | "write";
+  /** Explicit risk override. Defaults: read → routine, write → approval. */
+  risk?: RiskClass;
 }
 
 export interface ConnectorDef {
@@ -47,6 +60,7 @@ export interface ConnectorDef {
 }
 
 export const CONNECTORS: ConnectorDef[] = [
+  // ---- Founder Stack ------------------------------------------------------
   {
     id: "github",
     name: "GitHub",
@@ -60,7 +74,16 @@ export const CONNECTORS: ConnectorDef[] = [
     capabilities: [
       { id: "list_repos", mode: "read" },
       { id: "list_issues", mode: "read" },
-      { id: "create_issue", mode: "write" },
+      { id: "list_pull_requests", mode: "read" },
+      { id: "list_branches", mode: "read" },
+      { id: "list_workflows", mode: "read" },
+      { id: "review_build_result", mode: "read" },
+      { id: "monitor_deployment", mode: "read" },
+      { id: "create_branch", mode: "write", risk: "routine" },
+      { id: "open_pull_request", mode: "write", risk: "routine" },
+      { id: "create_issue", mode: "write", risk: "routine" },
+      { id: "merge_pull_request", mode: "write", risk: "approval" },
+      { id: "delete_repository", mode: "write", risk: "destructive" },
     ],
   },
   {
@@ -76,67 +99,9 @@ export const CONNECTORS: ConnectorDef[] = [
       { id: "production_url_verification", mode: "read" },
       { id: "build_status", mode: "read" },
       { id: "env_var_presence", mode: "read" },
-    ],
-  },
-  {
-    id: "gmail",
-    name: "Gmail",
-    category: "communication",
-    auth: "oauth2",
-    oauthFamily: "google",
-    scopes: [
-      "https://www.googleapis.com/auth/gmail.readonly",
-      "https://www.googleapis.com/auth/gmail.send",
-    ],
-    initials: "GM",
-    docsUrl: "https://developers.google.com/gmail/api",
-    requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
-    capabilities: [
-      { id: "list_messages", mode: "read" },
-      { id: "send_message", mode: "write" },
-    ],
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    category: "communication",
-    auth: "oauth2",
-    oauthFamily: "slack",
-    scopes: ["channels:read", "chat:write"],
-    initials: "SL",
-    docsUrl: "https://api.slack.com",
-    requiredEnv: ["SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "SLACK_SIGNING_SECRET"],
-    capabilities: [
-      { id: "list_channels", mode: "read" },
-      { id: "post_message", mode: "write" },
-    ],
-  },
-  {
-    id: "google_calendar",
-    name: "Google Calendar",
-    category: "productivity",
-    auth: "oauth2",
-    oauthFamily: "google",
-    scopes: ["https://www.googleapis.com/auth/calendar.events"],
-    initials: "GC",
-    docsUrl: "https://developers.google.com/calendar",
-    requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
-    capabilities: [
-      { id: "list_events", mode: "read" },
-      { id: "create_event", mode: "write" },
-    ],
-  },
-  {
-    id: "webhooks",
-    name: "Webhooks",
-    category: "productivity",
-    auth: "webhook",
-    initials: "WH",
-    docsUrl: "https://developer.mozilla.org/docs/Web/API/Fetch_API",
-    requiredEnv: ["WEBHOOK_SIGNING_SECRET"],
-    capabilities: [
-      { id: "list_endpoints", mode: "read" },
-      { id: "send_event", mode: "write" },
+      { id: "list_deployments", mode: "read" },
+      { id: "trigger_deployment", mode: "write", risk: "routine" },
+      { id: "delete_env_var", mode: "write", risk: "destructive" },
     ],
   },
   {
@@ -152,6 +117,138 @@ export const CONNECTORS: ConnectorDef[] = [
       { id: "migration_verification", mode: "read" },
       { id: "public_table_inspection", mode: "read" },
       { id: "rls_diagnostics", mode: "read" },
+      { id: "monitor_database_health", mode: "read" },
+      { id: "destroy_database", mode: "write", risk: "destructive" },
+    ],
+  },
+  // ---- Content Engine -----------------------------------------------------
+  {
+    id: "youtube",
+    name: "YouTube",
+    category: "social",
+    auth: "oauth2",
+    oauthFamily: "google",
+    scopes: ["https://www.googleapis.com/auth/youtube.readonly"],
+    initials: "YT",
+    docsUrl: "https://developers.google.com/youtube",
+    requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    capabilities: [
+      { id: "research_topic", mode: "read" },
+      { id: "generate_script", mode: "write", risk: "routine" },
+      { id: "generate_metadata", mode: "write", risk: "routine" },
+      { id: "generate_thumbnail", mode: "write", risk: "routine" },
+      { id: "publish_video", mode: "write", risk: "approval" },
+      { id: "upload_short", mode: "write", risk: "approval" },
+      { id: "delete_video", mode: "write", risk: "destructive" },
+    ],
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    category: "social",
+    auth: "oauth2",
+    scopes: ["openid", "profile", "w_member_social"],
+    initials: "in",
+    docsUrl: "https://learn.microsoft.com/linkedin",
+    requiredEnv: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+    capabilities: [
+      { id: "research_topic", mode: "read" },
+      { id: "draft_post", mode: "write", risk: "routine" },
+      { id: "generate_hashtags", mode: "write", risk: "routine" },
+      { id: "publish_post", mode: "write", risk: "approval" },
+      { id: "delete_post", mode: "write", risk: "destructive" },
+    ],
+  },
+  {
+    id: "tiktok",
+    name: "TikTok",
+    category: "social",
+    auth: "oauth2",
+    scopes: ["user.info.basic", "video.list"],
+    initials: "TT",
+    docsUrl: "https://developers.tiktok.com",
+    requiredEnv: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
+    capabilities: [
+      { id: "research_topic", mode: "read" },
+      { id: "generate_concept", mode: "write", risk: "routine" },
+      { id: "generate_caption", mode: "write", risk: "routine" },
+      { id: "publish_video", mode: "write", risk: "approval" },
+      { id: "delete_video", mode: "write", risk: "destructive" },
+    ],
+  },
+  // ---- Chief of Staff -----------------------------------------------------
+  {
+    id: "gmail",
+    name: "Gmail",
+    category: "communication",
+    auth: "oauth2",
+    oauthFamily: "google",
+    scopes: [
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.send",
+    ],
+    initials: "GM",
+    docsUrl: "https://developers.google.com/gmail/api",
+    requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    capabilities: [
+      { id: "list_messages", mode: "read" },
+      { id: "categorize_messages", mode: "read" },
+      { id: "draft_response", mode: "write", risk: "routine" },
+      { id: "archive_message", mode: "write", risk: "routine" },
+      { id: "send_message", mode: "write", risk: "approval" },
+    ],
+  },
+  {
+    id: "google_calendar",
+    name: "Google Calendar",
+    category: "productivity",
+    auth: "oauth2",
+    oauthFamily: "google",
+    scopes: ["https://www.googleapis.com/auth/calendar.events"],
+    initials: "GC",
+    docsUrl: "https://developers.google.com/calendar",
+    requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    capabilities: [
+      { id: "list_events", mode: "read" },
+      { id: "monitor_schedule", mode: "read" },
+      { id: "create_event", mode: "write", risk: "routine" },
+      { id: "resolve_conflict", mode: "write", risk: "routine" },
+      { id: "adjust_availability", mode: "write", risk: "routine" },
+      { id: "cancel_external_meeting", mode: "write", risk: "approval" },
+    ],
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    category: "communication",
+    auth: "oauth2",
+    oauthFamily: "slack",
+    scopes: ["channels:read", "chat:write"],
+    initials: "SL",
+    docsUrl: "https://api.slack.com",
+    requiredEnv: ["SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "SLACK_SIGNING_SECRET"],
+    capabilities: [
+      { id: "list_channels", mode: "read" },
+      { id: "monitor_channels", mode: "read" },
+      { id: "summarize_discussion", mode: "read" },
+      { id: "respond_routine", mode: "write", risk: "routine" },
+      { id: "route_issue", mode: "write", risk: "routine" },
+      { id: "post_announcement", mode: "write", risk: "approval" },
+    ],
+  },
+  {
+    id: "webhooks",
+    name: "Webhooks",
+    category: "productivity",
+    auth: "webhook",
+    initials: "WH",
+    docsUrl: "https://developer.mozilla.org/docs/Web/API/Fetch_API",
+    requiredEnv: ["WEBHOOK_SIGNING_SECRET"],
+    capabilities: [
+      { id: "list_endpoints", mode: "read" },
+      { id: "trigger_workflow", mode: "write", risk: "routine" },
+      { id: "notify_service", mode: "write", risk: "routine" },
+      { id: "send_event", mode: "write", risk: "routine" },
     ],
   },
 ];
@@ -161,6 +258,7 @@ export const CONNECTOR_CATEGORIES: ConnectorCategory[] = [
   "communication",
   "productivity",
   "data",
+  "social",
 ];
 
 export function getConnector(id: string): ConnectorDef | undefined {

@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
+import { effectiveRisk } from "@/lib/agent/policy";
 
 /**
  * Connector capability runtime (Phase 6a).
@@ -61,13 +62,26 @@ export async function runConnectorCapability(
     return { ok: false, status: "failed", message: "unknown_capability" };
   }
 
-  // Write actions are held for founder approval (human-in-the-loop).
-  if (capability.mode === "write" && !options.approved) {
-    await audit(userId, tool, "pending", true, null, params);
-    return { ok: true, status: "pending", message: "needs_approval" };
-  }
+  const risk = effectiveRisk(capability);
+  const requiresApproval = risk !== "routine";
 
-  const requiresApproval = capability.mode === "write";
+  // Sensitive (approval) and high-risk (destructive) actions are held for the
+  // founder; routine actions may proceed autonomously. Human-in-the-loop.
+  if (requiresApproval && !options.approved) {
+    await audit(
+      userId,
+      tool,
+      "pending",
+      true,
+      risk === "destructive" ? "destructive" : null,
+      params,
+    );
+    return {
+      ok: true,
+      status: "pending",
+      message: risk === "destructive" ? "needs_approval_destructive" : "needs_approval",
+    };
+  }
 
   // Cannot run until the founder has configured the connector.
   if (!isConnectorConfigured(connector)) {
