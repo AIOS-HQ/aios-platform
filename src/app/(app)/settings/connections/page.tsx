@@ -11,6 +11,7 @@ import { getConnections } from "@/lib/integrations/connections";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -80,6 +81,13 @@ export default async function ConnectionsPage() {
                           <Badge variant={STATUS_VARIANT[status] ?? "secondary"}>
                             {t(`status.${status}`)}
                           </Badge>
+                          {c.authorizable && status === "ready" ? (
+                            <Button asChild size="sm">
+                              <a href={`/api/integrations/${c.id}/connect`}>
+                                {t("authorize")}
+                              </a>
+                            </Button>
+                          ) : null}
                           {connection ? (
                             <DisconnectButton
                               provider={c.id}

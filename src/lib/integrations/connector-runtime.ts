@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
 import { effectiveRisk } from "@/lib/agent/policy";
+import { runGithubRead } from "@/lib/integrations/clients/github";
 
 /**
  * Connector capability runtime (Phase 6a).
@@ -18,8 +19,9 @@ import { effectiveRisk } from "@/lib/agent/policy";
 
 export interface ConnectorRunResult {
   ok: boolean;
-  status: "pending" | "blocked" | "failed";
+  status: "executed" | "pending" | "blocked" | "failed";
   message: string;
+  data?: Record<string, unknown>;
 }
 
 async function audit(
@@ -89,7 +91,26 @@ export async function runConnectorCapability(
     return { ok: false, status: "blocked", message: "not_configured" };
   }
 
-  // Live provider client lands in a later PR (gated on founder credentials).
+  // Live execution — GitHub read capabilities (PR 6c). All owner-scoped + audited.
+  if (connectorId === "github" && capability.mode === "read") {
+    const result = await runGithubRead(userId, capabilityId, params);
+    await audit(
+      userId,
+      tool,
+      result.ok ? "executed" : "failed",
+      requiresApproval,
+      result.ok ? null : (result.error ?? "failed"),
+      params,
+    );
+    return {
+      ok: result.ok,
+      status: result.ok ? "executed" : "failed",
+      message: result.ok ? "ok" : (result.error ?? "failed"),
+      data: result.data,
+    };
+  }
+
+  // Other connectors' live clients (and GitHub writes) land in later PRs.
   await audit(userId, tool, "failed", requiresApproval, "not_implemented", params);
   return { ok: false, status: "blocked", message: "not_implemented" };
 }

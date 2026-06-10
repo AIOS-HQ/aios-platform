@@ -57,6 +57,8 @@ export interface ConnectorDef {
    */
   requiredEnv: string[];
   capabilities: ConnectorCapability[];
+  /** When true, the dashboard offers a live "Authorize" action (OAuth wired). */
+  authorizable?: boolean;
 }
 
 export const CONNECTORS: ConnectorDef[] = [
@@ -71,6 +73,7 @@ export const CONNECTORS: ConnectorDef[] = [
     initials: "GH",
     docsUrl: "https://docs.github.com/rest",
     requiredEnv: ["GITHUB_OAUTH_CLIENT_ID", "GITHUB_OAUTH_CLIENT_SECRET"],
+    authorizable: true,
     capabilities: [
       { id: "list_repos", mode: "read" },
       { id: "list_issues", mode: "read" },
