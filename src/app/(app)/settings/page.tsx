@@ -35,6 +35,7 @@ export default async function SettingsPage() {
   const tc = await getTranslations("connections");
   const tl = await getTranslations("learning");
   const td = await getTranslations("diagnostics");
+  const tap = await getTranslations("approvals");
   const user = await requireUser();
   const [profile, settings, planContext] = await Promise.all([
     getProfile(user.id),
@@ -142,6 +143,17 @@ export default async function SettingsPage() {
           <CardContent>
             <Button asChild variant="outline">
               <Link href="/settings/activity">{ta("manage")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{tap("title")}</CardTitle>
+            <CardDescription>{tap("subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href="/settings/approvals">{tap("manage")}</Link>
             </Button>
           </CardContent>
         </Card>

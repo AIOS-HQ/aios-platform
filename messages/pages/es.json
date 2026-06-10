@@ -602,7 +602,8 @@
       "development": "Desarrollo",
       "communication": "Comunicación",
       "productivity": "Productividad",
-      "data": "Datos"
+      "data": "Datos",
+      "social": "Social"
     },
     "empty": {
       "title": "No hay cuentas conectadas",
@@ -696,5 +697,19 @@
       "missingToken": "Introduce un token para conectar.",
       "saveFailed": "No se pudo guardar. Inténtalo de nuevo."
     }
+  },
+  "approvals": {
+    "title": "Centro de aprobaciones",
+    "subtitle": "Revisa lo que hace Harmony. Las acciones rutinarias se ejecutan de forma autónoma y se registran; las acciones sensibles y de alto riesgo esperan tu aprobación.",
+    "manage": "Abrir centro de aprobaciones",
+    "pendingHeading": "Pendientes de tu aprobación",
+    "pendingEmpty": "Nada esperando aprobación.",
+    "recentHeading": "Acciones recientes",
+    "recentEmpty": "Aún no hay acciones registradas.",
+    "riskRoutine": "Rutinaria",
+    "riskApproval": "Requiere aprobación",
+    "riskHigh": "Alto riesgo",
+    "legend": "Las acciones rutinarias se ejecutan de forma autónoma y se auditan. Las acciones sensibles y de alto riesgo aparecen aquí para tu decisión.",
+    "sourceLabel": "Origen: {source}"
   }
 }

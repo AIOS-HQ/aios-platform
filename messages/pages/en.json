@@ -602,7 +602,8 @@
       "development": "Development",
       "communication": "Communication",
       "productivity": "Productivity",
-      "data": "Data"
+      "data": "Data",
+      "social": "Social"
     },
     "empty": {
       "title": "No connected accounts",
@@ -696,5 +697,19 @@
       "missingToken": "Enter a token to connect.",
       "saveFailed": "Couldn't save. Please try again."
     }
+  },
+  "approvals": {
+    "title": "Approval Center",
+    "subtitle": "Review what Harmony is doing. Routine actions run autonomously and are logged; sensitive and high-risk actions wait for your approval.",
+    "manage": "Open Approval Center",
+    "pendingHeading": "Pending your approval",
+    "pendingEmpty": "Nothing waiting for approval.",
+    "recentHeading": "Recent actions",
+    "recentEmpty": "No recorded actions yet.",
+    "riskRoutine": "Routine",
+    "riskApproval": "Needs approval",
+    "riskHigh": "High risk",
+    "legend": "Routine actions execute autonomously and are audited. Sensitive and high-risk actions appear here for your decision.",
+    "sourceLabel": "Source: {source}"
   }
 }
