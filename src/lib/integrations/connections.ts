@@ -21,7 +21,7 @@ export interface IntegrationConnection {
 const DISPLAY_COLUMNS = "provider,status,scopes,external_account,created_at";
 
 export async function getConnections(userId: string): Promise<IntegrationConnection[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient() ?? (await createClient());
   const { data, error } = await supabase
     .from("integration_connections")
     .select(DISPLAY_COLUMNS)
