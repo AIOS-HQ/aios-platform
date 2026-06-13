@@ -8,6 +8,7 @@ import { detectIntent } from "@/lib/ai/intents";
 import { getProvider, isRealProviderConfigured } from "@/lib/ai/provider";
 import { buildRecommendations } from "@/lib/harmony/advisor";
 import { LIMITS } from "@/lib/limits";
+import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -31,25 +32,38 @@ export async function runOperator(input: string): Promise<OperatorResult> {
 
   const { intent, title } = detectIntent(text);
 
-  // Writes are PROPOSED, not executed (human in control). The client shows a
-  // confirm step; confirmOperatorAction performs the insert on approval.
-  if (intent === "create_task") {
-    if (!title) return { intent, reply: to("needTaskTitle") };
-    return {
-      intent,
-      reply: to("proposeTask", { title }),
-      proposedAction: { type: "create_task", title },
-    };
+// Founder Harmony: autonomous by default.
+// High-risk actions still require approval through requiresApproval(...).
+const effectiveAutonomy: AutonomyLevel = 4;
+const mustApprove = requiresApproval(effectiveAutonomy);
+
+if (intent === "create_task") {
+  if (!title) return { intent, reply: to("needTaskTitle") };
+
+  if (!mustApprove) {
+    return confirmOperatorAction("create_task", title);
   }
 
-  if (intent === "create_goal") {
-    if (!title) return { intent, reply: to("needGoalTitle") };
-    return {
-      intent,
-      reply: to("proposeGoal", { title }),
-      proposedAction: { type: "create_goal", title },
-    };
+  return {
+    intent,
+    reply: to("proposeTask", { title }),
+    proposedAction: { type: "create_task", title },
+  };
+}
+
+if (intent === "create_goal") {
+  if (!title) return { intent, reply: to("needGoalTitle") };
+
+  if (!mustApprove) {
+    return confirmOperatorAction("create_goal", title);
   }
+
+  return {
+    intent,
+    reply: to("proposeGoal", { title }),
+    proposedAction: { type: "create_goal", title },
+  };
+}
 
   const supabase = await createClient();
 
