@@ -177,7 +177,7 @@ if (workItem?.objective_id) {
 }
 
 revalidateWork(id);
-
+}
 export async function deleteWorkItem(formData: FormData): Promise<void> {
   const user = await requireUser();
   const id = String(formData.get("id") ?? "");
