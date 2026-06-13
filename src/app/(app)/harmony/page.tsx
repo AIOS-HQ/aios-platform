@@ -130,7 +130,7 @@ export default async function CommandCenterPage() {
   return (
     <>
       <PageHeader title={t("greeting", { name })} description={t("subtitle")}>
-        <HarmonyDelegateDialog companies={companyOpts} objectives={objectives} departments={deptOpts}>
+        <HarmonyDelegateDialog companies={companyOpts} objectives={objectives.map((o) => ({ id: o.id, name: o.title }))} departments={deptOpts}>
           <Button>
             <Sparkles className="size-4" aria-hidden="true" />
             {t("delegate")}
