@@ -29,6 +29,7 @@ import { LIMITS } from "@/lib/limits";
 
 type CompanyOpt = { id: string; name: string };
 type DeptOpt = { id: string; name: string; company_id: string };
+type ObjectiveOpt = { id: string; name: string };
 
 /**
  * "Tell Harmony what to do." Creates a work item and routes it to the chosen
@@ -36,10 +37,12 @@ type DeptOpt = { id: string; name: string; company_id: string };
  */
 export function HarmonyDelegateDialog({
   companies,
+  objectives,
   departments,
   children,
 }: {
   companies: CompanyOpt[];
+  objectives: ObjectiveOpt[];
   departments: DeptOpt[];
   children: React.ReactNode;
 }) {
@@ -120,6 +123,24 @@ export function HarmonyDelegateDialog({
                 </SelectContent>
               </Select>
             </div>
+
+
+            <div className="space-y-2">
+  <Label htmlFor="delegate-objective">Objective</Label>
+  <Select name="objective_id" defaultValue="none">
+    <SelectTrigger id="delegate-objective">
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="none">No objective</SelectItem>
+      {objectives.map((o) => (
+        <SelectItem key={o.id} value={o.id}>
+          {o.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
             <div className="space-y-2">
               <Label htmlFor="delegate-dept">{t("fields.department")}</Label>
               <Select name="department_id" defaultValue="none">
