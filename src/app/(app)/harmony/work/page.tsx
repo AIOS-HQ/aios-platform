@@ -62,7 +62,7 @@ export default async function WorkQueuePage() {
 
   const dialogProps = {
     companies: companies.map((c) => ({ id: c.id, name: c.name })),
-    objectives: objectives.map((o) => ({ id: o.id, name: o.name })),
+    objectives: objectives.map((o) => ({ id: o.id, name: o.title })),
     departments: deptOpts,
     agents: agentOpts,
     projects: projectOpts,
