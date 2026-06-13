@@ -138,13 +138,45 @@ export async function setWorkStatus(formData: FormData): Promise<void> {
   const next = status(formData.get("status"));
   if (!id) return;
   const supabase = await createClient();
-  await supabase
+  const { data: workItem } = await supabase
+  .from("work_items")
+  .update({ status: next })
+  .eq("id", id)
+  .eq("user_id", user.id)
+  .select("id, objective_id")
+  .single();
+
+if (workItem?.objective_id) {
+  const { count: total } = await supabase
     .from("work_items")
-    .update({ status: next })
-    .eq("id", id)
+    .select("id", { count: "exact", head: true })
+    .eq("objective_id", workItem.objective_id)
     .eq("user_id", user.id);
-  revalidateWork(id);
+
+  const { count: completed } = await supabase
+    .from("work_items")
+    .select("id", { count: "exact", head: true })
+    .eq("objective_id", workItem.objective_id)
+    .eq("user_id", user.id)
+    .eq("status", "completed");
+
+  const progress =
+    total && total > 0 ? Math.round(((completed ?? 0) / total) * 100) : 0;
+
+  await supabase
+    .from("objectives")
+    .update({
+      progress,
+      status: progress === 100 ? "completed" : "active",
+    })
+    .eq("id", workItem.objective_id)
+    .eq("user_id", user.id);
+
+  revalidatePath(`/harmony/objectives/${workItem.objective_id}`);
+  revalidatePath("/harmony/objectives");
 }
+
+revalidateWork(id);
 
 export async function deleteWorkItem(formData: FormData): Promise<void> {
   const user = await requireUser();
