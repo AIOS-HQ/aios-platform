@@ -57,6 +57,7 @@ export async function delegateToHarmony(
       user_id: user.id,
       company_id: companyId,
       department_id: departmentId,
+      objective_id: refOrNull(formData.get("objective_id")),
       title,
       description,
       status: "pending",
