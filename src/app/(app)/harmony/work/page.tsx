@@ -5,6 +5,7 @@ import { ListChecks, Pencil, Play, Plus, Sparkles, Trash2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listWorkItems } from "@/lib/data/os/work-items";
 import { listCompanies } from "@/lib/data/os/companies";
+import { listObjectives } from "@/lib/data/os/objectives";
 import { listDepartments } from "@/lib/data/os/departments";
 import { listAllAgents } from "@/lib/data/os/agents";
 import { listProjects } from "@/lib/data/os/projects";
@@ -42,12 +43,13 @@ export default async function WorkQueuePage() {
   const locale = await getLocale();
   await requireUser();
 
-  const [items, companies, departments, agents, projects] = await Promise.all([
-    listWorkItems(),
-    listCompanies(),
-    listDepartments(),
-    listAllAgents(),
-    listProjects(),
+  const [items, companies, objectives, departments, agents, projects] = await Promise.all([
+     listWorkItems(),
+     listCompanies(),
+     listObjectives(),
+     listDepartments(),
+     listAllAgents(),
+     listProjects(),
   ]);
 
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
@@ -60,6 +62,7 @@ export default async function WorkQueuePage() {
 
   const dialogProps = {
     companies: companies.map((c) => ({ id: c.id, name: c.name })),
+    objectives: objectives.map((o) => ({ id: o.id, name: o.name })),
     departments: deptOpts,
     agents: agentOpts,
     projects: projectOpts,
@@ -73,6 +76,7 @@ export default async function WorkQueuePage() {
             <HarmonyDelegateDialog
               companies={dialogProps.companies}
               departments={dialogProps.departments}
+              objectives={dialogProps.objectives}
             >
               <Button>
                 <Sparkles className="size-4" aria-hidden="true" />
