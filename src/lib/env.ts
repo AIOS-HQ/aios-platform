@@ -16,7 +16,7 @@ export const env = {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     "",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  aiProvider: (process.env.AI_PROVIDER ?? "mock").toLowerCase(),
+  aiProvider: (process.env.AI_PROVIDER ?? "openai").toLowerCase(),
 } as const;
 
 /** True when the Supabase public env vars are present. */
