@@ -9,6 +9,7 @@ import { getProvider, isRealProviderConfigured } from "@/lib/ai/provider";
 import { buildRecommendations } from "@/lib/harmony/advisor";
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
+import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -31,6 +32,47 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   }
 
   const { intent, title } = detectIntent(text);
+  // Founder Business Harmony
+    if (
+      text.toLowerCase().startsWith("business:") ||
+      text.toLowerCase().startsWith("company:")
+    ) {
+      const formData = new FormData();
+    const supabase = await createClient();
+
+const { data: company } = await supabase
+  .from("companies")
+  .select("id")
+  .eq("user_id", user.id)
+  .limit(1)
+  .maybeSingle();
+
+if (!company?.id) {
+  return {
+    intent: "general",
+    reply:
+      "Harmony needs a company before she can delegate business work.",
+  };
+}
+
+formData.set("company_id", company!.id);
+formData.set("title", text);
+formData.set(
+  "description",
+  "Delegated by Founder Business Harmony"
+);
+
+await delegateToHarmony(
+  { status: "success" },
+  formData
+);
+
+return {
+  intent: "general",
+  reply:
+    "Harmony accepted the business request and delegated execution.",
+};
+    }
 
 // Founder Harmony: autonomous by default.
 // High-risk actions still require approval through requiresApproval(...).
