@@ -82,12 +82,13 @@ export async function delegateToHarmony(
     refId: item.id,
   });
 
-  const outcome = await executeWorkItem(supabase, user.id, item);
-  revalidate();
-  return {
-    status: "success",
-    message: outcome === "completed" ? to("delegate.done") : to("delegate.routed"),
-  };
+ const outcome = await executeWorkItem(supabase, user.id, item);
+revalidate();
+
+return {
+  status: "success",
+  message: `Harmony work item ${item.id} finished with status: ${outcome}.`,
+};
 }
 
 /** Re-run a pending/blocked work item through its autonomy policy. */
