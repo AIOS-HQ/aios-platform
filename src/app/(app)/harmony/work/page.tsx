@@ -157,10 +157,10 @@ export default async function WorkQueuePage() {
                               </p>
                             )}
                           </div>
-                          {item.description && (
-    <p className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
-        {item.description}
-    </p>
+                         {item.description && (
+  <p className="mt-1 truncate text-xs text-muted-foreground">
+    {item.description.split("\n")[0]}
+  </p>
 )}
                           <div className="flex shrink-0 items-center gap-1">
                             {(item.status === "pending" || item.status === "blocked") && (
