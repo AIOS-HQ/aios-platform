@@ -33,9 +33,13 @@ export async function runOperator(input: string): Promise<OperatorResult> {
 
   const { intent, title } = detectIntent(text);
   // Founder Business Harmony
+        const lowerText = text.toLowerCase();
+
     if (
-      text.toLowerCase().startsWith("business:") ||
-      text.toLowerCase().startsWith("company:")
+      lowerText.startsWith("business:") ||
+      lowerText.startsWith("company:") ||
+      lowerText.startsWith("harmony:") ||
+      lowerText.includes("repo:")
     ) {
       const formData = new FormData();
     const supabase = await createClient();
