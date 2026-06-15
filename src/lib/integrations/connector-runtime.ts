@@ -5,6 +5,7 @@ import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
 import { effectiveRisk } from "@/lib/agent/policy";
 import { runGithubRead } from "@/lib/integrations/clients/github";
+import { runGithubWrite } from "@/lib/integrations/clients/github-write";
 
 /**
  * Connector capability runtime (Phase 6a).
@@ -91,9 +92,13 @@ export async function runConnectorCapability(
     return { ok: false, status: "blocked", message: "not_configured" };
   }
 
-  // Live execution — GitHub read capabilities (PR 6c). All owner-scoped + audited.
-  if (connectorId === "github" && capability.mode === "read") {
-    const result = await runGithubRead(userId, capabilityId, params);
+   // Live execution — GitHub capabilities. All owner-scoped + audited.
+  if (connectorId === "github") {
+    const result =
+      capability.mode === "read"
+        ? await runGithubRead(userId, capabilityId, params)
+        : await runGithubWrite(userId, capabilityId, params);
+
     await audit(
       userId,
       tool,
@@ -102,6 +107,7 @@ export async function runConnectorCapability(
       result.ok ? null : (result.error ?? "failed"),
       params,
     );
+
     return {
       ok: result.ok,
       status: result.ok ? "executed" : "failed",
