@@ -61,10 +61,7 @@ if (!company?.id) {
 
 formData.set("company_id", company!.id);
 formData.set("title", text);
-formData.set(
-  "description",
-  "Delegated by Founder Business Harmony"
-);
+formData.set("description", text);
 
 await delegateToHarmony(
   { status: "success" },
