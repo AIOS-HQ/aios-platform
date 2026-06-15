@@ -70,7 +70,7 @@ const result = await delegateToHarmony(
 
 return {
   intent: "general",
-  reply: result.message,
+  reply: result.message ?? "Harmony finished delegation.",
 };
     }
 
