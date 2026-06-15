@@ -63,15 +63,14 @@ formData.set("company_id", company!.id);
 formData.set("title", text);
 formData.set("description", text);
 
-await delegateToHarmony(
+const result = await delegateToHarmony(
   { status: "success" },
   formData
 );
 
 return {
   intent: "general",
-  reply:
-    "Harmony accepted the business request and delegated execution.",
+  reply: result.message,
 };
     }
 
