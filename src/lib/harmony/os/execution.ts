@@ -79,7 +79,24 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
       },
     };
   }
+  if (/(commit|update|create)\s+(a\s+)?file/.test(lower)) {
+    const path = matchValue(text, "path");
+    const branch = matchValue(text, "branch");
+    const content = matchValue(text, "content");
 
+    if (!path || !branch || !content) return null;
+
+    return {
+      capabilityId: "commit_file_to_branch",
+      params: {
+        repo,
+        path,
+        branch,
+        content,
+        message: matchValue(text, "message") ?? `Harmony update ${path}`,
+      },
+    };
+  }
   return null;
 }
 
