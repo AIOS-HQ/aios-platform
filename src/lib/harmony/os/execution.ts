@@ -14,13 +14,9 @@ import {
 import { LIMITS } from "@/lib/limits";
 import type { WorkItem } from "@/types/database";
 
-export type ExecutionOutcome =
-  | "completed"
-  | "awaiting_approval"
-  | "blocked";
-/**
- * Run a work item through its department's autonomy policy — the heart of the
- type GithubIntent = {
+export type ExecutionOutcome = "completed" | "awaiting_approval" | "blocked";
+
+type GithubIntent = {
   capabilityId: string;
   params: Record<string, unknown>;
 };
@@ -84,27 +80,92 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
     };
   }
 
-  if (/(commit|update|create)\s+(a\s+)?file/.test(lower)) {
-    const path = matchValue(text, "path");
-    const branch = matchValue(text, "branch");
-    const content = matchValue(text, "content");
+  return null;
+}
 
-    if (!path || !branch || !content) return null;
+/**
+ * Run a work item through its department's autonomy policy — the heart of the
+ * Helper Execution System.
+ */
+export async function executeWorkItem(
+  supabase: SupabaseClient,
+  userId: string,
+  item: WorkItem,
+  opts?: { force?: boolean },
+): Promise<ExecutionOutcome> {
+  const to = await getTranslations("os");
 
-    return {
-      capabilityId: "commit_file_to_branch",
-      params: {
-        repo,
-          // Execute via GitHub connector when Harmony can infer a GitHub intent.
-  const githubIntent = inferGithubIntent(item);
+  let level: AutonomyLevel = 0;
+  let departmentName = "";
 
-  if (githubIntent) {
+  if (item.department_id) {
+    const { data } = await supabase
+      .from("departments")
+      .select("name, autonomy_level")
+      .eq("id", item.department_id)
+      .maybeSingle();
+
+    const dept = data as { name: string; autonomy_level: number } | null;
+    if (dept) {
+      level = clampAutonomy(dept.autonomy_level ?? 0);
+      departmentName = dept.name ?? "";
+    }
+  }
+
+  if (item.agent_id) {
+    const { data } = await supabase
+      .from("agents")
+      .select("autonomy_level")
+      .eq("id", item.agent_id)
+      .maybeSingle();
+
+    const agent = data as { autonomy_level: number | null } | null;
+    if (agent && agent.autonomy_level != null) {
+      level = resolveAutonomy(level, clampAutonomy(agent.autonomy_level));
+    }
+  }
+
+  if (!opts?.force && requiresApproval(level)) {
     await supabase
       .from("work_items")
-      .update({ status: "in_progress" })
+      .update({ status: "awaiting_approval" })
       .eq("id", item.id)
       .eq("user_id", userId);
 
+    await supabase.from("approvals").insert({
+      user_id: userId,
+      company_id: item.company_id,
+      department_id: item.department_id,
+      agent_id: item.agent_id,
+      work_item_id: item.id,
+      type: "content",
+      title: item.title,
+      summary: item.description,
+      risk: item.priority,
+    });
+
+    await emitActivity({
+      userId,
+      companyId: item.company_id,
+      departmentId: item.department_id,
+      kind: "approval",
+      summary: to("activity.workRouted", { title: item.title }),
+      refType: "work_item",
+      refId: item.id,
+    });
+
+    return "awaiting_approval";
+  }
+
+  await supabase
+    .from("work_items")
+    .update({ status: "in_progress" })
+    .eq("id", item.id)
+    .eq("user_id", userId);
+
+  const githubIntent = inferGithubIntent(item);
+
+  if (githubIntent) {
     const connectorResult = await runConnectorCapability(
       userId,
       "github",
@@ -189,16 +250,11 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
     return "completed";
   }
 
-  // Fallback: execute via active provider when no connector intent is inferred.
-  await supabase
-    .from("work_items")
-    .update({ status: "in_progress" })
-    .eq("id", item.id)
-    .eq("user_id", userId);
-
   let result: string;
   try {
-    const system = to("execution.system", { department: departmentName || "Harmony" });
+    const system = to("execution.system", {
+      department: departmentName || "Harmony",
+    });
     const prompt = `${item.title}\n\n${item.description ?? ""}`.trim();
     result = await getProvider().generate(prompt, system);
   } catch (err) {
@@ -240,91 +296,5 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
     refId: item.id,
   });
 
-  return "completed";
-      .from("agents")
-      .select("autonomy_level")
-      .eq("id", item.agent_id)
-      .maybeSingle();
-    const agent = data as { autonomy_level: number | null } | null;
-    if (agent && agent.autonomy_level != null) {
-      level = resolveAutonomy(level, clampAutonomy(agent.autonomy_level));
-    }
-  }
-
-  // Gate below Autonomous.
-  if (!opts?.force && requiresApproval(level)) {
-    await supabase
-      .from("work_items")
-      .update({ status: "awaiting_approval" })
-      .eq("id", item.id)
-      .eq("user_id", userId);
-    await supabase.from("approvals").insert({
-      user_id: userId,
-      company_id: item.company_id,
-      department_id: item.department_id,
-      agent_id: item.agent_id,
-      work_item_id: item.id,
-      type: "content",
-      title: item.title,
-      summary: item.description,
-      risk: item.priority,
-    });
-    await emitActivity({
-      userId,
-      companyId: item.company_id,
-      departmentId: item.department_id,
-      kind: "approval",
-      summary: to("activity.workRouted", { title: item.title }),
-      refType: "work_item",
-      refId: item.id,
-    });
-    return "awaiting_approval";
-  }
-
-  // Execute via the active provider (real AI when configured; mock otherwise).
-  await supabase
-    .from("work_items")
-    .update({ status: "in_progress" })
-    .eq("id", item.id)
-    .eq("user_id", userId);
-
-  let result: string;
-  try {
-    const system = to("execution.system", { department: departmentName || "Harmony" });
-    const prompt = `${item.title}\n\n${item.description ?? ""}`.trim();
-    result = await getProvider().generate(prompt, system);
-  } catch (err) {
-    console.error("[execution] provider.generate failed", err);
-    result = to("execution.failed");
-    // Provider health monitoring: surface failures in the audit feed.
-    await emitActivity({
-      userId,
-      companyId: item.company_id,
-      departmentId: item.department_id,
-      kind: "system",
-      summary: to("activity.providerError", { title: item.title }),
-      refType: "work_item",
-      refId: item.id,
-    });
-  }
-
-  const note = `\n\n${to("execution.resultLabel")}\n${result}`;
-  const description = `${item.description ?? ""}${note}`.slice(0, LIMITS.noteContent);
-  await supabase
-    .from("work_items")
-    .update({ status: "completed", description })
-    .eq("id", item.id)
-    .eq("user_id", userId);
-  await emitActivity({
-    userId,
-    companyId: item.company_id,
-    departmentId: item.department_id,
-    actorType: "agent",
-    actorId: item.agent_id,
-    kind: "agent_action",
-    summary: to("activity.workCompleted", { title: item.title }),
-    refType: "work_item",
-    refId: item.id,
-  });
   return "completed";
 }
