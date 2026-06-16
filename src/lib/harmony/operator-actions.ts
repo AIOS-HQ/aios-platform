@@ -82,6 +82,22 @@ async function saveOperatorMessage(
     .eq("id", conversationId)
     .eq("user_id", userId);
 }
+async function persistOperatorReply(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  conversationId: string,
+  result: OperatorResult,
+) {
+  await saveOperatorMessage(
+    supabase,
+    userId,
+    conversationId,
+    "outbound",
+    result.reply,
+  );
+
+  return result;
+}
 
 export async function loadOperatorMessages() {
   const user = await requireUser();
