@@ -284,9 +284,13 @@ if (intent === "create_goal") {
     const reply = await getProvider().generate(text, to("system"));
     return { intent: "general", reply };
   }
-  return { intent: "general", reply: to("capabilities") };
+   return persistOperatorReply(
+    supabase,
+    user.id,
+    conversationId,
+    { intent: "general", reply: to("capabilities") },
+  );
 }
-
 /** Executes a previously-proposed Operator write, after the user confirms. */
 export async function confirmOperatorAction(
   type: "create_task" | "create_goal",
