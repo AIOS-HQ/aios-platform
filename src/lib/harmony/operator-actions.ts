@@ -120,6 +120,10 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     user.id,
   );
 
+    if (!conversationId) {
+    return { intent: "general", reply: to("capabilities") };
+  }
+  
   await saveOperatorMessage(
     supabase,
     user.id,
