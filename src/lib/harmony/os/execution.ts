@@ -33,7 +33,11 @@ function matchRepo(text: string): string | null {
 }
 function cleanGithubIssueTitle(text: string, fallback: string): string {
   const explicit = matchValue(text, "issue title");
-  if (explicit) return explicit;
+  if (explicit) {
+    return explicit
+      .replace(/\brepo\s*[:=]\s*[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i, "")
+      .trim();
+  }
 
   return (
     fallback
