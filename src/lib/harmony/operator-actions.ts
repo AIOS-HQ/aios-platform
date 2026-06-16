@@ -72,6 +72,28 @@ async function saveOperatorMessage(
     .eq("id", conversationId)
     .eq("user_id", userId);
 }
+export async function loadOperatorMessages() {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const conversationId = await getOrCreateOperatorConversation(
+    supabase,
+    user.id,
+  );
+
+  const { data } = await supabase
+    .from("messages")
+    .select("id,direction,body,created_at")
+    .eq("user_id", user.id)
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true })
+    .limit(100);
+
+  return (data ?? []).map((message) => ({
+    id: message.id,
+    role: message.direction === "inbound" ? "user" : "assistant",
+    text: message.body,
+  }));
+}
 
 /**
  * The Life Operator. Detects intent and either performs a concrete action
