@@ -13,6 +13,42 @@ import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
+async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data: existing } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("contact", "life-operator")
+    .maybeSingle();
+
+  if (existing?.id) return existing.id;
+
+  const { data: channel } = await supabase
+    .from("channels")
+    .insert({
+      user_id: userId,
+      kind: "web_chat",
+      name: "Life Operator",
+      status: "connected",
+    })
+    .select("id")
+    .single();
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .insert({
+      user_id: userId,
+      channel_id: channel!.id,
+      contact: "life-operator",
+      subject: "Life Operator",
+      status: "open",
+      last_message_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  return conversation!.id;
+}
 /**
  * The Life Operator. Detects intent and either performs a concrete action
  * (create task/goal), produces a transparent rule-based answer (summarize /
