@@ -27,12 +27,16 @@ function matchValue(text: string, key: string): string | null {
   return m?.[1]?.trim() || null;
 }
 
+function matchRepo(text: string): string | null {
+  const m = text.match(/\brepo\s*[:=]\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/i);
+  return m?.[1]?.trim() || null;
+}
 function inferGithubIntent(item: WorkItem): GithubIntent | null {
   const text = `${item.title}\n${item.description ?? ""}`.trim();
   const lower = text.toLowerCase();
 
-  const repo =
-    matchValue(text, "repo") ??
+    const repo =
+    matchRepo(text) ??
     process.env.HARMONY_DEFAULT_GITHUB_REPO ??
     process.env.GITHUB_DEFAULT_REPO ??
     null;
