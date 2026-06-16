@@ -23,7 +23,7 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
 
   if (existing?.id) return existing.id;
 
-    const { data: channel, error: channelError } = await supabase
+const { data: channel, error: channelError } = await supabase
     .from("channels")
     .insert({
       user_id: userId,
