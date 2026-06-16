@@ -284,7 +284,7 @@ if (intent === "create_goal") {
     const reply = await getProvider().generate(text, to("system"));
     return { intent: "general", reply };
   }
-   return persistOperatorReply(
+  return persistOperatorReply(
     supabase,
     user.id,
     conversationId,
