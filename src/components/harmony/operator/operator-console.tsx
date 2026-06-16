@@ -30,7 +30,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const [pending, start] = useTransition();
   const listRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
+  useEffect(() => {
     let active = true;
 
     loadOperatorMessages()
