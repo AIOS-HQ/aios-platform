@@ -181,7 +181,7 @@ if (intent === "create_goal") {
   };
 }
 
-  const supabase = await createClient();
+  
 
   if (intent === "summarize_notes") {
     const { data } = await supabase
