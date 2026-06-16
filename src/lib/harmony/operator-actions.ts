@@ -120,7 +120,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     user.id,
   );
 
-    if (!conversationId) {
+  if (!conversationId) {
     return { intent: "general", reply: to("capabilities") };
   }
   
