@@ -49,6 +49,7 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
 
   return conversation!.id;
 }
+
 /**
  * The Life Operator. Detects intent and either performs a concrete action
  * (create task/goal), produces a transparent rule-based answer (summarize /
