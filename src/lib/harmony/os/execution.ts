@@ -31,6 +31,17 @@ function matchRepo(text: string): string | null {
   const m = text.match(/\brepo\s*[:=]\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/i);
   return m?.[1]?.trim() || null;
 }
+function cleanGithubIssueTitle(text: string, fallback: string): string {
+  const explicit = matchValue(text, "issue title");
+  if (explicit) return explicit;
+
+  return (
+    fallback
+      .replace(/\brepo\s*[:=]\s*[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i, "")
+      .replace(/\b(create|open)\s+(a\s+)?(github\s+)?issue\b/i, "")
+      .trim() || "Harmony GitHub issue"
+  );
+}
 function inferGithubIntent(item: WorkItem): GithubIntent | null {
   const text = `${item.title}\n${item.description ?? ""}`.trim();
   const lower = text.toLowerCase();
@@ -48,7 +59,7 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
       capabilityId: "create_issue",
       params: {
         repo,
-        title: matchValue(text, "issue title") ?? item.title,
+        title: cleanGithubIssueTitle(text, item.title),
         body: item.description ?? undefined,
       },
     };
