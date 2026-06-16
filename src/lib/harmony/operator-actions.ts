@@ -252,12 +252,12 @@ if (intent === "create_goal") {
         .map((n, i) => `${i + 1}. ${n.title}: ${n.content}`)
         .join("\n")}`;
       const reply = await getProvider().generate(prompt, to("system"));
-      return persistOperatorReply(
-  supabase,
-  user.id,
-  conversationId,
-  { intent, reply },
-);
+ return persistOperatorReply(
+   supabase,
+   user.id,
+   conversationId,
+   { intent, reply },
+ );
     }
 
     const lines = notes.slice(0, 8).map((n) => `• ${n.title || "Untitled"}`);
