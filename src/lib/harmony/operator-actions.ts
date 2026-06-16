@@ -49,6 +49,7 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
 
   return conversation!.id;
 }
+
 async function saveOperatorMessage(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
