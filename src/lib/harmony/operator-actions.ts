@@ -23,7 +23,7 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
 
   if (existing?.id) return existing.id;
 
-  const { data: channel } = await supabase
+    const { data: channel, error: channelError } = await supabase
     .from("channels")
     .insert({
       user_id: userId,
@@ -34,11 +34,16 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
     .select("id")
     .single();
 
-  const { data: conversation } = await supabase
+  if (channelError || !channel?.id) {
+    console.error("[operator-actions] channel insert failed", channelError);
+    return null;
+  }
+
+  const { data: conversation, error: conversationError } = await supabase
     .from("conversations")
     .insert({
       user_id: userId,
-      channel_id: channel!.id,
+      channel_id: channel.id,
       contact: "life-operator",
       subject: "Life Operator",
       status: "open",
@@ -47,7 +52,12 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
     .select("id")
     .single();
 
-  return conversation!.id;
+  if (conversationError || !conversation?.id) {
+    console.error("[operator-actions] conversation insert failed", conversationError);
+    return null;
+  }
+
+  return conversation.id;
 }
 
 async function saveOperatorMessage(
