@@ -46,18 +46,10 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
   const text = `${item.title}\n${item.description ?? ""}`.trim();
   const lower = text.toLowerCase();
 
-    const repo =
-
-      
+      const repo =
     matchRepo(text) ??
-
-      
     process.env.HARMONY_DEFAULT_GITHUB_REPO ??
-
-      
     process.env.GITHUB_DEFAULT_REPO ??
-
-      
     null;
 
   if (!repo) return null;
