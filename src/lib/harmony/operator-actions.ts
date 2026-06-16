@@ -49,6 +49,28 @@ async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<type
 
   return conversation!.id;
 }
+async function saveOperatorMessage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  conversationId: string,
+  direction: "inbound" | "outbound",
+  body: string,
+  status: "received" | "sent" = direction === "inbound" ? "received" : "sent",
+) {
+  await supabase.from("messages").insert({
+    user_id: userId,
+    conversation_id: conversationId,
+    direction,
+    body,
+    status,
+  });
+
+  await supabase
+    .from("conversations")
+    .update({ last_message_at: new Date().toISOString() })
+    .eq("id", conversationId)
+    .eq("user_id", userId);
+}
 
 /**
  * The Life Operator. Detects intent and either performs a concrete action
