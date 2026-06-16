@@ -82,6 +82,7 @@ async function saveOperatorMessage(
     .eq("id", conversationId)
     .eq("user_id", userId);
 }
+
 async function persistOperatorReply(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
