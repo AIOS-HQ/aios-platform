@@ -287,7 +287,12 @@ if (intent === "create_goal") {
   // Free-form question.
   if (isRealProviderConfigured()) {
     const reply = await getProvider().generate(text, to("system"));
-    return { intent: "general", reply };
+    return persistOperatorReply(
+  supabase,
+  user.id,
+  conversationId,
+  { intent: "general", reply },
+);
   }
   return persistOperatorReply(
     supabase,
