@@ -72,6 +72,7 @@ async function saveOperatorMessage(
     .eq("id", conversationId)
     .eq("user_id", userId);
 }
+
 export async function loadOperatorMessages() {
   const user = await requireUser();
   const supabase = await createClient();
