@@ -91,6 +91,20 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     return { intent: "general", reply: to("tooLong") };
   }
 
+  const supabase = await createClient();
+  const conversationId = await getOrCreateOperatorConversation(
+    supabase,
+    user.id,
+  );
+
+  await saveOperatorMessage(
+    supabase,
+    user.id,
+    conversationId,
+    "inbound",
+    text,
+  );
+
   const { intent, title } = detectIntent(text);
   // Founder Business Harmony
         const lowerText = text.toLowerCase();
