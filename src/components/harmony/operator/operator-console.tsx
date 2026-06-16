@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Check, CheckCircle2, Copy, Send, Sparkles, X } from "lucide-react";
 import {
   confirmOperatorAction,
+  loadOperatorMessages,
   runOperator,
 } from "@/lib/harmony/operator-actions";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,20 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const [pending, start] = useTransition();
   const listRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+    let active = true;
+
+    loadOperatorMessages()
+      .then((loaded) => {
+        if (active) setMessages(loaded as Msg[]);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, []);
+  
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
   }, [messages, pending]);
