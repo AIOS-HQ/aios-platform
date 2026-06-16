@@ -116,7 +116,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
       lowerText.includes("repo:")
     ) {
       const formData = new FormData();
-    const supabase = await createClient();
+    
 
 const { data: company } = await supabase
   .from("companies")
