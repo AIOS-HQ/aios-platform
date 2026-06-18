@@ -73,7 +73,7 @@ export const INTEGRATIONS: IntegrationProvider[] = [
     category: "social",
     auth: "oauth2",
     oauthFamily: "linkedin",
-    scopes: ["openid", "profile", "email", "w_member_social"],
+    scopes: ["openid", "profile", "email", "w_member_social", "w_organization_social"],
     initials: "in",
     docsUrl: "https://learn.microsoft.com/linkedin",
   },
