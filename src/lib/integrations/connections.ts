@@ -58,9 +58,25 @@ export async function upsertConnection(row: ConnectionUpsert): Promise<boolean> 
     console.error("[integrations/connections] upsert: admin client unavailable");
     return false;
   }
-  const { error } = await admin
-    .from("integration_connections")
-    .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "user_id,provider" });
+const now = new Date().toISOString();
+
+const { error } = await admin
+  .from("integration_connections")
+  .upsert(
+    {
+      ...row,
+      provider_id: row.provider,
+      scope: row.scopes,
+      external_account_id: row.external_account,
+      metadata: {
+        provider: row.provider,
+        external_account: row.external_account,
+      },
+      connected_at: now,
+      updated_at: now,
+    },
+    { onConflict: "user_id,provider_id" },
+  );
   if (error) {
     console.error("[integrations/connections] upsert", error.message);
     return false;
