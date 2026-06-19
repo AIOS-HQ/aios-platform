@@ -160,6 +160,52 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   );
 
   const { intent, title } = detectIntent(text);
+  if (intent === "execution_request") {
+  const formData = new FormData();
+
+  const { data: company } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!company?.id) {
+    return persistOperatorReply(
+      supabase,
+      user.id,
+      conversationId,
+      {
+        intent: "general",
+        reply:
+          "Harmony needs a company before she can delegate business work.",
+      },
+    );
+  }
+
+  formData.set("company_id", company.id);
+  formData.set("title", title ?? text);
+  formData.set("description", text);
+
+  const result = await delegateToHarmony(
+    { status: "success" },
+    formData,
+  );
+
+  return persistOperatorReply(
+    supabase,
+    user.id,
+    conversationId,
+    {
+      intent: "execution_request",
+      reply: result.message ?? "Harmony delegated the work.",
+      actionTaken: {
+        type: "work_delegated",
+        label: title ?? text,
+      },
+    },
+  );
+}
   // Founder Business Harmony
         const lowerText = text.toLowerCase();
 
