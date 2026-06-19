@@ -5,6 +5,7 @@ export type OperatorIntent =
   | "create_goal"
   | "summarize_notes"
   | "suggest_next_steps"
+  | "execution_request"
   | "general";
 
 export interface OperatorResult {
@@ -12,7 +13,7 @@ export interface OperatorResult {
   intent: OperatorIntent;
   /** Set when the Operator actually performed an action (human-visible). */
   actionTaken?: {
-    type: "task_created" | "goal_created";
+    type: "task_created" | "goal_created" | "work_delegated";
     label: string;
   };
   /**
