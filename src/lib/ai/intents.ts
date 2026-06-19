@@ -53,6 +53,26 @@ const NEXT_KW = [
   "recomienda",
   "qué hago",
 ];
+const EXECUTION_KW = [
+  "github",
+  "repo",
+  "repository",
+  "issue",
+  "pull request",
+  "pr",
+  "branch",
+  "vercel",
+  "deploy",
+  "deployment",
+  "supabase",
+  "database",
+  "migration",
+  "audit",
+  "fix",
+  "repair",
+  "connector",
+  "integration",
+];
 
 function extractTitle(input: string, keywords: string[]): string {
   const lower = input.toLowerCase();
@@ -89,5 +109,11 @@ export function detectIntent(input: string): {
   if (NEXT_KW.some((k) => text.includes(k))) {
     return { intent: "suggest_next_steps" };
   }
+  if (EXECUTION_KW.some((k) => text.includes(k))) {
+  return {
+    intent: "execution_request",
+    title: input.trim(),
+  };
+}
   return { intent: "general" };
 }
