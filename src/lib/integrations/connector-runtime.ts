@@ -32,9 +32,11 @@ async function audit(
   requiresApproval: boolean,
   error: string | null,
   params: Record<string, unknown>,
+  result: Record<string, unknown> | null = null,
 ): Promise<void> {
   try {
     const supabase = await createClient();
+
     await supabase.from("agent_actions").insert({
       user_id: userId,
       tool,
@@ -43,6 +45,11 @@ async function audit(
       requires_approval: requiresApproval,
       source: "connector",
       error,
+      result,
+      executed_at:
+        status === "executed" || status === "failed"
+          ? new Date().toISOString()
+          : null,
     });
   } catch (e) {
     console.error("[connectors] audit", e);
@@ -100,13 +107,16 @@ export async function runConnectorCapability(
         : await runGithubWrite(userId, capabilityId, params);
 
     await audit(
-      userId,
-      tool,
-      result.ok ? "executed" : "failed",
-      requiresApproval,
-      result.ok ? null : (result.error ?? "failed"),
-      params,
-    );
+  userId,
+  tool,
+  result.ok ? "executed" : "failed",
+  requiresApproval,
+  result.ok ? null : (result.error ?? "failed"),
+  params,
+  result.ok
+    ? ((result.data ?? {}) as Record<string, unknown>)
+    : null,
+);
 
     return {
       ok: result.ok,
