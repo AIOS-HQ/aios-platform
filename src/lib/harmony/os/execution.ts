@@ -118,7 +118,28 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
   }
   return null;
 }
+async function postLifeOperatorMessage(
+  supabase: SupabaseClient,
+  userId: string,
+  body: string,
+): Promise<void> {
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("contact", "life-operator")
+    .maybeSingle();
 
+  if (!conversation?.id) return;
+
+  await supabase.from("messages").insert({
+    user_id: userId,
+    conversation_id: conversation.id,
+    direction: "outbound",
+    body: body.slice(0, LIMITS.noteContent),
+    status: "sent",
+  });
+}
 /**
  * Run a work item through its department's autonomy policy — the heart of the
  * Helper Execution System.
@@ -271,7 +292,7 @@ export async function executeWorkItem(
       .eq("id", item.id)
       .eq("user_id", userId);
 
-    await emitActivity({
+        await emitActivity({
       userId,
       companyId: item.company_id,
       departmentId: item.department_id,
@@ -282,6 +303,18 @@ export async function executeWorkItem(
       refType: "work_item",
       refId: item.id,
     });
+
+    if (opts?.force) {
+      await postLifeOperatorMessage(
+        supabase,
+        userId,
+        `Harmony completed: ${item.title}\n\n${to("execution.resultLabel")}\n${JSON.stringify(
+          connectorResult,
+          null,
+          2,
+        )}`,
+      );
+    }
 
     return "completed";
   }
@@ -320,7 +353,7 @@ export async function executeWorkItem(
     .eq("id", item.id)
     .eq("user_id", userId);
 
-  await emitActivity({
+    await emitActivity({
     userId,
     companyId: item.company_id,
     departmentId: item.department_id,
@@ -331,6 +364,10 @@ export async function executeWorkItem(
     refType: "work_item",
     refId: item.id,
   });
+
+  if (opts?.force) {
+    await postLifeOperatorMessage(supabase, userId, result);
+  }
 
   return "completed";
 }
