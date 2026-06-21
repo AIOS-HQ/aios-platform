@@ -31,18 +31,27 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let active = true;
+  let active = true;
 
-    loadOperatorMessages()
-      .then((loaded) => {
-        if (active) setMessages(loaded as Msg[]);
-      })
-      .catch(() => {});
+  const refresh = async () => {
+    try {
+      const loaded = await loadOperatorMessages();
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      if (active) {
+        setMessages(loaded as Msg[]);
+      }
+    } catch {}
+  };
+
+  refresh();
+
+  const interval = setInterval(refresh, 3000);
+
+  return () => {
+    active = false;
+    clearInterval(interval);
+  };
+}, []);
   
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
