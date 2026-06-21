@@ -69,12 +69,13 @@ async function saveOperatorMessage(
   status: "received" | "sent" = direction === "inbound" ? "received" : "sent",
 ) {
   await supabase.from("messages").insert({
-    user_id: userId,
-    conversation_id: conversationId,
-    direction,
-    body,
-    status,
-  });
+  user_id: userId,
+  conversation_id: conversationId,
+  direction,
+  body,
+  status,
+  read_at: direction === "outbound" ? null : new Date().toISOString(),
+});
 
   await supabase
     .from("conversations")
@@ -107,7 +108,13 @@ export async function loadOperatorMessages() {
     supabase,
     user.id,
   );
-
+await supabase
+  .from("messages")
+  .update({ read_at: new Date().toISOString() })
+  .eq("user_id", user.id)
+  .eq("conversation_id", conversationId)
+  .eq("direction", "outbound")
+  .is("read_at", null);
   const { data } = await supabase
     .from("messages")
     .select("id,direction,body,created_at")
