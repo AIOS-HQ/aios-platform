@@ -26,6 +26,7 @@ const PRIORITIES: TaskPriority[] = ["low", "medium", "high"];
 
 function revalidateApprovals() {
   revalidatePath("/harmony");
+  revalidatePath("/harmony", "layout");
   revalidatePath("/harmony/approvals");
   revalidatePath("/harmony/work");
 }
