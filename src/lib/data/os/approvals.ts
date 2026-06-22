@@ -38,3 +38,30 @@ export async function countDecidedApprovals(): Promise<number> {
   if (error) console.error("[data/os/approvals] countDecidedApprovals", error);
   return count ?? 0;
 }
+export async function countUnreadLifeOperatorMessages(): Promise<number> {
+  const supabase = await createClient();
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("contact", "life-operator")
+    .maybeSingle();
+
+  if (!conversation?.id) return 0;
+
+  const { count, error } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", conversation.id)
+    .eq("direction", "outbound")
+    .is("read_at", null);
+
+  if (error) {
+    console.error(
+      "[data/os/approvals] countUnreadLifeOperatorMessages",
+      error,
+    );
+  }
+
+  return count ?? 0;
+}
