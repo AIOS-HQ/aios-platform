@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Check, CheckCircle2, Copy, Send, Sparkles, X } from "lucide-react";
@@ -25,6 +26,7 @@ type Msg = {
 
 export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const t = useTranslations("operator");
+  const router = useRouter();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [pending, start] = useTransition();
@@ -37,9 +39,10 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
     try {
       const loaded = await loadOperatorMessages();
 
-      if (active) {
-        setMessages(loaded as Msg[]);
-      }
+  if (active) {
+    setMessages(loaded as Msg[]);
+    router.refresh();
+  }
     } catch {}
   };
 
