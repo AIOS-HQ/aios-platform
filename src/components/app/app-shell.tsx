@@ -12,7 +12,8 @@ export function AppShell({
   initials,
   companies,
   pendingApprovals = 0,
-  children,
+unreadLifeOperatorMessages = 0,
+children,
 }: {
   name: string;
   email: string;
@@ -20,11 +21,18 @@ export function AppShell({
   companies: { id: string; name: string; slug: string }[];
   /** Pending approvals count → rendered as a nav badge on Approvals. */
   pendingApprovals?: number;
+unreadLifeOperatorMessages?: number;
   children: React.ReactNode;
 }) {
-  const navBadges = pendingApprovals
-    ? { "/harmony/approvals": pendingApprovals }
-    : undefined;
+  const navBadges: Record<string, number> = {};
+
+if (pendingApprovals > 0) {
+  navBadges["/harmony/approvals"] = pendingApprovals;
+}
+
+if (unreadLifeOperatorMessages > 0) {
+  navBadges["/harmony/operator"] = unreadLifeOperatorMessages;
+}
   return (
     <div className="flex min-h-dvh">
       <Sidebar badges={navBadges} />
