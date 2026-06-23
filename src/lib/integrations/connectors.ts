@@ -85,7 +85,6 @@ export const CONNECTORS: ConnectorDef[] = [
       { id: "create_branch", mode: "write", risk: "routine" },
       { id: "open_pull_request", mode: "write", risk: "routine" },
       { id: "create_issue", mode: "write", risk: "routine" },
-      { id: "commit_file_to_branch", mode: "write", risk: "routine" },
       { id: "merge_pull_request", mode: "write", risk: "approval" },
       { id: "delete_repository", mode: "write", risk: "destructive" },
     ],
@@ -151,10 +150,15 @@ export const CONNECTORS: ConnectorDef[] = [
     name: "LinkedIn",
     category: "social",
     auth: "oauth2",
-    scopes: ["openid", "profile", "w_member_social"],
+    // OpenID Connect sign-in scopes (identity only). Publishing
+    // (w_member_social) requires a separately approved LinkedIn product; add it
+    // here once that product is granted. The dedicated /api/integrations/linkedin
+    // routes request exactly these scopes.
+    scopes: ["openid", "profile", "email"],
     initials: "in",
     docsUrl: "https://learn.microsoft.com/linkedin",
     requiredEnv: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+    authorizable: true,
     capabilities: [
       { id: "research_topic", mode: "read" },
       { id: "draft_post", mode: "write", risk: "routine" },
