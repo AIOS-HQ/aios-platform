@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateCompanyDialog } from "@/components/harmony/os/create-company-dialog";
+import { CommandCenter } from "@/components/harmony/command-center/command-center";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("os.commandCenter");
@@ -146,6 +147,21 @@ export default async function CommandCenterPage() {
           firstDepartmentId={departments[0]?.id}
         />
       )}
+
+      <CommandCenter
+        userId={user.id}
+        companyId={companies[0]?.id ?? null}
+        objectives={objectives.map((o) => ({ id: o.id, title: o.title }))}
+        pendingApprovals={pendingApprovals}
+        activity={activity.map((e) => ({
+          id: e.id,
+          summary: e.summary,
+          created_at: e.created_at,
+        }))}
+        objectivesTotal={objectivesTotal}
+        workTotal={workTotal}
+        decidedApprovals={decidedApprovals}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

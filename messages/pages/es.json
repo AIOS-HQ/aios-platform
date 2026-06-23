@@ -755,5 +755,66 @@
       "juliusFailed": "No se pudo registrar en Julius. Asegúrate de que exista una empresa y que la migración de Julius esté aplicada."
     },
     "scoreLabel": "/ 100 puntuación de riesgo"
+  },
+  "commandCenter": {
+    "execSummary": "Resumen ejecutivo",
+    "execSummaryHint": "Tu vista para el fundador de objetivos, riesgo, aprobaciones y actividad.",
+    "keyObjectives": "Objetivos clave",
+    "none": "Aún no hay",
+    "criticalRisks": "Riesgos críticos",
+    "riskScoreInline": "puntuación {score}/100",
+    "criticalRisksCount": "{n} riesgo(s) crítico(s)",
+    "pendingApprovals": "Aprobaciones pendientes",
+    "review": "Revisar",
+    "recentActivity": "Actividad reciente",
+    "topRecommendation": "Recomendación principal",
+    "riskOverview": "Resumen de riesgo",
+    "openAuditor": "Abrir Auditor",
+    "riskScoreSuffix": "/ 100 puntuación de riesgo",
+    "governanceLabel": "Hallazgos de gobernanza",
+    "deploymentLabel": "Hallazgos de despliegue",
+    "sev": {
+      "risk": "{n} riesgo",
+      "warn": "{n} advertencia",
+      "info": "{n} info",
+      "ok": "{n} OK"
+    },
+    "sevName": {
+      "ok": "OK",
+      "info": "Info",
+      "warn": "Advertencia",
+      "risk": "Riesgo"
+    },
+    "posture": {
+      "ok": "Saludable",
+      "info": "Informativo",
+      "warn": "Atención",
+      "risk": "En riesgo"
+    },
+    "companyHealth": "Salud de la empresa",
+    "companyHealthHint": "Salud operativa de objetivos, ejecución y aprobaciones.",
+    "objectivesLabel": "Objetivos",
+    "executionLabel": "Elementos de trabajo",
+    "approvalsPendingLabel": "Aprobaciones pendientes",
+    "approvalsDecidedLabel": "Aprobaciones decididas",
+    "agentHealth": "Salud de agentes",
+    "agentHealthHint": "Tu fuerza de trabajo AIOS y su estado operativo.",
+    "contributions": "{n} entradas en Julius",
+    "ready": "Listo",
+    "juliusSteward": "Custodio de Julius",
+    "recommendations": "Recomendaciones estratégicas",
+    "recommendationsHint": "Acciones del fundador, mitigación de riesgos y oportunidades de ejecución priorizadas.",
+    "recPriority": {
+      "founder": "Fundador",
+      "risk": "Riesgo",
+      "improve": "Mejora",
+      "execution": "Ejecución"
+    },
+    "rec": {
+      "approvals": "Revisa {n} aprobación(es) pendiente(s) en el Centro de aprobaciones.",
+      "firstObjective": "Define tu primer objetivo para enfocar la fuerza de trabajo.",
+      "allClear": "Sin riesgos ni advertencias: las operaciones están saludables."
+    },
+    "juliusAware": "{n} entradas de conciencia de Julius"
   }
 }
