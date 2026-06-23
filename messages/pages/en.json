@@ -826,6 +826,9 @@
     "attnStalled": "Stalled",
     "stalledWork": "{n} work item(s) blocked",
     "viewWork": "View",
-    "asOf": "As of {time}"
+    "asOf": "As of {time}",
+    "connectors": "Connectors",
+    "connectorsHint": "Founder integrations and their connection status.",
+    "connectorExpired": "{name} authorization expired — reconnect needed"
   }
 }

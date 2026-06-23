@@ -15,6 +15,9 @@ import { listCompanies } from "@/lib/data/os/companies";
 import { listDepartments } from "@/lib/data/os/departments";
 import { listObjectives, countObjectives } from "@/lib/data/os/objectives";
 import { countWorkItems } from "@/lib/data/os/work-items";
+import { getConnections } from "@/lib/integrations/connections";
+import { CONNECTORS } from "@/lib/integrations/connectors";
+import { getConnectorStatus } from "@/lib/integrations/connector-config";
 import {
   countPendingApprovals,
   countDecidedApprovals,
@@ -69,6 +72,7 @@ export default async function CommandCenterPage() {
     workTotal,
     decidedApprovals,
     blockedWork,
+    connections,
   ] = await Promise.all([
     getProfile(user.id),
     listCompanies(),
@@ -80,7 +84,16 @@ export default async function CommandCenterPage() {
     countWorkItems(),
     countDecidedApprovals(),
     countWorkItems("blocked"),
+    getConnections(user.id),
   ]);
+  // Founder connector health for the cockpit (authorizable connectors only).
+  const connByProvider = new Map(connections.map((c) => [c.provider, c]));
+  const connectors = CONNECTORS.filter((c) => c.authorizable).map((c) => ({
+    id: c.id,
+    name: c.name,
+    status: getConnectorStatus(c, connByProvider.get(c.id)),
+    account: connByProvider.get(c.id)?.external_account ?? null,
+  }));
   const deptOpts = departments.map((d) => ({
     id: d.id,
     name: d.name,
@@ -164,6 +177,7 @@ export default async function CommandCenterPage() {
         workTotal={workTotal}
         decidedApprovals={decidedApprovals}
         blockedWork={blockedWork}
+        connectors={connectors}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">

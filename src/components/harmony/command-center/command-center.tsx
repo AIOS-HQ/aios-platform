@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Brain,
+  Plug,
   ShieldAlert,
   Sparkles,
   Target,
@@ -10,7 +11,8 @@ import {
 import { runAudit, type Severity } from "@/lib/agents/auditor/service";
 import { getJuliusAwareness } from "@/lib/julius/wiring";
 import { listJuliusEntries } from "@/lib/julius/service";
-import { AIOS_WORKFORCE } from "@/lib/workforce/registry";
+import { AIOS_WORKFORCE, AGENT_CONNECTORS } from "@/lib/workforce/registry";
+import { getConnector } from "@/lib/integrations/connectors";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
   Card,
@@ -39,6 +41,12 @@ export interface CommandCenterProps {
   workTotal: number;
   decidedApprovals: number;
   blockedWork: number;
+  connectors: {
+    id: string;
+    name: string;
+    status: string;
+    account: string | null;
+  }[];
 }
 
 type Rec = { priority: "founder" | "risk" | "improve" | "execution"; text: string };
@@ -50,10 +58,14 @@ type Rec = { priority: "founder" | "risk" | "improve" | "execution"; text: strin
  */
 export async function CommandCenter(props: CommandCenterProps) {
   const t = await getTranslations("commandCenter");
+  // Reuse the connections namespace for connector status / account / reconnect.
+  const tConn = await getTranslations("connections");
   const locale = await getLocale();
   // Freshness stamp for cockpit sections — this view recomputes on every load,
   // so "as of" reflects the moment the Auditor/attention data was generated.
   const generatedAt = formatDateTime(new Date().toISOString(), locale);
+  // Connectors needing founder action (e.g. LinkedIn token expired → reconnect).
+  const expiredConnectors = props.connectors.filter((c) => c.status === "expired");
 
   const report = await runAudit(props.userId);
   const awareness = props.companyId
@@ -102,6 +114,7 @@ export async function CommandCenter(props: CommandCenterProps) {
         const hasAttention =
           props.pendingApprovals > 0 ||
           props.blockedWork > 0 ||
+          expiredConnectors.length > 0 ||
           riskFindings.length > 0 ||
           warnFindings.length > 0;
         return (
@@ -143,6 +156,17 @@ export async function CommandCenter(props: CommandCenterProps) {
                       </Button>
                     </li>
                   )}
+                  {expiredConnectors.map((c) => (
+                    <li key={`c${c.id}`} className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-sm">
+                        <Badge variant="destructive">{tConn("status.expired")}</Badge>
+                        {t("connectorExpired", { name: c.name })}
+                      </span>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/settings/connections">{tConn("reconnect")}</Link>
+                      </Button>
+                    </li>
+                  ))}
                   {riskFindings.map((f, i) => (
                     <li key={`r${i}`} className="flex items-center justify-between gap-3">
                       <span className="flex min-w-0 items-start gap-2 text-sm">
@@ -284,11 +308,63 @@ export async function CommandCenter(props: CommandCenterProps) {
                 {a.julius === "steward" && (
                   <p className="mt-1 text-xs text-primary">{t("juliusSteward")}</p>
                 )}
+                {(AGENT_CONNECTORS[a.key] ?? []).length > 0 && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    {(AGENT_CONNECTORS[a.key] ?? []).map((cid) => {
+                      const conn = getConnector(cid);
+                      return conn ? (
+                        <Badge key={cid} variant="outline" className="text-[10px]">
+                          {conn.initials}
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </CardContent>
       </Card>
+
+      {/* ── Connectors (founder integrations) ───────────────────────────── */}
+      {props.connectors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Plug className="size-4 text-primary" aria-hidden="true" />
+              {t("connectors")}
+            </CardTitle>
+            <CardDescription>{t("connectorsHint")}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {props.connectors.map((c) => (
+              <div key={c.id} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-semibold">{c.name}</span>
+                  <Badge
+                    variant={
+                      c.status === "connected"
+                        ? "success"
+                        : c.status === "expired"
+                          ? "destructive"
+                          : c.status === "ready"
+                            ? "outline"
+                            : "secondary"
+                    }
+                  >
+                    {tConn(`status.${c.status}`)}
+                  </Badge>
+                </div>
+                {c.account ? (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {tConn("accountLabel", { account: c.account })}
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Strategic Recommendations ───────────────────────────────────── */}
       <Card>

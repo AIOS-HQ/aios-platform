@@ -193,3 +193,19 @@ export function isAiosAgentName(name: string): boolean {
   const n = name.trim().toLowerCase();
   return AIOS_WORKFORCE.some((a) => a.name.toLowerCase() === n || a.key === n);
 }
+
+/**
+ * Connectors each AIOS agent is wired to use, keyed by connector id (see
+ * src/lib/integrations/connectors). Surfaces connector awareness in the Founder
+ * Command Center. Only lists connectors that are actually implemented — extend
+ * as new connectors come online. LinkedIn supports Catalyst (content/growth) and
+ * Ambassador (communications/relations).
+ */
+export const AGENT_CONNECTORS: Partial<Record<AiosAgentKey, string[]>> = {
+  catalyst: ["linkedin"],
+  ambassador: ["linkedin"],
+};
+
+export function getAgentConnectors(key: string): string[] {
+  return AGENT_CONNECTORS[key as AiosAgentKey] ?? [];
+}
