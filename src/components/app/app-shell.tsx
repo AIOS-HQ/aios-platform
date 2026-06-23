@@ -12,8 +12,9 @@ export function AppShell({
   initials,
   companies,
   pendingApprovals = 0,
-unreadLifeOperatorMessages = 0,
-children,
+  unreadLifeOperatorMessages = 0,
+  riskCount = 0,
+  children,
 }: {
   name: string;
   email: string;
@@ -21,18 +22,25 @@ children,
   companies: { id: string; name: string; slug: string }[];
   /** Pending approvals count → rendered as a nav badge on Approvals. */
   pendingApprovals?: number;
-unreadLifeOperatorMessages?: number;
+  unreadLifeOperatorMessages?: number;
+  /** High-risk actions awaiting approval → risk badge on the Auditor nav item. */
+  riskCount?: number;
   children: React.ReactNode;
 }) {
   const navBadges: Record<string, number> = {};
 
-if (pendingApprovals > 0) {
-  navBadges["/harmony/approvals"] = pendingApprovals;
-}
+  if (pendingApprovals > 0) {
+    navBadges["/harmony/approvals"] = pendingApprovals;
+  }
 
-if (unreadLifeOperatorMessages > 0) {
-  navBadges["/harmony/operator"] = unreadLifeOperatorMessages;
-}
+  if (unreadLifeOperatorMessages > 0) {
+    navBadges["/harmony/operator"] = unreadLifeOperatorMessages;
+  }
+
+  if (riskCount > 0) {
+    navBadges["/settings/auditor"] = riskCount;
+  }
+
   return (
     <div className="flex min-h-dvh">
       <Sidebar badges={navBadges} />
@@ -47,10 +55,7 @@ if (unreadLifeOperatorMessages > 0) {
           <ThemeToggle />
           <UserMenu name={name} email={email} initials={initials} />
         </header>
-        <main
-          id="main-content"
-          className="flex-1 px-4 py-6 sm:px-6 lg:px-8"
-        >
+        <main id="main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </div>

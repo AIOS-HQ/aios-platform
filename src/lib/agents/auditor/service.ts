@@ -213,3 +213,15 @@ export async function recordAuditToJulius(userId: string): Promise<boolean> {
     importance: report.posture === "risk" ? 5 : 3,
   });
 }
+
+/**
+ * Cheap count of high-risk (destructive) actions awaiting approval. Used as a
+ * sidebar risk indicator. Owner-scoped; returns 0 if the audit log is absent.
+ */
+export async function countHighRiskPending(userId: string): Promise<number> {
+  const actions = await loadAgentActions(userId);
+  if (!actions) return 0;
+  return actions.filter(
+    (a) => a.status === "pending" && classifyTool(a.tool) === "destructive",
+  ).length;
+}

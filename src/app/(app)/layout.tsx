@@ -5,6 +5,7 @@ import {
   countPendingApprovals,
   countUnreadLifeOperatorMessages,
 } from "@/lib/data/os/approvals";
+import { countHighRiskPending } from "@/lib/agents/auditor/service";
 import { AppShell } from "@/components/app/app-shell";
 import { getInitials } from "@/lib/utils";
 
@@ -18,16 +19,18 @@ export default async function AppLayout({
 }) {
   const user = await requireUser();
   const [
-  profile,
-  companies,
-  pendingApprovals,
-  unreadLifeOperatorMessages,
-] = await Promise.all([
-  getProfile(user.id),
-  listCompanies(),
-  countPendingApprovals(),
-  countUnreadLifeOperatorMessages(),
-]);
+    profile,
+    companies,
+    pendingApprovals,
+    unreadLifeOperatorMessages,
+    riskCount,
+  ] = await Promise.all([
+    getProfile(user.id),
+    listCompanies(),
+    countPendingApprovals(),
+    countUnreadLifeOperatorMessages(),
+    countHighRiskPending(user.id),
+  ]);
   const name =
     profile?.full_name?.trim() || user.email?.split("@")[0] || "User";
   const email = user.email ?? "";
@@ -35,13 +38,14 @@ export default async function AppLayout({
 
   return (
     <AppShell
-  name={name}
-  email={email}
-  initials={initials}
-  companies={companies.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
-  pendingApprovals={pendingApprovals}
-  unreadLifeOperatorMessages={unreadLifeOperatorMessages}
->
+      name={name}
+      email={email}
+      initials={initials}
+      companies={companies.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
+      pendingApprovals={pendingApprovals}
+      unreadLifeOperatorMessages={unreadLifeOperatorMessages}
+      riskCount={riskCount}
+    >
       {children}
     </AppShell>
   );
