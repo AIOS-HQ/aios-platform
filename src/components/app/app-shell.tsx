@@ -14,6 +14,7 @@ export function AppShell({
   pendingApprovals = 0,
   unreadLifeOperatorMessages = 0,
   riskCount = 0,
+  stalledWork = 0,
   children,
 }: {
   name: string;
@@ -25,6 +26,8 @@ export function AppShell({
   unreadLifeOperatorMessages?: number;
   /** High-risk actions awaiting approval → risk badge on the Auditor nav item. */
   riskCount?: number;
+  /** Blocked/stalled work items → bottleneck badge on the Work nav item. */
+  stalledWork?: number;
   children: React.ReactNode;
 }) {
   const navBadges: Record<string, number> = {};
@@ -39,6 +42,10 @@ export function AppShell({
 
   if (riskCount > 0) {
     navBadges["/settings/auditor"] = riskCount;
+  }
+
+  if (stalledWork > 0) {
+    navBadges["/harmony/work"] = stalledWork;
   }
 
   return (

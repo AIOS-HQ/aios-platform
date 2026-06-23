@@ -6,6 +6,7 @@ import {
   countUnreadLifeOperatorMessages,
 } from "@/lib/data/os/approvals";
 import { countHighRiskPending } from "@/lib/agents/auditor/service";
+import { countWorkItems } from "@/lib/data/os/work-items";
 import { AppShell } from "@/components/app/app-shell";
 import { getInitials } from "@/lib/utils";
 
@@ -24,12 +25,14 @@ export default async function AppLayout({
     pendingApprovals,
     unreadLifeOperatorMessages,
     riskCount,
+    stalledWork,
   ] = await Promise.all([
     getProfile(user.id),
     listCompanies(),
     countPendingApprovals(),
     countUnreadLifeOperatorMessages(),
     countHighRiskPending(user.id),
+    countWorkItems("blocked"),
   ]);
   const name =
     profile?.full_name?.trim() || user.email?.split("@")[0] || "User";
@@ -45,6 +48,7 @@ export default async function AppLayout({
       pendingApprovals={pendingApprovals}
       unreadLifeOperatorMessages={unreadLifeOperatorMessages}
       riskCount={riskCount}
+      stalledWork={stalledWork}
     >
       {children}
     </AppShell>
