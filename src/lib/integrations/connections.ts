@@ -15,10 +15,15 @@ export interface IntegrationConnection {
   scopes: string | null;
   external_account: string | null;
   created_at: string;
+  /** When the connection was last (re)authorized — drives the "last sync" display. */
+  connected_at: string | null;
+  /** Access-token expiry (ISO); used to derive the "Authorization expired" state. */
+  expires_at: string | null;
 }
 
 // Token columns are intentionally excluded from any client-reachable read.
-const DISPLAY_COLUMNS = "provider,status,scopes,external_account,created_at";
+const DISPLAY_COLUMNS =
+  "provider,status,scopes,external_account,created_at,connected_at,expires_at";
 
 export async function getConnections(userId: string): Promise<IntegrationConnection[]> {
   const supabase = createAdminClient() ?? (await createClient());
@@ -58,25 +63,25 @@ export async function upsertConnection(row: ConnectionUpsert): Promise<boolean> 
     console.error("[integrations/connections] upsert: admin client unavailable");
     return false;
   }
-const now = new Date().toISOString();
+  const now = new Date().toISOString();
 
-const { error } = await admin
-  .from("integration_connections")
-  .upsert(
-    {
-      ...row,
-      provider_id: row.provider,
-      scope: row.scopes,
-      external_account_id: row.external_account,
-      metadata: {
-        provider: row.provider,
-        external_account: row.external_account,
+  const { error } = await admin
+    .from("integration_connections")
+    .upsert(
+      {
+        ...row,
+        provider_id: row.provider,
+        scope: row.scopes,
+        external_account_id: row.external_account,
+        metadata: {
+          provider: row.provider,
+          external_account: row.external_account,
+        },
+        connected_at: now,
+        updated_at: now,
       },
-      connected_at: now,
-      updated_at: now,
-    },
-    { onConflict: "user_id,provider_id" },
-  );
+      { onConflict: "user_id,provider_id" },
+    );
   if (error) {
     console.error("[integrations/connections] upsert", error.message);
     return false;
