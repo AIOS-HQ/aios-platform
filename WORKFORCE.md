@@ -1,7 +1,7 @@
 # AIOS Workforce Registry
 
 Version: 2.0
-Status: Active
+Status: Active — founder-approved
 Owner: Alejandro Baez
 Code source of truth: `src/lib/workforce/registry.ts`
 Organizational brain: Julius (`src/lib/julius/`)
@@ -17,7 +17,7 @@ AIOS workforce agents belong to AIOS. Agent names, responsibilities, permissions
 memory, credentials, and operational scope must remain separated. Cross-company
 memory sharing is prohibited.
 
-> v2.0 reconciliation (per founder workforce directive): the auditor agent is now
+> v2.0 reconciliation (FOUNDER-APPROVED, finalized): the auditor agent is now
 > **Auditor** (was *Verity*); the communications agent is now **Ambassador** (was
 > *Signal*); **Julius** is introduced as the AIOS organizational brain (NOT an
 > agent); the former *Forge* engineering agent is **not** part of the named
