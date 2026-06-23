@@ -822,6 +822,9 @@
     "attnAction": "Acción",
     "approvalsNeed": "{n} aprobación(es) requieren tu decisión",
     "reviewApprovals": "Revisar",
-    "investigate": "Investigar"
+    "investigate": "Investigar",
+    "attnStalled": "Estancado",
+    "stalledWork": "{n} elemento(s) de trabajo bloqueado(s)",
+    "viewWork": "Ver"
   }
 }

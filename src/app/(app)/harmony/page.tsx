@@ -68,6 +68,7 @@ export default async function CommandCenterPage() {
     objectivesTotal,
     workTotal,
     decidedApprovals,
+    blockedWork,
   ] = await Promise.all([
     getProfile(user.id),
     listCompanies(),
@@ -78,6 +79,7 @@ export default async function CommandCenterPage() {
     countObjectives(),
     countWorkItems(),
     countDecidedApprovals(),
+    countWorkItems("blocked"),
   ]);
   const deptOpts = departments.map((d) => ({
     id: d.id,
@@ -161,6 +163,7 @@ export default async function CommandCenterPage() {
         objectivesTotal={objectivesTotal}
         workTotal={workTotal}
         decidedApprovals={decidedApprovals}
+        blockedWork={blockedWork}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">

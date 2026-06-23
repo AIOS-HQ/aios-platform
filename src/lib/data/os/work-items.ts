@@ -23,12 +23,18 @@ export async function listWorkItems(opts?: {
   return (data as WorkItem[] | null) ?? [];
 }
 
-/** Count work items (owner-scoped via RLS). Used by the first-run checklist. */
-export async function countWorkItems(): Promise<number> {
+/**
+ * Count work items (owner-scoped via RLS), optionally filtered by status.
+ * Used by the first-run checklist (no filter) and the Command Center
+ * ("blocked" → stalled-workflow surfacing).
+ */
+export async function countWorkItems(status?: WorkStatus): Promise<number> {
   const supabase = await createClient();
-  const { count, error } = await supabase
+  let q = supabase
     .from("work_items")
     .select("id", { count: "exact", head: true });
+  if (status) q = q.eq("status", status);
+  const { count, error } = await q;
   if (error) console.error("[data/os/work-items] countWorkItems", error);
   return count ?? 0;
 }

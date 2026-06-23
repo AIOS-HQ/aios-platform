@@ -38,6 +38,7 @@ export interface CommandCenterProps {
   objectivesTotal: number;
   workTotal: number;
   decidedApprovals: number;
+  blockedWork: number;
 }
 
 type Rec = { priority: "founder" | "risk" | "improve" | "execution"; text: string };
@@ -97,6 +98,7 @@ export async function CommandCenter(props: CommandCenterProps) {
         const warnFindings = report.findings.filter((f) => f.severity === "warn");
         const hasAttention =
           props.pendingApprovals > 0 ||
+          props.blockedWork > 0 ||
           riskFindings.length > 0 ||
           warnFindings.length > 0;
         return (
@@ -121,6 +123,17 @@ export async function CommandCenter(props: CommandCenterProps) {
                       </span>
                       <Button asChild size="sm">
                         <Link href="/harmony/approvals">{t("reviewApprovals")}</Link>
+                      </Button>
+                    </li>
+                  )}
+                  {props.blockedWork > 0 && (
+                    <li className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-sm">
+                        <Badge variant="default">{t("attnStalled")}</Badge>
+                        {t("stalledWork", { n: props.blockedWork })}
+                      </span>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/harmony/work">{t("viewWork")}</Link>
                       </Button>
                     </li>
                   )}
