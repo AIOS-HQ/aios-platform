@@ -12,6 +12,11 @@
  * live separately in src/lib/harmony/os/catalog.ts and are unaffected.
  */
 
+// AirBid names live in a SEPARATE registry; AIOS imports them only to block them.
+import { AIRBID_RESERVED_NAMES, isReservedAirbidName } from "@/lib/workforce/airbid";
+
+export { AIRBID_RESERVED_NAMES, isReservedAirbidName };
+
 export type AiosAgentKey =
   | "harmony"
   | "auditor"
@@ -180,15 +185,6 @@ export const JULIUS = {
   ],
 } as const;
 
-/** Names reserved exclusively for AirBid — never valid as AIOS agents. */
-export const AIRBID_RESERVED_NAMES = [
-  "Nexus",
-  "Sentinel",
-  "Guardian",
-  "Oracle",
-  "Compass",
-] as const;
-
 export function getAiosAgent(key: string): AiosAgent | undefined {
   return AIOS_WORKFORCE.find((a) => a.key === key);
 }
@@ -196,10 +192,4 @@ export function getAiosAgent(key: string): AiosAgent | undefined {
 export function isAiosAgentName(name: string): boolean {
   const n = name.trim().toLowerCase();
   return AIOS_WORKFORCE.some((a) => a.name.toLowerCase() === n || a.key === n);
-}
-
-/** True if a name belongs to the reserved AirBid workforce (must be blocked for AIOS). */
-export function isReservedAirbidName(name: string): boolean {
-  const n = name.trim().toLowerCase();
-  return AIRBID_RESERVED_NAMES.some((r) => r.toLowerCase() === n);
 }

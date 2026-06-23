@@ -3,8 +3,10 @@
  * canonical enums for the owner Operating System. Pure + dependency-free.
  *
  * Templates are applied when the owner spins up a company's departments/agents;
- * the same catalog seeds AIOS, AirBid, or any future company. Nothing here is
- * persisted — it's the blueprint the data layer instantiates per company.
+ * the same catalog seeds AIOS or any future company. Nothing here is persisted —
+ * it's the blueprint the data layer instantiates per company. (AirBid is a
+ * separate company in its own deployment and is intentionally not referenced
+ * here — see WORKFORCE.md and src/lib/workforce/airbid.ts.)
  */
 import type { AutonomyLevel } from "./autonomy";
 
