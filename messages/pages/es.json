@@ -826,6 +826,9 @@
     "attnStalled": "Estancado",
     "stalledWork": "{n} elemento(s) de trabajo bloqueado(s)",
     "viewWork": "Ver",
-    "asOf": "Actualizado {time}"
+    "asOf": "Actualizado {time}",
+    "connectors": "Conectores",
+    "connectorsHint": "Integraciones del fundador y su estado de conexión.",
+    "connectorExpired": "Autorización de {name} expirada — se requiere reconexión"
   }
 }
