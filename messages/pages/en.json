@@ -753,6 +753,7 @@
     "errors": {
       "unauthorized": "Please sign in.",
       "juliusFailed": "Couldn't record to Julius. Ensure a company exists and the Julius migration is applied."
-    }
+    },
+    "scoreLabel": "/ 100 risk score"
   }
 }

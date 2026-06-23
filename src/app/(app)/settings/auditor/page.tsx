@@ -51,11 +51,18 @@ export default async function AuditorPage() {
               {t(`posture.${report.posture}`)}
             </Badge>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2">
-            <Badge variant="destructive">{t("counts.risk", { n: report.counts.risk })}</Badge>
-            <Badge variant="default">{t("counts.warn", { n: report.counts.warn })}</Badge>
-            <Badge variant="outline">{t("counts.info", { n: report.counts.info })}</Badge>
-            <Badge variant="secondary">{t("counts.ok", { n: report.counts.ok })}</Badge>
+          <CardContent className="space-y-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold">{report.score}</span>
+              <span className="text-sm text-muted-foreground">{t("scoreLabel")}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">{report.summary}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="destructive">{t("counts.risk", { n: report.counts.risk })}</Badge>
+              <Badge variant="default">{t("counts.warn", { n: report.counts.warn })}</Badge>
+              <Badge variant="outline">{t("counts.info", { n: report.counts.info })}</Badge>
+              <Badge variant="secondary">{t("counts.ok", { n: report.counts.ok })}</Badge>
+            </div>
           </CardContent>
         </Card>
 

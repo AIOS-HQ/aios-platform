@@ -753,6 +753,7 @@
     "errors": {
       "unauthorized": "Inicia sesión.",
       "juliusFailed": "No se pudo registrar en Julius. Asegúrate de que exista una empresa y que la migración de Julius esté aplicada."
-    }
+    },
+    "scoreLabel": "/ 100 puntuación de riesgo"
   }
 }
