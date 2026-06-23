@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
+import { formatDate } from "@/lib/format";
 import {
   CONNECTORS,
   CONNECTOR_CATEGORIES,
@@ -38,6 +39,7 @@ const STATUS_VARIANT: Record<
  */
 export default async function ConnectionsPage() {
   const t = await getTranslations("connections");
+  const locale = await getLocale();
   const user = await requireUser();
   const connections = await getConnections(user.id);
   const byProvider = new Map(connections.map((c) => [c.provider, c]));
@@ -75,16 +77,30 @@ export default async function ConnectionsPage() {
                                 write: caps.write,
                               })}
                             </p>
+                            {connection?.external_account ? (
+                              <p className="truncate text-xs text-muted-foreground">
+                                {t("accountLabel", {
+                                  account: connection.external_account,
+                                })}
+                              </p>
+                            ) : null}
+                            {connection?.connected_at ? (
+                              <p className="text-xs text-muted-foreground">
+                                {t("connectedLabel", {
+                                  date: formatDate(connection.connected_at, locale),
+                                })}
+                              </p>
+                            ) : null}
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <Badge variant={STATUS_VARIANT[status] ?? "secondary"}>
                             {t(`status.${status}`)}
                           </Badge>
-                          {c.authorizable && status === "ready" ? (
+                          {c.authorizable && (status === "ready" || status === "expired") ? (
                             <Button asChild size="sm">
                               <a href={`/api/integrations/${c.id}/connect`}>
-                                {t("authorize")}
+                                {status === "expired" ? t("reconnect") : t("authorize")}
                               </a>
                             </Button>
                           ) : null}

@@ -26,7 +26,12 @@ export function getConnectorStatus(
   connection: IntegrationConnection | undefined,
 ): ConnectorStatus {
   if (connection) {
-    return connection.status === "expired" ? "expired" : "connected";
+    if (connection.status === "expired") return "expired";
+    // Derive expiry from the stored token lifetime (e.g. LinkedIn tokens expire).
+    if (connection.expires_at && Date.parse(connection.expires_at) < Date.now()) {
+      return "expired";
+    }
+    return "connected";
   }
   return isConnectorConfigured(connector) ? "ready" : "not_connected";
 }
