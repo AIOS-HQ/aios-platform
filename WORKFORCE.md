@@ -1,8 +1,10 @@
 # AIOS Workforce Registry
 
-Version: 1.0
+Version: 2.0
 Status: Active
 Owner: Alejandro Baez
+Code source of truth: `src/lib/workforce/registry.ts`
+Organizational brain: Julius (`src/lib/julius/`)
 
 ---
 
@@ -10,292 +12,70 @@ Owner: Alejandro Baez
 
 This document defines the official AIOS workforce structure.
 
-AIOS and AirBid are separate companies.
+AIOS and AirBid are separate companies. AirBid workforce agents belong to AirBid;
+AIOS workforce agents belong to AIOS. Agent names, responsibilities, permissions,
+memory, credentials, and operational scope must remain separated. Cross-company
+memory sharing is prohibited.
 
-AirBid workforce agents belong to AirBid.
-
-AIOS workforce agents belong to AIOS.
-
-Agent names, responsibilities, permissions, memory, credentials, and operational scope must remain separated.
+> v2.0 reconciliation (per founder workforce directive): the auditor agent is now
+> **Auditor** (was *Verity*); the communications agent is now **Ambassador** (was
+> *Signal*); **Julius** is introduced as the AIOS organizational brain (NOT an
+> agent); the former *Forge* engineering agent is **not** part of the named
+> workforce — engineering is handled by the Code department's agents
+> (`src/lib/harmony/os/catalog.ts`). See `docs/architecture/aios-workforce-and-julius.md`.
 
 ---
 
 # Workforce Principles
 
-## 1. Human Governance First
-
-AI may:
-
-- Observe
-- Analyze
-- Recommend
-- Draft
-- Execute approved actions
-
-AI may not:
-
-- Bypass governance
-- Circumvent approvals
-- Hide actions from audit logs
+1. **Human governance first.** AI may observe, analyze, recommend, draft, and
+   execute approved actions — never bypass governance, circumvent approvals, or
+   hide actions from audit logs.
+2. **Company separation.** AIOS and AirBid are separate entities. Data,
+   credentials, databases, domains, and operational decisions remain isolated.
+3. **Auditability.** All significant actions are traceable, logged, reviewable,
+   and reversible whenever possible.
+4. **Harmony coordinates.** Harmony is the operating intelligence — it routes,
+   prioritizes, and coordinates work; it does not replace governance.
 
 ---
 
-## 2. Company Separation
+# Julius — AIOS Organizational Brain
 
-AIOS and AirBid are separate entities.
+Julius is **not an AI agent.** Julius is the official AIOS organizational brain,
+responsible for: organizational memory, historical context, objectives, company
+knowledge, decisions, documents, activities, relationships between agents, and
+long-term continuity.
 
-Data must remain isolated.
-
-Credentials must remain isolated.
-
-Databases must remain isolated.
-
-Domains must remain isolated.
-
-Operational decisions must remain isolated.
-
----
-
-## 3. Auditability
-
-All significant actions should be:
-
-- Traceable
-- Logged
-- Reviewable
-- Reversible whenever possible
-
----
-
-## 4. Harmony Coordinates
-
-Harmony acts as the operating intelligence.
-
-Harmony coordinates work.
-
-Harmony routes work.
-
-Harmony prioritizes work.
-
-Harmony does not replace governance.
+- All AIOS agents may read from and write to Julius where appropriate.
+- **Atlas** is the primary curator and steward of Julius.
+- Julius is **company-scoped** — each company keeps its own brain; AIOS and
+  AirBid memory never mix. AirBid operational memory must never be placed in Julius.
 
 ---
 
 # AIOS Workforce
 
----
-
-## Harmony
-
-Role:
-Chief Operating Intelligence
-
-Purpose:
-
-Coordinate the AIOS workforce.
-
-Responsibilities:
-
-- Task routing
-- Prioritization
-- Approval routing
-- Workforce coordination
-- Founder alignment
-- Company oversight
-
----
-
-## Verity
-
-Role:
-Internal Auditor & System Inspector
-
-Purpose:
-
-Continuously inspect AIOS health.
-
-Responsibilities:
-
-- Code audits
-- Repository audits
-- Supabase audits
-- Performance reviews
-- Deployment validation
-- Integration checks
-- Security observations
-- Operational reports
-
-Verity asks:
-
-- What is broken?
-- What is slow?
-- What is disconnected?
-- What is vulnerable?
-- What changed?
-
-Restrictions:
-
-- Cannot bypass governance
-- Cannot perform destructive actions without approval
-
----
-
-## Forge
-
-Role:
-Engineering Operations
-
-Purpose:
-
-Build and improve software systems.
-
-Responsibilities:
-
-- Code generation
-- Bug fixing
-- Refactoring
-- Technical documentation
-- Deployment preparation
-- Engineering support
-
----
-
-## Atlas
-
-Role:
-Knowledge Intelligence
-
-Purpose:
-
-Maintain company memory and knowledge.
-
-Responsibilities:
-
-- Documentation
-- Knowledge management
-- Founder context preservation
-- Decision history
-- Memory organization
-
----
-
-## Pulse
-
-Role:
-System Monitoring
-
-Purpose:
-
-Monitor operational health.
-
-Responsibilities:
-
-- Application monitoring
-- Deployment monitoring
-- Database monitoring
-- Usage monitoring
-- Alert generation
-
----
-
-## Signal
-
-Role:
-Communications Operations
-
-Purpose:
-
-Manage communications.
-
-Responsibilities:
-
-- Email drafting
-- Message routing
-- Notifications
-- Internal communications
-- Publishing coordination
-
----
-
-## Ledger
-
-Role:
-Records & Compliance
-
-Purpose:
-
-Maintain operational records.
-
-Responsibilities:
-
-- Approval records
-- Audit trails
-- Activity history
-- Governance records
-- Compliance tracking
-
----
-
-## Catalyst
-
-Role:
-Content & Growth
-
-Purpose:
-
-Support marketing and growth.
-
-Responsibilities:
-
-- Content generation
-- Blog creation
-- Social media drafts
-- Campaign planning
-- Growth experimentation
-
----
-
-## Horizon
-
-Role:
-Strategy & Planning
-
-Purpose:
-
-Support long-term planning.
-
-Responsibilities:
-
-- Roadmaps
-- Strategic planning
-- Scenario analysis
-- Goal tracking
-- Opportunity analysis
-
----
-
-## Aegis
-
-Role:
-Security & Risk
-
-Purpose:
-
-Protect the platform.
-
-Responsibilities:
-
-- Risk monitoring
-- Security reviews
-- Permission reviews
-- Credential safety
-- Threat identification
+| Agent | Role | Julius access |
+|---|---|---|
+| **Harmony** | Chief Operating Intelligence | read/write |
+| **Auditor** (was Verity) | Internal Auditor & System Inspector | read/write |
+| **Catalyst** | Content & Growth | read/write |
+| **Ambassador** (was Signal) | Communications & Relations | read/write |
+| **Atlas** | Knowledge Intelligence | **steward** |
+| **Pulse** | System Monitoring | read/write |
+| **Horizon** | Strategy & Planning | read/write |
+| **Aegis** | Security & Risk | read/write |
+| **Ledger** | Records & Compliance | read/write |
+
+(Full role/purpose/responsibilities are defined in `src/lib/workforce/registry.ts`.)
 
 ---
 
 # Reserved AirBid Workforce
 
-The following names are reserved exclusively for AirBid:
+The following names are reserved exclusively for AirBid and must NOT be used as
+AIOS workforce members:
 
 - Nexus
 - Sentinel
@@ -303,18 +83,13 @@ The following names are reserved exclusively for AirBid:
 - Oracle
 - Compass
 
-These names must not be used as AIOS workforce members.
+Enforced in code via `isReservedAirbidName()` in `src/lib/workforce/registry.ts`.
 
 ---
 
 # Future Workforce Expansion
 
-Additional AIOS workforce agents may be added as AIOS evolves.
-
-All future agents must:
-
-- Have a defined role
-- Have a defined purpose
-- Have documented responsibilities
-- Follow governance requirements
-- Be registered in this file
+Additional AIOS workforce agents may be added as AIOS evolves. Every future agent
+must have a defined role, purpose, and documented responsibilities, follow
+governance requirements, and be registered in both this file and
+`src/lib/workforce/registry.ts`.
