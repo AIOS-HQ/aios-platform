@@ -85,6 +85,7 @@ export const CONNECTORS: ConnectorDef[] = [
       { id: "create_branch", mode: "write", risk: "routine" },
       { id: "open_pull_request", mode: "write", risk: "routine" },
       { id: "create_issue", mode: "write", risk: "routine" },
+      { id: "commit_file_to_branch", mode: "write", risk: "routine" },
       { id: "merge_pull_request", mode: "write", risk: "approval" },
       { id: "delete_repository", mode: "write", risk: "destructive" },
     ],
