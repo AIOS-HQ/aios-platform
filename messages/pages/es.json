@@ -815,6 +815,13 @@
       "firstObjective": "Define tu primer objetivo para enfocar la fuerza de trabajo.",
       "allClear": "Sin riesgos ni advertencias: las operaciones están saludables."
     },
-    "juliusAware": "{n} entradas de conciencia de Julius"
+    "juliusAware": "{n} entradas de conciencia de Julius",
+    "needsAttention": "Requiere tu atención",
+    "needsAttentionHint": "Decisiones y riesgos que te esperan — atiéndelos primero.",
+    "allClear": "Todo en orden — sin aprobaciones pendientes ni riesgos abiertos.",
+    "attnAction": "Acción",
+    "approvalsNeed": "{n} aprobación(es) requieren tu decisión",
+    "reviewApprovals": "Revisar",
+    "investigate": "Investigar"
   }
 }

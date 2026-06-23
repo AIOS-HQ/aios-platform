@@ -1,9 +1,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import {
-  Activity,
+  AlertTriangle,
   Brain,
-  Gauge,
   ShieldAlert,
   Sparkles,
   Target,
@@ -92,77 +91,71 @@ export async function CommandCenter(props: CommandCenterProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Executive Summary ───────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Gauge className="size-4 text-primary" aria-hidden="true" />
-            {t("execSummary")}
-          </CardTitle>
-          <CardDescription>{t("execSummaryHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("keyObjectives")}
-            </p>
-            {props.objectives.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("none")}</p>
-            ) : (
-              <ul className="space-y-0.5 text-sm">
-                {props.objectives.slice(0, 4).map((o) => (
-                  <li key={o.id} className="truncate">{o.title}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("criticalRisks")}
-            </p>
-            <div className="flex items-center gap-2">
-              <Badge variant={SEV_VARIANT[report.posture]}>
-                {t(`posture.${report.posture}`)}
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                {t("riskScoreInline", { score: report.score })}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {t("criticalRisksCount", { n: report.counts.risk })}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("pendingApprovals")}
-            </p>
-            <p className="text-2xl font-bold">{props.pendingApprovals}</p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/harmony/approvals">{t("review")}</Link>
-            </Button>
-          </div>
-          <div className="space-y-1 sm:col-span-2 lg:col-span-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("recentActivity")}
-            </p>
-            {props.activity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("none")}</p>
-            ) : (
-              <ul className="space-y-0.5 text-sm">
-                {props.activity.slice(0, 3).map((e) => (
-                  <li key={e.id} className="truncate text-muted-foreground">{e.summary}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("topRecommendation")}
-            </p>
-            <p className="text-sm">{recs[0]?.text}</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Needs Your Attention (leads the cockpit) ────────────────────── */}
+      {(() => {
+        const riskFindings = report.findings.filter((f) => f.severity === "risk");
+        const warnFindings = report.findings.filter((f) => f.severity === "warn");
+        const hasAttention =
+          props.pendingApprovals > 0 ||
+          riskFindings.length > 0 ||
+          warnFindings.length > 0;
+        return (
+          <Card className={hasAttention ? "border-destructive/40" : undefined}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="size-4 text-primary" aria-hidden="true" />
+                {t("needsAttention")}
+              </CardTitle>
+              <CardDescription>{t("needsAttentionHint")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!hasAttention ? (
+                <p className="text-sm text-muted-foreground">{t("allClear")}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {props.pendingApprovals > 0 && (
+                    <li className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-sm">
+                        <Badge variant="default">{t("attnAction")}</Badge>
+                        {t("approvalsNeed", { n: props.pendingApprovals })}
+                      </span>
+                      <Button asChild size="sm">
+                        <Link href="/harmony/approvals">{t("reviewApprovals")}</Link>
+                      </Button>
+                    </li>
+                  )}
+                  {riskFindings.map((f, i) => (
+                    <li key={`r${i}`} className="flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-start gap-2 text-sm">
+                        <Badge variant="destructive" className="mt-0.5 shrink-0">
+                          {t("sevName.risk")}
+                        </Badge>
+                        <span className="text-muted-foreground">{f.detail}</span>
+                      </span>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/settings/auditor">{t("investigate")}</Link>
+                      </Button>
+                    </li>
+                  ))}
+                  {warnFindings.slice(0, 3).map((f, i) => (
+                    <li key={`w${i}`} className="flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-start gap-2 text-sm">
+                        <Badge variant="default" className="mt-0.5 shrink-0">
+                          {t("sevName.warn")}
+                        </Badge>
+                        <span className="text-muted-foreground">{f.detail}</span>
+                      </span>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/settings/auditor">{t("investigate")}</Link>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ── Risk Overview (Auditor) ───────────────────────────────────── */}

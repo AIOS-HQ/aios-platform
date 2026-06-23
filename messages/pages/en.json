@@ -815,6 +815,13 @@
       "firstObjective": "Set your first objective to focus the workforce.",
       "allClear": "No risks or warnings — operations are healthy."
     },
-    "juliusAware": "{n} Julius awareness entries"
+    "juliusAware": "{n} Julius awareness entries",
+    "needsAttention": "Needs your attention",
+    "needsAttentionHint": "Decisions and risks waiting on you — handle these first.",
+    "allClear": "You're all clear — no pending approvals or open risks.",
+    "attnAction": "Action",
+    "approvalsNeed": "{n} approval(s) need your decision",
+    "reviewApprovals": "Review",
+    "investigate": "Investigate"
   }
 }
