@@ -187,7 +187,7 @@
       "subtitle": "The businesses you operate through Harmony.",
       "new": "New company",
       "newDesc": "Name it — standard departments and agents are created automatically.",
-      "namePlaceholder": "e.g. AirBid",
+      "namePlaceholder": "e.g. Acme",
       "seedHint": "Creates the 8 standard departments (Code, Marketing, Research, Operations, Engineering, Sales, Support, Finance) with starter agents.",
       "allCompanies": "All companies",
       "switchLabel": "Switch company",
