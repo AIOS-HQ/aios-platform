@@ -712,5 +712,47 @@
     "riskHigh": "High risk",
     "legend": "Routine actions execute autonomously and are audited. Sensitive and high-risk actions appear here for your decision.",
     "sourceLabel": "Source: {source}"
+  },
+  "auditor": {
+    "title": "Auditor",
+    "subtitle": "AIOS internal auditor — read-only audits across approvals, security, configuration, and governance.",
+    "manage": "Open Auditor",
+    "riskHeading": "Risk posture",
+    "findingsHeading": "Founder audit report",
+    "generatedAtLabel": "Generated {date}",
+    "recordToJulius": "Record to Julius",
+    "recording": "Recording",
+    "recordedToast": "Audit recorded to Julius.",
+    "posture": {
+      "ok": "Healthy",
+      "info": "Informational",
+      "warn": "Attention",
+      "risk": "At risk"
+    },
+    "severity": {
+      "ok": "OK",
+      "info": "Info",
+      "warn": "Warning",
+      "risk": "Risk"
+    },
+    "counts": {
+      "ok": "{n} OK",
+      "warn": "{n} warning",
+      "info": "{n} info",
+      "risk": "{n} risk"
+    },
+    "domains": {
+      "approvals": "Approvals",
+      "workflow": "Workflow",
+      "governance": "Governance",
+      "security": "Security",
+      "configuration": "Configuration",
+      "deployment": "Deployment",
+      "risk": "Risk"
+    },
+    "errors": {
+      "unauthorized": "Please sign in.",
+      "juliusFailed": "Couldn't record to Julius. Ensure a company exists and the Julius migration is applied."
+    }
   }
 }

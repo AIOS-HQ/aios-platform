@@ -712,5 +712,47 @@
     "riskHigh": "Alto riesgo",
     "legend": "Las acciones rutinarias se ejecutan de forma autónoma y se auditan. Las acciones sensibles y de alto riesgo aparecen aquí para tu decisión.",
     "sourceLabel": "Origen: {source}"
+  },
+  "auditor": {
+    "title": "Auditor",
+    "subtitle": "Auditor interno de AIOS — auditorías de solo lectura sobre aprobaciones, seguridad, configuración y gobernanza.",
+    "manage": "Abrir Auditor",
+    "riskHeading": "Postura de riesgo",
+    "findingsHeading": "Informe de auditoría para el fundador",
+    "generatedAtLabel": "Generado {date}",
+    "recordToJulius": "Registrar en Julius",
+    "recording": "Registrando",
+    "recordedToast": "Auditoría registrada en Julius.",
+    "posture": {
+      "ok": "Saludable",
+      "info": "Informativo",
+      "warn": "Atención",
+      "risk": "En riesgo"
+    },
+    "severity": {
+      "ok": "OK",
+      "info": "Info",
+      "warn": "Advertencia",
+      "risk": "Riesgo"
+    },
+    "counts": {
+      "ok": "{n} OK",
+      "warn": "{n} advertencia",
+      "info": "{n} info",
+      "risk": "{n} riesgo"
+    },
+    "domains": {
+      "approvals": "Aprobaciones",
+      "workflow": "Flujo de trabajo",
+      "governance": "Gobernanza",
+      "security": "Seguridad",
+      "configuration": "Configuración",
+      "deployment": "Despliegue",
+      "risk": "Riesgo"
+    },
+    "errors": {
+      "unauthorized": "Inicia sesión.",
+      "juliusFailed": "No se pudo registrar en Julius. Asegúrate de que exista una empresa y que la migración de Julius esté aplicada."
+    }
   }
 }
