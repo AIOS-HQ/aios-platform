@@ -755,5 +755,66 @@
       "juliusFailed": "Couldn't record to Julius. Ensure a company exists and the Julius migration is applied."
     },
     "scoreLabel": "/ 100 risk score"
+  },
+  "commandCenter": {
+    "execSummary": "Executive Summary",
+    "execSummaryHint": "Your founder-first overview of objectives, risk, approvals, and activity.",
+    "keyObjectives": "Key objectives",
+    "none": "None yet",
+    "criticalRisks": "Critical risks",
+    "riskScoreInline": "score {score}/100",
+    "criticalRisksCount": "{n} critical risk(s)",
+    "pendingApprovals": "Pending approvals",
+    "review": "Review",
+    "recentActivity": "Recent activity",
+    "topRecommendation": "Top recommendation",
+    "riskOverview": "Risk Overview",
+    "openAuditor": "Open Auditor",
+    "riskScoreSuffix": "/ 100 risk score",
+    "governanceLabel": "Governance findings",
+    "deploymentLabel": "Deployment findings",
+    "sev": {
+      "risk": "{n} risk",
+      "warn": "{n} warning",
+      "info": "{n} info",
+      "ok": "{n} OK"
+    },
+    "sevName": {
+      "ok": "OK",
+      "info": "Info",
+      "warn": "Warning",
+      "risk": "Risk"
+    },
+    "posture": {
+      "ok": "Healthy",
+      "info": "Informational",
+      "warn": "Attention",
+      "risk": "At risk"
+    },
+    "companyHealth": "Company Health",
+    "companyHealthHint": "Operational health across objectives, execution, and approvals.",
+    "objectivesLabel": "Objectives",
+    "executionLabel": "Work items",
+    "approvalsPendingLabel": "Approvals pending",
+    "approvalsDecidedLabel": "Approvals decided",
+    "agentHealth": "Agent Health",
+    "agentHealthHint": "Your AIOS workforce and their operational state.",
+    "contributions": "{n} Julius entries",
+    "ready": "Ready",
+    "juliusSteward": "Julius steward",
+    "recommendations": "Strategic Recommendations",
+    "recommendationsHint": "Prioritized founder actions, risk mitigation, and execution opportunities.",
+    "recPriority": {
+      "founder": "Founder",
+      "risk": "Risk",
+      "improve": "Improve",
+      "execution": "Execution"
+    },
+    "rec": {
+      "approvals": "Review {n} pending approval(s) in the Approval Center.",
+      "firstObjective": "Set your first objective to focus the workforce.",
+      "allClear": "No risks or warnings — operations are healthy."
+    },
+    "juliusAware": "{n} Julius awareness entries"
   }
 }
