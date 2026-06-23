@@ -11,7 +11,7 @@ import { runAudit, type Severity } from "@/lib/agents/auditor/service";
 import { getJuliusAwareness } from "@/lib/julius/wiring";
 import { listJuliusEntries } from "@/lib/julius/service";
 import { AIOS_WORKFORCE } from "@/lib/workforce/registry";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import {
   Card,
   CardContent,
@@ -51,6 +51,9 @@ type Rec = { priority: "founder" | "risk" | "improve" | "execution"; text: strin
 export async function CommandCenter(props: CommandCenterProps) {
   const t = await getTranslations("commandCenter");
   const locale = await getLocale();
+  // Freshness stamp for cockpit sections — this view recomputes on every load,
+  // so "as of" reflects the moment the Auditor/attention data was generated.
+  const generatedAt = formatDateTime(new Date().toISOString(), locale);
 
   const report = await runAudit(props.userId);
   const awareness = props.companyId
@@ -109,6 +112,9 @@ export async function CommandCenter(props: CommandCenterProps) {
                 {t("needsAttention")}
               </CardTitle>
               <CardDescription>{t("needsAttentionHint")}</CardDescription>
+              <p className="text-xs text-muted-foreground">
+                {t("asOf", { time: generatedAt })}
+              </p>
             </CardHeader>
             <CardContent className="space-y-2">
               {!hasAttention ? (
@@ -211,6 +217,9 @@ export async function CommandCenter(props: CommandCenterProps) {
             <p className="text-xs text-muted-foreground">
               {t("governanceLabel")}: {governanceFindings.length} ·{" "}
               {t("deploymentLabel")}: {deploymentFindings.length}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("asOf", { time: generatedAt })}
             </p>
           </CardContent>
         </Card>

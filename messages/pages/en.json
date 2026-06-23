@@ -825,6 +825,7 @@
     "investigate": "Investigate",
     "attnStalled": "Stalled",
     "stalledWork": "{n} work item(s) blocked",
-    "viewWork": "View"
+    "viewWork": "View",
+    "asOf": "As of {time}"
   }
 }

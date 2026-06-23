@@ -12,6 +12,27 @@ export function formatDate(iso: string | null | undefined, locale = "en"): strin
   }).format(d);
 }
 
+/**
+ * Format an ISO timestamp as a short, localized date + time in UTC.
+ * Used for freshness/"as of" indicators that must read as a precise moment
+ * (e.g. the Command Center cockpit, which recomputes on every load). UTC is
+ * pinned so server-rendered output is deterministic and unambiguous.
+ */
+export function formatDateTime(iso: string | null | undefined, locale = "en"): string {
+  if (!iso) return "";
+  const d = new Date(iso.length <= 10 ? `${iso}T00:00:00` : iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(d);
+}
+
 /** Whole days between today and an ISO date (negative = in the past). */
 export function daysUntil(iso: string | null | undefined): number | null {
   if (!iso) return null;

@@ -825,6 +825,7 @@
     "investigate": "Investigar",
     "attnStalled": "Estancado",
     "stalledWork": "{n} elemento(s) de trabajo bloqueado(s)",
-    "viewWork": "Ver"
+    "viewWork": "Ver",
+    "asOf": "Actualizado {time}"
   }
 }
