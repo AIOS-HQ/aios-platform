@@ -24,6 +24,9 @@ type Msg = {
   resolved?: boolean;
 };
 
+/** Distance (px) from the bottom within which we consider the user "following" live. */
+const BOTTOM_THRESHOLD = 80;
+
 export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const t = useTranslations("operator");
   const router = useRouter();
@@ -31,33 +34,57 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const [input, setInput] = useState("");
   const [pending, start] = useTransition();
   const listRef = useRef<HTMLDivElement>(null);
+  /**
+   * Whether the user is pinned to the bottom (following the live conversation).
+   * We only auto-scroll when this is true, so reviewing older messages is never
+   * interrupted by background refreshes or incoming replies.
+   */
+  const atBottomRef = useRef(true);
 
-  useEffect(() => {
-  let active = true;
-
-  const refresh = async () => {
-    try {
-      const loaded = await loadOperatorMessages();
-
-  if (active) {
-    setMessages(loaded as Msg[]);
-    router.refresh();
+  function isNearBottom(el: HTMLDivElement): boolean {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_THRESHOLD;
   }
-    } catch {}
-  };
 
-  refresh();
+  function handleScroll() {
+    const el = listRef.current;
+    if (el) atBottomRef.current = isNearBottom(el);
+  }
 
-  const interval = setInterval(refresh, 3000);
+  /** Jump to the newest message — used for active (user-initiated) conversation. */
+  function scrollToBottom() {
+    const el = listRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight });
+  }
 
-  return () => {
-    active = false;
-    clearInterval(interval);
-  };
-}, []);
-  
+  // Background refresh: poll for messages, but DON'T disturb the user's scroll
+  // position. We capture whether they were at the bottom before applying updates
+  // and only restore the pinned-to-bottom position if they were.
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+    let active = true;
+
+    const refresh = async () => {
+      try {
+        const loaded = await loadOperatorMessages();
+        if (active) {
+          setMessages(loaded as Msg[]);
+          router.refresh();
+        }
+      } catch {}
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [router]);
+
+  // Auto-scroll ONLY when the user is following the live conversation (pinned to
+  // bottom). If they have scrolled up to review history, leave their view alone.
+  useEffect(() => {
+    if (atBottomRef.current) scrollToBottom();
   }, [messages, pending]);
 
   const examples = [
@@ -70,6 +97,8 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   function send(text: string) {
     const value = text.trim();
     if (!value || pending) return;
+    // The user is actively conversing — pin to bottom so their message shows.
+    atBottomRef.current = true;
     setMessages((m) => [
       ...m,
       { id: crypto.randomUUID(), role: "user", text: value },
@@ -95,6 +124,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
     proposed: NonNullable<OperatorResult["proposedAction"]>,
   ) {
     if (pending) return;
+    atBottomRef.current = true;
     setMessages((m) =>
       m.map((x) => (x.id === msgId ? { ...x, resolved: true } : x)),
     );
@@ -113,6 +143,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   }
 
   function cancelProposal(msgId: string) {
+    atBottomRef.current = true;
     setMessages((m) =>
       m.map((x) => (x.id === msgId ? { ...x, resolved: true } : x)),
     );
@@ -140,6 +171,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
 
       <div
         ref={listRef}
+        onScroll={handleScroll}
         className="flex-1 space-y-4 overflow-y-auto p-4"
         aria-live="polite"
       >
