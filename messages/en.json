@@ -163,7 +163,8 @@
       "command": "Command Center",
       "personal": "Personal"
     },
-    "workforce": "Workforce"
+    "workforce": "Workforce",
+    "operations": "Operations"
   },
   "os": {
     "commandCenter": {

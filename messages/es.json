@@ -163,7 +163,8 @@
       "command": "Centro de Mando",
       "personal": "Personal"
     },
-    "workforce": "Equipo IA"
+    "workforce": "Equipo IA",
+    "operations": "Operaciones"
   },
   "os": {
     "commandCenter": {
