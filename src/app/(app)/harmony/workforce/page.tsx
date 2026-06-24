@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Activity, Brain, Users } from "lucide-react";
+import { Activity, Brain, Send, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
@@ -8,6 +8,7 @@ import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { InlineEmpty } from "@/components/shared/inline-empty";
+import { AgentDispatchDialog } from "@/components/harmony/workforce/agent-dispatch-dialog";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("workforce");
@@ -81,7 +83,16 @@ export default async function WorkforcePage() {
 
   return (
     <>
-      <PageHeader title={t("title")} description={t("subtitle")} />
+      <PageHeader title={t("title")} description={t("subtitle")}>
+        <AgentDispatchDialog
+          agents={AIOS_WORKFORCE.map((a) => ({ key: a.key, name: a.name }))}
+        >
+          <Button>
+            <Send className="size-4" aria-hidden="true" />
+            {t("dispatch")}
+          </Button>
+        </AgentDispatchDialog>
+      </PageHeader>
 
       <div className="flex flex-col gap-8">
         {/* ── Workforce Directory + Status Board ─────────────────────────── */}
