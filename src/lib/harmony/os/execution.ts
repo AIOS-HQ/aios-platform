@@ -50,7 +50,7 @@ function inferGithubIntent(item: WorkItem): GithubIntent | null {
   const text = `${item.title}\n${item.description ?? ""}`.trim();
   const lower = text.toLowerCase();
 
-    const repo =
+  const repo =
     matchRepo(text) ??
     process.env.HARMONY_DEFAULT_GITHUB_REPO ??
     process.env.GITHUB_DEFAULT_REPO ??
@@ -292,7 +292,7 @@ export async function executeWorkItem(
       .eq("id", item.id)
       .eq("user_id", userId);
 
-        await emitActivity({
+    await emitActivity({
       userId,
       companyId: item.company_id,
       departmentId: item.department_id,
@@ -320,6 +320,7 @@ export async function executeWorkItem(
   }
 
   let result: string;
+  let providerFailed = false;
   try {
     const system = to("execution.system", {
       department: departmentName || "Harmony",
@@ -328,6 +329,7 @@ export async function executeWorkItem(
     result = await getProvider().generate(prompt, system);
   } catch (err) {
     console.error("[execution] provider.generate failed", err);
+    providerFailed = true;
     result = to("execution.failed");
 
     await emitActivity({
@@ -347,13 +349,26 @@ export async function executeWorkItem(
     LIMITS.noteContent,
   );
 
+  // A provider failure must NOT be recorded as completed — that silently loses
+  // the work (it disappears from the actionable queue and a false "completed"
+  // activity is emitted). Mark it blocked so the founder can retry it.
+  if (providerFailed) {
+    await supabase
+      .from("work_items")
+      .update({ status: "blocked", description })
+      .eq("id", item.id)
+      .eq("user_id", userId);
+
+    return "blocked";
+  }
+
   await supabase
     .from("work_items")
     .update({ status: "completed", description })
     .eq("id", item.id)
     .eq("user_id", userId);
 
-    await emitActivity({
+  await emitActivity({
     userId,
     companyId: item.company_id,
     departmentId: item.department_id,
