@@ -8,17 +8,32 @@ import type { Channel, Conversation } from "@/types/database";
 
 type DeliveryStatus = "sent" | "failed";
 
+/**
+ * Resolve the organization author URN (urn:li:organization:<id>).
+ *
+ * Tries the channel handle FIRST, then the env fallbacks — but a non-empty yet
+ * non-organization handle (e.g. a Page display name or company URL) must NOT
+ * shadow the env value, so we evaluate every candidate and return the first that
+ * yields a valid org id. Accepts a bare URN, a bare numeric id, or an id embedded
+ * in a LinkedIn company/organization URL.
+ */
 function getLinkedInAuthor(channel: Channel): string | null {
-  const raw =
-    channel.handle ||
-    process.env.LINKEDIN_ORGANIZATION_URN ||
-    process.env.LINKEDIN_ORGANIZATION_ID ||
-    "";
+  const candidates = [
+    channel.handle,
+    process.env.LINKEDIN_ORGANIZATION_URN,
+    process.env.LINKEDIN_ORGANIZATION_ID,
+  ];
 
-  const value = raw.trim();
-
-  if (/^urn:li:organization:\d+$/.test(value)) return value;
-  if (/^\d+$/.test(value)) return `urn:li:organization:${value}`;
+  for (const candidate of candidates) {
+    const value = (candidate || "").trim();
+    if (!value) continue;
+    if (/^urn:li:organization:\d+$/.test(value)) return value;
+    if (/^\d+$/.test(value)) return `urn:li:organization:${value}`;
+    // e.g. "urn:li:organization:123", ".../company/123", "organization/123"
+    const match =
+      value.match(/organization[:/](\d+)/i) || value.match(/company\/(\d+)/i);
+    if (match) return `urn:li:organization:${match[1]}`;
+  }
 
   return null;
 }
@@ -45,7 +60,13 @@ async function publishLinkedInPost(
   const author = getLinkedInAuthor(channel);
 
   if (!author) {
-    console.error("[comms/linkedin] Missing LinkedIn organization id or URN");
+    console.error(
+      "[comms/linkedin] publish ABORTED before request: could not resolve an " +
+        "organization URN from channel.handle (" +
+        (channel.handle ?? "null") +
+        ") or LINKEDIN_ORGANIZATION_URN / LINKEDIN_ORGANIZATION_ID — set one to " +
+        "urn:li:organization:<id> or the numeric id",
+    );
     return "failed";
   }
 
@@ -53,12 +74,19 @@ async function publishLinkedInPost(
 
   if (!accessToken) {
     console.error(
-      "[comms/linkedin] missing LINKEDIN_PUBLISHER_ACCESS_TOKEN — organization " +
-        "publishing requires the AIOS Publisher app token (Community Management " +
-        "API, w_organization_social), not the Harmony sign-in connector",
+      "[comms/linkedin] publish ABORTED before request: LINKEDIN_PUBLISHER_ACCESS_TOKEN " +
+        "is not set — organization publishing requires the AIOS Publisher app token " +
+        "(Community Management API, w_organization_social), not the Harmony sign-in connector",
     );
     return "failed";
   }
+
+  // Always log the publish attempt BEFORE the request so it is visible in the
+  // function logs even when LinkedIn later rejects it. If you do NOT see this
+  // line after Approve & Send, the publish path was never reached.
+  console.info(
+    `[comms/linkedin] publishing as ${author} (${body.length} chars) → POST https://api.linkedin.com/rest/posts`,
+  );
 
   try {
     const response = await fetch("https://api.linkedin.com/rest/posts", {
@@ -96,6 +124,7 @@ async function publishLinkedInPost(
       return "failed";
     }
 
+    console.info("[comms/linkedin] publish OK", response.status);
     return "sent";
   } catch (err) {
     console.error(
