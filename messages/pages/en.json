@@ -940,6 +940,40 @@
     "awaitingApproval": "Awaiting approval",
     "openApprovalCenter": "Open Approval Center"
   },
+  "work": {
+    "title": "Work Queue",
+    "subtitle": "Proposed work across the AIOS workforce. Approve, delegate, or dismiss.",
+    "openApprovals": "Approval Center",
+    "agentLabel": "Agent",
+    "statusLabel": "Status",
+    "riskLabel": "Risk",
+    "allAgents": "All agents",
+    "allStatuses": "All statuses",
+    "allRisks": "All risks",
+    "apply": "Apply",
+    "noWork": "No work items.",
+    "addWork": "Add",
+    "workPlaceholder": "Describe a unit of work…",
+    "needsApproval": "Needs approval",
+    "status": {
+      "proposed": "Proposed",
+      "approved": "Approved",
+      "in_progress": "In progress",
+      "done": "Done",
+      "blocked": "Blocked",
+      "dismissed": "Dismissed"
+    },
+    "risk": {
+      "routine": "Routine",
+      "approval": "Approval",
+      "destructive": "Destructive"
+    },
+    "op": {
+      "approve": "Approve",
+      "delegate": "Approve & delegate",
+      "dismiss": "Dismiss"
+    }
+  },
   "graph": {
     "title": "Agent Relationship Graph",
     "subtitle": "How your AIOS workforce collaborates — delegations, messages, and Julius contributions.",

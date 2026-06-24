@@ -940,6 +940,40 @@
     "awaitingApproval": "Esperando aprobación",
     "openApprovalCenter": "Abrir centro de aprobaciones"
   },
+  "work": {
+    "title": "Cola de trabajo",
+    "subtitle": "Trabajo propuesto en el equipo AIOS. Aprueba, delega o descarta.",
+    "openApprovals": "Centro de aprobaciones",
+    "agentLabel": "Agente",
+    "statusLabel": "Estado",
+    "riskLabel": "Riesgo",
+    "allAgents": "Todos los agentes",
+    "allStatuses": "Todos los estados",
+    "allRisks": "Todos los riesgos",
+    "apply": "Aplicar",
+    "noWork": "Sin elementos de trabajo.",
+    "addWork": "Añadir",
+    "workPlaceholder": "Describe una unidad de trabajo…",
+    "needsApproval": "Requiere aprobación",
+    "status": {
+      "proposed": "Propuesto",
+      "approved": "Aprobado",
+      "in_progress": "En curso",
+      "done": "Hecho",
+      "blocked": "Bloqueado",
+      "dismissed": "Descartado"
+    },
+    "risk": {
+      "routine": "Rutinario",
+      "approval": "Aprobación",
+      "destructive": "Destructivo"
+    },
+    "op": {
+      "approve": "Aprobar",
+      "delegate": "Aprobar y delegar",
+      "dismiss": "Descartar"
+    }
+  },
   "graph": {
     "title": "Gráfico de relaciones de agentes",
     "subtitle": "Cómo colabora tu equipo de AIOS: delegaciones, mensajes y contribuciones a Julius.",
