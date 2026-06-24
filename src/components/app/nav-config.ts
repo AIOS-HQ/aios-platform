@@ -76,6 +76,7 @@ export const navSections: NavSection[] = [
     items: [
       { href: "/harmony", labelKey: "commandCenter", icon: "LayoutDashboard", exact: true },
       { href: "/harmony/workforce", labelKey: "workforce", icon: "Users" },
+      { href: "/harmony/briefing", labelKey: "briefing", icon: "Gauge" },
       { href: "/harmony/companies", labelKey: "companies", icon: "Building2" },
       { href: "/harmony/objectives", labelKey: "objectives", icon: "Target" },
       { href: "/harmony/work", labelKey: "work", icon: "ListChecks" },

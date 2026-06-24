@@ -9,6 +9,7 @@ import { getAiosAgent } from "@/lib/workforce/registry";
 const NAV_KEY: Record<string, string> = {
   harmony: "commandCenter",
   workforce: "workforce",
+  briefing: "briefing",
   work: "work",
   "work-items": "workItems",
   review: "review",
