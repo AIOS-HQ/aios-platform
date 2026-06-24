@@ -882,6 +882,31 @@
     "viewProfile": "Ver perfil",
     "openChat": "Abrir chat",
     "backToWorkforce": "Volver al equipo",
+    "objectives": "Objetivos",
+    "objectivesHint": "En qué trabaja este agente. Actívalo, páusalo o ciérralo.",
+    "noObjectives": "Aún no hay objetivos.",
+    "objectivePlaceholder": "Añade un objetivo…",
+    "addObjective": "Añadir",
+    "priorityLabel": "Prioridad",
+    "proposedByAgent": "Propuesto por el agente",
+    "objectiveStatus": {
+      "proposed": "Propuesto",
+      "active": "Activo",
+      "paused": "En pausa",
+      "done": "Hecho",
+      "dismissed": "Descartado"
+    },
+    "objectiveOp": {
+      "promote": "Activar",
+      "pause": "Pausar",
+      "done": "Marcar hecho",
+      "dismiss": "Descartar"
+    },
+    "objectivePriority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta"
+    },
     "metrics": "Métricas",
     "tasksCompleted": "Tareas completadas",
     "messagesSent": "Mensajes enviados",
