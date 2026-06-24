@@ -863,6 +863,21 @@
       "routine": "Routine",
       "approval": "Approval",
       "destructive": "High-risk"
-    }
+    },
+    "dispatch": "Dispatch task",
+    "dispatchTitle": "Dispatch to an agent",
+    "dispatchDesc": "Send a message or delegate a task to an AIOS agent. Risky or write actions require your approval.",
+    "fromAgent": "From",
+    "toAgent": "To",
+    "subjectLabel": "Task",
+    "subjectPlaceholder": "e.g. Draft the Q3 launch announcement",
+    "bodyLabel": "Details",
+    "kindLabel": "Type",
+    "riskLabel": "Risk",
+    "dispatchButton": "Dispatch",
+    "dispatched": "Task dispatched",
+    "dispatchedGated": "Dispatched — awaiting your approval",
+    "dispatchNoCompany": "Create a company first to dispatch agent tasks.",
+    "dispatchSameAgent": "Choose two different agents."
   }
 }

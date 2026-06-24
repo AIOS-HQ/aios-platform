@@ -863,6 +863,21 @@
       "routine": "Rutina",
       "approval": "Aprobación",
       "destructive": "Alto riesgo"
-    }
+    },
+    "dispatch": "Asignar tarea",
+    "dispatchTitle": "Asignar a un agente",
+    "dispatchDesc": "Envía un mensaje o delega una tarea a un agente de AIOS. Las acciones de riesgo o escritura requieren tu aprobación.",
+    "fromAgent": "De",
+    "toAgent": "Para",
+    "subjectLabel": "Tarea",
+    "subjectPlaceholder": "p. ej. Redactar el anuncio de lanzamiento del T3",
+    "bodyLabel": "Detalles",
+    "kindLabel": "Tipo",
+    "riskLabel": "Riesgo",
+    "dispatchButton": "Asignar",
+    "dispatched": "Tarea asignada",
+    "dispatchedGated": "Asignada — esperando tu aprobación",
+    "dispatchNoCompany": "Crea una empresa primero para asignar tareas a agentes.",
+    "dispatchSameAgent": "Elige dos agentes diferentes."
   }
 }
