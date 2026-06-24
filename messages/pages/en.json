@@ -907,7 +907,13 @@
     "detail": "Details",
     "markResolved": "Mark resolved",
     "resolvedToast": "Resolved",
-    "recent": "Recently resolved"
+    "recent": "Recently resolved",
+    "attentionQueue": "Founder attention queue",
+    "errors": "Errors",
+    "warnings": "Warnings",
+    "blockedDelegations": "Blocked delegations",
+    "awaitingApproval": "Awaiting approval",
+    "openApprovalCenter": "Open Approval Center"
   },
   "graph": {
     "title": "Agent Relationship Graph",

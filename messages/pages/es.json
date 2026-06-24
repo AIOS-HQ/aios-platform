@@ -907,7 +907,13 @@
     "detail": "Detalles",
     "markResolved": "Marcar como resuelto",
     "resolvedToast": "Resuelto",
-    "recent": "Resueltos recientemente"
+    "recent": "Resueltos recientemente",
+    "attentionQueue": "Cola de atención del fundador",
+    "errors": "Errores",
+    "warnings": "Advertencias",
+    "blockedDelegations": "Delegaciones bloqueadas",
+    "awaitingApproval": "Esperando aprobación",
+    "openApprovalCenter": "Abrir centro de aprobaciones"
   },
   "graph": {
     "title": "Gráfico de relaciones de agentes",
