@@ -907,6 +907,14 @@
       "medium": "Media",
       "high": "Alta"
     },
+    "recommendations": "Recomendaciones",
+    "recommendationsHint": "Sugerencias de este agente. Acepta o descarta.",
+    "noRecommendations": "No hay recomendaciones abiertas.",
+    "rationale": "Por qué",
+    "recommendationOp": {
+      "accept": "Aceptar",
+      "dismiss": "Descartar"
+    },
     "metrics": "Métricas",
     "tasksCompleted": "Tareas completadas",
     "messagesSent": "Mensajes enviados",
@@ -972,6 +980,22 @@
       "approve": "Aprobar",
       "delegate": "Aprobar y delegar",
       "dismiss": "Descartar"
+    }
+  },
+  "review": {
+    "title": "Cola de revisión",
+    "subtitle": "Objetivos propuestos, trabajo en cola y recomendaciones pendientes de tu decisión.",
+    "empty": "Nada que revisar.",
+    "objectivesSection": "Objetivos propuestos",
+    "workSection": "Trabajo propuesto",
+    "activate": "Activar",
+    "dismiss": "Descartar",
+    "approve": "Aprobar",
+    "delegate": "Aprobar y delegar",
+    "risk": {
+      "routine": "Rutinario",
+      "approval": "Aprobación",
+      "destructive": "Destructivo"
     }
   },
   "graph": {

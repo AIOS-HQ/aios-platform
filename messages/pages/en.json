@@ -907,6 +907,14 @@
       "medium": "Medium",
       "high": "High"
     },
+    "recommendations": "Recommendations",
+    "recommendationsHint": "Suggestions from this agent. Accept or dismiss.",
+    "noRecommendations": "No open recommendations.",
+    "rationale": "Why",
+    "recommendationOp": {
+      "accept": "Accept",
+      "dismiss": "Dismiss"
+    },
     "metrics": "Metrics",
     "tasksCompleted": "Tasks completed",
     "messagesSent": "Messages sent",
@@ -972,6 +980,22 @@
       "approve": "Approve",
       "delegate": "Approve & delegate",
       "dismiss": "Dismiss"
+    }
+  },
+  "review": {
+    "title": "Review Queue",
+    "subtitle": "Proposed objectives, queued work, and recommendations awaiting your decision.",
+    "empty": "Nothing to review.",
+    "objectivesSection": "Proposed objectives",
+    "workSection": "Proposed work",
+    "activate": "Activate",
+    "dismiss": "Dismiss",
+    "approve": "Approve",
+    "delegate": "Approve & delegate",
+    "risk": {
+      "routine": "Routine",
+      "approval": "Approval",
+      "destructive": "Destructive"
     }
   },
   "graph": {

@@ -50,6 +50,7 @@ export async function workItemAction(
     const created = await createWorkItem({ userId: user.id, companyId, agent, title, risk, kind });
     if (!created) return { status: "error", message: t("errors.generic") };
     revalidatePath("/harmony/work");
+    revalidatePath("/harmony/review");
     return { status: "success", message: "" };
   }
 
@@ -60,6 +61,7 @@ export async function workItemAction(
     const ok = await setWorkItemStatus(user.id, id, "dismissed");
     if (!ok) return { status: "error", message: t("errors.generic") };
     revalidatePath("/harmony/work");
+    revalidatePath("/harmony/review");
     return { status: "success", message: "" };
   }
 
@@ -67,6 +69,7 @@ export async function workItemAction(
     const ok = await setWorkItemStatus(user.id, id, "approved");
     if (!ok) return { status: "error", message: t("errors.generic") };
     revalidatePath("/harmony/work");
+    revalidatePath("/harmony/review");
     return { status: "success", message: "" };
   }
 
@@ -89,6 +92,7 @@ export async function workItemAction(
     if (!delegated) return { status: "error", message: t("errors.generic") };
     await setWorkItemStatus(user.id, id, "approved");
     revalidatePath("/harmony/work");
+    revalidatePath("/harmony/review");
     return { status: "success", message: "" };
   }
 
