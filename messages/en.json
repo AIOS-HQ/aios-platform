@@ -165,7 +165,8 @@
     },
     "workforce": "Workforce",
     "operations": "Operations",
-    "review": "Review"
+    "review": "Review",
+    "autonomy": "Autonomy"
   },
   "os": {
     "commandCenter": {

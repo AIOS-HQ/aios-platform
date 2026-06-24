@@ -32,6 +32,9 @@ export interface WorkItem {
   status: WorkStatus;
   autonomy: AutonomyMode;
   requires_approval: boolean;
+  // Added by the bounded-autonomy migration; null until classified.
+  risk_level: string | null;
+  category: string | null;
   created_at: string;
   updated_at: string;
 }
