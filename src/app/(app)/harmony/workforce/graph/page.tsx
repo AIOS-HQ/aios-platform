@@ -92,7 +92,7 @@ export default async function WorkforceGraphPage() {
 
   const hasData = edges.length > 0 || juliusEdges.length > 0;
   const topRoutes = [...edges].sort((a, b) => b.count - a.count).slice(0, 6);
-  const name = (k: string) => getAiosAgent(k)?.name ?? k;
+  const agentName = (k: string) => getAiosAgent(k)?.name ?? k;
 
   const legend: { status: string; label: string }[] = [
     { status: "working", label: t("legend.working") },
@@ -124,8 +124,9 @@ export default async function WorkforceGraphPage() {
                 aria-hidden="true"
               >
                 {edges.map((e) => {
-                  const a = posByKey.get(e.from)!;
-                  const b = posByKey.get(e.to)!;
+                  const a = posByKey.get(e.from);
+                  const b = posByKey.get(e.to);
+                  if (!a || !b) return null;
                   return (
                     <line
                       key={`${e.from}>${e.to}`}
@@ -137,12 +138,13 @@ export default async function WorkforceGraphPage() {
                       strokeOpacity={0.55}
                       strokeWidth={1.5 + Math.min(e.count, 6)}
                     >
-                      <title>{`${name(e.from)} → ${name(e.to)}: ${e.count} message(s)${e.approvals > 0 ? `, ${e.approvals} needing approval` : ""}`}</title>
+                      <title>{`${agentName(e.from)} → ${agentName(e.to)}: ${e.count} message(s)${e.approvals > 0 ? `, ${e.approvals} needing approval` : ""}`}</title>
                     </line>
                   );
                 })}
                 {juliusEdges.map(([k, n]) => {
-                  const a = posByKey.get(k)!;
+                  const a = posByKey.get(k);
+                  if (!a) return null;
                   return (
                     <line
                       key={`j-${k}`}
@@ -155,7 +157,7 @@ export default async function WorkforceGraphPage() {
                       strokeDasharray="4 4"
                       strokeWidth={1.5 + Math.min(n, 5)}
                     >
-                      <title>{`${name(k)} → Julius: ${n} memory contribution(s)`}</title>
+                      <title>{`${agentName(k)} → Julius: ${n} memory contribution(s)`}</title>
                     </line>
                   );
                 })}
@@ -237,7 +239,7 @@ export default async function WorkforceGraphPage() {
               <ul className="space-y-2">
                 {topRoutes.map((e) => (
                   <li key={`${e.from}>${e.to}`} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-medium">{name(e.from)} → {name(e.to)}</span>
+                    <span className="font-medium">{agentName(e.from)} → {agentName(e.to)}</span>
                     <span className="flex items-center gap-2">
                       {e.approvals > 0 && <Badge variant="default" className="text-[10px]">{t("approvals", { n: e.approvals })}</Badge>}
                       <Badge variant="secondary">{t("messages", { n: e.count })}</Badge>
