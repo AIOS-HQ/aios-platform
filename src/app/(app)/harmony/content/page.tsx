@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { GenerateContentDialog } from "@/components/harmony/content/generate-dialog";
 import { ContentSubnav } from "@/components/harmony/content/content-subnav";
+import { CatalystWorkspace } from "@/components/harmony/content/catalyst-workspace";
 import { InlineEmpty } from "@/components/shared/inline-empty";
 import { ActionButton } from "@/components/shared/action-button";
 import { cn } from "@/lib/utils";
@@ -120,6 +121,8 @@ export default async function ContentDepartmentPage({
       </PageHeader>
 
       <ContentSubnav active="hub" />
+
+      <CatalystWorkspace />
 
       {/* Companies still missing a Content department → one-click enable. */}
       {companiesWithout.length > 0 && (

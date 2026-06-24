@@ -1068,6 +1068,19 @@
       "research": "Investigación"
     }
   },
+  "content": {
+    "opsTitle": "Operaciones de Contenido y Crecimiento de AIOS",
+    "ownedBy": "Gestionado por {name} — Contenido y Crecimiento",
+    "workItems": "Tareas de Catalyst",
+    "noWork": "No hay trabajo de contenido activo.",
+    "recommendations": "Recomendaciones de Catalyst",
+    "publishingNote": "El contenido de comunicaciones puede avanzar de forma autónoma según la política. La publicación siempre requiere aprobación del fundador.",
+    "openWorkQueue": "Cola de trabajo",
+    "openReview": "Revisión",
+    "openAutonomy": "Autonomía",
+    "openLibrary": "Biblioteca",
+    "openCatalyst": "Perfil de Catalyst"
+  },
   "graph": {
     "title": "Gráfico de relaciones de agentes",
     "subtitle": "Cómo colabora tu equipo de AIOS: delegaciones, mensajes y contribuciones a Julius.",
