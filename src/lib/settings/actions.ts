@@ -7,10 +7,12 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/user";
+import { recordOpsEvent } from "@/lib/observability/ops";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { isValidTimeZone } from "@/lib/timezones";
 import type { ActionState } from "@/lib/types";
+import type { PostgrestError } from "@supabase/supabase-js";
 
 const COOKIE_BASE = {
   path: "/",
@@ -18,6 +20,21 @@ const COOKIE_BASE = {
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
 } as const;
+
+/** Record the exact DB failure to the ops channel so the cause is never opaque. */
+async function logSettingsDbError(
+  userId: string,
+  op: string,
+  error: PostgrestError,
+): Promise<void> {
+  await recordOpsEvent({
+    userId,
+    level: "error",
+    source: "settings",
+    message: `${op} failed: ${error.message}`,
+    context: { code: error.code, details: error.details, hint: error.hint },
+  });
+}
 
 export async function updateProfile(
   _prev: ActionState,
@@ -32,13 +49,16 @@ export async function updateProfile(
   }
 
   const supabase = await createClient();
+  // Upsert (not update) so a missing row is created rather than silently no-op'd
+  // (e.g. an account that predates the handle_new_user trigger). Only full_name
+  // is written; email/role are left untouched on conflict.
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: fullName })
-    .eq("id", user.id);
+    .upsert({ id: user.id, full_name: fullName }, { onConflict: "id" });
 
   if (error) {
-    console.error("[settings-actions] db error", error);
+    console.error("[settings-actions] updateProfile", error);
+    await logSettingsDbError(user.id, "updateProfile", error);
     return {
       status: "error",
       message: (await getTranslations("harmony"))("errors.generic"),
@@ -65,11 +85,14 @@ export async function updatePreferences(
   const supabase = await createClient();
   const { error } = await supabase
     .from("user_settings")
-    .update({ preferred_language: language, timezone })
-    .eq("user_id", user.id);
+    .upsert(
+      { user_id: user.id, preferred_language: language, timezone },
+      { onConflict: "user_id" },
+    );
 
   if (error) {
-    console.error("[settings-actions] db error", error);
+    console.error("[settings-actions] updatePreferences", error);
+    await logSettingsDbError(user.id, "updatePreferences", error);
     return {
       status: "error",
       message: (await getTranslations("harmony"))("errors.generic"),
@@ -98,10 +121,13 @@ export async function updateThemePreference(theme: string): Promise<void> {
   const value = (THEMES as readonly string[]).includes(theme) ? theme : "system";
 
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from("user_settings")
-    .update({ theme: value })
-    .eq("user_id", user.id);
+    .upsert({ user_id: user.id, theme: value }, { onConflict: "user_id" });
+  if (error) {
+    console.error("[settings-actions] updateThemePreference", error);
+    await logSettingsDbError(user.id, "updateThemePreference", error);
+  }
 
   const cookieStore = await cookies();
   cookieStore.set("aios-theme", value, COOKIE_BASE);
@@ -134,7 +160,13 @@ export async function deleteAccount(
 
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
-    console.error("[settings-actions] db error", error);
+    console.error("[settings-actions] deleteAccount", error);
+    await recordOpsEvent({
+      userId: user.id,
+      level: "error",
+      source: "settings",
+      message: `deleteAccount failed: ${error.message}`,
+    });
     return {
       status: "error",
       message: (await getTranslations("harmony"))("errors.generic"),
