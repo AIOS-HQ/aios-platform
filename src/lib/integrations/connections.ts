@@ -26,7 +26,12 @@ const DISPLAY_COLUMNS =
   "provider,status,scopes,external_account,created_at,connected_at,expires_at";
 
 export async function getConnections(userId: string): Promise<IntegrationConnection[]> {
-  const supabase = createAdminClient() ?? (await createClient());
+  if (!userId) return [];
+  // Reads are owner-scoped through the RLS client — never the service-role
+  // admin client, which bypasses RLS and would rely solely on the app-level
+  // user_id filter (defense-in-depth against an empty/forged id). Writes still
+  // use the admin client (see upsertConnection / removeConnection).
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("integration_connections")
     .select(DISPLAY_COLUMNS)
