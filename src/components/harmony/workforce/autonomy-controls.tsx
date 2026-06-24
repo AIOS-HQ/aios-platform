@@ -8,7 +8,9 @@ import {
   updateAgentAutonomy,
   updateCategoryPolicy,
   runAutonomyPass,
+  applyTierDefaults,
 } from "@/lib/workforce/autonomy-actions";
+import { tierOf } from "@/lib/workforce/autonomy-tiers";
 import { idleState } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/shared/submit-button";
@@ -56,13 +58,21 @@ export function AutonomyControls({
   const [aState, aAction] = useActionState(updateAgentAutonomy, idleState);
   const [cState, cAction] = useActionState(updateCategoryPolicy, idleState);
   const [pState, pAction] = useActionState(runAutonomyPass, idleState);
+  const [tState, tAction] = useActionState(applyTierDefaults, idleState);
 
   useEffect(() => {
-    if ([gState, aState, cState, pState].some((s) => s.status === "success")) router.refresh();
-  }, [gState, aState, cState, pState, router]);
+    if ([gState, aState, cState, pState, tState].some((s) => s.status === "success")) router.refresh();
+  }, [gState, aState, cState, pState, tState, router]);
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Apply tier defaults */}
+      <form action={tAction} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+        <p className="text-sm text-muted-foreground">{t("applyTierHint")}</p>
+        <SubmitButton size="sm" variant="outline">{t("applyTier")}</SubmitButton>
+      </form>
+      <FormMessage state={tState} />
+
       {/* Run pass */}
       <form action={pAction} className="flex items-center justify-between gap-3 rounded-lg border p-3">
         <p className="text-sm text-muted-foreground">{t("runPassHint")}</p>
@@ -125,6 +135,7 @@ export function AutonomyControls({
             <form key={a.key} action={aAction} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
               <input type="hidden" name="agent" value={a.key} />
               <span className="w-28 shrink-0 text-sm font-medium">{a.name}</span>
+              <Badge variant="outline" className="text-[10px]">{t("tier", { n: tierOf(a.key) })}</Badge>
               <select name="mode" defaultValue={a.mode} aria-label={t("mode")} className={SELECT}>
                 <option value="off">{t("modes.off")}</option>
                 <option value="advisory">{t("modes.advisory")}</option>

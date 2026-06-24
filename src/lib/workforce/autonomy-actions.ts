@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
-import { getAiosAgent } from "@/lib/workforce/registry";
+import { getAiosAgent, AIOS_WORKFORCE } from "@/lib/workforce/registry";
+import { TIER_PRESETS, SAFE_OPEN_CATEGORIES, tierOf } from "@/lib/workforce/autonomy-tiers";
 import { createClient } from "@/lib/supabase/server";
 import { listWorkItems, setWorkItemStatus } from "@/lib/workforce/work-queue";
 import {
@@ -167,12 +168,57 @@ export async function runAutonomyPass(_prev: ActionState, _formData: FormData): 
     });
 
     if (decision.decision === "auto_executed" || decision.decision === "notified") {
-      await setWorkItemStatus(user.id, it.id, "approved");
+      // Phase B: autonomously complete safe internal work (status only — the
+      // audit row is the execution log). Restricted categories and HIGH/CRITICAL
+      // never reach this branch, so nothing external/irreversible is touched.
+      await setWorkItemStatus(user.id, it.id, "done");
       usedToday[it.agent] = (usedToday[it.agent] ?? 0) + 1;
     }
   }
 
   revalidatePath("/harmony/autonomy");
   revalidatePath("/harmony/work");
+  return { status: "success", message: "" };
+}
+
+/**
+ * Apply tier default presets (Tier 1/2/3) to per-agent settings and open the
+ * safe global categories. Does NOT enable the global master switch — the
+ * founder still sets Global mode = Bounded to activate. Never opens a restricted
+ * category. One-click setup; fully reversible from the controls.
+ */
+export async function applyTierDefaults(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  const t = await getTranslations("harmony");
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const agentRows = AIOS_WORKFORCE.map((a) => {
+    const p = TIER_PRESETS[tierOf(a.key)];
+    return {
+      user_id: user.id,
+      agent: a.key,
+      mode: p.mode,
+      auto_execute_threshold: p.threshold === "none" ? null : p.threshold,
+      daily_action_limit: p.daily,
+      monthly_action_limit: p.monthly,
+    };
+  });
+  const { error: e1 } = await supabase
+    .from("agent_autonomy_settings")
+    .upsert(agentRows, { onConflict: "user_id,agent" });
+
+  const catRows = (SAFE_OPEN_CATEGORIES as readonly string[]).map((c) => ({
+    user_id: user.id,
+    category: c,
+    auto_allowed: true,
+    requires_approval: false,
+    max_risk: "medium",
+  }));
+  const { error: e2 } = await supabase
+    .from("agent_autonomy_categories")
+    .upsert(catRows, { onConflict: "user_id,category" });
+
+  if (e1 || e2) return { status: "error", message: t("errors.generic") };
+  revalidatePath("/harmony/autonomy");
   return { status: "success", message: "" };
 }
