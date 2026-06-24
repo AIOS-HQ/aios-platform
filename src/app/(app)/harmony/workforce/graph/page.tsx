@@ -68,7 +68,11 @@ export default async function WorkforceGraphPage() {
       status,
     };
   });
-  const posByKey = new Map(placed.map((p) => [p.key, p] as const));
+  // Keyed by string: agent_messages.from_agent/to_agent and julius_entries.agent
+  // are arbitrary strings, while the typed roster (AiosAgentKey) is the node set.
+  const posByKey = new Map<string, (typeof placed)[number]>(
+    placed.map((p) => [p.key, p]),
+  );
 
   const edgeMap = new Map<string, { from: string; to: string; count: number; approvals: number }>();
   for (const m of messages) {
