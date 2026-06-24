@@ -159,7 +159,11 @@
     "content": "Content",
     "auditor": "Auditor",
     "pendingCount": "{count} pending",
-    "sections": { "command": "Command Center", "personal": "Personal" }
+    "sections": {
+      "command": "Command Center",
+      "personal": "Personal"
+    },
+    "workforce": "Workforce"
   },
   "os": {
     "commandCenter": {
@@ -196,7 +200,11 @@
       "backToCompanies": "Back to companies",
       "departments": "Departments",
       "noDepartments": "No departments yet.",
-      "fields": { "name": "Company name", "description": "Description", "domain": "Domain" },
+      "fields": {
+        "name": "Company name",
+        "description": "Description",
+        "domain": "Domain"
+      },
       "stats": {
         "departments": "Departments",
         "objectives": "Objectives",
@@ -237,8 +245,14 @@
         "medium": "Medium risk",
         "high": "Higher risk"
       },
-      "fields": { "name": "Department name", "description": "Description" },
-      "agentStatus": { "active": "Active", "paused": "Paused" }
+      "fields": {
+        "name": "Department name",
+        "description": "Description"
+      },
+      "agentStatus": {
+        "active": "Active",
+        "paused": "Paused"
+      }
     },
     "agents": {
       "new": "New agent",
@@ -252,7 +266,10 @@
       "resume": "Resume agent",
       "pausedToast": "Agent paused",
       "resumedToast": "Agent resumed",
-      "fields": { "name": "Agent name", "role": "Role" }
+      "fields": {
+        "name": "Agent name",
+        "role": "Role"
+      }
     },
     "objectives": {
       "title": "Objectives",
@@ -332,7 +349,11 @@
       "awaiting_approval": "Awaiting approval",
       "completed": "Completed"
     },
-    "priority": { "low": "Low", "medium": "Medium", "high": "High" },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
     "delegate": {
       "dialogTitle": "Delegate to Harmony",
       "dialogDesc": "Tell Harmony what to do. It routes the work to the right helper department, which executes or requests your approval based on its autonomy.",
@@ -497,16 +518,46 @@
       }
     },
     "contentTask": {
-      "content_strategy": { "label": "Content strategy", "desc": "Audience, pillars, channels, and cadence." },
-      "content_plan": { "label": "Content plan", "desc": "A 30-day plan of pieces to ship." },
-      "content_calendar": { "label": "Content calendar", "desc": "A 4-week, day-by-day schedule." },
-      "youtube_idea": { "label": "YouTube ideas", "desc": "10 titled video ideas with hooks." },
-      "youtube_script": { "label": "YouTube script", "desc": "A full script with hook, segments, and CTA." },
-      "tiktok_script": { "label": "TikTok script", "desc": "A punchy 30–45s short-form script." },
-      "shorts_concept": { "label": "Shorts concepts", "desc": "5 short-form concepts with hooks." },
-      "blog_outline": { "label": "Blog outline", "desc": "An SEO-minded outline with headings." },
-      "thumbnail_concept": { "label": "Thumbnail concepts", "desc": "3 click-worthy thumbnail directions." },
-      "seo_plan": { "label": "SEO plan", "desc": "Keywords, on-page fixes, and priorities." }
+      "content_strategy": {
+        "label": "Content strategy",
+        "desc": "Audience, pillars, channels, and cadence."
+      },
+      "content_plan": {
+        "label": "Content plan",
+        "desc": "A 30-day plan of pieces to ship."
+      },
+      "content_calendar": {
+        "label": "Content calendar",
+        "desc": "A 4-week, day-by-day schedule."
+      },
+      "youtube_idea": {
+        "label": "YouTube ideas",
+        "desc": "10 titled video ideas with hooks."
+      },
+      "youtube_script": {
+        "label": "YouTube script",
+        "desc": "A full script with hook, segments, and CTA."
+      },
+      "tiktok_script": {
+        "label": "TikTok script",
+        "desc": "A punchy 30–45s short-form script."
+      },
+      "shorts_concept": {
+        "label": "Shorts concepts",
+        "desc": "5 short-form concepts with hooks."
+      },
+      "blog_outline": {
+        "label": "Blog outline",
+        "desc": "An SEO-minded outline with headings."
+      },
+      "thumbnail_concept": {
+        "label": "Thumbnail concepts",
+        "desc": "3 click-worthy thumbnail directions."
+      },
+      "seo_plan": {
+        "label": "SEO plan",
+        "desc": "Keywords, on-page fixes, and priorities."
+      }
     },
     "contentHelper": {
       "hint": "Helpers run behind the scenes; Harmony routes work to them by autonomy level."
@@ -796,8 +847,13 @@
     "markComplete": "Mark complete",
     "markIncomplete": "Mark incomplete",
     "filterLabel": "Filter tasks by status",
-    "filter": { "all": "All" },
-    "search": { "placeholder": "Search tasks…", "label": "Search tasks" },
+    "filter": {
+      "all": "All"
+    },
+    "search": {
+      "placeholder": "Search tasks…",
+      "label": "Search tasks"
+    },
     "sort": {
       "label": "Sort",
       "due": "Due date",
@@ -833,8 +889,16 @@
       "goal": "Goal"
     },
     "goalNone": "No goal",
-    "priority": { "low": "Low", "medium": "Medium", "high": "High" },
-    "status": { "todo": "To do", "in_progress": "In progress", "done": "Done" },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "status": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done"
+    },
     "empty": {
       "title": "No tasks here",
       "description": "Create your first task to get started."
@@ -863,7 +927,9 @@
       "noLinkedTasks": "No tasks linked to this goal yet."
     },
     "filterLabel": "Filter goals by status",
-    "filter": { "all": "All" },
+    "filter": {
+      "all": "All"
+    },
     "fields": {
       "title": "Title",
       "description": "Description",
@@ -905,13 +971,20 @@
       "created": "Created",
       "title": "Title A–Z"
     },
-    "fields": { "title": "Title", "content": "Content", "tags": "Tags" },
+    "fields": {
+      "title": "Title",
+      "content": "Content",
+      "tags": "Tags"
+    },
     "tagsPlaceholder": "Comma-separated tags",
     "pin": "Pin note",
     "unpin": "Unpin note",
     "pinnedToast": "Note pinned.",
     "unpinned": "Note unpinned.",
-    "filterTag": { "label": "Filter by tag", "all": "All tags" },
+    "filterTag": {
+      "label": "Filter by tag",
+      "all": "All tags"
+    },
     "empty": {
       "title": "No notes yet",
       "description": "Write your first note to remember it."
@@ -926,12 +999,19 @@
     "subtitle": "Your private knowledge store — and the foundation of your future AI memory.",
     "new": "Add entry",
     "edit": "Edit entry",
-    "filter": { "label": "Filter by type", "all": "All" },
+    "filter": {
+      "label": "Filter by type",
+      "all": "All"
+    },
     "dialogDesc": "Store a piece of knowledge, a preference, or a reference.",
     "searchPlaceholder": "Search your brain…",
     "searchLabel": "Search Personal Brain",
     "tagsPlaceholder": "comma, separated, tags",
-    "fields": { "title": "Title", "content": "Content", "tags": "Tags" },
+    "fields": {
+      "title": "Title",
+      "content": "Content",
+      "tags": "Tags"
+    },
     "kind": {
       "note": "Note",
       "preference": "Preference",

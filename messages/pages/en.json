@@ -830,5 +830,39 @@
     "connectors": "Connectors",
     "connectorsHint": "Founder integrations and their connection status.",
     "connectorExpired": "{name} authorization expired — reconnect needed"
+  },
+  "workforce": {
+    "title": "AI Workforce",
+    "subtitle": "Your AIOS digital employees and their live activity.",
+    "directory": "Workforce Directory",
+    "brain": "Company Brain",
+    "brainRole": "AIOS organizational memory layer",
+    "juliusEntries": "{n} memory entries",
+    "currentTask": "Current task",
+    "lastAction": "Last action",
+    "lastActive": "Last active",
+    "none": "—",
+    "activity": "Agent Communications",
+    "activityHint": "Recent messages, delegations, and responses between agents.",
+    "noActivity": "No agent-to-agent activity yet. Delegations will appear here once agents start collaborating.",
+    "ctx": "{n} context",
+    "outcomeLabel": "Outcome",
+    "status": {
+      "working": "Working",
+      "awaiting": "Awaiting approval",
+      "online": "Online",
+      "idle": "Idle",
+      "error": "Error"
+    },
+    "kind": {
+      "message": "Message",
+      "task": "Task",
+      "response": "Response"
+    },
+    "risk": {
+      "routine": "Routine",
+      "approval": "Approval",
+      "destructive": "High-risk"
+    }
   }
 }

@@ -15,6 +15,7 @@ import {
   Sparkles,
   StickyNote,
   Target,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ export const NAV_ICONS = {
   Sparkles,
   StickyNote,
   Target,
+  Users,
 } satisfies Record<string, LucideIcon>;
 
 export type NavIconKey = keyof typeof NAV_ICONS;
@@ -71,6 +73,7 @@ export const navSections: NavSection[] = [
     titleKey: "command",
     items: [
       { href: "/harmony", labelKey: "commandCenter", icon: "LayoutDashboard", exact: true },
+      { href: "/harmony/workforce", labelKey: "workforce", icon: "Users" },
       { href: "/harmony/companies", labelKey: "companies", icon: "Building2" },
       { href: "/harmony/objectives", labelKey: "objectives", icon: "Target" },
       { href: "/harmony/work", labelKey: "work", icon: "ListChecks" },
