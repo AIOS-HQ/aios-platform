@@ -50,6 +50,7 @@ import { Button } from "@/components/ui/button";
 import { CreateCompanyDialog } from "@/components/harmony/os/create-company-dialog";
 import { CommandCenter } from "@/components/harmony/command-center/command-center";
 import { CommandCenterRecommendations } from "@/components/harmony/command-center/command-center-recommendations";
+import { CommandCenterBriefing } from "@/components/harmony/command-center/command-center-briefing";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("os.commandCenter");
@@ -156,6 +157,8 @@ export default async function CommandCenterPage() {
       </PageHeader>
 
       <StatTiles stats={stats} />
+
+      <CommandCenterBriefing />
 
       {!onboardingComplete(onboardingSteps) && (
         <FirstRunChecklist

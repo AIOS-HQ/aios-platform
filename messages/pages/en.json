@@ -1107,7 +1107,17 @@
     "labelProposedObjectives": "Proposed objectives",
     "why": "Why",
     "whyHint": "Why recent decisions were made.",
-    "noneWhy": "No decisions recorded yet."
+    "noneWhy": "No decisions recorded yet.",
+    "widgetTitle": "Executive Briefing",
+    "completedToday": "Completed today",
+    "attemptedToday": "Attempted today",
+    "blockedToday": "Blocked today",
+    "waitingShort": "Waiting for you",
+    "activeAgents": "Active agents",
+    "autonomyStatus": "Autonomy",
+    "newRecs": "New recommendations",
+    "alerts": "Critical alerts",
+    "viewFull": "View Full Briefing"
   },
   "outcomes": {
     "title": "Customer Outcomes",
