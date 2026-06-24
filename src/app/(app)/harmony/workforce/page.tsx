@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { Activity, Brain, Send, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
@@ -154,6 +155,14 @@ export default async function WorkforcePage() {
                         </dd>
                       </div>
                     </dl>
+                    <div className="mt-3 flex gap-2">
+                      <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                        <Link href={`/harmony/workforce/${a.key}`}>{t("viewProfile")}</Link>
+                      </Button>
+                      <Button asChild size="sm" className="h-7 px-2 text-xs">
+                        <Link href={`/harmony/workforce/${a.key}`}>{t("openChat")}</Link>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
