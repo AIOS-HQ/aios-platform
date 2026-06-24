@@ -894,7 +894,8 @@
     "chatEmpty": "Start a conversation with {name}.",
     "chatPlaceholder": "Message {name}…",
     "chatSend": "Send",
-    "chatSending": "Sending…"
+    "chatSending": "Sending…",
+    "relationshipGraph": "Relationship graph"
   },
   "operations": {
     "title": "Operations",
@@ -907,5 +908,24 @@
     "markResolved": "Mark resolved",
     "resolvedToast": "Resolved",
     "recent": "Recently resolved"
+  },
+  "graph": {
+    "title": "Agent Relationship Graph",
+    "subtitle": "How your AIOS workforce collaborates — delegations, messages, and Julius contributions.",
+    "back": "Back to workforce",
+    "empty": "No agent activity yet. The graph fills in as agents delegate, respond, and contribute to Julius.",
+    "topRoutes": "Top delegation routes",
+    "topRoutesHint": "The busiest agent-to-agent communication paths.",
+    "noRoutes": "No delegations yet.",
+    "messages": "{n} msg",
+    "approvals": "{n} approval",
+    "legend": {
+      "working": "Working",
+      "online": "Online",
+      "awaiting": "Awaiting approval",
+      "idle": "Idle",
+      "approvalEdge": "Needs approval",
+      "juliusEdge": "Julius contribution"
+    }
   }
 }

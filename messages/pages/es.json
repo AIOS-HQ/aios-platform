@@ -894,7 +894,8 @@
     "chatEmpty": "Inicia una conversación con {name}.",
     "chatPlaceholder": "Mensaje para {name}…",
     "chatSend": "Enviar",
-    "chatSending": "Enviando…"
+    "chatSending": "Enviando…",
+    "relationshipGraph": "Gráfico de relaciones"
   },
   "operations": {
     "title": "Operaciones",
@@ -907,5 +908,24 @@
     "markResolved": "Marcar como resuelto",
     "resolvedToast": "Resuelto",
     "recent": "Resueltos recientemente"
+  },
+  "graph": {
+    "title": "Gráfico de relaciones de agentes",
+    "subtitle": "Cómo colabora tu equipo de AIOS: delegaciones, mensajes y contribuciones a Julius.",
+    "back": "Volver al equipo",
+    "empty": "Aún no hay actividad de agentes. El gráfico se completa a medida que los agentes delegan, responden y contribuyen a Julius.",
+    "topRoutes": "Rutas de delegación principales",
+    "topRoutesHint": "Las rutas de comunicación entre agentes más activas.",
+    "noRoutes": "Aún no hay delegaciones.",
+    "messages": "{n} msj",
+    "approvals": "{n} aprob.",
+    "legend": {
+      "working": "Trabajando",
+      "online": "En línea",
+      "awaiting": "Esperando aprobación",
+      "idle": "Inactivo",
+      "approvalEdge": "Requiere aprobación",
+      "juliusEdge": "Contribución a Julius"
+    }
   }
 }
