@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimit, clientIp } from "@/lib/security/rate-limit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -12,6 +13,18 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * the client form does not change when persistence is added later.
  */
 export async function POST(request: Request) {
+  // Throttle casual abuse on this public, unauthenticated endpoint (per-instance).
+  const rl = rateLimit(`waitlist:${clientIp(request)}`, { limit: 5, windowMs: 60_000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "rate_limited" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))) },
+      },
+    );
+  }
+
   const body = (await request.json().catch(() => null)) as
     | { email?: unknown; source?: unknown }
     | null;
