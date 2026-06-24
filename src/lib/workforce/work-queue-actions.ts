@@ -10,7 +10,6 @@ import {
   setWorkItemStatus,
   getWorkItem,
   type WorkKind,
-  type WorkRisk,
 } from "@/lib/workforce/work-queue";
 import { delegateTask } from "@/lib/harmony/agents/a2a";
 import { exceedsLimits } from "@/lib/limits";
@@ -18,7 +17,6 @@ import type { ActionState } from "@/lib/types";
 
 const TITLE_MAX = 300;
 const KINDS: WorkKind[] = ["task", "message", "review"];
-const RISKS: WorkRisk[] = ["routine", "approval", "destructive"];
 
 /**
  * Founder controls for the work queue: create an item, approve (advisory),
@@ -42,12 +40,13 @@ export async function workItemAction(
     if (exceedsLimits([[title, TITLE_MAX]])) {
       return { status: "error", message: t("errors.tooLong") };
     }
-    const riskRaw = String(formData.get("risk") ?? "routine");
-    const risk = (RISKS as string[]).includes(riskRaw) ? (riskRaw as WorkRisk) : "routine";
+    const category = String(formData.get("category") ?? "operational");
+    const riskLevel = String(formData.get("risk_level") ?? "low");
     const kindRaw = String(formData.get("kind") ?? "task");
     const kind = (KINDS as string[]).includes(kindRaw) ? (kindRaw as WorkKind) : "task";
     const companyId = await resolvePrimaryCompanyId();
-    const created = await createWorkItem({ userId: user.id, companyId, agent, title, risk, kind });
+    // createWorkItem validates category/riskLevel and derives the A2A risk.
+    const created = await createWorkItem({ userId: user.id, companyId, agent, title, category, riskLevel, kind });
     if (!created) return { status: "error", message: t("errors.generic") };
     revalidatePath("/harmony/work");
     revalidatePath("/harmony/review");

@@ -17,6 +17,10 @@ export interface WorkItemView {
   status: string;
   risk: string;
   requiresApproval: boolean;
+  category: string | null;
+  riskLevel: string;
+  decision: string;
+  decisionReason: string;
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -28,11 +32,35 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
   dismissed: "outline",
 };
 
-const RISK_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  routine: "outline",
-  approval: "default",
-  destructive: "destructive",
+const RISKLEVEL_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  low: "outline",
+  medium: "default",
+  high: "destructive",
+  critical: "destructive",
 };
+
+const DECISION_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  auto_executed: "default",
+  notified: "secondary",
+  pending_approval: "outline",
+  denied: "destructive",
+  kill_switch: "destructive",
+  lockdown: "destructive",
+};
+
+// Ordered safe → restricted so the safe defaults lead the picker.
+const CATEGORIES = [
+  "operational",
+  "research",
+  "communications",
+  "publishing",
+  "financial",
+  "code",
+  "security",
+  "architecture",
+  "destructive",
+];
+const RISK_LEVELS = ["low", "medium", "high", "critical"];
 
 /** Founder controls offered per current status. */
 const OPS_FOR_STATUS: Record<string, string[]> = {
@@ -45,9 +73,10 @@ const OPS_FOR_STATUS: Record<string, string[]> = {
 };
 
 /**
- * Work queue board (founder). Create work items and act on them: approve
- * (advisory), approve & delegate (routes through the Approval Center for risky
- * work), or dismiss. Nothing here auto-executes.
+ * Work queue board (founder). Create work items (with action category + risk
+ * level) and act on them. Each item shows its category, risk level, and the
+ * autonomy engine's current decision (with the reason as a tooltip). Nothing
+ * here auto-executes; the engine only decides + audits via the autonomy pass.
  */
 export function WorkQueueBoard({
   agents,
@@ -57,6 +86,7 @@ export function WorkQueueBoard({
   items: WorkItemView[];
 }) {
   const t = useTranslations("work");
+  const ta = useTranslations("autonomy");
   const [state, action] = useActionState(workItemAction, idleState);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -81,12 +111,19 @@ export function WorkQueueBoard({
               <Badge variant={STATUS_VARIANT[it.status] ?? "outline"} className="text-[10px]">
                 {t(`status.${it.status}`)}
               </Badge>
-              <Badge variant={RISK_VARIANT[it.risk] ?? "outline"} className="text-[10px]">
-                {t(`risk.${it.risk}`)}
-              </Badge>
-              {it.requiresApproval ? (
-                <Badge variant="outline" className="text-[10px]">{t("needsApproval")}</Badge>
+              {it.category ? (
+                <Badge variant="secondary" className="text-[10px]">{ta(`categories.${it.category}`)}</Badge>
               ) : null}
+              <Badge variant={RISKLEVEL_VARIANT[it.riskLevel] ?? "outline"} className="text-[10px]">
+                {ta(`riskLevel.${it.riskLevel}`)}
+              </Badge>
+              <Badge
+                variant={DECISION_VARIANT[it.decision] ?? "outline"}
+                className="text-[10px]"
+                title={it.decisionReason}
+              >
+                {ta(`decisions.${it.decision}`)}
+              </Badge>
               <span className="ml-auto flex gap-1.5">
                 {(OPS_FOR_STATUS[it.status] ?? []).map((op) => (
                   <form key={op} action={action}>
@@ -111,15 +148,10 @@ export function WorkQueueBoard({
       <form
         ref={formRef}
         action={action}
-        className="flex flex-col gap-2 sm:flex-row sm:items-center"
+        className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center"
       >
         <input type="hidden" name="op" value="create" />
-        <select
-          name="agent"
-          required
-          aria-label={t("agentLabel")}
-          className="h-9 rounded-md border bg-background px-2 text-sm"
-        >
+        <select name="agent" required aria-label={t("agentLabel")} className="h-9 rounded-md border bg-background px-2 text-sm">
           {agents.map((a) => (
             <option key={a.key} value={a.key}>{a.name}</option>
           ))}
@@ -131,18 +163,19 @@ export function WorkQueueBoard({
           placeholder={t("workPlaceholder")}
           className="h-9 flex-1 rounded-md border bg-background px-3 text-sm"
         />
-        <select
-          name="risk"
-          defaultValue="routine"
-          aria-label={t("riskLabel")}
-          className="h-9 rounded-md border bg-background px-2 text-sm"
-        >
-          <option value="routine">{t("risk.routine")}</option>
-          <option value="approval">{t("risk.approval")}</option>
-          <option value="destructive">{t("risk.destructive")}</option>
+        <select name="category" defaultValue="operational" aria-label={t("categoryLabel")} className="h-9 rounded-md border bg-background px-2 text-sm">
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>{ta(`categories.${c}`)}</option>
+          ))}
+        </select>
+        <select name="risk_level" defaultValue="low" aria-label={t("riskLevelLabel")} className="h-9 rounded-md border bg-background px-2 text-sm">
+          {RISK_LEVELS.map((r) => (
+            <option key={r} value={r}>{ta(`riskLevel.${r}`)}</option>
+          ))}
         </select>
         <SubmitButton size="sm">{t("addWork")}</SubmitButton>
       </form>
+      <p className="text-xs text-muted-foreground">{t("restrictedHint")}</p>
       <FormMessage state={state} />
     </div>
   );

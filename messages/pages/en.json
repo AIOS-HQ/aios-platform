@@ -969,6 +969,9 @@
     "noWork": "No work items.",
     "addWork": "Add",
     "workPlaceholder": "Describe a unit of work…",
+    "categoryLabel": "Category",
+    "riskLevelLabel": "Risk level",
+    "restrictedHint": "Restricted categories (financial, code, security, architecture, publishing, destructive) and HIGH/CRITICAL risk always require approval.",
     "needsApproval": "Needs approval",
     "status": {
       "proposed": "Proposed",
@@ -1041,6 +1044,7 @@
     "runPassHint": "Evaluate proposed work against policy, record decisions, and auto-approve only eligible items.",
     "modes": { "off": "Off", "advisory": "Advisory", "bounded": "Bounded" },
     "thresholds": { "none": "None", "low": "Low", "medium": "Medium" },
+    "riskLevel": { "low": "Low", "medium": "Medium", "high": "High", "critical": "Critical" },
     "decisions": {
       "auto_executed": "Auto-executed",
       "notified": "Auto + notified",
