@@ -10,6 +10,7 @@ const NAV_KEY: Record<string, string> = {
   harmony: "commandCenter",
   workforce: "workforce",
   briefing: "briefing",
+  outcomes: "outcomes",
   work: "work",
   "work-items": "workItems",
   review: "review",
