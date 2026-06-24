@@ -879,5 +879,17 @@
     "dispatchedGated": "Dispatched — awaiting your approval",
     "dispatchNoCompany": "Create a company first to dispatch agent tasks.",
     "dispatchSameAgent": "Choose two different agents."
+  },
+  "operations": {
+    "title": "Operations",
+    "subtitle": "Operational issues and failed autonomous actions.",
+    "unresolved": "Needs attention ({n})",
+    "allClear": "No operational issues. Everything is running cleanly.",
+    "resolveAll": "Resolve all",
+    "resolvedAllToast": "All issues resolved",
+    "detail": "Details",
+    "markResolved": "Mark resolved",
+    "resolvedToast": "Resolved",
+    "recent": "Recently resolved"
   }
 }

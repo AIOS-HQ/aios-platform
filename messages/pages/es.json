@@ -879,5 +879,17 @@
     "dispatchedGated": "Asignada — esperando tu aprobación",
     "dispatchNoCompany": "Crea una empresa primero para asignar tareas a agentes.",
     "dispatchSameAgent": "Elige dos agentes diferentes."
+  },
+  "operations": {
+    "title": "Operaciones",
+    "subtitle": "Problemas operativos y acciones autónomas fallidas.",
+    "unresolved": "Requiere atención ({n})",
+    "allClear": "No hay problemas operativos. Todo funciona correctamente.",
+    "resolveAll": "Resolver todo",
+    "resolvedAllToast": "Todos los problemas resueltos",
+    "detail": "Detalles",
+    "markResolved": "Marcar como resuelto",
+    "resolvedToast": "Resuelto",
+    "recent": "Resueltos recientemente"
   }
 }

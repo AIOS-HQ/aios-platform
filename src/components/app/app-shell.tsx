@@ -15,6 +15,7 @@ export function AppShell({
   unreadLifeOperatorMessages = 0,
   riskCount = 0,
   stalledWork = 0,
+  opsCount = 0,
   children,
 }: {
   name: string;
@@ -28,6 +29,8 @@ export function AppShell({
   riskCount?: number;
   /** Blocked/stalled work items → bottleneck badge on the Work nav item. */
   stalledWork?: number;
+  /** Unresolved operational errors → badge on the Operations nav item. */
+  opsCount?: number;
   children: React.ReactNode;
 }) {
   const navBadges: Record<string, number> = {};
@@ -46,6 +49,10 @@ export function AppShell({
 
   if (stalledWork > 0) {
     navBadges["/harmony/work"] = stalledWork;
+  }
+
+  if (opsCount > 0) {
+    navBadges["/harmony/operations"] = opsCount;
   }
 
   return (
