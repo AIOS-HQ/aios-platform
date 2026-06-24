@@ -80,6 +80,7 @@ export const navSections: NavSection[] = [
       { href: "/settings/approvals", labelKey: "approvals", icon: "ShieldCheck" },
       { href: "/settings/auditor", labelKey: "auditor", icon: "Gauge" },
       { href: "/harmony/operations", labelKey: "operations", icon: "AlertTriangle" },
+      { href: "/harmony/review", labelKey: "review", icon: "ListTodo" },
       { href: "/settings/activity", labelKey: "activity", icon: "Activity" },
     ],
   },

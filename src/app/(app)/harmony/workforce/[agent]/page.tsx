@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, MessageSquare, Target } from "lucide-react";
+import { ArrowLeft, Lightbulb, MessageSquare, Target } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { getAgentPersona } from "@/lib/workforce/agent-personas";
@@ -11,6 +11,7 @@ import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import { listChatMessages } from "@/lib/workforce/chat";
 import { listObjectives } from "@/lib/workforce/objectives";
+import { listRecommendations } from "@/lib/workforce/recommendations";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentChat } from "@/components/harmony/workforce/agent-chat";
 import { AgentObjectives } from "@/components/harmony/workforce/agent-objectives";
+import { AgentRecommendations } from "@/components/harmony/workforce/agent-recommendations";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
@@ -47,10 +49,11 @@ export default async function AgentProfilePage({
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [messages, chat, objectives] = await Promise.all([
+  const [messages, chat, objectives, recommendations] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { agent, limit: 100 }) : Promise.resolve([]),
     listChatMessages(user.id, agent, 100),
     listObjectives(user.id, { companyId, agent }),
+    listRecommendations(user.id, { companyId, agent, status: "open" }),
   ]);
 
   const sent = messages.filter((m) => m.from_agent === agent).length;
@@ -187,6 +190,30 @@ export default async function AgentProfilePage({
                 priority: o.priority,
                 origin: o.origin,
                 progress: o.progress,
+              }))}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Recommendations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Lightbulb className="size-4 text-primary" aria-hidden="true" />
+              {t("recommendations")}
+            </CardTitle>
+            <CardDescription>{t("recommendationsHint")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgentRecommendations
+              recommendations={recommendations.map((r) => ({
+                id: r.id,
+                agent: r.agent,
+                agentName: def.name,
+                title: r.title,
+                detail: r.detail,
+                rationale: r.rationale,
+                status: r.status,
               }))}
             />
           </CardContent>

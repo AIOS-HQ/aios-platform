@@ -62,6 +62,7 @@ export async function objectiveAction(
     });
     if (!created) return { status: "error", message: t("errors.generic") };
     revalidatePath(`/harmony/workforce/${agent}`);
+    revalidatePath("/harmony/review");
     return { status: "success", message: "" };
   }
 
