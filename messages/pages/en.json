@@ -1109,6 +1109,18 @@
     "whyHint": "Why recent decisions were made.",
     "noneWhy": "No decisions recorded yet."
   },
+  "outcomes": {
+    "title": "Customer Outcomes",
+    "subtitle": "Deliverables and progress for your companies — the results AIOS produced.",
+    "empty": { "title": "No companies yet", "description": "Outcomes appear here once you have companies with work." },
+    "progress": "{pct}% complete",
+    "deliverables": "Deliverables",
+    "active": "Active",
+    "total": "Total",
+    "recentlyCompleted": "Recently completed",
+    "noneCompleted": "No completed deliverables yet.",
+    "viewArtifacts": "View artifacts in Library"
+  },
   "graph": {
     "title": "Agent Relationship Graph",
     "subtitle": "How your AIOS workforce collaborates — delegations, messages, and Julius contributions.",

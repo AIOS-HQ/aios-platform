@@ -1109,6 +1109,18 @@
     "whyHint": "Por qué se tomaron las decisiones recientes.",
     "noneWhy": "Aún no hay decisiones registradas."
   },
+  "outcomes": {
+    "title": "Resultados para clientes",
+    "subtitle": "Entregables y progreso de tus empresas: los resultados que AIOS produjo.",
+    "empty": { "title": "Aún no hay empresas", "description": "Los resultados aparecen aquí cuando tengas empresas con trabajo." },
+    "progress": "{pct}% completado",
+    "deliverables": "Entregables",
+    "active": "Activo",
+    "total": "Total",
+    "recentlyCompleted": "Completado recientemente",
+    "noneCompleted": "Aún no hay entregables completados.",
+    "viewArtifacts": "Ver artefactos en la Biblioteca"
+  },
   "graph": {
     "title": "Gráfico de relaciones de agentes",
     "subtitle": "Cómo colabora tu equipo de AIOS: delegaciones, mensajes y contribuciones a Julius.",

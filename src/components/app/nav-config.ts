@@ -90,6 +90,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
       { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
+      { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
     ],
   },
   {
