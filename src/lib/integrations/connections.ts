@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { encryptToken } from "@/lib/crypto/tokens";
 
 /**
  * Integration connection persistence. Display reads go through the RLS-scoped
@@ -75,6 +76,9 @@ export async function upsertConnection(row: ConnectionUpsert): Promise<boolean> 
     .upsert(
       {
         ...row,
+        // Encrypt token columns at rest (no-op passthrough until the key is set).
+        access_token: encryptToken(row.access_token),
+        refresh_token: encryptToken(row.refresh_token),
         provider_id: row.provider,
         scope: row.scopes,
         external_account_id: row.external_account,

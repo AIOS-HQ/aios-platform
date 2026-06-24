@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { OAuthFamily } from "@/lib/integrations/connectors";
+import { encryptToken, decryptToken } from "@/lib/crypto/tokens";
 
 /**
  * OAuth token-refresh infrastructure (Phase 6a).
@@ -124,11 +125,14 @@ export async function getValidAccessToken(
   if (error || !data) return null;
 
   const row = data as TokenRow;
+  // Decrypt stored tokens before use (legacy plaintext reads through unchanged).
+  const accessToken = decryptToken(row.access_token);
+  const refreshToken = decryptToken(row.refresh_token);
   const notExpired = row.expires_at ? new Date(row.expires_at) > new Date() : true;
-  if (row.access_token && notExpired) return row.access_token;
-  if (!row.refresh_token) return null;
+  if (accessToken && notExpired) return accessToken;
+  if (!refreshToken) return null;
 
-  const refreshed = await refreshAccessToken(family, row.refresh_token);
+  const refreshed = await refreshAccessToken(family, refreshToken);
   if (!refreshed) {
     await admin
       .from("integration_connections")
@@ -141,8 +145,8 @@ export async function getValidAccessToken(
   await admin
     .from("integration_connections")
     .update({
-      access_token: refreshed.accessToken,
-      refresh_token: refreshed.refreshToken,
+      access_token: encryptToken(refreshed.accessToken),
+      refresh_token: encryptToken(refreshed.refreshToken),
       expires_at: refreshed.expiresAt,
       status: "connected",
       updated_at: new Date().toISOString(),
