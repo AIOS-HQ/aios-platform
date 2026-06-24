@@ -23,13 +23,13 @@ const STATUS_COLOR: Record<string, string> = {
   working: "#16a34a",
   awaiting: "#ca8a04",
   online: "#2563eb",
-  idle: "#94a3b8",
+  idle: "#64748b",
   error: "#dc2626",
 };
 
 function initials(name: string): string {
-  const p = name.trim().split(/\s+/);
-  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? p[0]?.[1] ?? "")).toUpperCase();
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? parts[0]?.[1] ?? "")).toUpperCase();
 }
 
 const CX = 320;
@@ -48,7 +48,6 @@ export default async function WorkforceGraphPage() {
     companyId ? listJuliusEntries(user.id, companyId, { limit: 200 }) : Promise.resolve([]),
   ]);
 
-  // Per-agent node state.
   const placed = AIOS_WORKFORCE.map((a, i) => {
     const ang = (i / AIOS_WORKFORCE.length) * 2 * Math.PI - Math.PI / 2;
     const sent = messages.filter((m) => m.from_agent === a.key).length;
@@ -71,30 +70,28 @@ export default async function WorkforceGraphPage() {
   });
   const posByKey = new Map(placed.map((p) => [p.key, p] as const));
 
-  // Agent → agent delegation edges.
   const edgeMap = new Map<string, { from: string; to: string; count: number; approvals: number }>();
   for (const m of messages) {
     if (m.from_agent === m.to_agent) continue;
     const k = `${m.from_agent}>${m.to_agent}`;
     const e = edgeMap.get(k) ?? { from: m.from_agent, to: m.to_agent, count: 0, approvals: 0 };
-    e.count++;
-    if (m.risk !== "routine" || m.status === "awaiting_approval") e.approvals++;
+    e.count += 1;
+    if (m.risk !== "routine" || m.status === "awaiting_approval") e.approvals += 1;
     edgeMap.set(k, e);
   }
-  const edges = [...edgeMap.values()].filter(
+  const edges = Array.from(edgeMap.values()).filter(
     (e) => posByKey.has(e.from) && posByKey.has(e.to),
   );
 
-  // Agent → Julius (contributions to the company brain).
   const juliusByAgent = new Map<string, number>();
   for (const e of julius) juliusByAgent.set(e.agent, (juliusByAgent.get(e.agent) ?? 0) + 1);
-  const juliusEdges = [...juliusByAgent.entries()].filter(([k]) => posByKey.has(k));
+  const juliusEdges = Array.from(juliusByAgent.entries()).filter(([k]) => posByKey.has(k));
 
   const hasData = edges.length > 0 || juliusEdges.length > 0;
-  const topRoutes = [...edges].sort((a, b) => b.count - a.count).slice(0, 6);
+  const topRoutes = Array.from(edges).sort((a, b) => b.count - a.count).slice(0, 6);
   const agentName = (k: string) => getAiosAgent(k)?.name ?? k;
 
-  const legend: { status: string; label: string }[] = [
+  const legend = [
     { status: "working", label: t("legend.working") },
     { status: "online", label: t("legend.online") },
     { status: "awaiting", label: t("legend.awaiting") },
@@ -115,98 +112,83 @@ export default async function WorkforceGraphPage() {
       <div className="flex flex-col gap-6">
         <Card>
           <CardContent className="p-4">
-            <div className="relative mx-auto h-[520px] w-full max-w-[640px]">
-              {/* Edge layer */}
-              <svg
-                viewBox={`0 0 ${VW} ${VH}`}
-                className="absolute inset-0 h-full w-full"
-                preserveAspectRatio="xMidYMid meet"
-                aria-hidden="true"
-              >
-                {edges.map((e) => {
-                  const a = posByKey.get(e.from);
-                  const b = posByKey.get(e.to);
-                  if (!a || !b) return null;
-                  return (
-                    <line
-                      key={`${e.from}>${e.to}`}
-                      x1={a.x}
-                      y1={a.y}
-                      x2={b.x}
-                      y2={b.y}
-                      stroke={e.approvals > 0 ? "#d97706" : "#94a3b8"}
-                      strokeOpacity={0.55}
-                      strokeWidth={1.5 + Math.min(e.count, 6)}
-                    >
-                      <title>{`${agentName(e.from)} → ${agentName(e.to)}: ${e.count} message(s)${e.approvals > 0 ? `, ${e.approvals} needing approval` : ""}`}</title>
-                    </line>
-                  );
-                })}
-                {juliusEdges.map(([k, n]) => {
-                  const a = posByKey.get(k);
-                  if (!a) return null;
-                  return (
-                    <line
-                      key={`j-${k}`}
-                      x1={a.x}
-                      y1={a.y}
-                      x2={CX}
-                      y2={CY}
-                      stroke="#7c3aed"
-                      strokeOpacity={0.4}
-                      strokeDasharray="4 4"
-                      strokeWidth={1.5 + Math.min(n, 5)}
-                    >
-                      <title>{`${agentName(k)} → Julius: ${n} memory contribution(s)`}</title>
-                    </line>
-                  );
-                })}
-              </svg>
+            <svg
+              viewBox={`0 0 ${VW} ${VH}`}
+              className="mx-auto block h-auto w-full max-w-[640px] text-foreground"
+              role="img"
+              aria-label={t("title")}
+            >
+              {edges.map((e) => {
+                const a = posByKey.get(e.from);
+                const b = posByKey.get(e.to);
+                if (!a || !b) return null;
+                return (
+                  <line
+                    key={`${e.from}>${e.to}`}
+                    x1={a.x}
+                    y1={a.y}
+                    x2={b.x}
+                    y2={b.y}
+                    stroke={e.approvals > 0 ? "#d97706" : "#94a3b8"}
+                    strokeOpacity={0.55}
+                    strokeWidth={1.5 + Math.min(e.count, 6)}
+                  >
+                    <title>{`${agentName(e.from)} → ${agentName(e.to)}: ${e.count} message(s)`}</title>
+                  </line>
+                );
+              })}
+              {juliusEdges.map(([k, n]) => {
+                const a = posByKey.get(k);
+                if (!a) return null;
+                return (
+                  <line
+                    key={`j-${k}`}
+                    x1={a.x}
+                    y1={a.y}
+                    x2={CX}
+                    y2={CY}
+                    stroke="#7c3aed"
+                    strokeOpacity={0.4}
+                    strokeDasharray="4 4"
+                    strokeWidth={1.5 + Math.min(n, 5)}
+                  >
+                    <title>{`${agentName(k)} → Julius: ${n} memory contribution(s)`}</title>
+                  </line>
+                );
+              })}
 
               {/* Julius hub */}
-              <div
-                className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                style={{ left: `${(CX / VW) * 100}%`, top: `${(CY / VH) * 100}%` }}
-                title="Julius — AIOS Company Brain"
-              >
-                <span className="inline-flex size-14 items-center justify-center rounded-2xl border-2 border-primary/50 bg-primary/10 text-primary shadow-sm">
-                  <Brain className="size-6" aria-hidden="true" />
-                </span>
-                <span className="mt-1 text-[11px] font-semibold">Julius</span>
-              </div>
+              <circle cx={CX} cy={CY} r={26} fill="#7c3aed" />
+              <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700} fill="#ffffff">
+                Julius
+              </text>
 
               {/* Agent nodes */}
               {placed.map((p) => (
-                <Link
-                  key={p.key}
-                  href={`/harmony/workforce/${p.key}`}
-                  className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                  style={{ left: `${(p.x / VW) * 100}%`, top: `${(p.y / VH) * 100}%` }}
-                  title={`${p.name} — ${t(`legend.${p.status}`)} · ${p.active} active · ${p.sent} sent / ${p.received} received`}
-                >
-                  <span className="relative inline-flex size-12 items-center justify-center rounded-xl border-2 bg-background text-xs font-bold shadow-sm transition-transform hover:scale-105"
-                    style={{ borderColor: STATUS_COLOR[p.status] }}
-                  >
+                <g key={p.key}>
+                  <circle cx={p.x} cy={p.y} r={24} fill={STATUS_COLOR[p.status] ?? "#64748b"}>
+                    <title>{`${p.name} — ${t(`legend.${p.status}`)} · ${p.active} active · ${p.sent} sent / ${p.received} received`}</title>
+                  </circle>
+                  <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700} fill="#ffffff">
                     {initials(p.name)}
-                    {p.active > 0 && (
-                      <span
-                        className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                        style={{ backgroundColor: STATUS_COLOR[p.status] }}
-                      >
+                  </text>
+                  {p.active > 0 ? (
+                    <>
+                      <circle cx={p.x + 18} cy={p.y - 18} r={8} fill="#0f172a" />
+                      <text x={p.x + 18} y={p.y - 18} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={700} fill="#ffffff">
                         {p.active}
-                      </span>
-                    )}
-                  </span>
-                  <span className="mt-1 max-w-[72px] truncate text-[11px]">{p.name}</span>
-                </Link>
+                      </text>
+                    </>
+                  ) : null}
+                  <text x={p.x} y={p.y + 38} textAnchor="middle" fontSize={11} fill="currentColor">
+                    {p.name}
+                  </text>
+                </g>
               ))}
-            </div>
+            </svg>
 
-            {!hasData && (
-              <InlineEmpty icon={Brain} message={t("empty")} />
-            )}
+            {!hasData ? <InlineEmpty icon={Brain} message={t("empty")} /> : null}
 
-            {/* Legend */}
             <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
               {legend.map((l) => (
                 <span key={l.status} className="flex items-center gap-1.5">
@@ -214,19 +196,10 @@ export default async function WorkforceGraphPage() {
                   {l.label}
                 </span>
               ))}
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-0.5 w-4" style={{ backgroundColor: "#d97706" }} />
-                {t("legend.approvalEdge")}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-0.5 w-4 border-t-2 border-dashed" style={{ borderColor: "#7c3aed" }} />
-                {t("legend.juliusEdge")}
-              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Top delegation routes */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">{t("topRoutes")}</CardTitle>
@@ -241,7 +214,7 @@ export default async function WorkforceGraphPage() {
                   <li key={`${e.from}>${e.to}`} className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-medium">{agentName(e.from)} → {agentName(e.to)}</span>
                     <span className="flex items-center gap-2">
-                      {e.approvals > 0 && <Badge variant="default" className="text-[10px]">{t("approvals", { n: e.approvals })}</Badge>}
+                      {e.approvals > 0 ? <Badge variant="default" className="text-[10px]">{t("approvals", { n: e.approvals })}</Badge> : null}
                       <Badge variant="secondary">{t("messages", { n: e.count })}</Badge>
                     </span>
                   </li>
