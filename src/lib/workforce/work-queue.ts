@@ -36,6 +36,22 @@ export interface WorkItem {
   updated_at: string;
 }
 
+export async function getWorkItem(userId: string, id: string): Promise<WorkItem | null> {
+  if (!userId || !id) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agent_work_queue")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    console.error("[workforce/work-queue] get", error.message);
+    return null;
+  }
+  return (data as WorkItem | null) ?? null;
+}
+
 export async function listWorkItems(
   userId: string,
   opts?: { companyId?: string | null; agent?: string; status?: WorkStatus; limit?: number },
