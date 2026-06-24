@@ -1,13 +1,15 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { decryptToken } from "@/lib/crypto/tokens";
 
 /**
  * Service-role read of a user's stored connector credential (Phase 6b).
  *
  * Token columns are never selected by the RLS client; this server-only helper
  * uses the admin client to fetch a stored per-user API key for server-side
- * read-only use. The value is NEVER returned to the browser.
+ * read-only use. Tokens are stored encrypted-at-rest and decrypted here (legacy
+ * plaintext reads through unchanged). The value is NEVER returned to the browser.
  */
 
 export interface ConnectionSecret {
@@ -29,6 +31,7 @@ export async function getConnectionSecret(
     .maybeSingle();
   if (error || !data) return null;
   const row = data as { access_token: string | null; external_account: string | null };
-  if (!row.access_token) return null;
-  return { accessToken: row.access_token, externalAccount: row.external_account };
+  const accessToken = decryptToken(row.access_token);
+  if (!accessToken) return null;
+  return { accessToken, externalAccount: row.external_account };
 }
