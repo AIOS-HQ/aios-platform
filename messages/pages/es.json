@@ -915,6 +915,13 @@
       "accept": "Aceptar",
       "dismiss": "Descartar"
     },
+    "objective": "Objetivo",
+    "queuedWork": "{n} en cola",
+    "openRecs": "{n} recom.",
+    "pendingApprovals": "{n} aprob.",
+    "workLink": "Trabajo",
+    "workQueue": "Cola de trabajo",
+    "reviewQueue": "Cola de revisión",
     "metrics": "Métricas",
     "tasksCompleted": "Tareas completadas",
     "messagesSent": "Mensajes enviados",

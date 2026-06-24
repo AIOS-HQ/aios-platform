@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Activity, Network, Send, Users } from "lucide-react";
+import { Activity, ListChecks, ListTodo, Network, Send, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
 import { AGENT_ICONS, JULIUS_ICON, getAgentIcon } from "@/lib/workforce/agent-icons";
+import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
 import { formatDate } from "@/lib/format";
@@ -78,12 +79,21 @@ export default async function WorkforcePage() {
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [messages, awareness] = await Promise.all([
+  const [messages, awareness, summary] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { limit: 60 }) : Promise.resolve([]),
     companyId
       ? getJuliusAwareness(user.id, companyId)
       : Promise.resolve({ objectives: [], decisions: [], activities: [], knowledge: [], total: 0 }),
+    getWorkforceSummary(user.id, companyId),
   ]);
+
+  // Pending approvals per agent (inbound, awaiting the founder).
+  const approvalsByAgent: Record<string, number> = {};
+  for (const m of messages) {
+    if (m.status === "awaiting_approval") {
+      approvalsByAgent[m.to_agent] = (approvalsByAgent[m.to_agent] ?? 0) + 1;
+    }
+  }
 
   return (
     <>
@@ -92,6 +102,18 @@ export default async function WorkforcePage() {
           <Link href="/harmony/workforce/graph">
             <Network className="size-4" aria-hidden="true" />
             {t("relationshipGraph")}
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/harmony/work">
+            <ListChecks className="size-4" aria-hidden="true" />
+            {t("workQueue")}
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/harmony/review">
+            <ListTodo className="size-4" aria-hidden="true" />
+            {t("reviewQueue")}
           </Link>
         </Button>
         <AgentDispatchDialog
@@ -134,6 +156,8 @@ export default async function WorkforcePage() {
             {AIOS_WORKFORCE.map((a) => {
               const s = deriveState(a.key, messages);
               const Icon = AGENT_ICONS[a.key];
+              const sum = summary[a.key] ?? emptyAgentSummary();
+              const pendingApprovals = approvalsByAgent[a.key] ?? 0;
               return (
                 <Card key={a.key}>
                   <CardContent className="p-4">
@@ -168,12 +192,40 @@ export default async function WorkforcePage() {
                         </dd>
                       </div>
                     </dl>
-                    <div className="mt-3 flex gap-2">
+                    {/* Phase 7 — what this agent is responsible for */}
+                    <div className="mt-3 rounded-md bg-muted/50 p-2">
+                      <p className="truncate text-xs">
+                        <span className="text-muted-foreground">{t("objective")}: </span>
+                        {sum.currentObjective ? sum.currentObjective.title : t("none")}
+                      </p>
+                      {sum.currentObjective ? (
+                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-background">
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${sum.currentObjective.progress}%` }}
+                          />
+                        </div>
+                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-[10px]">{t("queuedWork", { n: sum.queuedWork })}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{t("openRecs", { n: sum.openRecommendations })}</Badge>
+                        <Badge
+                          variant={pendingApprovals > 0 ? "default" : "outline"}
+                          className="text-[10px]"
+                        >
+                          {t("pendingApprovals", { n: pendingApprovals })}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
                         <Link href={`/harmony/workforce/${a.key}`}>{t("viewProfile")}</Link>
                       </Button>
                       <Button asChild size="sm" className="h-7 px-2 text-xs">
                         <Link href={`/harmony/workforce/${a.key}`}>{t("openChat")}</Link>
+                      </Button>
+                      <Button asChild size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                        <Link href={`/harmony/work?agent=${a.key}`}>{t("workLink")}</Link>
                       </Button>
                     </div>
                   </CardContent>
