@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { sendAgentChatAction } from "@/lib/workforce/chat-actions";
+import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { idleState } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/shared/submit-button";
@@ -33,6 +34,7 @@ export function AgentChat({
   const [state, action] = useActionState(sendAgentChatAction, idleState);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const Icon = getAgentIcon(agent);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -47,18 +49,27 @@ export function AgentChat({
         {messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("chatEmpty", { name: agentName })}</p>
         ) : (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className={
-                m.role === "user"
-                  ? "ml-auto max-w-[85%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-                  : "mr-auto max-w-[85%] whitespace-pre-wrap rounded-lg border bg-card px-3 py-2 text-sm"
-              }
-            >
-              {m.content}
-            </div>
-          ))
+          messages.map((m) =>
+            m.role === "user" ? (
+              <div
+                key={m.id}
+                className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+              >
+                {m.content}
+              </div>
+            ) : (
+              <div key={m.id} className="mr-auto flex max-w-[85%] items-start gap-2">
+                {Icon ? (
+                  <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md border bg-muted text-foreground">
+                    <Icon className="size-3.5" aria-hidden="true" />
+                  </span>
+                ) : null}
+                <div className="whitespace-pre-wrap rounded-lg border bg-card px-3 py-2 text-sm">
+                  {m.content}
+                </div>
+              </div>
+            ),
+          )
         )}
       </div>
       <form ref={formRef} action={action} className="space-y-2">

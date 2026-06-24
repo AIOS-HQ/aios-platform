@@ -6,6 +6,7 @@ import { ArrowLeft, MessageSquare } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { getAgentPersona } from "@/lib/workforce/agent-personas";
+import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import { listChatMessages } from "@/lib/workforce/chat";
@@ -17,11 +18,6 @@ import { Button } from "@/components/ui/button";
 import { AgentChat } from "@/components/harmony/workforce/agent-chat";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
-
-function initials(name: string): string {
-  const p = name.trim().split(/\s+/);
-  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? p[0]?.[1] ?? "")).toUpperCase();
-}
 
 export async function generateMetadata({
   params,
@@ -41,7 +37,8 @@ export default async function AgentProfilePage({
   const { agent } = await params;
   const def = getAiosAgent(agent);
   const persona = getAgentPersona(agent);
-  if (!def || !persona) notFound();
+  const Icon = getAgentIcon(agent);
+  if (!def || !persona || !Icon) notFound();
 
   const t = await getTranslations("workforce");
   const locale = await getLocale();
@@ -112,8 +109,8 @@ export default async function AgentProfilePage({
         {/* Identity + live status */}
         <Card>
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-            <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl border bg-muted text-xl font-bold">
-              {initials(def.name)}
+            <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl border bg-muted text-foreground">
+              <Icon className="size-7" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">

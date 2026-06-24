@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Activity, Brain, Network, Send, Users } from "lucide-react";
+import { Activity, Network, Send, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
+import { AGENT_ICONS, JULIUS_ICON, getAgentIcon } from "@/lib/workforce/agent-icons";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
 import { formatDate } from "@/lib/format";
@@ -42,10 +43,12 @@ const RISK_VARIANT: Record<string, "default" | "secondary" | "outline" | "destru
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? parts[0]?.[1] ?? "")).toUpperCase();
-}
+const STATUS_COLOR: Record<AgentStatus, string> = {
+  working: "#16a34a",
+  awaiting: "#ca8a04",
+  online: "#2563eb",
+  idle: "#64748b",
+};
 
 /** Derive a live status for an agent from its recent agent-to-agent messages. */
 function deriveState(key: string, messages: AgentMessage[]) {
@@ -114,7 +117,7 @@ export default async function WorkforcePage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
-                    <Brain className="size-5" aria-hidden="true" />
+                    <JULIUS_ICON className="size-5" aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
                     <p className="truncate font-semibold">Julius</p>
@@ -130,12 +133,16 @@ export default async function WorkforcePage() {
 
             {AIOS_WORKFORCE.map((a) => {
               const s = deriveState(a.key, messages);
+              const Icon = AGENT_ICONS[a.key];
               return (
                 <Card key={a.key}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-muted text-sm font-bold">
-                        {initials(a.name)}
+                      <span
+                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border-2 bg-muted text-foreground"
+                        style={{ borderColor: STATUS_COLOR[s.status] }}
+                      >
+                        <Icon className="size-5" aria-hidden="true" />
                       </span>
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{a.name}</p>
@@ -194,6 +201,8 @@ export default async function WorkforcePage() {
                   {messages.map((m) => {
                     const from = getAiosAgent(m.from_agent)?.name ?? m.from_agent;
                     const to = getAiosAgent(m.to_agent)?.name ?? m.to_agent;
+                    const FromIcon = getAgentIcon(m.from_agent);
+                    const ToIcon = getAgentIcon(m.to_agent);
                     const ctx = Array.isArray(
                       (m.context as { julius?: unknown[] } | null)?.julius,
                     )
@@ -202,8 +211,16 @@ export default async function WorkforcePage() {
                     return (
                       <li key={m.id} className="rounded-lg border p-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {from} → {to}
+                          <span className="flex items-center gap-1.5 text-sm font-medium">
+                            {FromIcon ? (
+                              <FromIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                            ) : null}
+                            {from}
+                            <span className="text-muted-foreground" aria-hidden="true">→</span>
+                            {ToIcon ? (
+                              <ToIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                            ) : null}
+                            {to}
                           </span>
                           <Badge variant="outline" className="text-[10px]">
                             {t(`kind.${m.kind}`)}
