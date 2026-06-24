@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { clientIp, rateLimitDistributed } from "@/lib/security/rate-limit";
+import {
+  buildCsp,
+  cspHeaderName,
+  cspMode,
+  generateNonce,
+  CSP_REPORTING_ENDPOINTS,
+} from "@/lib/security/csp";
 
 /**
  * Auth/credential POST surfaces (form posts or server actions) worth throttling
@@ -54,7 +61,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return await updateSession(request);
+  // Content-Security-Policy: a fresh nonce per request, applied via updateSession
+  // so it propagates to Next.js (script nonces) and onto every response. Mode is
+  // env-driven and defaults to report-only — nothing is blocked until the founder
+  // sets CSP_MODE=enforce. CSP_MODE=off skips it entirely.
+  const mode = cspMode();
+  if (mode === "off") {
+    return await updateSession(request);
+  }
+  const nonce = generateNonce();
+  return await updateSession(request, {
+    nonce,
+    csp: buildCsp(nonce),
+    cspHeaderName: cspHeaderName(mode),
+    reportingEndpoints: CSP_REPORTING_ENDPOINTS,
+  });
 }
 
 export const config = {

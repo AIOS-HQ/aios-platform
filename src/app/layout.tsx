@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
@@ -25,11 +26,14 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
   const t = await getTranslations("common");
+  // CSP nonce set by middleware; lets the inline theme script run under a
+  // nonce-based policy (no-op when CSP is off — nonce is simply undefined).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html lang={locale} suppressHydrationWarning className="h-full">
       <head>
-        <ThemeScript />
+        <ThemeScript nonce={nonce} />
       </head>
       <body className="min-h-full bg-background text-foreground antialiased">
         <a
