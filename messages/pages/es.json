@@ -830,5 +830,39 @@
     "connectors": "Conectores",
     "connectorsHint": "Integraciones del fundador y su estado de conexión.",
     "connectorExpired": "Autorización de {name} expirada — se requiere reconexión"
+  },
+  "workforce": {
+    "title": "Equipo de IA",
+    "subtitle": "Tus empleados digitales de AIOS y su actividad en vivo.",
+    "directory": "Directorio del equipo",
+    "brain": "Cerebro",
+    "brainRole": "Capa de memoria organizacional de AIOS",
+    "juliusEntries": "{n} entradas de memoria",
+    "currentTask": "Tarea actual",
+    "lastAction": "Última acción",
+    "lastActive": "Última actividad",
+    "none": "—",
+    "activity": "Comunicaciones de agentes",
+    "activityHint": "Mensajes, delegaciones y respuestas recientes entre agentes.",
+    "noActivity": "Aún no hay actividad entre agentes. Las delegaciones aparecerán aquí cuando los agentes empiecen a colaborar.",
+    "ctx": "{n} contexto",
+    "outcomeLabel": "Resultado",
+    "status": {
+      "working": "Trabajando",
+      "awaiting": "Esperando aprobación",
+      "online": "En línea",
+      "idle": "Inactivo",
+      "error": "Error"
+    },
+    "kind": {
+      "message": "Mensaje",
+      "task": "Tarea",
+      "response": "Respuesta"
+    },
+    "risk": {
+      "routine": "Rutina",
+      "approval": "Aprobación",
+      "destructive": "Alto riesgo"
+    }
   }
 }

@@ -159,7 +159,11 @@
     "content": "Contenido",
     "auditor": "Auditor",
     "pendingCount": "{count} pendientes",
-    "sections": { "command": "Centro de Mando", "personal": "Personal" }
+    "sections": {
+      "command": "Centro de Mando",
+      "personal": "Personal"
+    },
+    "workforce": "Equipo IA"
   },
   "os": {
     "commandCenter": {
@@ -196,7 +200,11 @@
       "backToCompanies": "Volver a empresas",
       "departments": "Departamentos",
       "noDepartments": "Aún no hay departamentos.",
-      "fields": { "name": "Nombre de la empresa", "description": "Descripción", "domain": "Dominio" },
+      "fields": {
+        "name": "Nombre de la empresa",
+        "description": "Descripción",
+        "domain": "Dominio"
+      },
       "stats": {
         "departments": "Departamentos",
         "objectives": "Objetivos",
@@ -237,8 +245,14 @@
         "medium": "Riesgo medio",
         "high": "Riesgo alto"
       },
-      "fields": { "name": "Nombre del departamento", "description": "Descripción" },
-      "agentStatus": { "active": "Activo", "paused": "Pausado" }
+      "fields": {
+        "name": "Nombre del departamento",
+        "description": "Descripción"
+      },
+      "agentStatus": {
+        "active": "Activo",
+        "paused": "Pausado"
+      }
     },
     "agents": {
       "new": "Nuevo agente",
@@ -252,7 +266,10 @@
       "resume": "Reanudar agente",
       "pausedToast": "Agente en pausa",
       "resumedToast": "Agente reanudado",
-      "fields": { "name": "Nombre del agente", "role": "Rol" }
+      "fields": {
+        "name": "Nombre del agente",
+        "role": "Rol"
+      }
     },
     "objectives": {
       "title": "Objetivos",
@@ -332,7 +349,11 @@
       "awaiting_approval": "Esperando aprobación",
       "completed": "Completado"
     },
-    "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta"
+    },
     "delegate": {
       "dialogTitle": "Delegar a Harmony",
       "dialogDesc": "Dile a Harmony qué hacer. Enruta el trabajo al departamento helper adecuado, que ejecuta o pide tu aprobación según su autonomía.",
@@ -497,16 +518,46 @@
       }
     },
     "contentTask": {
-      "content_strategy": { "label": "Estrategia de contenido", "desc": "Audiencia, pilares, canales y cadencia." },
-      "content_plan": { "label": "Plan de contenido", "desc": "Un plan de 30 días de piezas a publicar." },
-      "content_calendar": { "label": "Calendario de contenido", "desc": "Un calendario de 4 semanas, día a día." },
-      "youtube_idea": { "label": "Ideas de YouTube", "desc": "10 ideas de video con título y gancho." },
-      "youtube_script": { "label": "Guion de YouTube", "desc": "Un guion completo con gancho, segmentos y CTA." },
-      "tiktok_script": { "label": "Guion de TikTok", "desc": "Un guion corto y directo de 30–45 s." },
-      "shorts_concept": { "label": "Conceptos de Shorts", "desc": "5 conceptos de formato corto con ganchos." },
-      "blog_outline": { "label": "Esquema de blog", "desc": "Un esquema con enfoque SEO y encabezados." },
-      "thumbnail_concept": { "label": "Conceptos de miniatura", "desc": "3 ideas de miniatura que invitan al clic." },
-      "seo_plan": { "label": "Plan SEO", "desc": "Palabras clave, mejoras on-page y prioridades." }
+      "content_strategy": {
+        "label": "Estrategia de contenido",
+        "desc": "Audiencia, pilares, canales y cadencia."
+      },
+      "content_plan": {
+        "label": "Plan de contenido",
+        "desc": "Un plan de 30 días de piezas a publicar."
+      },
+      "content_calendar": {
+        "label": "Calendario de contenido",
+        "desc": "Un calendario de 4 semanas, día a día."
+      },
+      "youtube_idea": {
+        "label": "Ideas de YouTube",
+        "desc": "10 ideas de video con título y gancho."
+      },
+      "youtube_script": {
+        "label": "Guion de YouTube",
+        "desc": "Un guion completo con gancho, segmentos y CTA."
+      },
+      "tiktok_script": {
+        "label": "Guion de TikTok",
+        "desc": "Un guion corto y directo de 30–45 s."
+      },
+      "shorts_concept": {
+        "label": "Conceptos de Shorts",
+        "desc": "5 conceptos de formato corto con ganchos."
+      },
+      "blog_outline": {
+        "label": "Esquema de blog",
+        "desc": "Un esquema con enfoque SEO y encabezados."
+      },
+      "thumbnail_concept": {
+        "label": "Conceptos de miniatura",
+        "desc": "3 ideas de miniatura que invitan al clic."
+      },
+      "seo_plan": {
+        "label": "Plan SEO",
+        "desc": "Palabras clave, mejoras on-page y prioridades."
+      }
     },
     "contentHelper": {
       "hint": "Los helpers trabajan tras bambalinas; Harmony les enruta el trabajo según su nivel de autonomía."
@@ -796,8 +847,13 @@
     "markComplete": "Marcar como completada",
     "markIncomplete": "Marcar como pendiente",
     "filterLabel": "Filtrar tareas por estado",
-    "filter": { "all": "Todas" },
-    "search": { "placeholder": "Buscar tareas…", "label": "Buscar tareas" },
+    "filter": {
+      "all": "Todas"
+    },
+    "search": {
+      "placeholder": "Buscar tareas…",
+      "label": "Buscar tareas"
+    },
     "sort": {
       "label": "Ordenar",
       "due": "Fecha de vencimiento",
@@ -833,8 +889,16 @@
       "goal": "Meta"
     },
     "goalNone": "Sin meta",
-    "priority": { "low": "Baja", "medium": "Media", "high": "Alta" },
-    "status": { "todo": "Por hacer", "in_progress": "En progreso", "done": "Hecha" },
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta"
+    },
+    "status": {
+      "todo": "Por hacer",
+      "in_progress": "En progreso",
+      "done": "Hecha"
+    },
     "empty": {
       "title": "No hay tareas",
       "description": "Crea tu primera tarea para empezar."
@@ -863,7 +927,9 @@
       "noLinkedTasks": "Aún no hay tareas vinculadas a esta meta."
     },
     "filterLabel": "Filtrar objetivos por estado",
-    "filter": { "all": "Todos" },
+    "filter": {
+      "all": "Todos"
+    },
     "fields": {
       "title": "Título",
       "description": "Descripción",
@@ -905,13 +971,20 @@
       "created": "Creadas",
       "title": "Título A–Z"
     },
-    "fields": { "title": "Título", "content": "Contenido", "tags": "Etiquetas" },
+    "fields": {
+      "title": "Título",
+      "content": "Contenido",
+      "tags": "Etiquetas"
+    },
     "tagsPlaceholder": "Etiquetas separadas por comas",
     "pin": "Fijar nota",
     "unpin": "Quitar fijado",
     "pinnedToast": "Nota fijada.",
     "unpinned": "Nota desfijada.",
-    "filterTag": { "label": "Filtrar por etiqueta", "all": "Todas las etiquetas" },
+    "filterTag": {
+      "label": "Filtrar por etiqueta",
+      "all": "Todas las etiquetas"
+    },
     "empty": {
       "title": "Aún no hay notas",
       "description": "Escribe tu primera nota para recordarla."
@@ -926,12 +999,19 @@
     "subtitle": "Tu almacén privado de conocimiento — y la base de tu futura memoria de IA.",
     "new": "Agregar entrada",
     "edit": "Editar entrada",
-    "filter": { "label": "Filtrar por tipo", "all": "Todas" },
+    "filter": {
+      "label": "Filtrar por tipo",
+      "all": "Todas"
+    },
     "dialogDesc": "Guarda un conocimiento, una preferencia o una referencia.",
     "searchPlaceholder": "Busca en tu cerebro…",
     "searchLabel": "Buscar en el Cerebro Personal",
     "tagsPlaceholder": "etiquetas, separadas, por comas",
-    "fields": { "title": "Título", "content": "Contenido", "tags": "Etiquetas" },
+    "fields": {
+      "title": "Título",
+      "content": "Contenido",
+      "tags": "Etiquetas"
+    },
     "kind": {
       "note": "Nota",
       "preference": "Preferencia",
