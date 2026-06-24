@@ -1021,7 +1021,15 @@
       "awaiting": "Awaiting approval",
       "idle": "Idle",
       "approvalEdge": "Needs approval",
-      "juliusEdge": "Julius contribution"
+      "juliusEdge": "Julius contribution",
+      "delegationEdge": "Delegation"
+    },
+    "rangeLabel": "Time range",
+    "apply": "Apply",
+    "range": {
+      "all": "All time",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
     }
   }
 }

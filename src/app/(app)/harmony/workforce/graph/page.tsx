@@ -7,6 +7,7 @@ import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listJuliusEntries } from "@/lib/julius/service";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
+import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
 import { PageHeader } from "@/components/shared/page-header";
 import { InlineEmpty } from "@/components/shared/inline-empty";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,15 +39,36 @@ const R = 190;
 const VW = 640;
 const VH = 520;
 
-export default async function WorkforceGraphPage() {
+export default async function WorkforceGraphPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
   const t = await getTranslations("graph");
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
+  const sp = await searchParams;
 
-  const [messages, julius] = await Promise.all([
+  const RANGE_DAYS: Record<string, number> = { "7d": 7, "30d": 30 };
+  const days = RANGE_DAYS[sp.range ?? ""] ?? 0;
+  const cutoff = days > 0 ? Date.now() - days * 86_400_000 : 0;
+
+  const [allMessages, julius, summary] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { limit: 200 }) : Promise.resolve([]),
     companyId ? listJuliusEntries(user.id, companyId, { limit: 200 }) : Promise.resolve([]),
+    getWorkforceSummary(user.id, companyId),
   ]);
+  const messages =
+    cutoff === 0
+      ? allMessages
+      : allMessages.filter((m) => new Date(m.created_at).getTime() >= cutoff);
+
+  const approvalsByAgent: Record<string, number> = {};
+  for (const m of messages) {
+    if (m.status === "awaiting_approval") {
+      approvalsByAgent[m.to_agent] = (approvalsByAgent[m.to_agent] ?? 0) + 1;
+    }
+  }
 
   const placed = AIOS_WORKFORCE.map((a, i) => {
     const ang = (i / AIOS_WORKFORCE.length) * 2 * Math.PI - Math.PI / 2;
@@ -111,6 +133,19 @@ export default async function WorkforceGraphPage() {
             {t("back")}
           </Link>
         </Button>
+        <form method="get" className="flex items-center gap-2">
+          <select
+            name="range"
+            defaultValue={sp.range ?? ""}
+            aria-label={t("rangeLabel")}
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="">{t("range.all")}</option>
+            <option value="7d">{t("range.7d")}</option>
+            <option value="30d">{t("range.30d")}</option>
+          </select>
+          <Button type="submit" variant="outline" size="sm">{t("apply")}</Button>
+        </form>
       </PageHeader>
 
       <div className="flex flex-col gap-6">
@@ -167,28 +202,32 @@ export default async function WorkforceGraphPage() {
                 Julius
               </text>
 
-              {/* Agent nodes */}
-              {placed.map((p) => (
-                <g key={p.key}>
-                  <circle cx={p.x} cy={p.y} r={24} fill={STATUS_COLOR[p.status] ?? "#64748b"}>
-                    <title>{`${p.name} — ${t(`legend.${p.status}`)} · ${p.active} active · ${p.sent} sent / ${p.received} received`}</title>
-                  </circle>
-                  <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700} fill="#ffffff">
-                    {initials(p.name)}
-                  </text>
-                  {p.active > 0 ? (
-                    <>
-                      <circle cx={p.x + 18} cy={p.y - 18} r={8} fill="#0f172a" />
-                      <text x={p.x + 18} y={p.y - 18} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={700} fill="#ffffff">
-                        {p.active}
-                      </text>
-                    </>
-                  ) : null}
-                  <text x={p.x} y={p.y + 38} textAnchor="middle" fontSize={11} fill="currentColor">
-                    {p.name}
-                  </text>
-                </g>
-              ))}
+              {/* Agent nodes — clickable, link to the agent profile */}
+              {placed.map((p) => {
+                const sum = summary[p.key] ?? emptyAgentSummary();
+                const appr = approvalsByAgent[p.key] ?? 0;
+                return (
+                  <a key={p.key} href={`/harmony/workforce/${p.key}`}>
+                    <circle cx={p.x} cy={p.y} r={24} fill={STATUS_COLOR[p.status] ?? "#64748b"}>
+                      <title>{`${p.name} — ${t(`legend.${p.status}`)} · ${sum.activeObjectives} obj · ${sum.queuedWork} work · ${sum.openRecommendations} recs · ${appr} approvals · ${p.sent}/${p.received} msgs`}</title>
+                    </circle>
+                    <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700} fill="#ffffff">
+                      {initials(p.name)}
+                    </text>
+                    {p.active > 0 ? (
+                      <>
+                        <circle cx={p.x + 18} cy={p.y - 18} r={8} fill="#0f172a" />
+                        <text x={p.x + 18} y={p.y - 18} textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={700} fill="#ffffff">
+                          {p.active}
+                        </text>
+                      </>
+                    ) : null}
+                    <text x={p.x} y={p.y + 38} textAnchor="middle" fontSize={11} fill="currentColor">
+                      {p.name}
+                    </text>
+                  </a>
+                );
+              })}
             </svg>
 
             {!hasData ? <InlineEmpty icon={Brain} message={t("empty")} /> : null}
@@ -200,6 +239,20 @@ export default async function WorkforceGraphPage() {
                   {l.label}
                 </span>
               ))}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4" style={{ backgroundColor: "#94a3b8" }} />
+                {t("legend.delegationEdge")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4" style={{ backgroundColor: "#d97706" }} />
+                {t("legend.approvalEdge")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4" style={{ backgroundColor: "#7c3aed" }} />
+                {t("legend.juliusEdge")}
+              </span>
             </div>
           </CardContent>
         </Card>
