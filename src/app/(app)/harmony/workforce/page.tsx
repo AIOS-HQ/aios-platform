@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Activity, Brain, Send, Users } from "lucide-react";
+import { Activity, Brain, Network, Send, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
@@ -85,6 +85,12 @@ export default async function WorkforcePage() {
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")}>
+        <Button asChild variant="outline">
+          <Link href="/harmony/workforce/graph">
+            <Network className="size-4" aria-hidden="true" />
+            {t("relationshipGraph")}
+          </Link>
+        </Button>
         <AgentDispatchDialog
           agents={AIOS_WORKFORCE.map((a) => ({ key: a.key, name: a.name }))}
         >
