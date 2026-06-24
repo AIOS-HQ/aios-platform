@@ -969,6 +969,9 @@
     "noWork": "Sin elementos de trabajo.",
     "addWork": "Añadir",
     "workPlaceholder": "Describe una unidad de trabajo…",
+    "categoryLabel": "Categoría",
+    "riskLevelLabel": "Nivel de riesgo",
+    "restrictedHint": "Las categorías restringidas (financiero, código, seguridad, arquitectura, publicación, destructivo) y el riesgo ALTO/CRÍTICO siempre requieren aprobación.",
     "needsApproval": "Requiere aprobación",
     "status": {
       "proposed": "Propuesto",
@@ -1041,6 +1044,7 @@
     "runPassHint": "Evalúa el trabajo propuesto según la política, registra decisiones y aprueba automáticamente solo los elementos elegibles.",
     "modes": { "off": "Desactivado", "advisory": "Consultivo", "bounded": "Limitado" },
     "thresholds": { "none": "Ninguno", "low": "Bajo", "medium": "Medio" },
+    "riskLevel": { "low": "Bajo", "medium": "Medio", "high": "Alto", "critical": "Crítico" },
     "decisions": {
       "auto_executed": "Auto-ejecutado",
       "notified": "Auto + notificado",

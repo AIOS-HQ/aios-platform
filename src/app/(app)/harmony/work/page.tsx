@@ -5,6 +5,12 @@ import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
 import { listWorkItems, type WorkRisk, type WorkStatus } from "@/lib/workforce/work-queue";
+import {
+  getAutonomyState,
+  evaluate,
+  deriveRiskLevel,
+  type ActionCategory,
+} from "@/lib/workforce/autonomy";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,23 +42,38 @@ export default async function WorkQueuePage({
     ? (sp.risk as WorkRisk)
     : undefined;
 
-  const all = await listWorkItems(user.id, {
-    companyId,
-    agent: agentFilter,
-    status: statusFilter,
-    limit: 200,
-  });
+  const [all, autonomy] = await Promise.all([
+    listWorkItems(user.id, { companyId, agent: agentFilter, status: statusFilter, limit: 200 }),
+    getAutonomyState(user.id),
+  ]);
   const items = riskFilter ? all.filter((i) => i.risk === riskFilter) : all;
 
-  const board = items.map((i) => ({
-    id: i.id,
-    agent: i.agent,
-    agentName: getAiosAgent(i.agent)?.name ?? i.agent,
-    title: i.title,
-    status: i.status,
-    risk: i.risk,
-    requiresApproval: i.requires_approval,
-  }));
+  const board = items.map((i) => {
+    const riskLevel = deriveRiskLevel(i.risk, i.risk_level);
+    const category = (i.category ?? null) as ActionCategory | null;
+    const ev = category
+      ? evaluate({
+          category,
+          riskLevel,
+          global: autonomy.global,
+          agent: autonomy.agents[i.agent] ?? null,
+          categoryPolicy: autonomy.categories[category] ?? null,
+        })
+      : { decision: "pending_approval" as const, reason: "No action category set." };
+    return {
+      id: i.id,
+      agent: i.agent,
+      agentName: getAiosAgent(i.agent)?.name ?? i.agent,
+      title: i.title,
+      status: i.status,
+      risk: i.risk,
+      requiresApproval: i.requires_approval,
+      category: i.category,
+      riskLevel,
+      decision: ev.decision,
+      decisionReason: ev.reason,
+    };
+  });
 
   return (
     <>

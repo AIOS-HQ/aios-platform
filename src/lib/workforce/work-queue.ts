@@ -74,6 +74,19 @@ export async function listWorkItems(
   return (data as WorkItem[] | null) ?? [];
 }
 
+const WORK_CATEGORIES = [
+  "financial", "code", "security", "architecture", "publishing",
+  "destructive", "operational", "communications", "research",
+];
+const WORK_RISK_LEVELS = ["low", "medium", "high", "critical"];
+/** Map the autonomy risk level to the A2A delegation risk (gating). */
+const RISK_FROM_LEVEL: Record<string, WorkRisk> = {
+  low: "routine",
+  medium: "approval",
+  high: "approval",
+  critical: "destructive",
+};
+
 export async function createWorkItem(params: {
   userId: string;
   companyId: string | null;
@@ -81,7 +94,8 @@ export async function createWorkItem(params: {
   title: string;
   detail?: string;
   kind?: WorkKind;
-  risk?: WorkRisk;
+  category?: string;
+  riskLevel?: string;
   objectiveId?: string | null;
 }): Promise<WorkItem | null> {
   const title = params.title.trim();
@@ -91,6 +105,10 @@ export async function createWorkItem(params: {
     console.error("[workforce/work-queue] unknown agent", params.agent);
     return null;
   }
+  const rl = params.riskLevel ?? "";
+  const riskLevel = WORK_RISK_LEVELS.includes(rl) ? rl : "low";
+  const cat = params.category ?? "";
+  const category = WORK_CATEGORIES.includes(cat) ? cat : null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("agent_work_queue")
@@ -102,7 +120,9 @@ export async function createWorkItem(params: {
       title: title.slice(0, 300),
       detail: params.detail?.slice(0, 8000) ?? null,
       kind: params.kind ?? "task",
-      risk: params.risk ?? "routine",
+      risk: RISK_FROM_LEVEL[riskLevel] ?? "routine",
+      risk_level: riskLevel,
+      category,
       // status/autonomy/requires_approval use the advisory-default DB columns.
     })
     .select("*")
