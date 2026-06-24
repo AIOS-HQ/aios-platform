@@ -882,6 +882,31 @@
     "viewProfile": "View profile",
     "openChat": "Open chat",
     "backToWorkforce": "Back to workforce",
+    "objectives": "Objectives",
+    "objectivesHint": "What this agent is working toward. Activate, pause, or close.",
+    "noObjectives": "No objectives yet.",
+    "objectivePlaceholder": "Add an objective…",
+    "addObjective": "Add",
+    "priorityLabel": "Priority",
+    "proposedByAgent": "Proposed by agent",
+    "objectiveStatus": {
+      "proposed": "Proposed",
+      "active": "Active",
+      "paused": "Paused",
+      "done": "Done",
+      "dismissed": "Dismissed"
+    },
+    "objectiveOp": {
+      "promote": "Activate",
+      "pause": "Pause",
+      "done": "Mark done",
+      "dismiss": "Dismiss"
+    },
+    "objectivePriority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
     "metrics": "Metrics",
     "tasksCompleted": "Tasks completed",
     "messagesSent": "Messages sent",

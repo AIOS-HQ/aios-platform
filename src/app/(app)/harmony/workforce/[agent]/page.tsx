@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquare, Target } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { getAgentPersona } from "@/lib/workforce/agent-personas";
@@ -10,12 +10,14 @@ import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import { listChatMessages } from "@/lib/workforce/chat";
+import { listObjectives } from "@/lib/workforce/objectives";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentChat } from "@/components/harmony/workforce/agent-chat";
+import { AgentObjectives } from "@/components/harmony/workforce/agent-objectives";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
@@ -45,9 +47,10 @@ export default async function AgentProfilePage({
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [messages, chat] = await Promise.all([
+  const [messages, chat, objectives] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { agent, limit: 100 }) : Promise.resolve([]),
     listChatMessages(user.id, agent, 100),
+    listObjectives(user.id, { companyId, agent }),
   ]);
 
   const sent = messages.filter((m) => m.from_agent === agent).length;
@@ -162,6 +165,30 @@ export default async function AgentProfilePage({
                 <p className="text-xs text-muted-foreground">{s.label}</p>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Objectives */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Target className="size-4 text-primary" aria-hidden="true" />
+              {t("objectives")}
+            </CardTitle>
+            <CardDescription>{t("objectivesHint")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgentObjectives
+              agent={agent}
+              objectives={objectives.map((o) => ({
+                id: o.id,
+                title: o.title,
+                status: o.status,
+                priority: o.priority,
+                origin: o.origin,
+                progress: o.progress,
+              }))}
+            />
           </CardContent>
         </Card>
 
