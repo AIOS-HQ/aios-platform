@@ -4,14 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTranslations } from "next-intl/server";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { getAdapter } from "@/lib/harmony/comms/adapters";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { Channel, Conversation } from "@/types/database";
 
 type DeliveryStatus = "sent" | "failed";
-
-type LinkedInConnection = {
-  access_token: string | null;
-};
 
 function getLinkedInAuthor(channel: Channel): string | null {
   const raw =
@@ -28,18 +23,25 @@ function getLinkedInAuthor(channel: Channel): string | null {
   return null;
 }
 
+/**
+ * Publish to a LinkedIn organization (company) Page.
+ *
+ * IMPORTANT — app separation:
+ *  - The "Harmony" LinkedIn app owns SIGN-IN only (OpenID Connect; scopes
+ *    openid/profile/email). Its connector token CANNOT publish — using it to
+ *    post produced the historical 403 failures.
+ *  - Organization publishing is owned by the "AIOS Publisher" app (Community
+ *    Management API + w_organization_social, with the company association).
+ *
+ * So we authenticate the post with the AIOS Publisher app's organization access
+ * token, supplied via env (LINKEDIN_PUBLISHER_ACCESS_TOKEN) — never the Harmony
+ * sign-in connector token. The org to post as comes from the channel handle
+ * (falling back to LINKEDIN_ORGANIZATION_URN/ID).
+ */
 async function publishLinkedInPost(
-  userId: string,
   channel: Channel,
   body: string,
 ): Promise<DeliveryStatus> {
-  const admin = createAdminClient();
-
-  if (!admin) {
-    console.error("[comms/linkedin] Supabase admin client unavailable");
-    return "failed";
-  }
-
   const author = getLinkedInAuthor(channel);
 
   if (!author) {
@@ -47,61 +49,61 @@ async function publishLinkedInPost(
     return "failed";
   }
 
-  const { data, error } = await admin
-    .from("integration_connections")
-    .select("access_token")
-    .eq("user_id", userId)
-    .or("provider.eq.linkedin,provider_id.eq.linkedin")
-    .eq("status", "connected")
-    .order("connected_at", { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
+  const accessToken = process.env.LINKEDIN_PUBLISHER_ACCESS_TOKEN;
 
-  if (error) {
-    console.error("[comms/linkedin] token lookup failed", error.message);
-    return "failed";
-  }
-
-  const connection = data as LinkedInConnection | null;
-
-  if (!connection?.access_token) {
-    console.error("[comms/linkedin] no LinkedIn access token found");
-    return "failed";
-  }
-
-  const response = await fetch("https://api.linkedin.com/rest/posts", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${connection.access_token}`,
-      "Content-Type": "application/json",
-      "LinkedIn-Version": process.env.LINKEDIN_API_VERSION || "202604",
-      "X-Restli-Protocol-Version": "2.0.0",
-    },
-    body: JSON.stringify({
-      author,
-      commentary: body,
-      visibility: "PUBLIC",
-      distribution: {
-        feedDistribution: "MAIN_FEED",
-        targetEntities: [],
-        thirdPartyDistributionChannels: [],
-      },
-      lifecycleState: "PUBLISHED",
-      isReshareDisabledByAuthor: false,
-    }),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+  if (!accessToken) {
     console.error(
-      "[comms/linkedin] publish failed",
-      response.status,
-      detail.slice(0, 500),
+      "[comms/linkedin] missing LINKEDIN_PUBLISHER_ACCESS_TOKEN — organization " +
+        "publishing requires the AIOS Publisher app token (Community Management " +
+        "API, w_organization_social), not the Harmony sign-in connector",
     );
     return "failed";
   }
 
-  return "sent";
+  try {
+    const response = await fetch("https://api.linkedin.com/rest/posts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "LinkedIn-Version": process.env.LINKEDIN_API_VERSION || "202604",
+        "X-Restli-Protocol-Version": "2.0.0",
+      },
+      body: JSON.stringify({
+        author,
+        commentary: body,
+        visibility: "PUBLIC",
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
+        lifecycleState: "PUBLISHED",
+        isReshareDisabledByAuthor: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      // Capture the exact LinkedIn diagnostics for the failure log.
+      console.error(
+        "[comms/linkedin] publish failed",
+        response.status,
+        response.headers.get("x-linkedin-error-code") || "",
+        response.headers.get("x-li-uuid") || "",
+        detail.slice(0, 500),
+      );
+      return "failed";
+    }
+
+    return "sent";
+  } catch (err) {
+    console.error(
+      "[comms/linkedin] publish threw",
+      err instanceof Error ? err.message : String(err),
+    );
+    return "failed";
+  }
 }
 
 export async function deliver(
@@ -116,7 +118,7 @@ export async function deliver(
   let status: DeliveryStatus = "sent";
 
   if (channel?.kind === "linkedin") {
-    status = await publishLinkedInPost(userId, channel, body);
+    status = await publishLinkedInPost(channel, body);
   } else if (channel) {
     const result = await getAdapter(channel.kind).send(conversation.contact, body);
     status = result.status;
@@ -187,4 +189,3 @@ export async function deliverMessageById(
 
   return true;
 }
-
