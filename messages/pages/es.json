@@ -1107,7 +1107,17 @@
     "labelProposedObjectives": "Objetivos propuestos",
     "why": "Por qué",
     "whyHint": "Por qué se tomaron las decisiones recientes.",
-    "noneWhy": "Aún no hay decisiones registradas."
+    "noneWhy": "Aún no hay decisiones registradas.",
+    "widgetTitle": "Informe ejecutivo",
+    "completedToday": "Completado hoy",
+    "attemptedToday": "Intentado hoy",
+    "blockedToday": "Bloqueado hoy",
+    "waitingShort": "Esperándote",
+    "activeAgents": "Agentes activos",
+    "autonomyStatus": "Autonomía",
+    "newRecs": "Nuevas recomendaciones",
+    "alerts": "Alertas críticas",
+    "viewFull": "Ver informe completo"
   },
   "outcomes": {
     "title": "Resultados para clientes",
