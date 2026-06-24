@@ -11,6 +11,7 @@ import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import { listChatMessages } from "@/lib/workforce/chat";
 import { listObjectives } from "@/lib/workforce/objectives";
+import { listWorkItems } from "@/lib/workforce/work-queue";
 import { listRecommendations } from "@/lib/workforce/recommendations";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
@@ -49,12 +50,19 @@ export default async function AgentProfilePage({
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [messages, chat, objectives, recommendations] = await Promise.all([
+  const [messages, chat, objectives, recommendations, work] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { agent, limit: 100 }) : Promise.resolve([]),
     listChatMessages(user.id, agent, 100),
     listObjectives(user.id, { companyId, agent }),
     listRecommendations(user.id, { companyId, agent, status: "open" }),
+    listWorkItems(user.id, { companyId, agent }),
   ]);
+
+  const queuedWork = work.filter((w) => w.status === "proposed" || w.status === "approved").length;
+  const openRecs = recommendations.length;
+  const pendingApprovals = messages.filter(
+    (m) => m.to_agent === agent && m.status === "awaiting_approval",
+  ).length;
 
   const sent = messages.filter((m) => m.from_agent === agent).length;
   const received = messages.filter((m) => m.to_agent === agent).length;
@@ -109,6 +117,12 @@ export default async function AgentProfilePage({
             {t("backToWorkforce")}
           </Link>
         </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/harmony/work?agent=${agent}`}>{t("workLink")}</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/harmony/review">{t("reviewQueue")}</Link>
+        </Button>
       </PageHeader>
 
       <div className="flex flex-col gap-6 lg:max-w-3xl">
@@ -128,6 +142,13 @@ export default async function AgentProfilePage({
                 {persona.focus.map((f) => (
                   <Badge key={f} variant="outline" className="text-[10px]">{f}</Badge>
                 ))}
+              </div>
+              <div className="flex flex-wrap gap-1 pt-1">
+                <Badge variant="outline" className="text-[10px]">{t("queuedWork", { n: queuedWork })}</Badge>
+                <Badge variant="outline" className="text-[10px]">{t("openRecs", { n: openRecs })}</Badge>
+                <Badge variant={pendingApprovals > 0 ? "default" : "outline"} className="text-[10px]">
+                  {t("pendingApprovals", { n: pendingApprovals })}
+                </Badge>
               </div>
             </div>
           </CardContent>

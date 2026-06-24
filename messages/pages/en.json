@@ -915,6 +915,13 @@
       "accept": "Accept",
       "dismiss": "Dismiss"
     },
+    "objective": "Objective",
+    "queuedWork": "{n} queued",
+    "openRecs": "{n} recs",
+    "pendingApprovals": "{n} approvals",
+    "workLink": "Work",
+    "workQueue": "Work Queue",
+    "reviewQueue": "Review Queue",
     "metrics": "Metrics",
     "tasksCompleted": "Tasks completed",
     "messagesSent": "Messages sent",
