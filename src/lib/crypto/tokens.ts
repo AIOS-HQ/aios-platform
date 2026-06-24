@@ -1,6 +1,7 @@
 import "server-only";
 
 import crypto from "node:crypto";
+import { isProductionRuntime } from "@/lib/env";
 
 /**
  * Token-at-rest encryption (Option A) — AES-256-GCM, server-only.
@@ -61,7 +62,19 @@ export function encryptToken(plain: string | null): string | null {
   if (plain == null || plain === "") return plain;
   if (plain.startsWith(PREFIX)) return plain;
   const key = getKey();
-  if (!key) return plain;
+  if (!key) {
+    // Fail-closed: in real production we must NEVER silently persist a plaintext
+    // secret. A missing/invalid TOKEN_ENCRYPTION_KEY here is a misconfiguration,
+    // so throw loudly rather than store the token in the clear. In dev/preview
+    // the dual-read passthrough is preserved so local + preview testing works.
+    if (isProductionRuntime()) {
+      throw new Error(
+        "[crypto/tokens] TOKEN_ENCRYPTION_KEY is missing or invalid in production — " +
+          "refusing to store a plaintext token (fail-closed).",
+      );
+    }
+    return plain;
+  }
 
   const iv = crypto.randomBytes(IV_BYTES);
   const cipher = crypto.createCipheriv(ALGO, key, iv);
