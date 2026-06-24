@@ -127,6 +127,28 @@ export async function decideApproval(formData: FormData): Promise<void> {
         .eq("user_id", user.id);
     }
   }
+
+  // A2A: approving/rejecting a gated agent-to-agent delegation makes it
+  // actionable (delegated) or blocks it. Separate, error-tolerant query so it is
+  // a no-op until the agent_messages migration (which adds approvals
+  // .agent_message_id) is applied.
+  const { data: amLink } = await supabase
+    .from("approvals")
+    .select("agent_message_id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const agentMessageId =
+    (amLink as { agent_message_id: string | null } | null)?.agent_message_id ??
+    null;
+  if (agentMessageId) {
+    await supabase
+      .from("agent_messages")
+      .update({ status: decision === "approved" ? "delegated" : "blocked" })
+      .eq("id", agentMessageId)
+      .eq("user_id", user.id);
+  }
+
   const to = await getTranslations("os");
   await emitActivity({
     userId: user.id,
