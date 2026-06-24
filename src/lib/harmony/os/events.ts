@@ -1,12 +1,14 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { recordOpsEvent } from "@/lib/observability/ops";
 import type { ActivityActor, ActivityKind } from "@/types/database";
 
 /**
- * Append an event to the unified activity feed. Best-effort: a failure here is
- * logged but never blocks the originating action (the feed is observability,
- * not source of truth). Owner-scoped via RLS.
+ * Append an event to the unified activity feed. Best-effort for the originating
+ * action (the feed is observability, not source of truth), but NOT silent: a
+ * dropped audit write is itself recorded to the ops_events channel so the gap is
+ * visible in the Command Center. Owner-scoped via RLS.
  */
 export async function emitActivity(input: {
   userId: string;
@@ -31,5 +33,20 @@ export async function emitActivity(input: {
     ref_type: input.refType ?? null,
     ref_id: input.refId ?? null,
   });
-  if (error) console.error("[os/events] emitActivity", error);
+  if (error) {
+    console.error("[os/events] emitActivity", error);
+    // Non-silent: surface the dropped audit write on the operational channel.
+    await recordOpsEvent({
+      userId: input.userId,
+      companyId: input.companyId ?? null,
+      level: "error",
+      source: "activity",
+      message: `Activity write failed: ${input.summary}`,
+      context: {
+        kind: input.kind,
+        refType: input.refType ?? null,
+        error: error.message,
+      },
+    });
+  }
 }
