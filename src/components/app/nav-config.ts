@@ -80,8 +80,9 @@ export type NavSection = {
  * Founder OS navigation. The "command" group is the Founder Command Center and
  * is gated to founders/admins (audience: "founder"); the "personal" group is the
  * Harmony customer experience, shown to everyone. Harmony — the AI Chief of
- * Staff — is the customer-facing intelligence; the founder governance surfaces
- * stay founder-only so customers experience Harmony, not an ops console.
+ * Staff — is the customer-facing intelligence; the former Life Operator, Life
+ * Advisor, and Personal Brain are now one Harmony entry (Chat / Suggestions /
+ * Memory tabs at /harmony/operator).
  */
 export const navSections: NavSection[] = [
   {
@@ -112,12 +113,10 @@ export const navSections: NavSection[] = [
     audience: "all",
     items: [
       { href: "/harmony/personal", labelKey: "dashboard", icon: "LayoutDashboard" },
+      { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
       { href: "/harmony/tasks", labelKey: "tasks", icon: "ListTodo" },
       { href: "/harmony/goals", labelKey: "goals", icon: "Target" },
       { href: "/harmony/notes", labelKey: "notes", icon: "StickyNote" },
-      { href: "/harmony/brain", labelKey: "brain", icon: "BrainCircuit" },
-      { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
-      { href: "/harmony/advisor", labelKey: "advisor", icon: "Lightbulb" },
     ],
   },
   {
@@ -132,13 +131,24 @@ export function sectionsForAudience(isFounder: boolean): NavSection[] {
 }
 
 /**
- * Customer-experience path prefixes under /harmony — derived from the non-founder
- * nav sections so there is a single source of truth. Used to gate founder routes.
+ * Legacy customer routes that no longer appear in the nav but must remain
+ * reachable by customers so their server-side redirects to the unified Harmony
+ * experience run (instead of being bounced by the Founder OS gate).
  */
-export const CUSTOMER_HARMONY_PREFIXES: string[] = navSections
-  .filter((s) => s.audience !== "founder")
-  .flatMap((s) => s.items.map((i) => i.href))
-  .filter((href) => href.startsWith("/harmony/"));
+const LEGACY_CUSTOMER_REDIRECTS = ["/harmony/advisor", "/harmony/brain"];
+
+/**
+ * Customer-experience path prefixes under /harmony — derived from the non-founder
+ * nav sections (single source of truth) plus legacy redirect routes. Used to gate
+ * founder routes.
+ */
+export const CUSTOMER_HARMONY_PREFIXES: string[] = [
+  ...navSections
+    .filter((s) => s.audience !== "founder")
+    .flatMap((s) => s.items.map((i) => i.href))
+    .filter((href) => href.startsWith("/harmony/")),
+  ...LEGACY_CUSTOMER_REDIRECTS,
+];
 
 /**
  * True when `pathname` is a Founder OS route under /harmony (i.e. NOT part of the
