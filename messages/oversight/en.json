@@ -161,7 +161,33 @@
       "tookOver": "Owner took over the conversation with {contact}",
       "resumed": "Owner handed {contact} back to Harmony",
       "escalated": "Owner escalated the conversation with {contact}",
-      "taught": "Owner taught Harmony: {category}"
+      "taught": "Owner taught Harmony: {category}",
+      "automationsPaused": "Owner paused automations (vacation mode)",
+      "automationsResumed": "Owner resumed automations"
+    },
+    "vacation": {
+      "metaTitle": "Vacation Mode",
+      "title": "Vacation Mode",
+      "subtitle": "Leave the business running. Monitor Harmony, step in, and teach — from anywhere.",
+      "back": "Back to Oversight",
+      "monitorTitle": "While you're away",
+      "healthTitle": "Business health",
+      "automations": {
+        "title": "Automations",
+        "active": "Running",
+        "paused": "Paused",
+        "activeHint": "Harmony is operating automations on your behalf.",
+        "pausedHint": "Automations are paused. Harmony still monitors and drafts, but won't act on its own.",
+        "pause": "Pause automations",
+        "resume": "Resume automations"
+      },
+      "review": {
+        "title": "Conversations",
+        "subtitle": "Review and reply to anything that needs you.",
+        "open": "Review conversations"
+      },
+      "teachTitle": "Teach Harmony",
+      "teachSubtitle": "Set a rule while you think of it — Harmony applies it everywhere."
     }
   }
 }
