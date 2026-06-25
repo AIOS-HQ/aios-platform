@@ -8,6 +8,7 @@ import {
   type JuliusEntry,
   type JuliusKind,
 } from "@/lib/julius/service";
+import { getAiosAgent } from "@/lib/workforce/registry";
 
 /**
  * Julius wiring — the agent-facing API into the AIOS organizational brain.
@@ -51,6 +52,16 @@ export async function juliusRemember(params: {
   refs?: Record<string, unknown>;
   importance?: number;
 }): Promise<boolean> {
+  // Enforce the registry's Julius access policy: read-only agents may recall
+  // from the shared brain but never write to it. Agents absent from the registry
+  // (e.g. system writers) are allowed; only an explicit "read" level is blocked.
+  const access = getAiosAgent(params.agent)?.julius;
+  if (access === "read") {
+    console.warn(
+      `[julius/wiring] write rejected for read-only agent "${params.agent}"`,
+    );
+    return false;
+  }
   const saved = await recordJuliusEntry(params);
   return Boolean(saved);
 }
