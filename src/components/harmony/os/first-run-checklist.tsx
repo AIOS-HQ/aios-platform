@@ -99,7 +99,7 @@ export async function FirstRunChecklist({
                     <Link
                       href={hrefFor(s.key)}
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label={t("start")}
+                      aria-label={`${t("start")}: ${t(`steps.${s.key}`)}`}
                     >
                       <ArrowRight className="size-4" aria-hidden="true" />
                     </Link>
