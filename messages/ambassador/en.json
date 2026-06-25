@@ -1,0 +1,35 @@
+{
+  "ambassador": {
+    "commsTitle": "Business Communications",
+    "commsSubtitle": "Ambassador is your customer-facing communications expert and virtual receptionist. Connect a channel once in the Integration Center — Ambassador handles it from there.",
+    "channelsTitle": "Channels",
+    "status": {
+      "connected": "Connected",
+      "available": "Available",
+      "comingSoon": "Coming soon",
+      "native": "Built in",
+      "future": "On the roadmap"
+    },
+    "voice": "Voice",
+    "policyTitle": "Communication safety",
+    "policyAuto": "Low-risk replies are handled automatically, within your autonomy settings.",
+    "policyApproval": "These always wait for your approval before sending:",
+    "policyEscalate": "When unsure, Ambassador escalates to Harmony — it never guesses.",
+    "topic": {
+      "pricing": "Pricing & quotes",
+      "refunds": "Refunds",
+      "contracts": "Contracts & agreements",
+      "legal": "Legal matters",
+      "financial": "Financial commitments",
+      "medical": "Medical advice",
+      "irreversible": "Irreversible actions"
+    },
+    "receptionistTitle": "Virtual receptionist",
+    "receptionist": {
+      "greet": "Greets and qualifies every inbound contact",
+      "route": "Routes and triages to the right place",
+      "answer": "Answers common questions from company knowledge",
+      "capture": "Captures details and follows up"
+    }
+  }
+}
