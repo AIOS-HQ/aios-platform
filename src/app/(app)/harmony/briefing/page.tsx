@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { CheckCircle2, Activity, Ban, Clock } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
+import { reflectAfterEvent } from "@/lib/harmony/reflection";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { listWorkItems } from "@/lib/workforce/work-queue";
 import { listRecommendations } from "@/lib/workforce/recommendations";
@@ -35,6 +36,14 @@ export default async function FounderBriefingPage() {
   const locale = await getLocale();
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
+
+  // Reflect before briefing: if meaningful execution has occurred since the last
+  // reflection, enrich Julius first (signature-deduped — a no-op when nothing
+  // meaningful changed), so the briefing is generated against current
+  // organizational memory. Fail-open by design (never blocks the briefing).
+  if (companyId) {
+    await reflectAfterEvent(user.id, companyId, "before_briefing");
+  }
 
   const [audit, work, recs, objectives, messages] = await Promise.all([
     listAutonomyAudit(user.id, 200),
