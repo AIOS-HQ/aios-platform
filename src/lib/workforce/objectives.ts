@@ -116,6 +116,26 @@ export async function setObjectiveStatus(
     console.error("[workforce/objectives] setStatus", error.message);
     return false;
   }
+
+  // Event-driven executive reflection: a completed objective is a meaningful
+  // execution event. Best-effort and fail-open (never blocks the status
+  // update); lazily imported to avoid an import cycle (the reflection engine
+  // reads objectives).
+  if (status === "done") {
+    try {
+      const [{ resolvePrimaryCompanyId }, { reflectAfterEvent }] = await Promise.all([
+        import("@/lib/julius/wiring"),
+        import("@/lib/harmony/reflection"),
+      ]);
+      const companyId = await resolvePrimaryCompanyId();
+      if (companyId) {
+        await reflectAfterEvent(userId, companyId, "objective_completed");
+      }
+    } catch (e) {
+      console.error("[workforce/objectives] reflectAfterEvent", e);
+    }
+  }
+
   return true;
 }
 

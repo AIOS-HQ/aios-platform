@@ -14,11 +14,19 @@ import { getAiosAgent } from "@/lib/workforce/registry";
  * Harmony reflects on the workforce's ACTUAL execution (work queue, A2A
  * delegations/outcomes, approvals, autonomy decisions, objectives) and the
  * lessons specialists already recorded, then synthesises aggregate insights and
- * enriches Julius — the single organizational brain — with one consolidated,
- * dated reflection. It never invents insights: every insight is backed by real
- * stored rows (evidence > 0) with real example titles, and reflection ENRICHES
- * Julius (a `historical` entry via the standard juliusRemember path) rather than
- * standing up a parallel memory system. Company-scoped; degrades to an empty,
+ * enriches Julius — the single organizational brain. It never invents insights:
+ * every insight is backed by real stored rows (evidence > 0) with real example
+ * titles, and reflection ENRICHES Julius (a `historical` entry via the standard
+ * juliusRemember path) rather than standing up a parallel memory system.
+ *
+ * Reflection happens two ways, both grounded and append-only:
+ * - Manual: the founder's "Reflect & save to Julius" action.
+ * - Event-driven: `reflectAfterEvent` fires after MEANINGFUL execution events
+ *   (objective/work completion, delegation outcomes) — never on a timer.
+ * Both go through `recordHarmonyReflection`, which deduplicates by content
+ * SIGNATURE: a new entry is written only when execution has meaningfully changed
+ * since the last reflection, so the brain is never spammed and prior reflections
+ * are preserved (never overwritten). Company-scoped; degrades to an empty,
  * honest reflection when there is no data yet.
  */
 
@@ -306,29 +314,56 @@ export async function buildHarmonyReflection(
 }
 
 /**
- * Enrich Julius with one consolidated, dated reflection (kind `historical`).
- * Enrichment, not duplication: it synthesises aggregate insights the per-task
- * lessons don't capture, and is deduped per day so repeated runs don't spam the
- * brain. Returns the number of entries written (0 or 1). No-ops when the
- * reflection has no real data.
+ * A stable content signature for a reflection — the dimensions, headlines, and
+ * evidence counts. Two reflections share a signature only when execution hasn't
+ * meaningfully changed, which is exactly what we dedupe on.
+ */
+function reflectionSignature(reflection: HarmonyReflection): string {
+  return reflection.insights
+    .map((i) => `${i.dimension}:${i.title}:${i.evidence}`)
+    .join("|");
+}
+
+/**
+ * Enrich Julius with a consolidated reflection (kind `historical`). Enrichment,
+ * not duplication: it synthesises aggregate insights the per-task lessons don't
+ * capture. Intelligent, append-only dedup — a new entry is written ONLY when the
+ * content signature differs from the most recent reflection, so unchanged
+ * execution never spams the brain and prior reflections are preserved (never
+ * overwritten). Returns the number of entries written (0 or 1); no-ops when the
+ * reflection has no real data. `trigger` records what prompted it (manual or an
+ * execution event) for traceability.
  */
 export async function recordHarmonyReflection(
   userId: string,
   companyId: string,
   reflection: HarmonyReflection,
+  trigger = "manual",
 ): Promise<number> {
   if (!reflection.hasData) return 0;
 
-  const date = reflection.generatedAt.slice(0, 10);
-  const title = `Harmony executive reflection — ${date}`;
+  const signature = reflectionSignature(reflection);
 
-  // Dedup per day: don't write the same dated reflection twice.
+  // Intelligent dedup: skip when the most recent reflection captured the same
+  // execution state. listJuliusEntries orders importance desc, then created_at
+  // desc — among same-importance reflections the first is the newest.
   const existing = await listJuliusEntries(userId, companyId, {
     kind: "historical",
     limit: 50,
   });
-  if (existing.some((e) => e.title === title)) return 0;
+  const priorReflections = existing.filter(
+    (e) => (e.refs as { kind?: string } | null)?.kind === "harmony_reflection",
+  );
+  if (
+    priorReflections.length > 0 &&
+    (priorReflections[0].refs as { signature?: string } | null)?.signature ===
+      signature
+  ) {
+    return 0;
+  }
 
+  const date = reflection.generatedAt.slice(0, 10);
+  const title = `Harmony reflection — ${trigger} — ${date}`;
   const content = reflection.insights
     .map((i) => `• [${i.dimension}] ${i.title} — ${i.detail}`)
     .join("\n");
@@ -341,8 +376,35 @@ export async function recordHarmonyReflection(
     title,
     content,
     importance: 3,
-    refs: { kind: "harmony_reflection", generatedAt: reflection.generatedAt },
+    refs: {
+      kind: "harmony_reflection",
+      trigger,
+      signature,
+      generatedAt: reflection.generatedAt,
+    },
   });
 
   return saved ? 1 : 0;
+}
+
+/**
+ * Event-driven executive reflection. Call AFTER a meaningful execution event
+ * (objective/work completion, delegation outcome) — never on a timer. Builds a
+ * grounded reflection and enriches Julius (signature-deduped, append-only).
+ * Fully best-effort and fail-open: it must never block or break the underlying
+ * action, so all errors are swallowed. Reuses the same engine + Julius path as
+ * the manual reflection — no parallel system.
+ */
+export async function reflectAfterEvent(
+  userId: string,
+  companyId: string,
+  trigger: string,
+): Promise<void> {
+  try {
+    if (!userId || !companyId) return;
+    const reflection = await buildHarmonyReflection(userId, companyId);
+    await recordHarmonyReflection(userId, companyId, reflection, trigger);
+  } catch (e) {
+    console.error("[reflection] reflectAfterEvent", e);
+  }
 }

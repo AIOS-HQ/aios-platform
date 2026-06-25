@@ -161,5 +161,23 @@ export async function setWorkItemStatus(
     console.error("[workforce/work-queue] setStatus", error.message);
     return false;
   }
+
+  // Event-driven executive reflection: completed work is a meaningful execution
+  // event. Best-effort and fail-open (never blocks the status update); lazily
+  // imported to avoid an import cycle (the reflection engine reads the queue).
+  if (status === "done") {
+    try {
+      const item = await getWorkItem(userId, id);
+      const { resolvePrimaryCompanyId } = await import("@/lib/julius/wiring");
+      const companyId = item?.company_id ?? (await resolvePrimaryCompanyId());
+      if (companyId) {
+        const { reflectAfterEvent } = await import("@/lib/harmony/reflection");
+        await reflectAfterEvent(userId, companyId, "work_completed");
+      }
+    } catch (e) {
+      console.error("[workforce/work-queue] reflectAfterEvent", e);
+    }
+  }
+
   return true;
 }

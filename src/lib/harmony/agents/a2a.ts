@@ -275,6 +275,21 @@ export async function respondToTask(params: {
     refId: parent.id,
   });
 
+  // Event-driven executive reflection: a delegation outcome is a meaningful
+  // execution event. Best-effort and fail-open (never blocks the response);
+  // lazily imported to avoid an import cycle (the reflection engine reads
+  // agent_messages).
+  try {
+    const { reflectAfterEvent } = await import("@/lib/harmony/reflection");
+    await reflectAfterEvent(
+      params.userId,
+      params.companyId,
+      finalStatus === "completed" ? "delegation_completed" : "delegation_blocked",
+    );
+  } catch (e) {
+    console.error("[a2a] reflectAfterEvent", e);
+  }
+
   return data as AgentMessage | null;
 }
 
