@@ -1041,6 +1041,17 @@
       "suggestions": "Suggestions",
       "memory": "Memory"
     },
+    "awareness": {
+      "title": "Here's where things stand",
+      "completed": "Completed today",
+      "waiting": "Waiting on you",
+      "opportunities": "Opportunities",
+      "priorities": "Priorities",
+      "blocked": "Blocked",
+      "tasks": "Open tasks",
+      "goals": "Active goals",
+      "allClear": "All clear — nothing needs you right now."
+    },
     "placeholder": "Ask me anything, or tell me what to do…",
     "quickPlaceholder": "Create a task, set a goal…",
     "inputLabel": "Message Harmony",
