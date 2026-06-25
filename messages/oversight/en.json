@@ -1,0 +1,95 @@
+{
+  "oversight": {
+    "metaTitle": "Oversight",
+    "title": "Oversight",
+    "subtitle": "Your live supervision center. Watch Harmony operate your business — and step in, teach, or take over anytime.",
+    "updated": "Updated {time}",
+    "health": {
+      "attention": "Needs your attention",
+      "steady": "Operating steadily",
+      "calm": "All clear",
+      "attentionHint": "A few things are waiting on you.",
+      "steadyHint": "Harmony is running the business; nothing is blocked on you.",
+      "calmHint": "Nothing needs you right now.",
+      "reasons": {
+        "highRisk": "{count} high-risk approval(s) waiting",
+        "blocked": "{count} work item(s) blocked",
+        "pendingApprovals": "{count} approval(s) awaiting you",
+        "heldResponses": "{count} response(s) held for approval"
+      },
+      "statsTitle": "Recent execution",
+      "stats": {
+        "done": "Completed",
+        "blocked": "Blocked",
+        "delegations": "Delegations",
+        "pendingApprovals": "Pending approvals",
+        "lessons": "Lessons learned"
+      }
+    },
+    "stat": {
+      "conversations": "Active conversations",
+      "approvals": "Pending approvals",
+      "escalations": "Escalations",
+      "work": "Work in progress",
+      "specialists": "Active specialists"
+    },
+    "conversations": {
+      "title": "Live conversations",
+      "body": "Every channel, in one place.",
+      "active": "{count} active",
+      "pending": "{count} pending",
+      "held": "{count} response(s) held for your approval",
+      "channels": "Connected channels",
+      "noChannels": "No channels connected yet.",
+      "none": "No conversations yet.",
+      "open": "Supervise conversations"
+    },
+    "escalations": {
+      "title": "Escalations",
+      "subtitle": "What most needs you right now.",
+      "none": "Nothing escalated. You're clear.",
+      "sourceApproval": "High-risk approval",
+      "sourceWork": "Blocked work",
+      "review": "Review"
+    },
+    "actions": {
+      "title": "Current AI actions",
+      "subtitle": "What Harmony and your specialists are doing.",
+      "none": "No recent activity.",
+      "view": "View full activity"
+    },
+    "automations": {
+      "title": "Automations",
+      "active": "Harmony is operating automations",
+      "paused": "Automations are paused",
+      "mode": "Autonomy mode",
+      "modeOff": "Off — Harmony advises only",
+      "modeAdvisory": "Advisory — approval required",
+      "modeBounded": "Bounded — auto within limits",
+      "killSwitch": "Kill switch engaged",
+      "lockdown": "Lockdown active",
+      "manage": "Manage automations"
+    },
+    "workforce": {
+      "title": "AI Workforce",
+      "active": "{count} active",
+      "paused": "{count} paused",
+      "total": "{count} specialists",
+      "manage": "View workforce"
+    },
+    "work": {
+      "title": "Work & delegations",
+      "inProgress": "{count} in progress",
+      "delegations": "{count} delegated",
+      "pending": "{count} pending",
+      "blocked": "{count} blocked",
+      "manage": "View work"
+    },
+    "actor": {
+      "founder": "You",
+      "agent": "Specialist",
+      "department": "Department",
+      "system": "System"
+    }
+  }
+}

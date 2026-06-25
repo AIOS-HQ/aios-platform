@@ -5,6 +5,7 @@ import {
   Building2,
   Clapperboard,
   Code2,
+  Eye,
   Gauge,
   LayoutDashboard,
   Lightbulb,
@@ -34,6 +35,7 @@ export const NAV_ICONS = {
   Building2,
   Clapperboard,
   Code2,
+  Eye,
   Gauge,
   LayoutDashboard,
   Lightbulb,
@@ -116,6 +118,7 @@ export const navSections: NavSection[] = [
     audience: "founder",
     items: [
       { href: "/harmony", labelKey: "commandCenter", icon: "LayoutDashboard", exact: true },
+      { href: "/harmony/oversight", labelKey: "oversight", icon: "Eye" },
       { href: "/harmony/workforce", labelKey: "workforce", icon: "Users" },
       { href: "/harmony/companies", labelKey: "companies", icon: "Building2" },
       { href: "/harmony/review", labelKey: "review", icon: "ListTodo" },
