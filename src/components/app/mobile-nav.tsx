@@ -10,21 +10,28 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/brand/logo";
+import { HarmonyLogo } from "@/components/brand/harmony-logo";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { navSections } from "./nav-config";
+import { sectionsForAudience } from "./nav-config";
 import { NavLink } from "./nav-link";
 
-/** Slide-in navigation drawer for small screens (Founder OS). */
+/**
+ * Slide-in navigation drawer for small screens. Founders see the full Founder
+ * OS; customers see the Harmony experience (personal hub + settings).
+ */
 export function MobileNav({
   badges,
+  isFounder = false,
 }: {
   /** Map of nav href → badge count (e.g. pending approvals). */
   badges?: Record<string, number>;
+  /** Founder/admin sees the Founder OS command group. */
+  isFounder?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
   const close = () => setOpen(false);
+  const sections = sectionsForAudience(isFounder);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -41,13 +48,13 @@ export function MobileNav({
       <DialogContent className="left-0 top-0 flex h-dvh max-w-[17rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r p-0 sm:rounded-none">
         <DialogTitle className="sr-only">{t("menu")}</DialogTitle>
         <div className="flex h-16 items-center px-5">
-          <Logo />
+          <HarmonyLogo />
         </div>
         <nav
           className="flex flex-1 flex-col gap-4 overflow-y-auto p-3"
           aria-label="Mobile"
         >
-          {navSections.map((section, i) => (
+          {sections.map((section, i) => (
             <div
               key={section.titleKey ?? `section-${i}`}
               className="flex flex-col gap-1"

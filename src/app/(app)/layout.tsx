@@ -20,23 +20,28 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const [
-    profile,
-    companies,
-    pendingApprovals,
-    unreadLifeOperatorMessages,
-    riskCount,
-    stalledWork,
-    opsCount,
-  ] = await Promise.all([
-    getProfile(user.id),
+  const profile = await getProfile(user.id);
+  // Founder/admin gate (mirrors currentUserIsAdmin in @/lib/auth/roles): founders
+  // get the Founder OS chrome + governance signals; customers get the Harmony
+  // experience and never load founder-only data.
+  const isFounder = profile?.role === "admin";
+
+  const [companies, unreadLifeOperatorMessages] = await Promise.all([
     listCompanies(),
-    countPendingApprovals(),
     countUnreadLifeOperatorMessages(),
-    countHighRiskPending(user.id),
-    countWorkItems("blocked"),
-    countUnresolvedOps(user.id, "error"),
   ]);
+
+  // Governance signals power founder-only nav badges; skip the queries entirely
+  // for customers (they have no Approvals/Operations/Auditor/Work nav).
+  const [pendingApprovals, riskCount, stalledWork, opsCount] = isFounder
+    ? await Promise.all([
+        countPendingApprovals(),
+        countHighRiskPending(user.id),
+        countWorkItems("blocked"),
+        countUnresolvedOps(user.id, "error"),
+      ])
+    : [0, 0, 0, 0];
+
   const name =
     profile?.full_name?.trim() || user.email?.split("@")[0] || "User";
   const email = user.email ?? "";
@@ -47,6 +52,7 @@ export default async function AppLayout({
       name={name}
       email={email}
       initials={initials}
+      isFounder={isFounder}
       companies={companies.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
       pendingApprovals={pendingApprovals}
       unreadLifeOperatorMessages={unreadLifeOperatorMessages}

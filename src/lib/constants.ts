@@ -8,9 +8,9 @@ export const APP_DESCRIPTION =
 export const PRODUCTS = {
   harmony: {
     name: "Harmony",
-    tagline: "Personal Operating System",
+    tagline: "Your AI Chief of Staff",
     description:
-      "Organize life, manage goals, complete tasks, and grow with AI-powered assistance.",
+      "Harmony is the AI Chief of Staff for your life and business — it understands what you need, coordinates a workforce of AI specialists behind the scenes, and delivers the result. You work with one intelligence; Harmony handles the rest.",
   },
   opera: {
     name: "Opera",

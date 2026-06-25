@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
+import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { runAudit, type Severity } from "@/lib/agents/auditor/service";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
@@ -29,6 +31,9 @@ const SEV_VARIANT: Record<Severity, "default" | "secondary" | "outline" | "destr
 export default async function AuditorPage() {
   const t = await getTranslations("auditor");
   const user = await requireUser();
+  // Founder-only governance surface — customers experience Harmony, not the
+  // Auditor. Hidden from the customer nav and blocked on direct navigation.
+  if (!(await currentUserIsAdmin())) redirect("/settings");
   const locale = await getLocale();
   const report = await runAudit(user.id);
 
