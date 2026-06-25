@@ -5,6 +5,11 @@ import { getConnections } from "@/lib/integrations/connections";
 import { getLearningSettings } from "@/lib/memory/learning";
 import { classifyTool } from "@/lib/agent/policy";
 import { juliusRemember, resolvePrimaryCompanyId } from "@/lib/julius/wiring";
+import { getAutonomyState, listAutonomyAudit } from "@/lib/workforce/autonomy";
+import { listApprovals } from "@/lib/data/os/approvals";
+import { listConversations } from "@/lib/data/comms/conversations";
+import { createWorkItem, listWorkItems } from "@/lib/workforce/work-queue";
+import { emitActivity } from "@/lib/harmony/os/events";
 
 /**
  * Auditor — the AIOS internal auditor & system inspector (server-only).
@@ -181,6 +186,53 @@ export async function runAudit(userId: string): Promise<AuditReport> {
       : "NEXT_PUBLIC_APP_URL not set; connect Vercel for live deployment status.",
   });
 
+  // --- Continuous governance monitoring (expanded scope) --------------------
+  // Autonomy posture + enforcement, the Approval Center, and customer
+  // communications. All read-only and graceful (each source degrades to an
+  // empty list / safe defaults), reusing existing finding domains.
+  const autonomy = await getAutonomyState(userId);
+  const autonomyPaused = autonomy.global.kill_switch || autonomy.global.lockdown;
+  findings.push({
+    domain: "governance",
+    title: "Autonomy posture",
+    severity: "info",
+    detail: autonomyPaused
+      ? `Autonomy paused (${autonomy.global.kill_switch ? "kill switch" : "lockdown"} active); nothing auto-executes.`
+      : `Global autonomy mode: ${autonomy.global.mode}.`,
+  });
+
+  const autonomyAudit = await listAutonomyAudit(userId, 200);
+  const blockedDecisions = autonomyAudit.filter(
+    (a) => a.decision === "denied" || a.decision === "kill_switch" || a.decision === "lockdown",
+  ).length;
+  findings.push({
+    domain: "risk",
+    title: "Autonomy enforcement",
+    severity: blockedDecisions >= 10 ? "warn" : "info",
+    detail: `${blockedDecisions} autonomy action(s) blocked or denied across the last ${autonomyAudit.length} decision(s).`,
+  });
+
+  const pendingApprovals = await listApprovals({ status: "pending" });
+  const highRiskApprovals = pendingApprovals.filter((a) => a.risk === "high").length;
+  findings.push({
+    domain: "approvals",
+    title: "Approval Center backlog",
+    severity: highRiskApprovals > 0 ? "risk" : pendingApprovals.length > 0 ? "info" : "ok",
+    detail:
+      highRiskApprovals > 0
+        ? `${highRiskApprovals} high-risk approval(s) and ${pendingApprovals.length - highRiskApprovals} other(s) awaiting the owner.`
+        : `${pendingApprovals.length} approval(s) awaiting the owner.`,
+  });
+
+  const conversations = await listConversations();
+  const pendingConversations = conversations.filter((c) => c.status === "pending").length;
+  findings.push({
+    domain: "workflow",
+    title: "Customer communications",
+    severity: "info",
+    detail: `${conversations.length} conversation(s); ${pendingConversations} pending owner attention.`,
+  });
+
   const counts: Record<Severity, number> = { ok: 0, info: 0, warn: 0, risk: 0 };
   for (const f of findings) counts[f.severity] += 1;
   const posture: Severity = counts.risk > 0 ? "risk" : counts.warn > 0 ? "warn" : "ok";
@@ -224,4 +276,85 @@ export async function countHighRiskPending(userId: string): Promise<number> {
   return actions.filter(
     (a) => a.status === "pending" && classifyTool(a.tool) === "destructive",
   ).length;
+}
+
+/**
+ * Governance sweep — the Auditor's continuous-monitoring WRITE pass.
+ *
+ * Runs the audit, records the posture to the single Company Brain (Julius),
+ * opens remediation work items for the serious (risk-severity) findings, and
+ * escalates them through the existing Activity log. It never bypasses
+ * governance: remediation lands in the existing Work Queue (which the founder /
+ * Harmony review) and escalations in the existing Activity trail. Idempotent —
+ * remediation items are de-duplicated against the Auditor's open queue, so
+ * repeated sweeps never pile up (no unnecessary friction). Fail-open per
+ * side-effect. Triggered on demand (no background worker), like the rest of the
+ * platform's analysis passes.
+ */
+export async function runGovernanceSweep(
+  userId: string,
+): Promise<{ ok: boolean; remediations: number }> {
+  const companyId = await resolvePrimaryCompanyId();
+  if (!companyId) return { ok: false, remediations: 0 };
+
+  const report = await runAudit(userId);
+
+  // 1) Record the posture to Julius (cross-agent awareness).
+  await juliusRemember({
+    userId,
+    companyId,
+    agent: "auditor",
+    kind: "activity",
+    title: `Governance sweep — ${report.posture} (score ${report.score}/100)`,
+    content: report.summary,
+    refs: {
+      kind: "governance_sweep",
+      posture: report.posture,
+      score: report.score,
+      counts: report.counts,
+    },
+    importance: report.posture === "risk" ? 5 : 3,
+  }).catch(() => {});
+
+  const risks = report.findings.filter((f) => f.severity === "risk");
+  if (risks.length === 0) return { ok: true, remediations: 0 };
+
+  // 2) Open remediation work items for risk findings — de-duplicated against the
+  //    Auditor's existing open queue so repeated sweeps don't create noise.
+  let created = 0;
+  try {
+    const existing = await listWorkItems(userId, { agent: "auditor", status: "proposed" });
+    const open = new Set(existing.map((w) => w.title));
+    for (const f of risks) {
+      const title = `Remediate: ${f.title}`;
+      if (open.has(title)) continue;
+      const item = await createWorkItem({
+        userId,
+        companyId,
+        agent: "auditor",
+        title,
+        detail: `${f.detail} (domain: ${f.domain})`,
+        kind: "task",
+        riskLevel: "high",
+      });
+      if (item) created += 1;
+    }
+  } catch {
+    // fail-open: a remediation write failure must not break the sweep.
+  }
+
+  // 3) Escalate via the existing Activity trail (actor = the Auditor agent).
+  await emitActivity({
+    userId,
+    companyId,
+    kind: "approval",
+    actorType: "agent",
+    actorId: "auditor",
+    summary: `Auditor flagged ${risks.length} risk finding(s): ${risks
+      .map((f) => f.title)
+      .join("; ")}`.slice(0, 280),
+    refType: "audit",
+  }).catch(() => {});
+
+  return { ok: true, remediations: created };
 }
