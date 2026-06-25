@@ -80,6 +80,7 @@ function deriveState(key: string, messages: AgentMessage[]) {
 
 export default async function WorkforcePage() {
   const t = await getTranslations("workforce");
+  const tJulius = await getTranslations("julius");
   const locale = await getLocale();
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
@@ -161,24 +162,28 @@ export default async function WorkforcePage() {
             {t("specialists")}
           </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Julius — the AIOS company brain, not a workforce agent. */}
-            <Card className="border-primary/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
-                    <JULIUS_ICON className="size-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">Julius</p>
-                    <p className="truncate text-xs text-muted-foreground">{t("brainRole")}</p>
+            {/* Julius — the AIOS company brain, not a workforce agent. Clickable
+                destination: the Company Brain (org memory + the workforce around it). */}
+            <Link href="/harmony/julius" className="block">
+              <Card className="border-primary/30 transition-colors hover:border-primary/50 hover:bg-primary/10">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
+                      <JULIUS_ICON className="size-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">Julius</p>
+                      <p className="truncate text-xs text-muted-foreground">{t("brainRole")}</p>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto">{t("brain")}</Badge>
                   </div>
-                  <Badge variant="secondary" className="ml-auto">{t("brain")}</Badge>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t("juliusEntries", { n: awareness.total })}
-                </p>
-              </CardContent>
-            </Card>
+                  <p className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>{t("juliusEntries", { n: awareness.total })}</span>
+                    <span className="font-medium text-primary">{tJulius("openBrain")} →</span>
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
 
             {WORKFORCE_SPECIALISTS.map((a) => {
               const s = deriveState(a.key, messages);

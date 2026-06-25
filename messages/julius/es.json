@@ -1,0 +1,38 @@
+{
+  "julius": {
+    "title": "Julius — Cerebro de la empresa",
+    "subtitle": "La memoria organizativa compartida que cada agente de AIOS consulta antes de actuar y donde registra el trabajo realizado.",
+    "role": "Cerebro organizativo de AIOS",
+    "entries": "{n} entradas",
+    "openGraph": "Grafo de relaciones",
+    "backToWorkforce": "Volver al equipo",
+    "openBrain": "Abrir cerebro",
+    "sections": {
+      "objectives": "Objetivos",
+      "decisions": "Decisiones",
+      "activities": "Actividad",
+      "knowledge": "Conocimiento"
+    },
+    "sectionHint": {
+      "objectives": "Hacia dónde se dirige la empresa.",
+      "decisions": "Decisiones que el equipo ha registrado.",
+      "activities": "Trabajo reciente capturado por los agentes.",
+      "knowledge": "Lecciones y contexto reutilizable."
+    },
+    "empty": {
+      "objectives": "Aún no hay objetivos registrados.",
+      "decisions": "Aún no hay decisiones registradas.",
+      "activities": "Aún no hay actividad registrada.",
+      "knowledge": "Aún no se ha capturado conocimiento."
+    },
+    "by": "por {agent}",
+    "workforceTitle": "El equipo en torno a Julius",
+    "workforceHint": "Cada especialista consulta y contribuye al cerebro de la empresa. Harmony los coordina.",
+    "contributions": "{n} contribuciones",
+    "noCompany": {
+      "title": "Aún no hay empresa",
+      "description": "Crea una empresa para empezar a construir su cerebro organizativo.",
+      "cta": "Ir a empresas"
+    }
+  }
+}

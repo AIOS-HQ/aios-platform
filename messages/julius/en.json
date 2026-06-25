@@ -1,0 +1,38 @@
+{
+  "julius": {
+    "title": "Julius — Company Brain",
+    "subtitle": "The shared organizational memory every AIOS agent reads before acting and writes to as work gets done.",
+    "role": "AIOS Organizational Brain",
+    "entries": "{n} entries",
+    "openGraph": "Relationship graph",
+    "backToWorkforce": "Back to workforce",
+    "openBrain": "Open brain",
+    "sections": {
+      "objectives": "Objectives",
+      "decisions": "Decisions",
+      "activities": "Activity",
+      "knowledge": "Knowledge"
+    },
+    "sectionHint": {
+      "objectives": "What the company is driving toward.",
+      "decisions": "Choices the workforce has recorded.",
+      "activities": "Recent work captured by the agents.",
+      "knowledge": "Lessons and reusable context."
+    },
+    "empty": {
+      "objectives": "No objectives recorded yet.",
+      "decisions": "No decisions recorded yet.",
+      "activities": "No activity recorded yet.",
+      "knowledge": "No knowledge captured yet."
+    },
+    "by": "by {agent}",
+    "workforceTitle": "The workforce around Julius",
+    "workforceHint": "Every specialist reads from and contributes to the company brain. Harmony coordinates them.",
+    "contributions": "{n} contributions",
+    "noCompany": {
+      "title": "No company yet",
+      "description": "Create a company to start building its organizational brain.",
+      "cta": "Go to companies"
+    }
+  }
+}
