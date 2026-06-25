@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth/user";
 import { getProfile } from "@/lib/data/profile";
+import { isFounderUser } from "@/lib/auth/roles";
 import { listCompanies } from "@/lib/data/os/companies";
 import {
   countPendingApprovals,
@@ -21,10 +22,10 @@ export default async function AppLayout({
 }) {
   const user = await requireUser();
   const profile = await getProfile(user.id);
-  // Founder/admin gate (mirrors currentUserIsAdmin in @/lib/auth/roles): founders
-  // get the Founder OS chrome + governance signals; customers get the Harmony
-  // experience and never load founder-only data.
-  const isFounder = profile?.role === "admin";
+  // Founder/admin gate (env allowlist OR DB role `admin`, via @/lib/auth/roles):
+  // founders get the Founder OS chrome + governance signals; customers get the
+  // Harmony experience and never load founder-only data.
+  const isFounder = isFounderUser(user.email, profile?.role);
 
   const [companies, unreadLifeOperatorMessages] = await Promise.all([
     listCompanies(),
