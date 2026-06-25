@@ -8,6 +8,7 @@ import { detectIntent } from "@/lib/ai/intents";
 import { getProvider, isRealProviderConfigured } from "@/lib/ai/provider";
 import { buildRecommendations } from "@/lib/harmony/advisor";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
+import { buildHarmonyReflection } from "@/lib/harmony/reflection";
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
@@ -38,6 +39,26 @@ async function harmonySystemPrompt(base: string, userId: string): Promise<string
   } catch {
     return base;
   }
+}
+
+/**
+ * True when the founder is asking Harmony to reflect / report what she has
+ * learned. Handled in-conversation (no navigation) by the Reflection Engine,
+ * so it must NOT be treated as a streamable free-form prompt.
+ */
+function isReflectionRequest(input: string): boolean {
+  const lower = (input ?? "").trim().toLowerCase();
+  if (!lower) return false;
+  if (lower.startsWith("reflect")) return true;
+  return [
+    "what have you learned",
+    "what have we learned",
+    "lessons learned",
+    "reflect on",
+    "your reflection",
+    "what patterns",
+    "what have you observed",
+  ].some((p) => lower.includes(p));
 }
 
 async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
@@ -160,9 +181,9 @@ await supabase
 /**
  * The Life Operator. Detects intent and either performs a concrete action
  * (create task/goal), produces a transparent rule-based answer (summarize /
- * suggest), or — only when a real provider is configured — calls the AI for
- * free-form questions. With no provider configured it stays fully functional
- * via the rule-based paths.
+ * suggest / reflect), or — only when a real provider is configured — calls the
+ * AI for free-form questions. With no provider configured it stays fully
+ * functional via the rule-based paths.
  */
 export async function runOperator(input: string): Promise<OperatorResult> {
   const to = await getTranslations("operator");
@@ -367,6 +388,36 @@ if (intent === "create_goal") {
     return { intent, reply: `${to("suggestIntro")}\n${lines.join("\n")}` };
   }
 
+  // Executive reflection — Harmony surfaces what she has learned from real
+  // execution, right in the conversation (no navigation to the Company Brain).
+  // Read-only here: the explicit "Reflect & save to Julius" action stays the
+  // human-in-the-loop write path, so this never writes to the org brain.
+  if (isReflectionRequest(text)) {
+    const companyId = await resolvePrimaryCompanyId();
+    if (!companyId) {
+      return persistOperatorReply(supabase, user.id, conversationId, {
+        intent: "general",
+        reply:
+          "I reflect on how your company executes — once you create a company I'll surface recurring patterns, delegation effectiveness, approval bottlenecks, and the lessons we've learned.",
+      });
+    }
+    const reflection = await buildHarmonyReflection(user.id, companyId);
+    if (!reflection.hasData) {
+      return persistOperatorReply(supabase, user.id, conversationId, {
+        intent: "general",
+        reply:
+          "There's nothing to reflect on yet. As work, delegations, approvals, and outcomes accumulate, I'll surface what's working, what's blocked, and the patterns and lessons behind them.",
+      });
+    }
+    const lines = reflection.insights.map((i) => `• ${i.title} — ${i.detail}`);
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent: "general",
+      reply: `Here's what I've learned from how the company is executing:\n${lines.join(
+        "\n",
+      )}\n\nOpen the Company Brain (Workforce → Julius) to save this reflection to Julius.`,
+    });
+  }
+
   // Free-form question.
   if (isRealProviderConfigured()) {
     const reply = await getProvider().generate(
@@ -428,18 +479,19 @@ export async function confirmOperatorAction(
  *
  * These power the SSE chat route (src/app/api/harmony/chat/stream). They reuse
  * the exact routing rules above so there is ONE canonical brain: only free-form
- * generative replies stream; every structured / rule-based / delegation turn
- * stays on `runOperator` (the confirm-before-write, non-streaming path). The SSE
- * route falls back to `runOperator` whenever a turn is not streamable.
+ * generative replies stream; every structured / rule-based / delegation /
+ * reflection turn stays on `runOperator` (the confirm-before-write,
+ * non-streaming path). The SSE route falls back to `runOperator` whenever a turn
+ * is not streamable.
  */
 
 /**
  * True when a turn should STREAM — a free-form "general" reply with a real
  * provider configured. Mirrors `runOperator`'s gate to its free-form branch:
  * structured intents (create task/goal), rule-based intents (summarize /
- * suggest), the business/founder delegation prefixes, and the no-provider case
- * all return false and stay on the canonical non-streaming path. No writes; the
- * intent classifier is synchronous and pure.
+ * suggest), reflection requests, the business/founder delegation prefixes, and
+ * the no-provider case all return false and stay on the canonical non-streaming
+ * path. No writes; the intent classifier is synchronous and pure.
  */
 export async function isStreamableHarmonyTurn(input: string): Promise<boolean> {
   const text = (input ?? "").trim();
@@ -454,6 +506,7 @@ export async function isStreamableHarmonyTurn(input: string): Promise<boolean> {
   ) {
     return false;
   }
+  if (isReflectionRequest(text)) return false;
   return detectIntent(text).intent === "general";
 }
 
