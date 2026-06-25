@@ -1052,6 +1052,13 @@
       "goals": "Active goals",
       "allClear": "All clear — nothing needs you right now."
     },
+    "collab": {
+      "coordinating": "Harmony is coordinating",
+      "working": "is working on",
+      "completed": "completed",
+      "blocked": "is blocked on",
+      "awaiting": "awaiting your approval on"
+    },
     "placeholder": "Ask me anything, or tell me what to do…",
     "quickPlaceholder": "Create a task, set a goal…",
     "inputLabel": "Message Harmony",
