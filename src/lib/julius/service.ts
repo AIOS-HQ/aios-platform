@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { embed, embeddingsEnabled, toVectorLiteral } from "@/lib/ai/embeddings";
 
 /**
  * Julius — AIOS organizational brain service (server-only).
@@ -11,9 +12,11 @@ import { createClient } from "@/lib/supabase/server";
  * brain never bleeds into another (AIOS vs AirBid stay separate). Degrades
  * gracefully if the migration hasn't been applied yet.
  *
- * Atlas is the primary steward (see src/lib/workforce/registry.ts), but every
- * agent with read_write access records relevant work here so the rest of the
- * workforce stays aware of it.
+ * Semantic recall (pgvector) is layered on additively: entries are embedded on
+ * write (best-effort) and retrieved by meaning via match_julius_entries, with a
+ * keyword fallback whenever embeddings are unavailable. Atlas is the primary
+ * steward (see src/lib/workforce/registry.ts), but every agent with read_write
+ * access records relevant work here so the rest of the workforce stays aware.
  */
 
 export const JULIUS_KINDS = [
@@ -45,6 +48,8 @@ export interface JuliusEntry {
   importance: number;
   created_at: string;
   updated_at: string;
+  /** Cosine similarity (0..1) when returned by semantic search; absent for keyword reads. */
+  similarity?: number;
 }
 
 export interface RecordJuliusInput {
@@ -89,7 +94,23 @@ export async function recordJuliusEntry(
     console.error("[julius] recordJuliusEntry", error.message);
     return null;
   }
-  return (data as JuliusEntry | null) ?? null;
+  const entry = (data as JuliusEntry | null) ?? null;
+
+  // Embed-on-write (best-effort): a separate update so a missing embedding
+  // column (un-migrated env) or a failed embedding never blocks the write.
+  if (entry && embeddingsEnabled()) {
+    const vec = await embed(`${title}\n${content}`);
+    if (vec) {
+      const { error: embErr } = await supabase
+        .from("julius_entries")
+        .update({ embedding: toVectorLiteral(vec) })
+        .eq("id", entry.id)
+        .eq("user_id", input.userId);
+      if (embErr) console.error("[julius] embed-on-write", embErr.message);
+    }
+  }
+
+  return entry;
 }
 
 export interface ListJuliusOptions {
@@ -129,9 +150,64 @@ export async function listJuliusEntries(
 }
 
 /**
+ * Semantic retrieval over Julius — retrieve by MEANING (pgvector cosine via the
+ * match_julius_entries function), ranked by confidence (similarity). Falls back
+ * to keyword search when embeddings are unavailable or the RPC is missing (e.g.
+ * migration not yet applied), so callers always get relevant context.
+ */
+export async function searchJuliusSemantic(
+  userId: string,
+  companyId: string,
+  query: string,
+  limit = 10,
+): Promise<JuliusEntry[]> {
+  const term = (query ?? "").trim();
+  if (!term) return listJuliusEntries(userId, companyId, { limit });
+
+  const vec = await embed(term);
+  if (!vec) return listJuliusEntries(userId, companyId, { query: term, limit });
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("match_julius_entries", {
+    query_embedding: toVectorLiteral(vec),
+    match_user_id: userId,
+    match_company_id: companyId,
+    match_count: limit,
+  });
+  if (error || !data) {
+    console.error("[julius] searchJuliusSemantic", error?.message ?? "no data");
+    return listJuliusEntries(userId, companyId, { query: term, limit });
+  }
+
+  const rows = data as Array<{
+    id: string;
+    agent: string;
+    kind: JuliusKind;
+    title: string;
+    content: string;
+    importance: number;
+    similarity: number;
+  }>;
+  return rows.map((r) => ({
+    id: r.id,
+    user_id: userId,
+    company_id: companyId,
+    agent: r.agent,
+    kind: r.kind,
+    title: r.title,
+    content: r.content,
+    refs: {},
+    importance: r.importance,
+    similarity: r.similarity,
+    created_at: "",
+    updated_at: "",
+  }));
+}
+
+/**
  * Cross-agent retrieval hook: the shared organizational context any AIOS agent
  * reads before acting, so each agent understands relevant work performed by the
- * others within the same company.
+ * others within the same company. Semantic-first when a query is provided.
  */
 export async function getJuliusContext(
   userId: string,
@@ -139,5 +215,8 @@ export async function getJuliusContext(
   query?: string,
   limit = 10,
 ): Promise<JuliusEntry[]> {
-  return listJuliusEntries(userId, companyId, { query, limit });
+  if (query && query.trim()) {
+    return searchJuliusSemantic(userId, companyId, query, limit);
+  }
+  return listJuliusEntries(userId, companyId, { limit });
 }
