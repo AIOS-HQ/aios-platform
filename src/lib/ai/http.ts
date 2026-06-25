@@ -40,3 +40,36 @@ export async function resilientFetch(
   }
   throw lastErr ?? new Error("resilientFetch: request failed");
 }
+
+/**
+ * Yields each `data:` payload from a Server-Sent Events response body, one per
+ * line, with the `data:` prefix stripped. Comment/keepalive/blank lines are
+ * skipped. Shared by the streaming providers (OpenAI + Anthropic both frame
+ * their token streams as SSE). The caller JSON-parses each payload and extracts
+ * its provider-specific delta. Deliberately NOT wrapped in resilientFetch's
+ * per-attempt timeout — a long stream must not be aborted mid-flight.
+ */
+export async function* sseDataLines(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (line.startsWith("data:")) yield line.slice(5).trim();
+      }
+    }
+    const tail = buffer.trim();
+    if (tail.startsWith("data:")) yield tail.slice(5).trim();
+  } finally {
+    reader.releaseLock();
+  }
+}

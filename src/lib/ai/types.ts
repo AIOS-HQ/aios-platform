@@ -33,4 +33,13 @@ export interface OperatorResult {
 export interface AIProvider {
   readonly name: string;
   generate(prompt: string, system?: string): Promise<string>;
+  /**
+   * Optional streaming completion: yields incremental text deltas where the
+   * concatenation of all deltas equals the full reply. Providers (or runtimes)
+   * that don't support streaming simply omit this, and callers fall back to
+   * `generate`. Errors are thrown so callers can fall back gracefully. This is
+   * the provider foundation for Streaming Harmony; only Harmony's free-form
+   * generative replies stream — structured, confirm-before-write actions never do.
+   */
+  generateStream?(prompt: string, system?: string): AsyncIterable<string>;
 }
