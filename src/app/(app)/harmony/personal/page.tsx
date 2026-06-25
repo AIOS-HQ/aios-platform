@@ -7,7 +7,6 @@ import {
   CalendarClock,
   Lightbulb,
   ListTodo,
-  Sparkles,
   StickyNote,
   Target,
 } from "lucide-react";
@@ -36,6 +35,7 @@ import { TodayTaskRow } from "@/components/harmony/dashboard/today-task-row";
 import { QuickAddTask } from "@/components/harmony/dashboard/quick-add-task";
 import { AdvisorPanel } from "@/components/harmony/advisor/advisor-panel";
 import { OperatorQuickInput } from "@/components/harmony/operator/operator-quick-input";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("dashboard");
@@ -93,7 +93,7 @@ export default async function DashboardPage() {
       <Card className="mb-6 border-primary/30 bg-primary/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="size-4 text-primary" aria-hidden="true" />
+            <HarmonyMark className="size-4" title="Harmony" />
             {t("operator")}
           </CardTitle>
           <CardDescription>{t("operatorHint")}</CardDescription>
