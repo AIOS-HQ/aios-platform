@@ -64,12 +64,12 @@ export type NavItem = {
  * - "founder": the Founder OS / Command Center — workforce, autonomy, review,
  *   approvals, comms, content, code, outcomes, etc. Visible only to
  *   founders/admins.
- * - "customer": the customer's own tool pages (personal dashboard, tasks,
- *   goals, notes). Visible only to non-founder customers. Founders reach the
- *   same capabilities by asking Harmony (the single operational interface), so
- *   these are intentionally absent from the founder sidebar.
- * - "all": Harmony herself plus settings — shown to every authenticated user,
- *   founders included.
+ * - "customer": the customer's own tool pages (tasks, goals, notes). Visible
+ *   only to non-founder customers. Founders reach the same capabilities by
+ *   asking Harmony (the single operational interface), so these are
+ *   intentionally absent from the founder sidebar.
+ * - "all": Harmony herself, the Dashboard (the executive/home surface), and
+ *   settings — shown to every authenticated user, founders included.
  *
  * Founder-only operational routes that used to live in the founder sidebar
  * (Briefing, Objectives, Operations, Work Management) are no longer listed in
@@ -89,21 +89,24 @@ export type NavSection = {
 };
 
 /**
- * Application navigation. Harmony — the AI Chief of Staff — is the front door
- * for everyone (audience "all") and sits at the top. The "command" group is the
- * Founder OS / Command Center (audience "founder"). The "personal" group is the
- * customer's own tool pages (audience "customer"); founders don't see these in
- * the sidebar because they ask Harmony for today's briefing, objectives,
- * operational status, work management, tasks, goals, and notes instead — the
- * Harmony workspace surfaces all of it. Briefing / Objectives / Operations /
- * Work Management are deliberately not listed (founder-reachable routes
- * consolidated into Harmony).
+ * Application navigation. The founder navigation philosophy: Harmony is the
+ * first operational entry, the Dashboard is the executive home, and the Command
+ * Center is the operational workspace — in that order. Harmony (operator) and
+ * the Dashboard are audience "all" and sit at the top for everyone. The
+ * "command" group is the Founder OS (audience "founder"). The "personal" group
+ * is the customer's own tool pages (audience "customer"); founders don't see
+ * those in the sidebar because they ask Harmony for today's briefing,
+ * objectives, operational status, work management, tasks, goals, and notes
+ * instead — the Harmony workspace surfaces all of it. Briefing / Objectives /
+ * Operations / Work Management are deliberately not listed (founder-reachable
+ * routes consolidated into Harmony).
  */
 export const navSections: NavSection[] = [
   {
     audience: "all",
     items: [
       { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
+      { href: "/harmony/personal", labelKey: "dashboard", icon: "LayoutDashboard" },
     ],
   },
   {
@@ -128,7 +131,6 @@ export const navSections: NavSection[] = [
     titleKey: "personal",
     audience: "customer",
     items: [
-      { href: "/harmony/personal", labelKey: "dashboard", icon: "LayoutDashboard" },
       { href: "/harmony/tasks", labelKey: "tasks", icon: "ListTodo" },
       { href: "/harmony/goals", labelKey: "goals", icon: "Target" },
       { href: "/harmony/notes", labelKey: "notes", icon: "StickyNote" },
