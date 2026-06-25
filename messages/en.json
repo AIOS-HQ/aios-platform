@@ -145,7 +145,7 @@
     "tasks": "Tasks",
     "goals": "Goals",
     "notes": "Notes",
-    "brain": "Personal Brain",
+    "brain": "Memory",
     "operator": "Harmony",
     "advisor": "Suggestions",
     "commandCenter": "Command Center",
@@ -399,7 +399,7 @@
         "comms": "Communications"
       },
       "reason": {
-        "belowOperator": "Below Operator threshold",
+        "belowOperator": "Below autonomy threshold",
         "comms": "Communication requires approval",
         "highPriority": "High-priority work item"
       },
@@ -772,7 +772,7 @@
       "title": "Your data",
       "description": "Export or delete your AIOS data.",
       "export": "Export your data",
-      "exportHint": "Download all your tasks, goals, notes, and Brain entries as JSON.",
+      "exportHint": "Download all your tasks, goals, notes, and Memory entries as JSON.",
       "exportButton": "Export JSON"
     },
     "danger": {
@@ -961,8 +961,8 @@
     "edit": "Edit note",
     "dialogDesc": "Give it a title and write away.",
     "untitled": "Untitled",
-    "saveToBrain": "Save to Brain",
-    "savedToBrain": "Saved to your Personal Brain.",
+    "saveToBrain": "Save to Memory",
+    "savedToBrain": "Saved to your Memory.",
     "searchPlaceholder": "Search notes…",
     "searchLabel": "Search notes",
     "filter": {
@@ -1001,7 +1001,7 @@
     }
   },
   "brain": {
-    "title": "Personal Brain",
+    "title": "Memory",
     "subtitle": "Your private knowledge store — and the foundation of your future AI memory.",
     "new": "Add entry",
     "edit": "Edit entry",
@@ -1010,8 +1010,8 @@
       "all": "All"
     },
     "dialogDesc": "Store a piece of knowledge, a preference, or a reference.",
-    "searchPlaceholder": "Search your brain…",
-    "searchLabel": "Search Personal Brain",
+    "searchPlaceholder": "Search your memory…",
+    "searchLabel": "Search Memory",
     "tagsPlaceholder": "comma, separated, tags",
     "fields": {
       "title": "Title",
@@ -1025,7 +1025,7 @@
       "manual": "Entry"
     },
     "empty": {
-      "title": "Your brain is empty",
+      "title": "Your memory is empty",
       "description": "Add knowledge or save notes here to build your memory layer."
     },
     "noResults": {
@@ -1106,7 +1106,7 @@
       "overdue": "{count} task(s) are overdue — consider rescheduling or finishing them.",
       "staleGoals": "{count} active goal(s) haven't been updated in a while.",
       "almostThere": "{count} goal(s) are almost complete — push them over the line.",
-      "organizeNotes": "You have {count} notes. Consider organizing key ones into your Personal Brain.",
+      "organizeNotes": "You have {count} notes. Consider organizing key ones into your Memory.",
       "firstTask": "Create your first task to start organizing your day.",
       "firstGoal": "Set your first goal to give your week direction.",
       "allClear": "All caught up — no open tasks. Nicely done!",
