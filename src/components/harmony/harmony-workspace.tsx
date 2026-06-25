@@ -11,8 +11,12 @@ type Tab = "chat" | "suggestions" | "memory";
  * One Harmony experience. A single interface with Chat / Suggestions / Memory —
  * the consolidation of the former Life Operator, Life Advisor, and Personal
  * Brain. The customer never chooses which AI to use; they work with Harmony,
- * and Harmony decides. Panels are kept mounted (toggled via `hidden`) so the
- * chat conversation is preserved when switching tabs.
+ * and Harmony decides. Panels are kept mounted (toggled via the `hidden`
+ * attribute) so the chat conversation is preserved when switching tabs.
+ *
+ * Implements the WAI-ARIA Tabs pattern: a roving tabindex over the `tab`
+ * buttons, Arrow/Home/End keyboard navigation, and `tabpanel`s wired to their
+ * tab via `aria-controls`/`aria-labelledby`.
  */
 export function HarmonyWorkspace({
   chat,
@@ -34,6 +38,32 @@ export function HarmonyWorkspace({
     { key: "memory", label: t("memory"), icon: BrainCircuit },
   ];
 
+  const panels: { key: Tab; node: React.ReactNode }[] = [
+    { key: "chat", node: chat },
+    { key: "suggestions", node: suggestions },
+    { key: "memory", node: memory },
+  ];
+
+  function onTabKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    const idx = tabs.findIndex((x) => x.key === tab);
+    let next = idx;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      next = (idx + 1) % tabs.length;
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      next = (idx - 1 + tabs.length) % tabs.length;
+    } else if (e.key === "Home") {
+      next = 0;
+    } else if (e.key === "End") {
+      next = tabs.length - 1;
+    } else {
+      return;
+    }
+    e.preventDefault();
+    const nextKey = tabs[next].key;
+    setTab(nextKey);
+    document.getElementById(`harmony-tab-${nextKey}`)?.focus();
+  }
+
   return (
     <div>
       <div role="tablist" aria-label="Harmony" className="mb-4 flex gap-1 border-b">
@@ -42,8 +72,12 @@ export function HarmonyWorkspace({
             key={key}
             type="button"
             role="tab"
+            id={`harmony-tab-${key}`}
             aria-selected={tab === key}
+            aria-controls={`harmony-panel-${key}`}
+            tabIndex={tab === key ? 0 : -1}
             onClick={() => setTab(key)}
+            onKeyDown={onTabKeyDown}
             className={cn(
               "-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
               tab === key
@@ -57,9 +91,17 @@ export function HarmonyWorkspace({
         ))}
       </div>
 
-      <div className={cn(tab !== "chat" && "hidden")}>{chat}</div>
-      <div className={cn(tab !== "suggestions" && "hidden")}>{suggestions}</div>
-      <div className={cn(tab !== "memory" && "hidden")}>{memory}</div>
+      {panels.map(({ key, node }) => (
+        <div
+          key={key}
+          role="tabpanel"
+          id={`harmony-panel-${key}`}
+          aria-labelledby={`harmony-tab-${key}`}
+          hidden={tab !== key}
+        >
+          {node}
+        </div>
+      ))}
     </div>
   );
 }
