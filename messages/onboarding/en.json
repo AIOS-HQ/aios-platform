@@ -1,0 +1,79 @@
+{
+  "onboarding": {
+    "metaTitle": "Get started with Harmony",
+    "progress": "Step {n} of {total}",
+    "welcome": {
+      "title": "Welcome — I'm Harmony.",
+      "body": "I'll help you connect your business to AIOS in a few minutes. I'll ask a little about how you work, recommend the right tools, and set them up for you — no technical setup needed.",
+      "cta": "Let's begin"
+    },
+    "business": {
+      "title": "Tell me about your business",
+      "body": "A few quick questions so I can recommend the right setup. There are no wrong answers.",
+      "q": {
+        "type": "What kind of business do you run?",
+        "employees": "How many people work with you?",
+        "channels": "How do customers usually reach you?",
+        "crm": "Do you already use a CRM?",
+        "payments": "Do you accept online payments?",
+        "devices": "Do you have printers or scanners to bring in?",
+        "languages": "Which languages do you serve customers in?",
+        "ai": "Which AI providers would you like to use?"
+      }
+    },
+    "businessType": {
+      "restaurant": "Restaurant",
+      "professional_office": "Professional office",
+      "ecommerce": "E-commerce",
+      "medical": "Medical office",
+      "construction": "Construction",
+      "retail": "Retail",
+      "agency": "Agency",
+      "other": "Something else"
+    },
+    "channel": {
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "phone": "Phone",
+      "web_chat": "Website chat",
+      "social": "Social media"
+    },
+    "language": {
+      "en": "English",
+      "es": "Spanish"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "recommend": {
+      "title": "Here's what I recommend",
+      "body": "Based on your business, these are the tools I'd connect first. Connect what you're ready for — you can always add more later.",
+      "empty": "Tell me a bit more about your business and I'll recommend the right tools."
+    },
+    "group": {
+      "communication": "Talk to customers",
+      "business": "Run the business",
+      "calendar": "Calendars",
+      "device": "Office devices",
+      "ai": "AI providers"
+    },
+    "status": {
+      "connected": "Connected",
+      "comingSoon": "Available soon"
+    },
+    "connect": "Connect",
+    "review": {
+      "title": "Review and confirm",
+      "body": "Here's your recommended setup. Connect the rest whenever you're ready.",
+      "permissions": "I only ever request the access each tool needs to do its job, and you can disconnect anything at any time from the Integration Center."
+    },
+    "done": {
+      "title": "You're all set",
+      "body": "I'll take it from here — coordinating your tools behind the scenes. Ask me anything, anytime.",
+      "openHarmony": "Open Harmony",
+      "openIntegrations": "View integrations"
+    },
+    "back": "Back",
+    "next": "Continue",
+    "finish": "Finish"
+  }
+}
