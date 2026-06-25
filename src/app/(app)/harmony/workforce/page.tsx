@@ -3,7 +3,12 @@ import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Activity, ListChecks, ListTodo, Network, Send, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
-import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
+import {
+  AIOS_WORKFORCE,
+  WORKFORCE_SPECIALISTS,
+  getAiosAgent,
+  getHarmony,
+} from "@/lib/workforce/registry";
 import { AGENT_ICONS, JULIUS_ICON, getAgentIcon } from "@/lib/workforce/agent-icons";
 import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
@@ -95,6 +100,10 @@ export default async function WorkforcePage() {
     }
   }
 
+  // Harmony — the AI Chief of Staff — coordinates the specialists below.
+  const harmony = getHarmony();
+  const HarmonyIcon = AGENT_ICONS.harmony;
+
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")}>
@@ -133,6 +142,24 @@ export default async function WorkforcePage() {
             <Users className="size-4" aria-hidden="true" />
             {t("directory")}
           </h2>
+          {/* Harmony — the AI Chief of Staff — coordinates the specialists below. */}
+          <Card className="mb-4 border-primary/40 bg-primary/5">
+            <CardContent className="flex items-center gap-3 p-4">
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
+                <HarmonyIcon className="size-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{harmony.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {t("coordinatorHint")}
+                </p>
+              </div>
+              <Badge className="ml-auto shrink-0">{t("coordinator")}</Badge>
+            </CardContent>
+          </Card>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+            {t("specialists")}
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {/* Julius — the AIOS company brain, not a workforce agent. */}
             <Card className="border-primary/30">
@@ -153,7 +180,7 @@ export default async function WorkforcePage() {
               </CardContent>
             </Card>
 
-            {AIOS_WORKFORCE.map((a) => {
+            {WORKFORCE_SPECIALISTS.map((a) => {
               const s = deriveState(a.key, messages);
               const Icon = AGENT_ICONS[a.key];
               const sum = summary[a.key] ?? emptyAgentSummary();
