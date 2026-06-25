@@ -166,6 +166,23 @@ export const AIOS_WORKFORCE: readonly AiosAgent[] = [
   },
 ] as const;
 
+/**
+ * Harmony is the AI Chief of Staff — the customer-facing coordinator, NOT a peer
+ * specialist. These helpers let the UI present the hierarchy (Harmony above the
+ * specialists who work for it) instead of a flat list of equals. `AIOS_WORKFORCE`
+ * is left intact for existing consumers.
+ */
+export const HARMONY_KEY: AiosAgentKey = "harmony";
+
+export function getHarmony(): AiosAgent {
+  return AIOS_WORKFORCE.find((a) => a.key === HARMONY_KEY)!;
+}
+
+/** The specialist workforce that works FOR Harmony (everyone except Harmony). */
+export const WORKFORCE_SPECIALISTS: readonly AiosAgent[] = AIOS_WORKFORCE.filter(
+  (a) => a.key !== HARMONY_KEY,
+);
+
 /** Julius — the AIOS organizational brain. NOT an agent. */
 export const JULIUS = {
   name: "Julius",
