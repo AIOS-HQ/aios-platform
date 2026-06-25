@@ -146,7 +146,7 @@
     "goals": "Goals",
     "notes": "Notes",
     "brain": "Personal Brain",
-    "operator": "Ask Harmony",
+    "operator": "Harmony",
     "advisor": "Suggestions",
     "commandCenter": "Command Center",
     "companies": "Companies",
@@ -1036,6 +1036,11 @@
   "operator": {
     "title": "Harmony",
     "subtitle": "Your AI Chief of Staff — I coordinate everything behind the scenes and get it done.",
+    "tabs": {
+      "chat": "Chat",
+      "suggestions": "Suggestions",
+      "memory": "Memory"
+    },
     "placeholder": "Ask me anything, or tell me what to do…",
     "quickPlaceholder": "Create a task, set a goal…",
     "inputLabel": "Message Harmony",

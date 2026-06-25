@@ -146,7 +146,7 @@
     "goals": "Objetivos",
     "notes": "Notas",
     "brain": "Cerebro Personal",
-    "operator": "Preguntar a Harmony",
+    "operator": "Harmony",
     "advisor": "Sugerencias",
     "commandCenter": "Centro de Mando",
     "companies": "Empresas",
@@ -1036,6 +1036,11 @@
   "operator": {
     "title": "Harmony",
     "subtitle": "Tu Jefe de Gabinete con IA — coordino todo tras bambalinas y lo llevo a cabo.",
+    "tabs": {
+      "chat": "Chat",
+      "suggestions": "Sugerencias",
+      "memory": "Memoria"
+    },
     "placeholder": "Pregúntame lo que sea, o dime qué hacer…",
     "quickPlaceholder": "Crea una tarea, fija un objetivo…",
     "inputLabel": "Escribir a Harmony",
