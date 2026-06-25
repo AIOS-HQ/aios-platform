@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Check, CheckCircle2, Copy, Send, Sparkles, X } from "lucide-react";
+import { Check, CheckCircle2, Copy, Send, X } from "lucide-react";
 import {
   confirmOperatorAction,
   loadOperatorMessages,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/harmony/operator-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { cn } from "@/lib/utils";
 import type { OperatorResult } from "@/lib/ai/types";
 
@@ -27,6 +28,12 @@ type Msg = {
 /** Distance (px) from the bottom within which we consider the user "following" live. */
 const BOTTOM_THRESHOLD = 80;
 
+/**
+ * The canonical Harmony chat. One implementation, shared across founder,
+ * personal, business, and enterprise experiences. Harmony — the AI Chief of
+ * Staff — owns the conversation; the official Harmony mark is shown while she
+ * responds and thinks (no generic sparkle/star).
+ */
 export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const t = useTranslations("operator");
   const router = useRouter();
@@ -164,7 +171,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
     <div className="flex h-[calc(100dvh-13rem)] min-h-[26rem] flex-col rounded-xl border bg-card">
       {isMock && (
         <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
-          <Sparkles className="size-3.5 shrink-0" aria-hidden="true" />
+          <HarmonyMark className="size-3.5 shrink-0" />
           {t("mockBanner")}
         </div>
       )}
@@ -177,8 +184,8 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
       >
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Sparkles className="size-6" aria-hidden="true" />
+            <span className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+              <HarmonyMark className="size-7" title="Harmony" />
             </span>
             <div className="space-y-1">
               <p className="font-medium">{t("emptyTitle")}</p>
@@ -204,10 +211,16 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
             <div
               key={m.id}
               className={cn(
-                "flex",
+                "flex items-start gap-2",
                 m.role === "user" ? "justify-end" : "justify-start",
               )}
             >
+              {m.role === "assistant" && (
+                <HarmonyMark
+                  className="mt-0.5 size-6 shrink-0"
+                  title="Harmony"
+                />
+              )}
               <div
                 className={cn(
                   "max-w-[85%] rounded-2xl px-4 py-2 text-sm",
@@ -263,8 +276,14 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
           ))
         )}
         {pending && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl bg-muted px-4 py-2 text-sm text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <HarmonyMark className="mt-0.5 size-6 shrink-0" title="Harmony" />
+            <div className="flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-2 text-sm text-muted-foreground">
+              <span className="flex gap-1" aria-hidden="true">
+                <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+                <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+                <span className="size-1.5 animate-bounce rounded-full bg-current" />
+              </span>
               {t("thinking")}
             </div>
           </div>
