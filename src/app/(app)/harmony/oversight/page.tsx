@@ -71,7 +71,7 @@ export default async function OversightPage() {
     reasons.push(t("health.reasons.heldResponses", { count: s.pendingHarmonyResponses }));
 
   const stats: Stat[] = [
-    { key: "conversations", label: t("stat.conversations"), value: s.conversations.active, icon: MessageSquare, href: "/harmony/comms" },
+    { key: "conversations", label: t("stat.conversations"), value: s.conversations.active, icon: MessageSquare, href: "/harmony/oversight/conversations" },
     { key: "approvals", label: t("stat.approvals"), value: s.approvals.pending, icon: ShieldCheck, href: "/harmony/approvals", emphasis: true },
     { key: "escalations", label: t("stat.escalations"), value: s.escalations.length, icon: AlertTriangle, emphasis: true },
     { key: "work", label: t("stat.work"), value: s.work.inProgress, icon: ListTodo, href: "/harmony/work-items" },
@@ -169,7 +169,7 @@ export default async function OversightPage() {
               )}
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href="/harmony/comms">
+              <Link href="/harmony/oversight/conversations">
                 {t("conversations.open")}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>

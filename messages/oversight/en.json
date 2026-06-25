@@ -90,6 +90,78 @@
       "agent": "Specialist",
       "department": "Department",
       "system": "System"
+    },
+    "supervision": {
+      "title": "Conversation supervision",
+      "subtitle": "Watch every channel. Step in on any conversation, anytime.",
+      "back": "Back to Oversight",
+      "none": "No conversations yet.",
+      "assigned": "Assigned to {name}",
+      "unassigned": "Unassigned",
+      "held": "Response held"
+    },
+    "detail": {
+      "back": "Back to conversations",
+      "thread": "Conversation",
+      "harmony": "Harmony",
+      "customer": "Customer",
+      "noMessages": "No messages yet.",
+      "assignedTo": "Handled by {name}",
+      "unassigned": "No specialist assigned"
+    },
+    "intervene": {
+      "title": "Intervene",
+      "subtitle": "You're in control. Step in anytime.",
+      "reply": "Reply directly",
+      "replyPlaceholder": "Write your reply…",
+      "send": "Send",
+      "approveSend": "Approve & send",
+      "sent": "Sent.",
+      "cancelPending": "Cancel",
+      "cancelled": "Response cancelled.",
+      "editPending": "Edit pending response",
+      "saveEdit": "Save changes",
+      "takeOver": "Take over",
+      "tookOver": "You've taken over.",
+      "resume": "Hand back to Harmony",
+      "resumed": "Handed back to Harmony.",
+      "escalate": "Escalate",
+      "escalated": "Escalated.",
+      "reassign": "Reassign to a specialist",
+      "reassignButton": "Reassign"
+    },
+    "teach": {
+      "title": "Teach Harmony",
+      "subtitle": "Set a rule once. Harmony remembers it across every conversation.",
+      "placeholder": "e.g. Always include estimated delivery dates.",
+      "save": "Teach Harmony",
+      "category": {
+        "label": "Type",
+        "company_policy": "Company policy",
+        "communication_preference": "Communication preference",
+        "customer_service_rule": "Customer service rule",
+        "operational_guideline": "Operational guideline"
+      }
+    },
+    "explain": {
+      "title": "Why Harmony acted",
+      "subtitle": "Grounded in your settings and company knowledge.",
+      "held": "The latest response is held for your approval — this channel requires your sign-off before sending.",
+      "notHeld": "Nothing is waiting to send — Harmony is operating within the settings you've configured.",
+      "assigned": "Handled by {name}.",
+      "unassigned": "No specialist is assigned to this conversation yet.",
+      "knowledge": "Relevant company knowledge",
+      "noKnowledge": "No related company knowledge yet.",
+      "grounded": "Only your real settings, approvals, and company knowledge are shown — nothing is inferred."
+    },
+    "activity": {
+      "replied": "Owner replied directly to {contact}",
+      "editedPending": "Owner edited a pending response to {contact}",
+      "cancelledPending": "Owner cancelled a pending response to {contact}",
+      "tookOver": "Owner took over the conversation with {contact}",
+      "resumed": "Owner handed {contact} back to Harmony",
+      "escalated": "Owner escalated the conversation with {contact}",
+      "taught": "Owner taught Harmony: {category}"
     }
   }
 }
