@@ -242,6 +242,27 @@ export async function respondToTask(params: {
     refs: { agentMessageId: parent.id, kind: "a2a_response" },
   });
 
+  // Shared intelligence: capture the lesson so the workforce and Harmony learn
+  // from outcomes over time. Completions record reusable success patterns; blocks
+  // record failures/blockers. Both land in the org brain Harmony reads from, so
+  // Harmony continuously improves from the workforce's experience.
+  await juliusRemember({
+    userId: params.userId,
+    companyId: params.companyId,
+    agent: params.fromAgent,
+    kind: "knowledge",
+    title: `${finalStatus === "completed" ? "Pattern" : "Blocker"} — ${parent.subject}`.slice(0, 300),
+    content:
+      finalStatus === "completed"
+        ? `Successful approach by ${agentName(params.fromAgent)} for "${parent.subject}": ${outcome}`
+        : `${agentName(params.fromAgent)} was blocked on "${parent.subject}". Reason: ${outcome}`,
+    refs: {
+      agentMessageId: parent.id,
+      kind: finalStatus === "completed" ? "lesson_success" : "lesson_blocked",
+    },
+    importance: finalStatus === "completed" ? 3 : 4,
+  });
+
   await emitActivity({
     userId: params.userId,
     companyId: params.companyId,
