@@ -90,6 +90,78 @@
       "agent": "Especialista",
       "department": "Departamento",
       "system": "Sistema"
+    },
+    "supervision": {
+      "title": "Supervisión de conversaciones",
+      "subtitle": "Observa todos los canales. Interviene en cualquier conversación, cuando quieras.",
+      "back": "Volver a Supervisión",
+      "none": "Aún no hay conversaciones.",
+      "assigned": "Asignada a {name}",
+      "unassigned": "Sin asignar",
+      "held": "Respuesta retenida"
+    },
+    "detail": {
+      "back": "Volver a conversaciones",
+      "thread": "Conversación",
+      "harmony": "Harmony",
+      "customer": "Cliente",
+      "noMessages": "Aún no hay mensajes.",
+      "assignedTo": "Gestionada por {name}",
+      "unassigned": "Sin especialista asignado"
+    },
+    "intervene": {
+      "title": "Intervenir",
+      "subtitle": "Tú tienes el control. Interviene cuando quieras.",
+      "reply": "Responder directamente",
+      "replyPlaceholder": "Escribe tu respuesta…",
+      "send": "Enviar",
+      "approveSend": "Aprobar y enviar",
+      "sent": "Enviado.",
+      "cancelPending": "Cancelar",
+      "cancelled": "Respuesta cancelada.",
+      "editPending": "Editar respuesta pendiente",
+      "saveEdit": "Guardar cambios",
+      "takeOver": "Tomar el control",
+      "tookOver": "Has tomado el control.",
+      "resume": "Devolver a Harmony",
+      "resumed": "Devuelto a Harmony.",
+      "escalate": "Escalar",
+      "escalated": "Escalado.",
+      "reassign": "Reasignar a un especialista",
+      "reassignButton": "Reasignar"
+    },
+    "teach": {
+      "title": "Enseña a Harmony",
+      "subtitle": "Define una regla una vez. Harmony la recordará en todas las conversaciones.",
+      "placeholder": "p. ej. Incluye siempre las fechas estimadas de entrega.",
+      "save": "Enseñar a Harmony",
+      "category": {
+        "label": "Tipo",
+        "company_policy": "Política de la empresa",
+        "communication_preference": "Preferencia de comunicación",
+        "customer_service_rule": "Regla de atención al cliente",
+        "operational_guideline": "Directriz operativa"
+      }
+    },
+    "explain": {
+      "title": "Por qué actuó Harmony",
+      "subtitle": "Fundamentado en tus ajustes y el conocimiento de la empresa.",
+      "held": "La última respuesta está retenida para tu aprobación: este canal requiere tu visto bueno antes de enviar.",
+      "notHeld": "No hay nada en espera de envío: Harmony está operando dentro de los ajustes que configuraste.",
+      "assigned": "Gestionada por {name}.",
+      "unassigned": "Aún no hay ningún especialista asignado a esta conversación.",
+      "knowledge": "Conocimiento relevante de la empresa",
+      "noKnowledge": "Aún no hay conocimiento relacionado de la empresa.",
+      "grounded": "Solo se muestran tus ajustes, aprobaciones y conocimiento reales: nada se infiere."
+    },
+    "activity": {
+      "replied": "El propietario respondió directamente a {contact}",
+      "editedPending": "El propietario editó una respuesta pendiente a {contact}",
+      "cancelledPending": "El propietario canceló una respuesta pendiente a {contact}",
+      "tookOver": "El propietario tomó el control de la conversación con {contact}",
+      "resumed": "El propietario devolvió {contact} a Harmony",
+      "escalated": "El propietario escaló la conversación con {contact}",
+      "taught": "El propietario enseñó a Harmony: {category}"
     }
   }
 }
