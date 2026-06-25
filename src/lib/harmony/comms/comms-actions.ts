@@ -11,6 +11,7 @@ import { emitActivity } from "@/lib/harmony/os/events";
 import { clampAutonomy, requiresApproval } from "@/lib/harmony/os/autonomy";
 import { deliver, deliverMessageById } from "@/lib/harmony/comms/delivery";
 import { CHANNEL_KINDS } from "@/lib/harmony/comms/catalog";
+import { classifyCommunicationRisk } from "@/lib/workforce/ambassador";
 import type { ActionState } from "@/lib/types";
 import type {
   Channel,
@@ -226,7 +227,11 @@ export async function sendMessage(
     .maybeSingle();
   const channel = chData as Channel | null;
   const level = channel ? await channelAutonomy(supabase, channel) : 0;
-  const gated = requiresApproval(level);
+  // Ambassador's communication-safety policy: high-risk topics (pricing,
+  // refunds, contracts, legal, financial, medical, irreversible) ALWAYS wait
+  // for the owner's approval, regardless of autonomy level.
+  const { highRisk } = classifyCommunicationRisk(body);
+  const gated = requiresApproval(level, { highRisk });
 
   const { data: msgData, error } = await supabase
     .from("messages")
@@ -258,7 +263,7 @@ export async function sendMessage(
       type: "content",
       title: tcm("approvalTitle", { contact: conversation.contact }),
       summary: body.slice(0, LIMITS.description),
-      risk: "medium",
+      risk: highRisk ? "high" : "medium",
     });
     await emitActivity({
       userId: user.id,

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { AgentChat } from "@/components/harmony/workforce/agent-chat";
 import { AgentObjectives } from "@/components/harmony/workforce/agent-objectives";
 import { AgentRecommendations } from "@/components/harmony/workforce/agent-recommendations";
+import { AmbassadorCommsCard } from "@/components/harmony/workforce/ambassador-comms-card";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
@@ -153,6 +154,9 @@ export default async function AgentProfilePage({
             </div>
           </CardContent>
         </Card>
+
+        {/* Ambassador's Business Communications profile (renders for Ambassador only). */}
+        <AmbassadorCommsCard agentKey={agent} userId={user.id} />
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Card>

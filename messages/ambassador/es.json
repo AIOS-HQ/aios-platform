@@ -1,0 +1,35 @@
+{
+  "ambassador": {
+    "commsTitle": "Comunicaciones del negocio",
+    "commsSubtitle": "Ambassador es tu experto en comunicación con clientes y recepcionista virtual. Conecta un canal una sola vez en el Centro de Integraciones y Ambassador se encarga del resto.",
+    "channelsTitle": "Canales",
+    "status": {
+      "connected": "Conectado",
+      "available": "Disponible",
+      "comingSoon": "Próximamente",
+      "native": "Integrado",
+      "future": "En el plan"
+    },
+    "voice": "Voz",
+    "policyTitle": "Seguridad en la comunicación",
+    "policyAuto": "Las respuestas de bajo riesgo se gestionan automáticamente, dentro de tus ajustes de autonomía.",
+    "policyApproval": "Esto siempre espera tu aprobación antes de enviarse:",
+    "policyEscalate": "Cuando hay dudas, Ambassador escala a Harmony — nunca adivina.",
+    "topic": {
+      "pricing": "Precios y cotizaciones",
+      "refunds": "Reembolsos",
+      "contracts": "Contratos y acuerdos",
+      "legal": "Asuntos legales",
+      "financial": "Compromisos financieros",
+      "medical": "Consejo médico",
+      "irreversible": "Acciones irreversibles"
+    },
+    "receptionistTitle": "Recepcionista virtual",
+    "receptionist": {
+      "greet": "Saluda y califica cada contacto entrante",
+      "route": "Dirige y clasifica hacia el lugar correcto",
+      "answer": "Responde preguntas frecuentes con el conocimiento de la empresa",
+      "capture": "Captura datos y da seguimiento"
+    }
+  }
+}

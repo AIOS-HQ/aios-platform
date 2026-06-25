@@ -88,13 +88,16 @@ export const AIOS_WORKFORCE: readonly AiosAgent[] = [
   {
     key: "ambassador",
     name: "Ambassador",
-    role: "Communications & Relations",
+    role: "Business Communications & Relations",
     aka: "Signal",
-    purpose: "Manage communications and external relationships.",
+    purpose:
+      "Harmony's customer-facing communications expert and virtual receptionist — owns every channel.",
     responsibilities: [
-      "Email drafting",
-      "Message routing",
-      "Notifications",
+      "Customer conversations across every channel (WhatsApp, web chat, email, LinkedIn, Messenger, Instagram)",
+      "Virtual receptionist: greet, qualify, route, and follow up",
+      "Answer common questions from company knowledge",
+      "Reply to low-risk messages autonomously; route high-risk to approval",
+      "Message routing, triage, and notifications",
       "Publishing coordination",
     ],
     julius: "read_write",
@@ -214,13 +217,14 @@ export function isAiosAgentName(name: string): boolean {
 /**
  * Connectors each AIOS agent is wired to use, keyed by connector id (see
  * src/lib/integrations/connectors). Surfaces connector awareness in the Founder
- * Command Center. Only lists connectors that are actually implemented — extend
- * as new connectors come online. LinkedIn supports Catalyst (content/growth) and
- * Ambassador (communications/relations).
+ * Command Center. Catalyst drives content/growth (LinkedIn). Ambassador is the
+ * Business Communications specialist and covers every customer channel — each
+ * works automatically once connected once in the Integration Center. Website
+ * chat is built in (no connector); SMS and Voice are on the roadmap.
  */
 export const AGENT_CONNECTORS: Partial<Record<AiosAgentKey, string[]>> = {
   catalyst: ["linkedin"],
-  ambassador: ["linkedin"],
+  ambassador: ["whatsapp", "gmail", "outlook", "messenger", "instagram", "linkedin", "slack"],
 };
 
 export function getAgentConnectors(key: string): string[] {

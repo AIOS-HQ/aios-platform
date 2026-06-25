@@ -13,9 +13,10 @@ import { defaultLocale, isLocale, LOCALE_COOKIE } from "./config";
  * Messages are composed from the base catalog plus feature-scoped catalogs
  * (the marketing `landing` namespace, the `pages` catalog — FAQ, Help Center
  * and onboarding — the `julius` Company Brain catalog, the `integrations`
- * Integration Center catalog, the `onboarding` Smart Onboarding catalog, and
- * the `oversight` Harmony Oversight catalog), merged here so each surface can
- * own its copy without bloating the base file.
+ * Integration Center catalog, the `onboarding` Smart Onboarding catalog, the
+ * `oversight` Harmony Oversight catalog, and the `ambassador` Business
+ * Communications catalog), merged here so each surface can own its copy without
+ * bloating the base file.
  */
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
@@ -29,6 +30,7 @@ export default getRequestConfig(async () => {
   const integrations = (await import(`../../messages/integrations/${locale}.json`)).default;
   const onboarding = (await import(`../../messages/onboarding/${locale}.json`)).default;
   const oversight = (await import(`../../messages/oversight/${locale}.json`)).default;
+  const ambassador = (await import(`../../messages/ambassador/${locale}.json`)).default;
 
   return {
     locale,
@@ -40,6 +42,7 @@ export default getRequestConfig(async () => {
       ...integrations,
       ...onboarding,
       ...oversight,
+      ...ambassador,
     },
   };
 });
