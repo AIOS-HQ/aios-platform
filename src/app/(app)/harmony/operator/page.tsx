@@ -11,6 +11,7 @@ import { OperatorConsole } from "@/components/harmony/operator/operator-console"
 import { AdvisorPanel } from "@/components/harmony/advisor/advisor-panel";
 import { BrainList } from "@/components/harmony/brain/brain-list";
 import { HarmonyWorkspace } from "@/components/harmony/harmony-workspace";
+import { HarmonyAwareness } from "@/components/harmony/harmony-awareness";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("operator");
@@ -48,6 +49,7 @@ export default async function HarmonyPage({
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
+      <HarmonyAwareness />
       <HarmonyWorkspace
         initialTab={initialTab}
         chat={<OperatorConsole isMock={isMock} />}

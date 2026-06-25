@@ -1041,6 +1041,17 @@
       "suggestions": "Sugerencias",
       "memory": "Memoria"
     },
+    "awareness": {
+      "title": "Esto es lo que hay",
+      "completed": "Completado hoy",
+      "waiting": "Esperándote",
+      "opportunities": "Oportunidades",
+      "priorities": "Prioridades",
+      "blocked": "Bloqueado",
+      "tasks": "Tareas abiertas",
+      "goals": "Objetivos activos",
+      "allClear": "Todo en orden — nada requiere tu atención ahora."
+    },
     "placeholder": "Pregúntame lo que sea, o dime qué hacer…",
     "quickPlaceholder": "Crea una tarea, fija un objetivo…",
     "inputLabel": "Escribir a Harmony",
