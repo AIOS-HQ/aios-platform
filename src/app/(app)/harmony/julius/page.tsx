@@ -5,10 +5,12 @@ import { ArrowLeft, Network } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listJuliusEntries, type JuliusKind } from "@/lib/julius/service";
+import { buildHarmonyReflection } from "@/lib/harmony/reflection";
 import { JULIUS, WORKFORCE_SPECIALISTS, getAiosAgent } from "@/lib/workforce/registry";
 import { AGENT_ICONS, JULIUS_ICON } from "@/lib/workforce/agent-icons";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
+import { HarmonyReflectButton } from "@/components/harmony/harmony-reflect-button";
 import {
   Card,
   CardContent,
@@ -30,9 +32,10 @@ export async function generateMetadata(): Promise<Metadata> {
  * the center as the Company Brain, the specialist workforce reads from and
  * contributes to it, and Harmony coordinates them. This page surfaces the brain
  * CONTENT — objectives, decisions, activity, and knowledge the agents have
- * recorded — plus each specialist's contribution count, and links to the
- * relationship graph for the radial Julius-and-workforce visualization. Reuses
- * the existing Julius service/registry; it introduces no parallel system.
+ * recorded — plus Harmony's executive reflection (learning grounded in real
+ * execution, enriching Julius), each specialist's contribution count, and links
+ * to the relationship graph. Reuses the existing Julius service/registry; it
+ * introduces no parallel system.
  *
  * Founder-gated: not a customer surface. It lives under /harmony and is not a
  * customer prefix, so isFounderHarmonyPath keeps it founder-only.
@@ -73,6 +76,8 @@ export default async function JuliusBrainPage() {
     );
   }
 
+  const reflection = await buildHarmonyReflection(user.id, companyId);
+
   const contributions = new Map<string, number>();
   for (const e of entries) {
     contributions.set(e.agent, (contributions.get(e.agent) ?? 0) + 1);
@@ -112,6 +117,54 @@ export default async function JuliusBrainPage() {
           </CardContent>
         </Card>
 
+        {/* Harmony's reflection — executive learning grounded in real execution. */}
+        <Card>
+          <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+            <div className="min-w-0">
+              <CardTitle className="text-base">{t("reflection.title")}</CardTitle>
+              <CardDescription>{t("reflection.subtitle")}</CardDescription>
+            </div>
+            <HarmonyReflectButton />
+          </CardHeader>
+          <CardContent>
+            {!reflection.hasData ? (
+              <p className="text-sm text-muted-foreground">{t("reflection.empty")}</p>
+            ) : (
+              <ul className="space-y-3">
+                {reflection.insights.map((ins) => (
+                  <li
+                    key={`${ins.dimension}-${ins.title}`}
+                    className="rounded-lg border p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] uppercase tracking-wide"
+                      >
+                        {t(`reflection.dim.${ins.dimension}`)}
+                      </Badge>
+                      <span className="text-sm font-medium">{ins.title}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{ins.detail}</p>
+                    {ins.examples.length > 0 ? (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {ins.examples.map((ex, i) => (
+                          <li
+                            key={i}
+                            className="truncate text-xs text-muted-foreground"
+                          >
+                            · {ex}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Organizational memory, grouped by kind. */}
         <div className="grid gap-4 md:grid-cols-2">
           {SECTIONS.map(({ kind, key }) => {
@@ -130,7 +183,7 @@ export default async function JuliusBrainPage() {
                   ) : (
                     <ul className="space-y-3">
                       {items.map((e) => {
-                        const agentName = getAiosAgent(e.agent)?.name ?? e.agent;
+                        const agentLabel = getAiosAgent(e.agent)?.name ?? e.agent;
                         return (
                           <li key={e.id} className="rounded-lg border p-3">
                             <p className="text-sm font-medium">{e.title}</p>
@@ -140,7 +193,7 @@ export default async function JuliusBrainPage() {
                               </p>
                             ) : null}
                             <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              <span>{t("by", { agent: agentName })}</span>
+                              <span>{t("by", { agent: agentLabel })}</span>
                               <span aria-hidden="true">·</span>
                               <span>{formatDate(e.created_at, locale)}</span>
                             </p>

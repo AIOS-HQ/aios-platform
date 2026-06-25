@@ -33,6 +33,26 @@
       "title": "Aún no hay empresa",
       "description": "Crea una empresa para empezar a construir su cerebro organizativo.",
       "cta": "Ir a empresas"
+    },
+    "reflection": {
+      "title": "Reflexión de Harmony",
+      "subtitle": "Lo que Harmony ha aprendido de cómo ejecuta realmente la empresa, fundamentado en trabajo, delegaciones, aprobaciones y resultados reales.",
+      "empty": "Harmony reflexionará aquí a medida que se acumulen trabajo, delegaciones y resultados.",
+      "reflect": "Reflexionar y guardar en Julius",
+      "saved": "Reflexión de Harmony guardada en Julius.",
+      "upToDate": "Julius ya tiene la reflexión de hoy.",
+      "failed": "No se pudo guardar la reflexión. Inténtalo de nuevo.",
+      "dim": {
+        "patterns": "Patrones",
+        "successes": "Éxitos",
+        "failures": "Fallos",
+        "delegation": "Delegación",
+        "approvals": "Aprobaciones",
+        "habits": "Hábitos",
+        "preferences": "Preferencias",
+        "recommendations": "Recomendaciones",
+        "lessons": "Lecciones"
+      }
     }
   }
 }

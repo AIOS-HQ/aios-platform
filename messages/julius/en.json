@@ -33,6 +33,26 @@
       "title": "No company yet",
       "description": "Create a company to start building its organizational brain.",
       "cta": "Go to companies"
+    },
+    "reflection": {
+      "title": "Harmony's reflection",
+      "subtitle": "What Harmony has learned from how the company actually executes — grounded in real work, delegations, approvals, and outcomes.",
+      "empty": "Harmony will reflect here as work, delegations, and outcomes accumulate.",
+      "reflect": "Reflect & save to Julius",
+      "saved": "Saved Harmony's reflection to Julius.",
+      "upToDate": "Julius already has today's reflection.",
+      "failed": "Couldn't save the reflection. Please try again.",
+      "dim": {
+        "patterns": "Patterns",
+        "successes": "Successes",
+        "failures": "Failures",
+        "delegation": "Delegation",
+        "approvals": "Approvals",
+        "habits": "Habits",
+        "preferences": "Preferences",
+        "recommendations": "Recommendations",
+        "lessons": "Lessons"
+      }
     }
   }
 }
