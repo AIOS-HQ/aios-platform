@@ -160,6 +160,7 @@
     "comms": "Communications",
     "code": "Code Dept",
     "content": "Content",
+    "integrations": "Integrations",
     "auditor": "Auditor",
     "pendingCount": "{count} pending",
     "sections": {

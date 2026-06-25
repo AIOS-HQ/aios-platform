@@ -12,8 +12,9 @@ import { defaultLocale, isLocale, LOCALE_COOKIE } from "./config";
  *
  * Messages are composed from the base catalog plus feature-scoped catalogs
  * (the marketing `landing` namespace, the `pages` catalog — FAQ, Help Center
- * and onboarding — and the `julius` Company Brain catalog), merged here so each
- * surface can own its copy without bloating the base file.
+ * and onboarding — the `julius` Company Brain catalog, and the `integrations`
+ * Integration Center catalog), merged here so each surface can own its copy
+ * without bloating the base file.
  */
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
@@ -24,6 +25,10 @@ export default getRequestConfig(async () => {
   const landing = (await import(`../../messages/landing/${locale}.json`)).default;
   const pages = (await import(`../../messages/pages/${locale}.json`)).default;
   const julius = (await import(`../../messages/julius/${locale}.json`)).default;
+  const integrations = (await import(`../../messages/integrations/${locale}.json`)).default;
 
-  return { locale, messages: { ...base, ...landing, ...pages, ...julius } };
+  return {
+    locale,
+    messages: { ...base, ...landing, ...pages, ...julius, ...integrations },
+  };
 });
