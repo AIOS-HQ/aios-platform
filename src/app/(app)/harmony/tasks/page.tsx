@@ -4,6 +4,7 @@ import { listTasks } from "@/lib/data/tasks";
 import { listGoals } from "@/lib/data/goals";
 import { PageHeader } from "@/components/shared/page-header";
 import { TaskList } from "@/components/harmony/tasks/task-list";
+import { AskHarmonyCard } from "@/components/harmony/operator/ask-harmony-card";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("tasks");
@@ -16,6 +17,7 @@ export default async function TasksPage() {
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
+      <AskHarmonyCard />
       <TaskList tasks={tasks} goals={goals} />
     </>
   );

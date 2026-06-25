@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { listGoals } from "@/lib/data/goals";
 import { PageHeader } from "@/components/shared/page-header";
 import { GoalList } from "@/components/harmony/goals/goal-list";
+import { AskHarmonyCard } from "@/components/harmony/operator/ask-harmony-card";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("goals");
@@ -15,6 +16,7 @@ export default async function GoalsPage() {
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
+      <AskHarmonyCard />
       <GoalList goals={goals} />
     </>
   );
