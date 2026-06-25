@@ -12,4 +12,16 @@ export class MockProvider implements AIProvider {
   async generate(prompt: string): Promise<string> {
     return `Mock assistant — configure AI_PROVIDER and an API key to enable AI responses. You said: "${prompt.slice(0, 200)}"`;
   }
+
+  /**
+   * Streaming variant: chunks the canned reply word-by-word so the UI can
+   * exercise the streaming path end-to-end with no API key configured.
+   */
+  async *generateStream(prompt: string): AsyncGenerator<string> {
+    const full = await this.generate(prompt);
+    for (const chunk of full.match(/\S+\s*/g) ?? [full]) {
+      yield chunk;
+      await new Promise((r) => setTimeout(r, 12));
+    }
+  }
 }
