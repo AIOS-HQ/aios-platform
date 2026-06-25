@@ -1,0 +1,95 @@
+{
+  "oversight": {
+    "metaTitle": "Supervisión",
+    "title": "Supervisión",
+    "subtitle": "Tu centro de supervisión en vivo. Observa cómo Harmony opera tu negocio y, cuando quieras, interviene, enséñale o toma el control.",
+    "updated": "Actualizado {time}",
+    "health": {
+      "attention": "Necesita tu atención",
+      "steady": "Operando con normalidad",
+      "calm": "Todo en orden",
+      "attentionHint": "Hay algunas cosas esperándote.",
+      "steadyHint": "Harmony está operando el negocio; nada depende de ti ahora mismo.",
+      "calmHint": "Nada requiere tu atención por ahora.",
+      "reasons": {
+        "highRisk": "{count} aprobación(es) de alto riesgo en espera",
+        "blocked": "{count} elemento(s) de trabajo bloqueado(s)",
+        "pendingApprovals": "{count} aprobación(es) esperándote",
+        "heldResponses": "{count} respuesta(s) retenida(s) para tu aprobación"
+      },
+      "statsTitle": "Ejecución reciente",
+      "stats": {
+        "done": "Completadas",
+        "blocked": "Bloqueadas",
+        "delegations": "Delegaciones",
+        "pendingApprovals": "Aprobaciones pendientes",
+        "lessons": "Lecciones aprendidas"
+      }
+    },
+    "stat": {
+      "conversations": "Conversaciones activas",
+      "approvals": "Aprobaciones pendientes",
+      "escalations": "Escalaciones",
+      "work": "Trabajo en curso",
+      "specialists": "Especialistas activos"
+    },
+    "conversations": {
+      "title": "Conversaciones en vivo",
+      "body": "Todos los canales, en un solo lugar.",
+      "active": "{count} activas",
+      "pending": "{count} pendientes",
+      "held": "{count} respuesta(s) retenida(s) para tu aprobación",
+      "channels": "Canales conectados",
+      "noChannels": "Aún no hay canales conectados.",
+      "none": "Aún no hay conversaciones.",
+      "open": "Supervisar conversaciones"
+    },
+    "escalations": {
+      "title": "Escalaciones",
+      "subtitle": "Lo que más te necesita ahora mismo.",
+      "none": "Nada escalado. Estás al día.",
+      "sourceApproval": "Aprobación de alto riesgo",
+      "sourceWork": "Trabajo bloqueado",
+      "review": "Revisar"
+    },
+    "actions": {
+      "title": "Acciones de IA actuales",
+      "subtitle": "Lo que Harmony y tus especialistas están haciendo.",
+      "none": "Sin actividad reciente.",
+      "view": "Ver toda la actividad"
+    },
+    "automations": {
+      "title": "Automatizaciones",
+      "active": "Harmony está operando las automatizaciones",
+      "paused": "Las automatizaciones están en pausa",
+      "mode": "Modo de autonomía",
+      "modeOff": "Desactivado — Harmony solo aconseja",
+      "modeAdvisory": "Consultivo — requiere aprobación",
+      "modeBounded": "Acotado — automático dentro de límites",
+      "killSwitch": "Interruptor de emergencia activado",
+      "lockdown": "Bloqueo activo",
+      "manage": "Gestionar automatizaciones"
+    },
+    "workforce": {
+      "title": "Equipo de IA",
+      "active": "{count} activos",
+      "paused": "{count} en pausa",
+      "total": "{count} especialistas",
+      "manage": "Ver equipo"
+    },
+    "work": {
+      "title": "Trabajo y delegaciones",
+      "inProgress": "{count} en curso",
+      "delegations": "{count} delegadas",
+      "pending": "{count} pendientes",
+      "blocked": "{count} bloqueadas",
+      "manage": "Ver trabajo"
+    },
+    "actor": {
+      "founder": "Tú",
+      "agent": "Especialista",
+      "department": "Departamento",
+      "system": "Sistema"
+    }
+  }
+}
