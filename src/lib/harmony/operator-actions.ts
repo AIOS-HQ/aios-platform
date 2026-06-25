@@ -422,3 +422,87 @@ export async function confirmOperatorAction(
     actionTaken: { type: "goal_created", label: clean },
   };
 }
+
+/**
+ * Streaming Harmony — Phase 2 helpers.
+ *
+ * These power the SSE chat route (src/app/api/harmony/chat/stream). They reuse
+ * the exact routing rules above so there is ONE canonical brain: only free-form
+ * generative replies stream; every structured / rule-based / delegation turn
+ * stays on `runOperator` (the confirm-before-write, non-streaming path). The SSE
+ * route falls back to `runOperator` whenever a turn is not streamable.
+ */
+
+/**
+ * True when a turn should STREAM — a free-form "general" reply with a real
+ * provider configured. Mirrors `runOperator`'s gate to its free-form branch:
+ * structured intents (create task/goal), rule-based intents (summarize /
+ * suggest), the business/founder delegation prefixes, and the no-provider case
+ * all return false and stay on the canonical non-streaming path. No writes; the
+ * intent classifier is synchronous and pure.
+ */
+export async function isStreamableHarmonyTurn(input: string): Promise<boolean> {
+  const text = (input ?? "").trim();
+  if (!text || text.length > LIMITS.operatorInput) return false;
+  if (!isRealProviderConfigured()) return false;
+  const lower = text.toLowerCase();
+  if (
+    lower.startsWith("business:") ||
+    lower.startsWith("company:") ||
+    lower.startsWith("harmony:") ||
+    lower.includes("repo:")
+  ) {
+    return false;
+  }
+  return detectIntent(text).intent === "general";
+}
+
+/**
+ * Begin a streamed free-form Harmony turn: save the inbound message and build
+ * the Julius-aware system prompt, returning { system, prompt } for the SSE
+ * route to stream. Returns null when streaming can't be set up (empty / too
+ * long / no conversation) so the caller falls back to `runOperator`. The reply
+ * itself is persisted by `finalizeHarmonyStream` once the stream completes.
+ */
+export async function beginHarmonyStream(
+  input: string,
+): Promise<{ system: string; prompt: string } | null> {
+  const to = await getTranslations("operator");
+  const user = await requireUser();
+  const text = (input ?? "").trim();
+  if (!text || text.length > LIMITS.operatorInput) return null;
+
+  const supabase = await createClient();
+  const conversationId = await getOrCreateOperatorConversation(supabase, user.id);
+  if (!conversationId) return null;
+
+  await saveOperatorMessage(supabase, user.id, conversationId, "inbound", text);
+  const system = await harmonySystemPrompt(to("system"), user.id);
+  return { system, prompt: text };
+}
+
+/**
+ * Persist a streamed Harmony reply once the stream completes and return the
+ * canonical OperatorResult. Empty output degrades to the transparent
+ * capabilities message, matching the non-streaming path.
+ */
+export async function finalizeHarmonyStream(
+  fullText: string,
+): Promise<OperatorResult> {
+  const to = await getTranslations("operator");
+  const user = await requireUser();
+  const reply = (fullText ?? "").trim() || to("capabilities");
+
+  const supabase = await createClient();
+  const conversationId = await getOrCreateOperatorConversation(supabase, user.id);
+  if (conversationId) {
+    await saveOperatorMessage(
+      supabase,
+      user.id,
+      conversationId,
+      "outbound",
+      reply,
+    );
+  }
+  return { intent: "general", reply };
+}
