@@ -7,7 +7,7 @@ import {
   type HarmonyActivityItem,
 } from "@/lib/harmony/collaboration";
 import { getAgentIcon } from "@/lib/workforce/agent-icons";
-import { HarmonyMark } from "@/components/brand/harmony-logo";
+import { HarmonyAvatar } from "@/components/brand/harmony-logo";
 
 /**
  * Harmony Live Orchestration strip — Harmony narrates the genuine collaboration
@@ -47,7 +47,7 @@ export function HarmonyCollaboration() {
   return (
     <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
       <p className="flex items-center gap-1.5 text-xs font-medium">
-        <HarmonyMark className="size-4" title="Harmony" />
+        <HarmonyAvatar className="size-4" title="Harmony" />
         {t("coordinating")}
       </p>
       <ul className="mt-1.5 space-y-1">
