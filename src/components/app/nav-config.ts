@@ -66,9 +66,9 @@ export type NavItem = {
  * - "founder": the Founder OS / Command Center — workforce, autonomy, review,
  *   approvals, comms, content, integrations, code, outcomes, etc. Visible only
  *   to founders/admins.
- * - "customer": the customer's own tool pages (tasks, goals, notes). Visible
- *   only to non-founder customers. Founders reach the same capabilities by
- *   asking Harmony (the single operational interface), so these are
+ * - "customer": the customer's own surfaces (guided setup, tasks, goals, notes).
+ *   Visible only to non-founder customers. Founders reach the same capabilities
+ *   by asking Harmony (the single operational interface), so these are
  *   intentionally absent from the founder sidebar.
  * - "all": Harmony herself, the Dashboard (the executive/home surface), and
  *   settings — shown to every authenticated user, founders included.
@@ -96,7 +96,7 @@ export type NavSection = {
  * Center is the operational workspace — in that order. Harmony (operator) and
  * the Dashboard are audience "all" and sit at the top for everyone. The
  * "command" group is the Founder OS (audience "founder"). The "personal" group
- * is the customer's own tool pages (audience "customer"); founders don't see
+ * is the customer's own surfaces (audience "customer"); founders don't see
  * those in the sidebar because they ask Harmony for today's briefing,
  * objectives, operational status, work management, tasks, goals, and notes
  * instead — the Harmony workspace surfaces all of it. Briefing / Objectives /
@@ -134,6 +134,7 @@ export const navSections: NavSection[] = [
     titleKey: "personal",
     audience: "customer",
     items: [
+      { href: "/harmony/onboarding", labelKey: "onboarding", icon: "Sparkles" },
       { href: "/harmony/tasks", labelKey: "tasks", icon: "ListTodo" },
       { href: "/harmony/goals", labelKey: "goals", icon: "Target" },
       { href: "/harmony/notes", labelKey: "notes", icon: "StickyNote" },

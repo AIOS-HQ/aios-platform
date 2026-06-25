@@ -1,0 +1,79 @@
+{
+  "onboarding": {
+    "metaTitle": "Empieza con Harmony",
+    "progress": "Paso {n} de {total}",
+    "welcome": {
+      "title": "Hola, soy Harmony.",
+      "body": "Te ayudaré a conectar tu negocio con AIOS en unos minutos. Te haré algunas preguntas sobre cómo trabajas, te recomendaré las herramientas adecuadas y las configuraré por ti, sin que tengas que hacer nada técnico.",
+      "cta": "Empecemos"
+    },
+    "business": {
+      "title": "Cuéntame sobre tu negocio",
+      "body": "Unas preguntas rápidas para recomendarte la configuración adecuada. No hay respuestas incorrectas.",
+      "q": {
+        "type": "¿Qué tipo de negocio tienes?",
+        "employees": "¿Cuántas personas trabajan contigo?",
+        "channels": "¿Cómo suelen contactarte tus clientes?",
+        "crm": "¿Ya usas un CRM?",
+        "payments": "¿Aceptas pagos en línea?",
+        "devices": "¿Tienes impresoras o escáneres que quieras integrar?",
+        "languages": "¿En qué idiomas atiendes a tus clientes?",
+        "ai": "¿Qué proveedores de IA te gustaría usar?"
+      }
+    },
+    "businessType": {
+      "restaurant": "Restaurante",
+      "professional_office": "Oficina profesional",
+      "ecommerce": "Comercio electrónico",
+      "medical": "Consultorio médico",
+      "construction": "Construcción",
+      "retail": "Comercio minorista",
+      "agency": "Agencia",
+      "other": "Otra cosa"
+    },
+    "channel": {
+      "whatsapp": "WhatsApp",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "web_chat": "Chat del sitio web",
+      "social": "Redes sociales"
+    },
+    "language": {
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "yes": "Sí",
+    "no": "No",
+    "recommend": {
+      "title": "Esto es lo que te recomiendo",
+      "body": "Según tu negocio, estas son las herramientas que conectaría primero. Conecta las que quieras ahora; siempre puedes añadir más después.",
+      "empty": "Cuéntame un poco más sobre tu negocio y te recomendaré las herramientas adecuadas."
+    },
+    "group": {
+      "communication": "Habla con tus clientes",
+      "business": "Gestiona el negocio",
+      "calendar": "Calendarios",
+      "device": "Dispositivos de oficina",
+      "ai": "Proveedores de IA"
+    },
+    "status": {
+      "connected": "Conectado",
+      "comingSoon": "Disponible pronto"
+    },
+    "connect": "Conectar",
+    "review": {
+      "title": "Revisa y confirma",
+      "body": "Esta es la configuración que te recomiendo. Conecta el resto cuando estés listo.",
+      "permissions": "Solo solicito los permisos que cada herramienta necesita para funcionar, y puedes desconectar lo que quieras en cualquier momento desde el Centro de Integraciones."
+    },
+    "done": {
+      "title": "Todo listo",
+      "body": "Yo me encargo a partir de aquí, coordinando tus herramientas en segundo plano. Pregúntame lo que quieras, cuando quieras.",
+      "openHarmony": "Abrir Harmony",
+      "openIntegrations": "Ver integraciones"
+    },
+    "back": "Atrás",
+    "next": "Continuar",
+    "finish": "Finalizar"
+  }
+}
