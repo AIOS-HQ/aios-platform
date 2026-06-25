@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getHarmonyAwareness } from "@/lib/harmony/awareness";
-import { HarmonyMark } from "@/components/brand/harmony-logo";
+import { HarmonyAvatar } from "@/components/brand/harmony-logo";
 import { Card, CardContent } from "@/components/ui/card";
 
 /**
@@ -18,6 +18,9 @@ import { Card, CardContent } from "@/components/ui/card";
  *   single operational interface — with live counts as badges. Labels reuse the
  *   `nav` namespace so the names match what left the sidebar (no new strings).
  * - Customer: status chips (shown only when they have a value), unchanged.
+ *
+ * Harmony's presence here uses the canonical Harmony avatar (interaction
+ * identity), not the brand wordmark.
  */
 export async function HarmonyAwareness() {
   const t = await getTranslations("operator.awareness");
@@ -48,7 +51,7 @@ export async function HarmonyAwareness() {
       <Card className="mb-4 border-primary/30 bg-primary/5">
         <CardContent className="p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <HarmonyMark className="size-5" title="Harmony" />
+            <HarmonyAvatar className="size-5" title="Harmony" />
             {t("title")}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -102,7 +105,7 @@ export async function HarmonyAwareness() {
     <Card className="mb-4 border-primary/30 bg-primary/5">
       <CardContent className="flex flex-wrap items-center gap-3 p-4">
         <span className="flex items-center gap-2 text-sm font-medium">
-          <HarmonyMark className="size-5" title="Harmony" />
+          <HarmonyAvatar className="size-5" title="Harmony" />
           {t("title")}
         </span>
         {visible.length === 0 ? (

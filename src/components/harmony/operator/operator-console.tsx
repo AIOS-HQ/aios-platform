@@ -12,7 +12,7 @@ import {
 } from "@/lib/harmony/operator-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { HarmonyMark } from "@/components/brand/harmony-logo";
+import { HarmonyAvatar } from "@/components/brand/harmony-logo";
 import { cn } from "@/lib/utils";
 import type { OperatorResult } from "@/lib/ai/types";
 
@@ -31,8 +31,9 @@ const BOTTOM_THRESHOLD = 80;
 /**
  * The canonical Harmony chat. One implementation, shared across founder,
  * personal, business, and enterprise experiences. Harmony — the AI Chief of
- * Staff — owns the conversation; the official Harmony mark is shown while she
- * responds and thinks (no generic sparkle/star).
+ * Staff — owns the conversation; the canonical Harmony avatar is shown beside
+ * every reply and while she thinks (the avatar is Harmony's interaction
+ * identity — never the brand wordmark inside a conversation).
  */
 export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const t = useTranslations("operator");
@@ -171,7 +172,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
     <div className="flex h-[calc(100dvh-13rem)] min-h-[26rem] flex-col rounded-xl border bg-card">
       {isMock && (
         <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
-          <HarmonyMark className="size-3.5 shrink-0" />
+          <HarmonyAvatar className="size-3.5 shrink-0" />
           {t("mockBanner")}
         </div>
       )}
@@ -185,7 +186,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-primary/10">
-              <HarmonyMark className="size-7" title="Harmony" />
+              <HarmonyAvatar className="size-9" title="Harmony" />
             </span>
             <div className="space-y-1">
               <p className="font-medium">{t("emptyTitle")}</p>
@@ -216,7 +217,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
               )}
             >
               {m.role === "assistant" && (
-                <HarmonyMark
+                <HarmonyAvatar
                   className="mt-0.5 size-6 shrink-0"
                   title="Harmony"
                 />
@@ -277,7 +278,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
         )}
         {pending && (
           <div className="flex items-start gap-2">
-            <HarmonyMark className="mt-0.5 size-6 shrink-0" title="Harmony" />
+            <HarmonyAvatar className="mt-0.5 size-6 shrink-0" title="Harmony" />
             <div className="flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-2 text-sm text-muted-foreground">
               <span className="flex gap-1" aria-hidden="true">
                 <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
