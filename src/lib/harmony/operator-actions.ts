@@ -7,11 +7,38 @@ import { requireUser } from "@/lib/auth/user";
 import { detectIntent } from "@/lib/ai/intents";
 import { getProvider, isRealProviderConfigured } from "@/lib/ai/provider";
 import { buildRecommendations } from "@/lib/harmony/advisor";
+import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
+
+/**
+ * Harmony reads the shared Julius brain before composing a free-form reply, so
+ * she always responds with the latest cross-workforce context (objectives,
+ * decisions, recent activity, knowledge). Company-scoped and fail-open: any
+ * issue resolving context simply falls back to the base system prompt.
+ */
+async function harmonySystemPrompt(base: string, userId: string): Promise<string> {
+  try {
+    const companyId = await resolvePrimaryCompanyId();
+    if (!companyId) return base;
+    const a = await getJuliusAwareness(userId, companyId);
+    if (a.total === 0) return base;
+    const fmt = (items: { title: string }[]) =>
+      items.slice(0, 5).map((i) => `- ${i.title}`).join("\n");
+    const blocks: string[] = [];
+    if (a.objectives.length) blocks.push(`Objectives:\n${fmt(a.objectives)}`);
+    if (a.decisions.length) blocks.push(`Recent decisions:\n${fmt(a.decisions)}`);
+    if (a.activities.length) blocks.push(`Recent activity:\n${fmt(a.activities)}`);
+    if (a.knowledge.length) blocks.push(`Knowledge:\n${fmt(a.knowledge)}`);
+    if (!blocks.length) return base;
+    return `${base}\n\nShared context from Julius (the AIOS organizational brain) — use it to inform your answer:\n${blocks.join("\n\n")}`;
+  } catch {
+    return base;
+  }
+}
 
 async function getOrCreateOperatorConversation(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: existing } = await supabase
@@ -157,7 +184,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   if (!conversationId) {
     return { intent: "general", reply: to("capabilities") };
   }
-  
+
   await saveOperatorMessage(
     supabase,
     user.id,
@@ -223,7 +250,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
       lowerText.includes("repo:")
     ) {
       const formData = new FormData();
-    
+
 
 const { data: company } = await supabase
   .from("companies")
@@ -288,7 +315,7 @@ if (intent === "create_goal") {
   };
 }
 
-  
+
 
   if (intent === "summarize_notes") {
     const { data } = await supabase
@@ -304,7 +331,10 @@ if (intent === "create_goal") {
       const prompt = `${to("summaryPrompt")}\n\n${notes
         .map((n, i) => `${i + 1}. ${n.title}: ${n.content}`)
         .join("\n")}`;
-      const reply = await getProvider().generate(prompt, to("system"));
+      const reply = await getProvider().generate(
+        prompt,
+        await harmonySystemPrompt(to("system"), user.id),
+      );
  return persistOperatorReply(
    supabase,
    user.id,
@@ -339,7 +369,10 @@ if (intent === "create_goal") {
 
   // Free-form question.
   if (isRealProviderConfigured()) {
-    const reply = await getProvider().generate(text, to("system"));
+    const reply = await getProvider().generate(
+      text,
+      await harmonySystemPrompt(to("system"), user.id),
+    );
     return persistOperatorReply(
       supabase,
       user.id,
