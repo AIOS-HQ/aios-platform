@@ -4,21 +4,31 @@
  * Client-safe metadata describing every connector Harmony can use, the
  * capabilities each exposes, the risk class of each capability (which governs
  * autonomous vs approval-gated execution), and the credentials each will
- * eventually require. Source of truth for the Connections dashboard, the
+ * eventually require. Source of truth for the AIOS Integration Center, the
  * autonomy policy engine, and the Approval Center.
  *
  * Contains NO secrets — only the NAMES of env vars a founder will set later.
  * No live OAuth happens here. The legacy catalog in `catalog.ts` still powers
  * /settings/integrations; this framework is additive.
+ *
+ * Connectors marked `authorizable: true` have a live OAuth flow wired
+ * (/api/integrations/[provider]/connect). The remaining entries are the
+ * scalable catalog the Integration Center renders as "coming soon" until their
+ * connection flow + capabilities are implemented in a later phase (most need
+ * provider credentials, which are a founder infrastructure action).
  */
 
-export type ConnectorAuth = "oauth2" | "api_key" | "webhook";
+export type ConnectorAuth = "oauth2" | "api_key" | "webhook" | "device";
 export type ConnectorCategory =
   | "development"
   | "communication"
   | "productivity"
   | "data"
-  | "social";
+  | "social"
+  | "business"
+  | "storage"
+  | "ai"
+  | "office_devices";
 export type OAuthFamily = "google" | "github" | "slack";
 
 /**
@@ -260,12 +270,260 @@ export const CONNECTORS: ConnectorDef[] = [
       { id: "send_event", mode: "write", risk: "routine" },
     ],
   },
+  // ---- Integration Platform catalog (Phase 1 foundation) ------------------
+  // Scalable catalog the Integration Center renders. `capabilities` and live
+  // OAuth are implemented per-connector in later phases (most require provider
+  // credentials — a founder infrastructure action), so these are not yet
+  // `authorizable`.
+  //
+  // Communication
+  {
+    id: "whatsapp",
+    name: "WhatsApp Business",
+    category: "communication",
+    auth: "oauth2",
+    initials: "WA",
+    docsUrl: "https://developers.facebook.com/docs/whatsapp",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "outlook",
+    name: "Outlook",
+    category: "communication",
+    auth: "oauth2",
+    initials: "OL",
+    docsUrl: "https://learn.microsoft.com/graph/outlook-mail-concept-overview",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "messenger",
+    name: "Messenger",
+    category: "communication",
+    auth: "oauth2",
+    initials: "Me",
+    docsUrl: "https://developers.facebook.com/docs/messenger-platform",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    category: "communication",
+    auth: "oauth2",
+    initials: "IG",
+    docsUrl: "https://developers.facebook.com/docs/instagram-platform",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "teams",
+    name: "Microsoft Teams",
+    category: "communication",
+    auth: "oauth2",
+    initials: "TM",
+    docsUrl: "https://learn.microsoft.com/graph/teams-concept-overview",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  // Business
+  {
+    id: "stripe",
+    name: "Stripe",
+    category: "business",
+    auth: "oauth2",
+    initials: "St",
+    docsUrl: "https://stripe.com/docs/connect/oauth-reference",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "shopify",
+    name: "Shopify",
+    category: "business",
+    auth: "oauth2",
+    initials: "Sh",
+    docsUrl: "https://shopify.dev/docs/apps/auth",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "hubspot",
+    name: "HubSpot",
+    category: "business",
+    auth: "oauth2",
+    initials: "HS",
+    docsUrl: "https://developers.hubspot.com/docs/api/oauth-quickstart-guide",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "salesforce",
+    name: "Salesforce",
+    category: "business",
+    auth: "oauth2",
+    initials: "SF",
+    docsUrl: "https://developer.salesforce.com/docs",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "quickbooks",
+    name: "QuickBooks",
+    category: "business",
+    auth: "oauth2",
+    initials: "QB",
+    docsUrl: "https://developer.intuit.com/app/developer/qbo/docs/develop",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  // Productivity
+  {
+    id: "google_workspace",
+    name: "Google Workspace",
+    category: "productivity",
+    auth: "oauth2",
+    oauthFamily: "google",
+    initials: "GW",
+    docsUrl: "https://developers.google.com/workspace",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "microsoft_365",
+    name: "Microsoft 365",
+    category: "productivity",
+    auth: "oauth2",
+    initials: "M3",
+    docsUrl: "https://learn.microsoft.com/graph/overview",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "outlook_calendar",
+    name: "Outlook Calendar",
+    category: "productivity",
+    auth: "oauth2",
+    initials: "OC",
+    docsUrl: "https://learn.microsoft.com/graph/api/resources/calendar",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  // Storage
+  {
+    id: "google_drive",
+    name: "Google Drive",
+    category: "storage",
+    auth: "oauth2",
+    oauthFamily: "google",
+    initials: "GD",
+    docsUrl: "https://developers.google.com/drive",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "dropbox",
+    name: "Dropbox",
+    category: "storage",
+    auth: "oauth2",
+    initials: "Db",
+    docsUrl: "https://www.dropbox.com/developers/documentation",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  // AI
+  {
+    id: "openai",
+    name: "OpenAI",
+    category: "ai",
+    auth: "api_key",
+    initials: "AI",
+    docsUrl: "https://platform.openai.com/docs",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    category: "ai",
+    auth: "api_key",
+    initials: "An",
+    docsUrl: "https://docs.anthropic.com",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "gemini",
+    name: "Gemini",
+    category: "ai",
+    auth: "api_key",
+    initials: "Ge",
+    docsUrl: "https://ai.google.dev/docs",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  // Office Devices (connected over the local network — not OAuth/API)
+  {
+    id: "printer",
+    name: "Printer",
+    category: "office_devices",
+    auth: "device",
+    initials: "Pr",
+    docsUrl: "https://www.pwg.org/ipp/",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "scanner",
+    name: "Scanner",
+    category: "office_devices",
+    auth: "device",
+    initials: "Sc",
+    docsUrl: "https://www.pwg.org/ipp/",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "fax",
+    name: "Fax",
+    category: "office_devices",
+    auth: "device",
+    initials: "Fx",
+    docsUrl: "https://www.pwg.org/ipp/",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "multifunction_device",
+    name: "Multifunction Device",
+    category: "office_devices",
+    auth: "device",
+    initials: "MF",
+    docsUrl: "https://www.pwg.org/ipp/",
+    requiredEnv: [],
+    capabilities: [],
+  },
+  {
+    id: "network_storage",
+    name: "Network Storage",
+    category: "office_devices",
+    auth: "device",
+    initials: "NS",
+    docsUrl: "https://en.wikipedia.org/wiki/Network-attached_storage",
+    requiredEnv: [],
+    capabilities: [],
+  },
 ];
 
 export const CONNECTOR_CATEGORIES: ConnectorCategory[] = [
-  "development",
   "communication",
+  "business",
   "productivity",
+  "storage",
+  "ai",
+  "office_devices",
+  "development",
   "data",
   "social",
 ];

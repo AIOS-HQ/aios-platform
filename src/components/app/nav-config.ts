@@ -11,6 +11,7 @@ import {
   ListChecks,
   ListTodo,
   MessageSquare,
+  Plug,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -39,6 +40,7 @@ export const NAV_ICONS = {
   ListChecks,
   ListTodo,
   MessageSquare,
+  Plug,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -62,8 +64,8 @@ export type NavItem = {
 /**
  * Who a nav section is for.
  * - "founder": the Founder OS / Command Center — workforce, autonomy, review,
- *   approvals, comms, content, code, outcomes, etc. Visible only to
- *   founders/admins.
+ *   approvals, comms, content, integrations, code, outcomes, etc. Visible only
+ *   to founders/admins.
  * - "customer": the customer's own tool pages (tasks, goals, notes). Visible
  *   only to non-founder customers. Founders reach the same capabilities by
  *   asking Harmony (the single operational interface), so these are
@@ -123,6 +125,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/activity", labelKey: "activity", icon: "Activity" },
       { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
       { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
+      { href: "/harmony/integrations", labelKey: "integrations", icon: "Plug" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
     ],

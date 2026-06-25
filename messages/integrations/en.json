@@ -1,0 +1,39 @@
+{
+  "integrations": {
+    "title": "Integration Center",
+    "subtitle": "Securely connect AIOS to the tools you already use.",
+    "introTitle": "What integrations do",
+    "intro": "Integrations connect AIOS to external systems. Communications operates your conversations and Content publishes your marketing — both run on the services you connect here. Harmony coordinates everything; you connect once.",
+    "connectedSummary": "{n} connected",
+    "category": {
+      "communication": "Communication",
+      "business": "Business",
+      "productivity": "Productivity",
+      "storage": "Storage",
+      "ai": "AI",
+      "office_devices": "Office Devices",
+      "development": "Development",
+      "data": "Data",
+      "social": "Social"
+    },
+    "auth": {
+      "oauth2": "Secure sign-in",
+      "api_key": "Managed key",
+      "webhook": "Webhook",
+      "device": "Local device"
+    },
+    "status": {
+      "connected": "Connected",
+      "expired": "Reauthorize",
+      "available": "Available",
+      "comingSoon": "Coming soon"
+    },
+    "capabilities": "{read} read · {write} write",
+    "noCapabilitiesYet": "Capabilities activate when connected.",
+    "lastConnected": "Connected {date}",
+    "expiredHint": "Authorization expired — reconnect to resume.",
+    "connect": "Connect",
+    "reauthorize": "Reauthorize",
+    "docs": "Docs"
+  }
+}
