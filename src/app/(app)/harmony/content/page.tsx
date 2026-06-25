@@ -29,6 +29,7 @@ import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { GenerateContentDialog } from "@/components/harmony/content/generate-dialog";
 import { ContentSubnav } from "@/components/harmony/content/content-subnav";
 import { CatalystWorkspace } from "@/components/harmony/content/catalyst-workspace";
+import { DiscoveredConnectors } from "@/components/integrations/discovered-connectors";
 import { InlineEmpty } from "@/components/shared/inline-empty";
 import { ActionButton } from "@/components/shared/action-button";
 import { cn } from "@/lib/utils";
@@ -123,6 +124,8 @@ export default async function ContentDepartmentPage({
       <ContentSubnav active="hub" />
 
       <CatalystWorkspace />
+
+      <DiscoveredConnectors kind="publishers" />
 
       {/* Companies still missing a Content department → one-click enable. */}
       {companiesWithout.length > 0 && (

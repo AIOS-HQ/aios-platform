@@ -34,6 +34,14 @@
     "expiredHint": "La autorización caducó — reconecta para reanudar.",
     "connect": "Conectar",
     "reauthorize": "Reautorizar",
-    "docs": "Docs"
+    "docs": "Docs",
+    "discovery": {
+      "channelsTitle": "Conectado desde el Centro de Integraciones",
+      "channelsHint": "Los canales que conectas en el Centro de Integraciones aparecen aquí automáticamente — Comunicaciones los usa sin configuración adicional.",
+      "publishersTitle": "Conectado desde el Centro de Integraciones",
+      "publishersHint": "Las plataformas de publicación que conectas en el Centro de Integraciones aparecen aquí automáticamente — Contenido publica en ellas sin configuración adicional.",
+      "empty": "Aún no hay servicios conectados.",
+      "manage": "Abrir Centro de Integraciones"
+    }
   }
 }
