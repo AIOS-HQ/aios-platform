@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConnectorGlyph } from "@/components/brand/brand-icons";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("integrations");
@@ -110,9 +111,7 @@ export default async function IntegrationsPage() {
                   return (
                     <Card key={c.id}>
                       <CardHeader className="flex-row items-center gap-3 space-y-0">
-                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border bg-muted text-sm font-semibold">
-                          {c.initials}
-                        </span>
+                        <ConnectorGlyph id={c.id} initials={c.initials} />
                         <div className="min-w-0 flex-1">
                           <CardTitle className="truncate text-base">{c.name}</CardTitle>
                           <CardDescription className="text-xs">

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ContentEngineIcon } from "@/components/brand/brand-icons";
 import { WorkStatusSelect } from "@/components/harmony/os/work-status-select";
 import { GenerateContentDialog } from "@/components/harmony/content/generate-dialog";
 import { ContentSubnav } from "@/components/harmony/content/content-subnav";
@@ -317,7 +318,10 @@ export default async function ContentDepartmentPage({
                   <ul className="flex flex-wrap gap-2">
                     {contentEnginesByCategory(cat).map((e) => (
                       <li key={e.key}>
-                        <Badge variant="outline">{e.name}</Badge>
+                        <Badge variant="outline" className="gap-1.5">
+                          <ContentEngineIcon engineKey={e.key} className="size-3.5" />
+                          {e.name}
+                        </Badge>
                       </li>
                     ))}
                   </ul>
