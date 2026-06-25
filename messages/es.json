@@ -1052,6 +1052,13 @@
       "goals": "Objetivos activos",
       "allClear": "Todo en orden — nada requiere tu atención ahora."
     },
+    "collab": {
+      "coordinating": "Harmony está coordinando",
+      "working": "está trabajando en",
+      "completed": "completó",
+      "blocked": "está bloqueado en",
+      "awaiting": "esperando tu aprobación en"
+    },
     "placeholder": "Pregúntame lo que sea, o dime qué hacer…",
     "quickPlaceholder": "Crea una tarea, fija un objetivo…",
     "inputLabel": "Escribir a Harmony",
