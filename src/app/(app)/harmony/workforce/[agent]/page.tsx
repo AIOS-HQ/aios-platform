@@ -22,6 +22,7 @@ import { AgentChat } from "@/components/harmony/workforce/agent-chat";
 import { AgentObjectives } from "@/components/harmony/workforce/agent-objectives";
 import { AgentRecommendations } from "@/components/harmony/workforce/agent-recommendations";
 import { AmbassadorCommsCard } from "@/components/harmony/workforce/ambassador-comms-card";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
@@ -130,9 +131,7 @@ export default async function AgentProfilePage({
         {/* Identity + live status */}
         <Card>
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-            <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl border bg-muted text-foreground">
-              <Icon className="size-7" aria-hidden="true" />
-            </span>
+            <AgentGlyph agent={agent} size="xl" title={def.name} />
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-lg font-semibold">{def.name}</span>
