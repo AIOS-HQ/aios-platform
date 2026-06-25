@@ -10,6 +10,7 @@ import {
   Gauge,
   ListTodo,
   MessageSquare,
+  Plane,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -80,7 +81,14 @@ export default async function OversightPage() {
 
   return (
     <>
-      <PageHeader title={t("title")} description={t("subtitle")} />
+      <PageHeader title={t("title")} description={t("subtitle")}>
+        <Button asChild variant="outline">
+          <Link href="/harmony/oversight/vacation">
+            <Plane className="size-4" aria-hidden="true" />
+            {t("vacation.title")}
+          </Link>
+        </Button>
+      </PageHeader>
 
       {/* Harmony health / confidence summary — qualitative, grounded in the
           numbers shown below it (never a fabricated score). */}

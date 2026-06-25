@@ -9,6 +9,7 @@ import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { deliverMessageById } from "@/lib/harmony/comms/delivery";
 import { juliusRemember, resolvePrimaryCompanyId } from "@/lib/julius/wiring";
+import { getAutonomyState } from "@/lib/workforce/autonomy";
 import { TEACH_CATEGORIES, type TeachCategory } from "@/lib/harmony/oversight/teach";
 
 /**
@@ -286,4 +287,50 @@ export async function teachHarmony(formData: FormData): Promise<void> {
     refType: "knowledge",
   });
   revalidateOversight();
+}
+
+/**
+ * Vacation Mode — pause/resume Harmony's automations.
+ *
+ * This is NOT a parallel autonomy system: it reads the canonical autonomy state
+ * and flips ONLY the existing global `kill_switch` (the same flag the autonomy
+ * engine already honors), preserving every other setting. Pausing stops
+ * autonomous execution platform-wide while the owner is away; conversations and
+ * monitoring keep working. Audited like every other intervention.
+ */
+export async function setAutomationsPaused(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const paused = String(formData.get("paused") ?? "") === "true";
+
+  const supabase = await createClient();
+  const { global: g } = await getAutonomyState(user.id);
+  const { error } = await supabase.from("agent_autonomy_global").upsert(
+    {
+      user_id: user.id,
+      mode: g.mode,
+      kill_switch: paused, // the only change — preserve everything else
+      lockdown: g.lockdown,
+      auto_execute_threshold: g.auto_execute_threshold,
+      max_actions_per_hour: g.max_actions_per_hour,
+      max_delegation_depth: g.max_delegation_depth,
+      notify_on_medium: g.notify_on_medium,
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) {
+    console.error("[oversight] setAutomationsPaused", error.message);
+    return;
+  }
+
+  const t = await getTranslations("oversight");
+  await emitActivity({
+    userId: user.id,
+    companyId: await resolvePrimaryCompanyId(),
+    kind: "system",
+    summary: paused ? t("activity.automationsPaused") : t("activity.automationsResumed"),
+    refType: "autonomy",
+  });
+  revalidatePath("/harmony/oversight/vacation");
+  revalidatePath("/harmony/oversight");
+  revalidatePath("/harmony/autonomy");
 }

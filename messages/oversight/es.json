@@ -161,7 +161,33 @@
       "tookOver": "El propietario tomó el control de la conversación con {contact}",
       "resumed": "El propietario devolvió {contact} a Harmony",
       "escalated": "El propietario escaló la conversación con {contact}",
-      "taught": "El propietario enseñó a Harmony: {category}"
+      "taught": "El propietario enseñó a Harmony: {category}",
+      "automationsPaused": "El propietario pausó las automatizaciones (modo vacaciones)",
+      "automationsResumed": "El propietario reanudó las automatizaciones"
+    },
+    "vacation": {
+      "metaTitle": "Modo Vacaciones",
+      "title": "Modo Vacaciones",
+      "subtitle": "Deja el negocio funcionando. Supervisa a Harmony, interviene y enséñale, desde donde estés.",
+      "back": "Volver a Supervisión",
+      "monitorTitle": "Mientras no estás",
+      "healthTitle": "Salud del negocio",
+      "automations": {
+        "title": "Automatizaciones",
+        "active": "Activas",
+        "paused": "En pausa",
+        "activeHint": "Harmony está operando las automatizaciones por ti.",
+        "pausedHint": "Las automatizaciones están en pausa. Harmony sigue supervisando y redactando, pero no actuará por su cuenta.",
+        "pause": "Pausar automatizaciones",
+        "resume": "Reanudar automatizaciones"
+      },
+      "review": {
+        "title": "Conversaciones",
+        "subtitle": "Revisa y responde lo que te necesite.",
+        "open": "Revisar conversaciones"
+      },
+      "teachTitle": "Enseña a Harmony",
+      "teachSubtitle": "Define una regla cuando se te ocurra: Harmony la aplica en todas partes."
     }
   }
 }
