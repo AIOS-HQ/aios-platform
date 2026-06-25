@@ -88,6 +88,21 @@ export default async function DashboardPage() {
     <>
       <PageHeader title={greeting} description={t("subtitle")} />
 
+      {/* Harmony — the customer's AI Chief of Staff — is the front door: ask for
+          anything and Harmony coordinates the work behind the scenes. */}
+      <Card className="mb-6 border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="size-4 text-primary" aria-hidden="true" />
+            {t("operator")}
+          </CardTitle>
+          <CardDescription>{t("operatorHint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OperatorQuickInput />
+        </CardContent>
+      </Card>
+
       <StatTiles stats={stats} />
 
       {isNew && (
@@ -172,21 +187,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Life Operator quick input */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="size-4 text-primary" aria-hidden="true" />
-              {t("operator")}
-            </CardTitle>
-            <CardDescription>{t("operatorHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <OperatorQuickInput />
-          </CardContent>
-        </Card>
-
-        {/* Life Advisor */}
+        {/* Harmony's suggestions */}
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2 text-base">
