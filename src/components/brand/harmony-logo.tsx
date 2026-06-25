@@ -1,16 +1,18 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { HARMONY_LOGO_SRC } from "./harmony-logo-asset";
 
 /**
- * Harmony brand mark — the orbital "H".
+ * Harmony brand mark — the official Harmony logo (v2).
  *
- * A vector reproduction of the approved Harmony logo: two silver pillars (the
- * "H") bound by an electric-blue orbital ring with four nodes and a glowing
- * core. Pure SVG so it stays razor-sharp at every size and themeable via the
- * surrounding brand canvas. Decorative by default; pass a `title` for an
- * accessible name when used standalone.
+ * The single canonical Harmony brand asset (an optimized inline image of the
+ * approved logo; see ./harmony-logo-asset). Used everywhere branding is shown —
+ * landing, hero, footer, auth, the app header for every portal, marketing.
+ * Square badge; size it via `className` (defaults to size-8). Decorative by
+ * default; pass a `title` for an accessible name when used standalone.
  *
- * This is a BRAND mark (used in the wordmark lockup, marketing, hero). For
- * Harmony's INTERACTION identity inside conversations, use {@link HarmonyAvatar}.
+ * This is the BRAND mark. For Harmony's INTERACTION identity inside
+ * conversations, use {@link HarmonyAvatar} — never the brand logo in chat.
  */
 export function HarmonyMark({
   className,
@@ -20,47 +22,16 @@ export function HarmonyMark({
   title?: string;
 }) {
   return (
-    <svg
-      viewBox="0 0 64 64"
-      className={cn("size-8", className)}
-      role={title ? "img" : "presentation"}
-      aria-label={title}
+    <Image
+      src={HARMONY_LOGO_SRC}
+      alt={title ?? ""}
+      width={64}
+      height={64}
+      unoptimized
+      draggable={false}
       aria-hidden={title ? undefined : true}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient id="harmonyRing" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#7cc4ff" />
-          <stop offset="1" stopColor="#2f6bff" />
-        </linearGradient>
-        <linearGradient id="harmonyPillars" x1="22" y1="16" x2="42" y2="48" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="1" stopColor="#cdddf2" />
-        </linearGradient>
-        <radialGradient id="harmonyCore" cx="32" cy="32" r="8" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#d6ecff" />
-          <stop offset="0.55" stopColor="#43a0ff" />
-          <stop offset="1" stopColor="#2f6bff" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* orbital ring */}
-      <circle cx="32" cy="32" r="23" fill="none" stroke="url(#harmonyRing)" strokeWidth="2.25" opacity="0.9" />
-
-      {/* cardinal nodes */}
-      <circle cx="32" cy="9" r="3.1" fill="#7cc4ff" />
-      <circle cx="55" cy="32" r="3.1" fill="#3f8bff" />
-      <circle cx="32" cy="55" r="3.1" fill="#2f6bff" />
-      <circle cx="9" cy="32" r="3.1" fill="#5aa6ff" />
-
-      {/* the "H" pillars */}
-      <rect x="20.5" y="18" width="4.8" height="28" rx="2.4" fill="url(#harmonyPillars)" />
-      <rect x="38.7" y="18" width="4.8" height="28" rx="2.4" fill="url(#harmonyPillars)" />
-
-      {/* glowing core (the crossbar hub) */}
-      <circle cx="32" cy="32" r="9" fill="url(#harmonyCore)" />
-      <circle cx="32" cy="32" r="3.4" fill="#eaf5ff" />
-    </svg>
+      className={cn("size-8 shrink-0 select-none rounded-[22%]", className)}
+    />
   );
 }
 
@@ -73,8 +44,8 @@ export function HarmonyMark({
  * anywhere Harmony is actively interacting with the user — beside every reply,
  * while thinking or streaming, throughout conversation history, on Ask Harmony
  * cards, and in Harmony-generated notifications. It is deliberately distinct
- * from {@link HarmonyMark} (the brand mark) and from {@link HarmonyLogo} (the
- * wordmark); never use the wordmark inside a conversation.
+ * from {@link HarmonyMark} (the brand logo); never use the brand logo inside a
+ * conversation.
  *
  * Same API as HarmonyMark so it is a drop-in: size it via `className`
  * (e.g. `size-6`), pass a `title` for an accessible name when standalone.
@@ -122,9 +93,10 @@ export function HarmonyAvatar({
 }
 
 /**
- * Full Harmony lockup: orbital mark + wordmark. Used in the marketing header
- * and footer. Wordmark hue inherits the current text color so it adapts to the
- * surrounding surface.
+ * Full Harmony lockup: the official logo mark + wordmark. Used in the marketing
+ * header/footer, the app header, and auth. The wordmark hue inherits the current
+ * text color so it adapts to the surrounding surface; pass `showWordmark={false}`
+ * for the icon-only canonical logo.
  */
 export function HarmonyLogo({
   className,
