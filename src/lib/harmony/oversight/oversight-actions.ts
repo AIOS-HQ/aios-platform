@@ -9,6 +9,7 @@ import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { deliverMessageById } from "@/lib/harmony/comms/delivery";
 import { juliusRemember, resolvePrimaryCompanyId } from "@/lib/julius/wiring";
+import { TEACH_CATEGORIES, type TeachCategory } from "@/lib/harmony/oversight/teach";
 
 /**
  * Harmony Oversight — owner intervention + teaching actions.
@@ -18,15 +19,10 @@ import { juliusRemember, resolvePrimaryCompanyId } from "@/lib/julius/wiring";
  * platform uses (emitActivity → activity_events), so the owner's actions show
  * up in the activity trail alongside everything else. Reply/approve/reassign
  * reuse the comms primitives; only the genuinely new verbs live here.
+ *
+ * NOTE: a "use server" module may only export async functions — the teach
+ * category constants live in ./teach and are imported here and by the UI.
  */
-
-export const TEACH_CATEGORIES = [
-  "company_policy",
-  "communication_preference",
-  "customer_service_rule",
-  "operational_guideline",
-] as const;
-export type TeachCategory = (typeof TEACH_CATEGORIES)[number];
 
 function revalidateOversight(conversationId?: string) {
   revalidatePath("/harmony/oversight");

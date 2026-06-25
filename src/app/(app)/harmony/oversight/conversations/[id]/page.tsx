@@ -27,8 +27,8 @@ import {
   resumeConversation,
   escalateConversation,
   teachHarmony,
-  TEACH_CATEGORIES,
 } from "@/lib/harmony/oversight/oversight-actions";
+import { TEACH_CATEGORIES } from "@/lib/harmony/oversight/teach";
 import { explainConversation } from "@/lib/harmony/oversight/explain";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
