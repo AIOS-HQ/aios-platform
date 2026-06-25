@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { Sparkles } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -7,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { OperatorQuickInput } from "./operator-quick-input";
 
 /**
@@ -23,7 +23,7 @@ export async function AskHarmonyCard() {
     <Card className="mb-6 border-primary/30 bg-primary/5">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="size-4 text-primary" aria-hidden="true" />
+          <HarmonyMark className="size-4" title="Harmony" />
           {t("title")}
         </CardTitle>
         <CardDescription>{t("subtitle")}</CardDescription>
