@@ -61,12 +61,24 @@ export type NavItem = {
 
 /**
  * Who a nav section is for.
- * - "founder": the Founder OS / Command Center — workforce, operations,
- *   autonomy, review, approvals, etc. Visible only to founders/admins.
- * - "all": the Harmony customer experience (personal hub + settings). Visible
- *   to every authenticated user, founders included.
+ * - "founder": the Founder OS / Command Center — workforce, autonomy, review,
+ *   approvals, comms, content, code, outcomes, etc. Visible only to
+ *   founders/admins.
+ * - "customer": the customer's own tool pages (personal dashboard, tasks,
+ *   goals, notes). Visible only to non-founder customers. Founders reach the
+ *   same capabilities by asking Harmony (the single operational interface), so
+ *   these are intentionally absent from the founder sidebar.
+ * - "all": Harmony herself plus settings — shown to every authenticated user,
+ *   founders included.
+ *
+ * Founder-only operational routes that used to live in the founder sidebar
+ * (Briefing, Objectives, Operations, Work Management) are no longer listed in
+ * any section: they remain founder-gated, reachable routes (so nothing is
+ * removed) and are surfaced inside the Harmony workspace, which is now the
+ * founder's single operational interface. "One Harmony. One conversation. One
+ * operating system."
  */
-export type NavAudience = "all" | "founder";
+export type NavAudience = "all" | "founder" | "customer";
 
 export type NavSection = {
   /** Optional key under `nav.sections`; omit for an unlabeled group. */
@@ -77,30 +89,34 @@ export type NavSection = {
 };
 
 /**
- * Founder OS navigation. The "command" group is the Founder Command Center and
- * is gated to founders/admins (audience: "founder"); the "personal" group is the
- * Harmony customer experience, shown to everyone. Harmony — the AI Chief of
- * Staff — is the customer-facing intelligence; the former Life Operator, Life
- * Advisor, and Personal Brain are now one Harmony entry (Chat / Suggestions /
- * Memory tabs at /harmony/operator).
+ * Application navigation. Harmony — the AI Chief of Staff — is the front door
+ * for everyone (audience "all") and sits at the top. The "command" group is the
+ * Founder OS / Command Center (audience "founder"). The "personal" group is the
+ * customer's own tool pages (audience "customer"); founders don't see these in
+ * the sidebar because they ask Harmony for today's briefing, objectives,
+ * operational status, work management, tasks, goals, and notes instead — the
+ * Harmony workspace surfaces all of it. Briefing / Objectives / Operations /
+ * Work Management are deliberately not listed (founder-reachable routes
+ * consolidated into Harmony).
  */
 export const navSections: NavSection[] = [
+  {
+    audience: "all",
+    items: [
+      { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
+    ],
+  },
   {
     titleKey: "command",
     audience: "founder",
     items: [
       { href: "/harmony", labelKey: "commandCenter", icon: "LayoutDashboard", exact: true },
       { href: "/harmony/workforce", labelKey: "workforce", icon: "Users" },
-      { href: "/harmony/briefing", labelKey: "briefing", icon: "Gauge" },
       { href: "/harmony/companies", labelKey: "companies", icon: "Building2" },
-      { href: "/harmony/objectives", labelKey: "objectives", icon: "Target" },
-      { href: "/harmony/work", labelKey: "work", icon: "ListChecks" },
-      { href: "/harmony/work-items", labelKey: "workItems", icon: "ListChecks" },
       { href: "/harmony/review", labelKey: "review", icon: "ListTodo" },
       { href: "/harmony/autonomy", labelKey: "autonomy", icon: "Sparkles" },
       { href: "/harmony/approvals", labelKey: "approvals", icon: "ShieldCheck" },
       { href: "/settings/auditor", labelKey: "auditor", icon: "Gauge" },
-      { href: "/harmony/operations", labelKey: "operations", icon: "AlertTriangle" },
       { href: "/harmony/activity", labelKey: "activity", icon: "Activity" },
       { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
       { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
@@ -110,10 +126,9 @@ export const navSections: NavSection[] = [
   },
   {
     titleKey: "personal",
-    audience: "all",
+    audience: "customer",
     items: [
       { href: "/harmony/personal", labelKey: "dashboard", icon: "LayoutDashboard" },
-      { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
       { href: "/harmony/tasks", labelKey: "tasks", icon: "ListTodo" },
       { href: "/harmony/goals", labelKey: "goals", icon: "Target" },
       { href: "/harmony/notes", labelKey: "notes", icon: "StickyNote" },
@@ -125,9 +140,17 @@ export const navSections: NavSection[] = [
   },
 ];
 
-/** Sections visible to the given audience (founders see everything). */
+/**
+ * Sections visible to the given audience. Founders see "all" + "founder" (never
+ * the customer-only tool pages); customers see "all" + "customer" (never the
+ * Founder OS). Sections with no explicit audience default to "all".
+ */
 export function sectionsForAudience(isFounder: boolean): NavSection[] {
-  return navSections.filter((s) => isFounder || s.audience !== "founder");
+  return navSections.filter((s) => {
+    const audience = s.audience ?? "all";
+    if (audience === "all") return true;
+    return isFounder ? audience === "founder" : audience === "customer";
+  });
 }
 
 /**
@@ -138,13 +161,14 @@ export function sectionsForAudience(isFounder: boolean): NavSection[] {
 const LEGACY_CUSTOMER_REDIRECTS = ["/harmony/advisor", "/harmony/brain"];
 
 /**
- * Customer-experience path prefixes under /harmony — derived from the non-founder
- * nav sections (single source of truth) plus legacy redirect routes. Used to gate
- * founder routes.
+ * Customer-experience path prefixes under /harmony — derived from the
+ * non-founder nav sections ("all" + "customer", the single source of truth)
+ * plus legacy redirect routes. Used to gate founder routes: any /harmony path
+ * NOT listed here is treated as founder-only.
  */
 export const CUSTOMER_HARMONY_PREFIXES: string[] = [
   ...navSections
-    .filter((s) => s.audience !== "founder")
+    .filter((s) => (s.audience ?? "all") !== "founder")
     .flatMap((s) => s.items.map((i) => i.href))
     .filter((href) => href.startsWith("/harmony/")),
   ...LEGACY_CUSTOMER_REDIRECTS,
@@ -155,6 +179,9 @@ export const CUSTOMER_HARMONY_PREFIXES: string[] = [
  * customer experience). The /harmony index itself is founder (the Command
  * Center); customers are routed to their Harmony home instead. Unknown /harmony
  * subpaths default to founder (default-deny) so new founder routes stay private.
+ * Founder-only operational routes that were removed from the sidebar (briefing,
+ * objectives, operations, work, work-items) are not customer prefixes, so they
+ * stay founder-reachable here while no longer cluttering the sidebar.
  */
 export function isFounderHarmonyPath(pathname: string): boolean {
   if (!pathname.startsWith("/harmony")) return false;
