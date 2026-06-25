@@ -108,27 +108,23 @@ export default async function IntegrationsPage() {
                   const status = statusOf(c.id, c.authorizable);
                   const caps = countCapabilities(c);
                   const canConnect = Boolean(c.authorizable && status !== "connected");
-                  const primaryHref = canConnect
-                    ? `/api/integrations/${c.id}/connect`
-                    : c.docsUrl;
-                  const primaryLabel = canConnect
-                    ? status === "expired"
-                      ? t("reauthorize")
-                      : t("connect")
-                    : t("docs");
 
                   return (
                     <Card
                       key={c.id}
-                      className="group relative cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-within:border-primary/40"
+                      className={
+                        canConnect
+                          ? "group relative cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-within:border-primary/40"
+                          : "group relative transition hover:border-border"
+                      }
                     >
-                      <a
-                        href={primaryHref}
-                        target={canConnect ? undefined : "_blank"}
-                        rel={canConnect ? undefined : "noopener noreferrer"}
-                        aria-label={`${primaryLabel}: ${c.name}`}
-                        className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      />
+                      {canConnect ? (
+                        <a
+                          href={`/api/integrations/${c.id}/connect`}
+                          aria-label={`${status === "expired" ? t("reauthorize") : t("connect")}: ${c.name}`}
+                          className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        />
+                      ) : null}
                       <CardHeader className="pointer-events-none relative z-20 flex-row items-center gap-3 space-y-0">
                         <ConnectorGlyph id={c.id} initials={c.initials} />
                         <div className="min-w-0 flex-1">
