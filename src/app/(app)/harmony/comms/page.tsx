@@ -29,6 +29,7 @@ import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog"
 import { ActionButton } from "@/components/shared/action-button";
 import { ChannelDialog } from "@/components/harmony/comms/channel-dialog";
 import { ConversationDialog } from "@/components/harmony/comms/conversation-dialog";
+import { DiscoveredConnectors } from "@/components/integrations/discovered-connectors";
 import type { ConversationStatus } from "@/types/database";
 
 const convStatusVariant: Record<
@@ -92,6 +93,8 @@ export default async function CommsPage() {
           </ConversationDialog>
         )}
       </PageHeader>
+
+      <DiscoveredConnectors kind="channels" />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Channels */}

@@ -34,6 +34,14 @@
     "expiredHint": "Authorization expired — reconnect to resume.",
     "connect": "Connect",
     "reauthorize": "Reauthorize",
-    "docs": "Docs"
+    "docs": "Docs",
+    "discovery": {
+      "channelsTitle": "Connected via Integration Center",
+      "channelsHint": "Channels you connect in the Integration Center appear here automatically — Communications uses them with no extra setup.",
+      "publishersTitle": "Connected via Integration Center",
+      "publishersHint": "Publishing platforms you connect in the Integration Center appear here automatically — Content publishes to them with no extra setup.",
+      "empty": "No connected services yet.",
+      "manage": "Open Integration Center"
+    }
   }
 }
