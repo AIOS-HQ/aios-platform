@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
+import { HarmonyLogo } from "@/components/brand/harmony-logo";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -11,8 +11,8 @@ export default function AuthLayout({
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" aria-label="AIOS home">
-          <Logo />
+        <Link href="/" aria-label="Harmony home">
+          <HarmonyLogo />
         </Link>
         <div className="flex items-center gap-2">
           <LocaleSwitcher />

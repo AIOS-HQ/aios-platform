@@ -1,8 +1,11 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CreditCard } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/user";
+import { currentUserIsAdmin } from "@/lib/auth/roles";
+import { isFounderHarmonyPath } from "@/components/app/nav-config";
 import {
   enforceHubAccess,
   getBillingNotice,
@@ -12,24 +15,33 @@ import {
 } from "@/lib/billing/enforce";
 
 /**
- * Harmony hub layout — applies plan gating (PR #6) and surfaces a past-due
- * notice. It is completely inert while billing is dormant (Stripe not
- * configured and enforcement off): it does no auth/DB work and renders children
- * unchanged, so existing hub behavior and performance are preserved.
+ * Harmony hub layout. Two responsibilities:
+ *
+ * 1. Founder OS gate — customers experience Harmony (the AI Chief of Staff) and
+ *    never the Command Center / governance surfaces. Non-founders hitting a
+ *    Founder OS route are routed to their Harmony home. Always runs.
+ * 2. Plan gating (PR #6) — applies billing hub access + a past-due notice. Inert
+ *    while billing is dormant (Stripe not configured and enforcement off).
  */
 export default async function HarmonyLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Fast path: do nothing until billing is configured or enforcement is on.
+  const headerStore = await headers();
+  const pathname = headerStore.get("x-pathname") ?? "";
+
+  // (1) Founder OS gate — runs regardless of billing state.
+  if (isFounderHarmonyPath(pathname) && !(await currentUserIsAdmin())) {
+    redirect("/harmony/personal");
+  }
+
+  // (2) Fast path: do nothing further until billing is configured or enforced.
   if (!isEnforcementEnabled() && !isBillingActive()) {
     return <>{children}</>;
   }
 
   const user = await getCurrentUser();
-  const headerStore = await headers();
-  const pathname = headerStore.get("x-pathname") ?? "";
 
   // May redirect to /pricing when enforcement is on and the plan is insufficient.
   await enforceHubAccess(hubForPath(pathname), user);

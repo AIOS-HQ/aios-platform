@@ -11,6 +11,7 @@ export function AppShell({
   email,
   initials,
   companies,
+  isFounder = false,
   pendingApprovals = 0,
   unreadLifeOperatorMessages = 0,
   riskCount = 0,
@@ -22,6 +23,8 @@ export function AppShell({
   email: string;
   initials: string;
   companies: { id: string; name: string; slug: string }[];
+  /** Founder/admin: unlocks the Founder OS nav + company switcher. */
+  isFounder?: boolean;
   /** Pending approvals count → rendered as a nav badge on Approvals. */
   pendingApprovals?: number;
   unreadLifeOperatorMessages?: number;
@@ -57,11 +60,11 @@ export function AppShell({
 
   return (
     <div className="flex min-h-dvh">
-      <Sidebar badges={navBadges} />
+      <Sidebar badges={navBadges} isFounder={isFounder} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur sm:px-6">
-          <MobileNav badges={navBadges} />
-          <CompanySwitcher companies={companies} />
+          <MobileNav badges={navBadges} isFounder={isFounder} />
+          {isFounder && <CompanySwitcher companies={companies} />}
           <div className="flex-1" />
           <div className="hidden sm:block">
             <LocaleSwitcher />
