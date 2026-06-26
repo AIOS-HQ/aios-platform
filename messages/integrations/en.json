@@ -3,7 +3,7 @@
     "title": "Integration Center",
     "subtitle": "Securely connect AIOS to the tools you already use.",
     "introTitle": "What integrations do",
-    "intro": "Integrations connect AIOS to external systems. Communications operates your conversations and Content publishes your marketing — both run on the services you connect here. Harmony coordinates everything; you connect once.",
+    "intro": "Integrations connect AIOS to external systems. Communications operates your conversations and Content publishes your marketing. Both run on the services you connect here. Harmony coordinates everything; you connect once.",
     "connectedSummary": "{n} connected",
     "category": {
       "communication": "Communication",
@@ -25,21 +25,27 @@
     "status": {
       "connected": "Connected",
       "expired": "Reauthorize",
-      "available": "Available",
-      "comingSoon": "Coming soon"
+      "available": "Ready to connect",
+      "comingSoon": "Setup required"
     },
-    "capabilities": "{read} read · {write} write",
+    "capabilities": "{read} read / {write} write",
     "noCapabilitiesYet": "Capabilities activate when connected.",
     "lastConnected": "Connected {date}",
-    "expiredHint": "Authorization expired — reconnect to resume.",
+    "expiredHint": "Authorization expired. Reconnect to resume.",
     "connect": "Connect",
     "reauthorize": "Reauthorize",
     "docs": "Docs",
+    "manage": "Manage",
+    "viewSetup": "View setup",
+    "setupTitle": "{name} needs setup",
+    "setupHint": "This connector is supported by AIOS, but setup is not complete yet. Stay inside AIOS for now; use Docs only if you want the provider documentation.",
+    "detailsTitle": "{name} details",
+    "detailsHint": "This connector is connected. A full configuration and activity panel can be added here as the connector matures.",
     "discovery": {
       "channelsTitle": "Connected via Integration Center",
-      "channelsHint": "Channels you connect in the Integration Center appear here automatically — Communications uses them with no extra setup.",
+      "channelsHint": "Channels you connect in the Integration Center appear here automatically. Communications uses them with no extra setup.",
       "publishersTitle": "Connected via Integration Center",
-      "publishersHint": "Publishing platforms you connect in the Integration Center appear here automatically — Content publishes to them with no extra setup.",
+      "publishersHint": "Publishing platforms you connect in the Integration Center appear here automatically. Content publishes to them with no extra setup.",
       "empty": "No connected services yet.",
       "manage": "Open Integration Center"
     }
