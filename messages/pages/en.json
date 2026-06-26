@@ -670,6 +670,50 @@
     "disconnectError": "Something went wrong. Please try again.",
     "connectedToast": "Connected.",
     "securityNote": "Tokens are stored server-side, never shown in the browser, and used only for read-only checks. Encryption at rest is a recommended hardening step.",
+    "production": {
+      "title": "Production Foundation",
+      "subtitle": "Founder-only readiness checks for AIOS database, environment, AI core, integrations, and security prerequisites.",
+      "overall": "Overall status",
+      "status": {
+        "ok": "READY",
+        "warn": "ATTENTION REQUIRED"
+      },
+      "sections": {
+        "database": "Database",
+        "environment": "Environment",
+        "ai_core": "AI Core",
+        "integrations": "Integrations",
+        "security": "Security"
+      },
+      "items": {
+        "database_connection": "Database diagnostics connection",
+        "database_migrations": "Migrations",
+        "database_tables": "Required tables",
+        "database_columns": "Required columns",
+        "database_functions": "Required functions",
+        "database_indexes": "Required indexes",
+        "database_rls": "RLS status",
+        "environment_required": "Required environment variables",
+        "environment_token_encryption": "Token encryption key",
+        "core_harmony": "Harmony",
+        "core_julius": "Julius",
+        "core_auditor": "Auditor",
+        "core_workforce": "Workforce prerequisites",
+        "core_memory": "Memory",
+        "core_approvals": "Approvals",
+        "core_connector_runtime": "Connector Runtime",
+        "integration_supabase": "Supabase",
+        "integration_github": "GitHub",
+        "integration_openai": "OpenAI",
+        "integration_vercel": "Vercel",
+        "integration_stripe": "Stripe",
+        "integration_email": "Email provider",
+        "integration_other": "Other integrations",
+        "security_admin_gate": "Founder/admin gate",
+        "security_token_encryption": "Token encryption",
+        "security_csp": "CSP mode"
+      }
+    },
     "capabilities": {
       "db_health_check": "Database health",
       "migration_verification": "Migration verification",

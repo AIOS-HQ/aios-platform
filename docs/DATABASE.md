@@ -78,6 +78,25 @@ http://localhost:3000/auth/callback
 After applying the schema and signing up, you should see a row in `profiles` and `user_settings`
 for your new user, and you should be redirected into the dashboard.
 
+## Production readiness verification
+
+Founder/admin users can run the read-only production foundation check from
+**Settings → Diagnostics** (`/settings/diagnostics`). This does not modify the
+database. It verifies the expected AIOS foundation across:
+
+- database migrations, required tables, required columns, required functions,
+  required indexes, and RLS status;
+- environment prerequisites, reported only as present/missing;
+- AIOS Core service prerequisites for Harmony, Julius, Auditor, Workforce,
+  Memory, Approvals, and the Connector Runtime;
+- integration readiness for Supabase, GitHub, OpenAI, Vercel, Stripe, email, and
+  other configured connectors; and
+- security prerequisites such as founder/admin gating, token encryption, and CSP mode.
+
+The database portion uses the existing Supabase diagnostics connection: add a
+Supabase Management API token and project ref under **Settings → Diagnostics**.
+The token is stored server-side and used only for read-only checks.
+
 ## Troubleshooting
 
 - **Redirected to `/login` in a loop:** ensure the Supabase env vars are set and the dev server

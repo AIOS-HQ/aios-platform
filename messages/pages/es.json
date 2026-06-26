@@ -670,6 +670,50 @@
     "disconnectError": "Algo salió mal. Inténtalo de nuevo.",
     "connectedToast": "Conectado.",
     "securityNote": "Los tokens se almacenan en el servidor, nunca se muestran en el navegador y solo se usan para comprobaciones de solo lectura. El cifrado en reposo es un refuerzo recomendado.",
+    "production": {
+      "title": "Base de producción",
+      "subtitle": "Comprobaciones de preparación solo para fundadores sobre la base de datos, entorno, núcleo de IA, integraciones y seguridad de AIOS.",
+      "overall": "Estado general",
+      "status": {
+        "ok": "LISTO",
+        "warn": "REQUIERE ATENCIÓN"
+      },
+      "sections": {
+        "database": "Base de datos",
+        "environment": "Entorno",
+        "ai_core": "Núcleo de IA",
+        "integrations": "Integraciones",
+        "security": "Seguridad"
+      },
+      "items": {
+        "database_connection": "Conexión de diagnósticos de base de datos",
+        "database_migrations": "Migraciones",
+        "database_tables": "Tablas requeridas",
+        "database_columns": "Columnas requeridas",
+        "database_functions": "Funciones requeridas",
+        "database_indexes": "Índices requeridos",
+        "database_rls": "Estado de RLS",
+        "environment_required": "Variables de entorno requeridas",
+        "environment_token_encryption": "Clave de cifrado de tokens",
+        "core_harmony": "Harmony",
+        "core_julius": "Julius",
+        "core_auditor": "Auditor",
+        "core_workforce": "Prerrequisitos de Workforce",
+        "core_memory": "Memoria",
+        "core_approvals": "Aprobaciones",
+        "core_connector_runtime": "Runtime de conectores",
+        "integration_supabase": "Supabase",
+        "integration_github": "GitHub",
+        "integration_openai": "OpenAI",
+        "integration_vercel": "Vercel",
+        "integration_stripe": "Stripe",
+        "integration_email": "Proveedor de email",
+        "integration_other": "Otras integraciones",
+        "security_admin_gate": "Control fundador/admin",
+        "security_token_encryption": "Cifrado de tokens",
+        "security_csp": "Modo CSP"
+      }
+    },
     "capabilities": {
       "db_health_check": "Estado de la base de datos",
       "migration_verification": "Verificación de migraciones",
