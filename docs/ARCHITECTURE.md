@@ -8,10 +8,13 @@ AIOS is a **shared-platform architecture**. A single Next.js application contain
 
 - **AIOS Core** — shared foundation: identity/auth, user profiles, roles, settings, UI system,
   localization, theming, and the Supabase data layer.
-- **Harmony** — the Personal Operating System, built on top of AIOS Core.
-- **Opera** — the Business Operating System _(future phase, not in this build)._
+- **Harmony** — the product: the **Autonomous Operating System for Life and Business**, built on
+  top of AIOS Core and organized into three hubs:
+  - **Personal Hub** — life management (the released hub).
+  - **Business Hub** — company operations _(roadmap; supersedes the former separate "Opera" Business OS)._
+  - **Harmony Hub** — the cross-hub coordination layer _(roadmap)._
 
-Products live in their own route groups and feature folders but reuse Core's components,
+Harmony's hubs live in their own route groups and feature folders but reuse Core's components,
 data clients, i18n, and conventions. This keeps the codebase modular without premature
 microservice complexity.
 
@@ -93,6 +96,6 @@ never breaks the build.
 
 ## What is intentionally NOT here (yet)
 
-Opera, marketplace, mobile apps, billing, CRM, social integrations, team management, enterprise
-features, and an AI agent marketplace are **out of scope** for this build and must not be added
-until their dedicated phases.
+The **Business Hub** and **Harmony Hub**, marketplace, mobile apps, billing, CRM, social
+integrations, team management, enterprise features, and an AI agent marketplace are **out of
+scope** for this build and must not be added until their dedicated phases.
