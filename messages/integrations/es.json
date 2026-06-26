@@ -1,12 +1,12 @@
 {
   "integrations": {
     "title": "Centro de Integraciones",
-    "subtitle": "Conecta AIOS de forma segura con las herramientas que ya usas.",
-    "introTitle": "Qué hacen las integraciones",
-    "intro": "Las integraciones conectan AIOS con sistemas externos. Comunicaciones opera tus conversaciones y Contenido publica tu marketing — ambos funcionan sobre los servicios que conectas aquí. Harmony lo coordina todo; tú conectas una sola vez.",
+    "subtitle": "Conecta AIOS con tus herramientas.",
+    "introTitle": "Que hacen las integraciones",
+    "intro": "Las integraciones conectan AIOS con sistemas externos. Harmony coordina todo y conectas una sola vez.",
     "connectedSummary": "{n} conectadas",
     "category": {
-      "communication": "Comunicación",
+      "communication": "Comunicacion",
       "business": "Negocio",
       "productivity": "Productividad",
       "storage": "Almacenamiento",
@@ -17,7 +17,7 @@
       "social": "Social"
     },
     "auth": {
-      "oauth2": "Inicio de sesión seguro",
+      "oauth2": "Inicio seguro",
       "api_key": "Clave gestionada",
       "webhook": "Webhook",
       "device": "Dispositivo local"
@@ -25,22 +25,28 @@
     "status": {
       "connected": "Conectado",
       "expired": "Reautorizar",
-      "available": "Disponible",
-      "comingSoon": "Próximamente"
+      "available": "Listo para conectar",
+      "comingSoon": "Requiere configuracion"
     },
-    "capabilities": "{read} lectura · {write} escritura",
+    "capabilities": "{read} lectura / {write} escritura",
     "noCapabilitiesYet": "Las capacidades se activan al conectar.",
     "lastConnected": "Conectado {date}",
-    "expiredHint": "La autorización caducó — reconecta para reanudar.",
+    "expiredHint": "La conexion caduco. Reconecta para continuar.",
     "connect": "Conectar",
     "reauthorize": "Reautorizar",
     "docs": "Docs",
+    "manage": "Gestionar",
+    "viewSetup": "Ver configuracion",
+    "setupTitle": "{name} necesita configuracion",
+    "setupHint": "Este conector es compatible con AIOS, pero la configuracion aun no esta lista. Quedate dentro de AIOS por ahora; usa Docs solo si quieres leer mas.",
+    "detailsTitle": "Detalles de {name}",
+    "detailsHint": "Este conector esta conectado. Aqui se puede agregar un panel completo cuando el conector madure.",
     "discovery": {
       "channelsTitle": "Conectado desde el Centro de Integraciones",
-      "channelsHint": "Los canales que conectas en el Centro de Integraciones aparecen aquí automáticamente — Comunicaciones los usa sin configuración adicional.",
+      "channelsHint": "Los canales conectados aparecen aqui automaticamente.",
       "publishersTitle": "Conectado desde el Centro de Integraciones",
-      "publishersHint": "Las plataformas de publicación que conectas en el Centro de Integraciones aparecen aquí automáticamente — Contenido publica en ellas sin configuración adicional.",
-      "empty": "Aún no hay servicios conectados.",
+      "publishersHint": "Las plataformas conectadas aparecen aqui automaticamente.",
+      "empty": "Aun no hay servicios conectados.",
       "manage": "Abrir Centro de Integraciones"
     }
   }
