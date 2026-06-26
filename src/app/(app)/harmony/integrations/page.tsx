@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Plug, ShieldCheck, ArrowUpRight } from "lucide-react";
+import { Plug, ShieldCheck, ArrowUpRight, ChevronDown } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import {
   listConnectors,
@@ -108,24 +108,9 @@ export default async function IntegrationsPage() {
                   const status = statusOf(c.id, c.authorizable);
                   const caps = countCapabilities(c);
                   const canConnect = Boolean(c.authorizable && status !== "connected");
-
-                  return (
-                    <Card
-                      key={c.id}
-                      className={
-                        canConnect
-                          ? "group relative cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-within:border-primary/40"
-                          : "group relative transition hover:border-border"
-                      }
-                    >
-                      {canConnect ? (
-                        <a
-                          href={`/api/integrations/${c.id}/connect`}
-                          aria-label={`${status === "expired" ? t("reauthorize") : t("connect")}: ${c.name}`}
-                          className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        />
-                      ) : null}
-                      <CardHeader className="pointer-events-none relative z-20 flex-row items-center gap-3 space-y-0">
+                  const cardContent = (
+                    <>
+                      <CardHeader className="flex-row items-center gap-3 space-y-0">
                         <ConnectorGlyph id={c.id} initials={c.initials} />
                         <div className="min-w-0 flex-1">
                           <CardTitle className="truncate text-base">{c.name}</CardTitle>
@@ -137,7 +122,7 @@ export default async function IntegrationsPage() {
                           {t(`status.${status}`)}
                         </Badge>
                       </CardHeader>
-                      <CardContent className="pointer-events-none relative z-20 space-y-2 text-xs text-muted-foreground">
+                      <CardContent className="space-y-2 text-xs text-muted-foreground">
                         {caps.read + caps.write > 0 ? (
                           <p>{t("capabilities", { read: caps.read, write: caps.write })}</p>
                         ) : (
@@ -150,27 +135,71 @@ export default async function IntegrationsPage() {
                         {status === "expired" ? (
                           <p className="text-destructive">{t("expiredHint")}</p>
                         ) : null}
+                      </CardContent>
+                    </>
+                  );
 
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                          {canConnect ? (
-                            <Button asChild size="sm" className="pointer-events-auto relative z-30 h-7 px-2 text-xs">
-                              <a href={`/api/integrations/${c.id}/connect`}>
-                                <Plug className="size-3.5" aria-hidden="true" />
-                                {status === "expired" ? t("reauthorize") : t("connect")}
-                              </a>
-                            </Button>
-                          ) : null}
+                  return (
+                    <Card
+                      key={c.id}
+                      className="group overflow-hidden transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-within:border-primary/40"
+                    >
+                      {canConnect ? (
+                        <a
+                          href={`/api/integrations/${c.id}/connect`}
+                          aria-label={`${status === "expired" ? t("reauthorize") : t("connect")}: ${c.name}`}
+                          className="block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          {cardContent}
+                        </a>
+                      ) : (
+                        <details>
+                          <summary className="cursor-pointer list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                            {cardContent}
+                            <div className="flex items-center gap-1 px-6 pb-4 text-xs font-medium text-primary">
+                              {status === "connected" ? t("manage") : t("viewSetup")}
+                              <ChevronDown className="size-3.5 transition group-open:rotate-180" aria-hidden="true" />
+                            </div>
+                          </summary>
+                          <div className="border-t bg-muted/30 px-6 py-4 text-xs text-muted-foreground">
+                            <p className="font-medium text-foreground">
+                              {status === "connected" ? t("detailsTitle", { name: c.name }) : t("setupTitle", { name: c.name })}
+                            </p>
+                            <p className="mt-1">
+                              {status === "connected" ? t("detailsHint") : t("setupHint")}
+                            </p>
+                            <a
+                              href={c.docsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-3 inline-flex items-center gap-1 text-primary transition-colors hover:text-primary/80"
+                            >
+                              {t("docs")}
+                              <ArrowUpRight className="size-3" aria-hidden="true" />
+                            </a>
+                          </div>
+                        </details>
+                      )}
+
+                      {canConnect ? (
+                        <div className="flex flex-wrap items-center gap-2 px-6 pb-4 text-xs text-muted-foreground">
+                          <Button asChild size="sm" className="h-7 px-2 text-xs">
+                            <a href={`/api/integrations/${c.id}/connect`}>
+                              <Plug className="size-3.5" aria-hidden="true" />
+                              {status === "expired" ? t("reauthorize") : t("connect")}
+                            </a>
+                          </Button>
                           <a
                             href={c.docsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="pointer-events-auto relative z-30 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                           >
                             {t("docs")}
                             <ArrowUpRight className="size-3" aria-hidden="true" />
                           </a>
                         </div>
-                      </CardContent>
+                      ) : null}
                     </Card>
                   );
                 })}
