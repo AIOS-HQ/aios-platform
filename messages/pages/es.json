@@ -945,7 +945,8 @@
         "description": "{n} habilidad(es) reutilizable(s) en Julius · {recent} aprendida(s) o mejorada(s) recientemente.",
         "highest": "Mayor confianza",
         "domain": "Dominio más fuerte",
-        "none": "Aún no hay habilidades de empresa reutilizables relevantes."
+        "none": "Aún no hay habilidades de empresa reutilizables relevantes.",
+        "used": "{title} · {confidence}/100"
       },
       "agentSignal": {
         "active": "{n} activo(s)",

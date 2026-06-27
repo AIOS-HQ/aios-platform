@@ -174,6 +174,18 @@ export async function CommandCenter({ userId, companyId }: CommandCenterProps) {
                   {rec.detail ? (
                     <p className="line-clamp-2 text-xs text-muted-foreground">{rec.detail}</p>
                   ) : null}
+                  {rec.skillsUsed?.length ? (
+                    <div className="flex flex-wrap gap-1">
+                      {rec.skillsUsed.slice(0, 2).map((skill) => (
+                        <Badge key={skill.source_entry_id} variant="outline" className="text-[10px]">
+                          {t("intel.skills.used", {
+                            title: skill.title,
+                            confidence: skill.confidence_score,
+                          })}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <Button asChild size="sm" variant="outline" className="shrink-0">
                   <Link href={rec.href}>{t("review")}</Link>

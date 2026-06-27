@@ -1,6 +1,11 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { juliusRecall, juliusRemember } from "@/lib/julius/wiring";
 import { getAiosAgent } from "@/lib/workforce/registry";
@@ -95,12 +100,23 @@ export async function sendAgentMessage(params: {
 
   // Agent READ: shared org context before acting.
   let context: Record<string, unknown> = {};
+  const consultation = await consultCompanySkills({
+    userId: params.userId,
+    companyId: params.companyId,
+    agent: params.toAgent,
+    purpose: kind === "task" ? "delegation" : "recommendation",
+    query: `${subject}\n${params.body ?? ""}`,
+    emit: false,
+  });
   if (params.attachJuliusContext !== false) {
     const entries = await juliusRecall(params.userId, params.companyId, subject, 5);
     context = {
       query: subject,
       julius: entries.map((e) => ({ id: e.id, title: e.title, kind: e.kind })),
+      companySkills: consultation.skills,
     };
+  } else if (consultation.skills.length > 0) {
+    context = { companySkills: consultation.skills };
   }
 
   const gated = riskRequiresApproval(risk);
@@ -122,7 +138,7 @@ export async function sendAgentMessage(params: {
       risk,
       parent_id: params.parentId ?? null,
       subject: subject.slice(0, 300),
-      body: (params.body ?? "").slice(0, 8000),
+      body: (appendSkillContext(params.body, consultation) ?? "").slice(0, 8000),
       context,
     })
     .select("*")
@@ -159,6 +175,16 @@ export async function sendAgentMessage(params: {
     refType: "agent_message",
     refId: message.id,
   });
+  if (consultation.skills.length > 0) {
+    await recordSkillConsultation({
+      userId: params.userId,
+      companyId: params.companyId,
+      agent: params.toAgent,
+      consultation,
+      sourceType: "agent_message",
+      sourceId: message.id,
+    });
+  }
 
   return message;
 }

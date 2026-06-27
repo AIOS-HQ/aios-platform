@@ -18,6 +18,11 @@ import {
 } from "@/lib/workforce/registry";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import {
+  consultCompanySkills,
+  type SkillUsageEvidence,
+  type SkillConsultationPurpose,
+} from "@/lib/company-skills/utilization";
+import {
   findRelevantCompanySkills,
   listCompanySkills,
   summarizeSkillMetrics,
@@ -52,6 +57,7 @@ export interface ExecutiveRecommendation {
   title: string;
   detail: string;
   impact: number;
+  skillsUsed?: SkillUsageEvidence[];
 }
 
 export interface DelegationRoute {
@@ -175,6 +181,38 @@ function addRecommendation(
   rec: Omit<ExecutiveRecommendation, "impact">,
 ) {
   list.push({ ...rec, impact: PRIORITY_SCORE[rec.priority] });
+}
+
+function recommendationSkillPurpose(kind: ExecutiveRecommendation["kind"]): SkillConsultationPurpose {
+  if (kind === "delegate_objective_work") return "delegation";
+  if (kind === "reuse_company_skill") return "recommendation";
+  if (kind === "continue_operating") return "recommendation";
+  return "recommendation";
+}
+
+async function attachRecommendationSkills(params: {
+  userId: string;
+  companyId: string | null;
+  recommendations: ExecutiveRecommendation[];
+}) {
+  if (!params.companyId) return params.recommendations;
+  return Promise.all(
+    params.recommendations.map(async (rec) => {
+      if (rec.kind === "reuse_company_skill") return rec;
+      const consultation = await consultCompanySkills({
+        userId: params.userId,
+        companyId: params.companyId,
+        agent: rec.agent,
+        purpose: recommendationSkillPurpose(rec.kind),
+        query: `${rec.title}\n${rec.detail}`,
+        limit: 2,
+        emit: false,
+      });
+      return consultation.skills.length > 0
+        ? { ...rec, skillsUsed: consultation.skills }
+        : rec;
+    }),
+  );
 }
 
 function sortRecommendations(recs: ExecutiveRecommendation[]): ExecutiveRecommendation[] {
@@ -369,6 +407,11 @@ export async function buildHarmonyExecutiveIntelligence(
       detail: "",
     });
   }
+  const recommendationsWithSkills = await attachRecommendationSkills({
+    userId,
+    companyId,
+    recommendations,
+  });
 
   const loadByAgent = new Map<string, number>();
   for (const w of activeWork) loadByAgent.set(w.agent, (loadByAgent.get(w.agent) ?? 0) + 1);
@@ -472,7 +515,7 @@ export async function buildHarmonyExecutiveIntelligence(
       completedToday,
       juliusContext: awareness.total,
     },
-    recommendations: sortRecommendations(recommendations),
+    recommendations: sortRecommendations(recommendationsWithSkills),
     delegationRoutes,
     workforce,
     connectors,
@@ -533,6 +576,15 @@ export async function chooseHarmonyDelegatee(params: {
     listWorkItems(params.userId, { companyId: params.companyId, limit: 300 }),
     listAgentMessages(params.userId, params.companyId, { limit: 300 }),
   ]);
+  const skillConsultation = await consultCompanySkills({
+    userId: params.userId,
+    companyId: params.companyId,
+    agent: "harmony",
+    purpose: "delegation",
+    query: `${params.subject}\n${params.body ?? ""}`,
+    limit: 6,
+    emit: false,
+  });
   const load = new Map<string, number>();
   for (const w of work.filter((w) => ACTIVE_WORK.has(w.status))) {
     load.set(w.agent, (load.get(w.agent) ?? 0) + 1);
@@ -553,9 +605,12 @@ export async function chooseHarmonyDelegatee(params: {
     );
     const riskScore =
       params.risk === "approval" && (agent.key === "ledger" || agent.key === "aegis") ? 2 : 0;
+    const skillScore = skillConsultation.skills
+      .filter((skill) => skill.owner_agent === agent.key)
+      .reduce((score, skill) => score + 2 + skill.confidence_score / 25 + skill.success_count, 0);
     return {
       agent: agent.key,
-      score: keywordScore + responsibilityScore + riskScore - (load.get(agent.key) ?? 0),
+      score: keywordScore + responsibilityScore + riskScore + skillScore - (load.get(agent.key) ?? 0),
     };
   });
 
