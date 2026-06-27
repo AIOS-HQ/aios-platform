@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/user";
-import { canUseDiagnostics } from "@/lib/auth/roles";
+import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { backfillTokenEncryption } from "@/lib/crypto/backfill";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 export async function POST() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await canUseDiagnostics())) {
+  if (!(await currentUserIsAdmin())) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const result = await backfillTokenEncryption();

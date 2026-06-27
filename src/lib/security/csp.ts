@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isProductionRuntime } from "@/lib/env";
+
 /**
  * Content-Security-Policy helpers (the "nonces → enforce" half of the
  * collector → nonces → enforce rollout).
@@ -13,9 +15,15 @@ import "server-only";
 
 export type CspMode = "off" | "report-only" | "enforce";
 
-/** Resolve the rollout mode from `CSP_MODE` (default: report-only). */
+/** Resolve the rollout mode from `CSP_MODE`.
+ *
+ * Production defaults to enforce unless explicitly set; development and Vercel
+ * previews default to report-only so CSP rollout can be debugged without
+ * blocking local work.
+ */
 export function cspMode(): CspMode {
-  const v = (process.env.CSP_MODE ?? "report-only").toLowerCase();
+  const fallback = isProductionRuntime() ? "enforce" : "report-only";
+  const v = (process.env.CSP_MODE ?? fallback).toLowerCase();
   if (v === "off" || v === "enforce") return v;
   return "report-only";
 }

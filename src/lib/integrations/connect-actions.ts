@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/user";
+import { currentUserIsAdmin } from "@/lib/auth/roles";
 import type { ActionState } from "@/lib/types";
 import { upsertConnection } from "@/lib/integrations/connections";
 import { getConnector } from "@/lib/integrations/connectors";
@@ -21,6 +22,9 @@ export async function connectApiKeyAction(
   const t = await getTranslations("diagnostics");
   const user = await getCurrentUser();
   if (!user) return { status: "error", message: t("errors.unauthorized") };
+  if (!(await currentUserIsAdmin())) {
+    return { status: "error", message: t("errors.unauthorized") };
+  }
 
   const provider = String(formData.get("provider") ?? "");
   const token = String(formData.get("token") ?? "").trim();
@@ -32,16 +36,21 @@ export async function connectApiKeyAction(
   }
   if (!token) return { status: "error", message: t("errors.missingToken") };
 
-  const ok = await upsertConnection({
-    user_id: user.id,
-    provider,
-    status: "connected",
-    scopes: null,
-    external_account: account || null,
-    access_token: token,
-    refresh_token: null,
-    expires_at: null,
-  });
+  let ok = false;
+  try {
+    ok = await upsertConnection({
+      user_id: user.id,
+      provider,
+      status: "connected",
+      scopes: null,
+      external_account: account || null,
+      access_token: token,
+      refresh_token: null,
+      expires_at: null,
+    });
+  } catch {
+    ok = false;
+  }
   if (!ok) return { status: "error", message: t("errors.saveFailed") };
 
   revalidatePath("/settings/diagnostics");
