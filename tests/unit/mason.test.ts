@@ -4,8 +4,11 @@ import {
   MASON_SAFE_EXECUTION_BOUNDARY,
   classifyMasonEngineeringTask,
   createMasonExecutionPlan,
+  createMasonNativeRuntimePlan,
+  getMasonCapabilityRegistry,
   getMasonConnectorCapabilities,
   getMasonConnectorIds,
+  isMasonRuntimeCapabilityAutonomous,
   isMasonFounderOnly,
   isMasonSubscriberFacing,
   masonOwnsEngineeringTask,
@@ -83,7 +86,8 @@ describe("Mason founder engineering capability", () => {
   });
 
   it("exposes engineering capabilities as code-level contracts", () => {
-    expect(MASON_CAPABILITIES.map((capability) => capability.id)).toEqual([
+    expect(MASON_CAPABILITIES.map((capability) => capability.id)).toEqual(
+      expect.arrayContaining([
       "inspect_repositories",
       "classify_engineering_tasks",
       "create_implementation_plans",
@@ -92,7 +96,19 @@ describe("Mason founder engineering capability", () => {
       "prepare_validation_steps",
       "coordinate_code_agents",
       "create_pr_ready_summaries",
-    ]);
+        "analyze_architecture",
+        "decompose_engineering_work",
+        "generate_patches",
+        "modify_files_on_branch",
+        "run_validation_commands",
+        "prepare_pull_request",
+        "verify_vercel_preview",
+        "produce_engineering_reports",
+        "record_engineering_memory",
+        "github.list_repos",
+        "vercel.deployment_status",
+      ]),
+    );
 
     const plan = createMasonExecutionPlan({
       title: "Fix a GitHub integration bug",
@@ -103,6 +119,39 @@ describe("Mason founder engineering capability", () => {
     expect(plan.coordinationAgents).toEqual(["qa", "testing", "deployment"]);
     expect(plan.validationSteps).toContain("npm run build");
     expect(plan.prReadySummary).toContain("branch -> PR -> Vercel preview -> Founder approval -> merge");
+  });
+
+  it("builds a Founder-safe native runtime plan for engineering execution", () => {
+    const plan = createMasonNativeRuntimePlan({
+      objective: "Implement a SaaS API bug fix",
+      detail: "Inspect repository, modify code on a branch, run tests, prepare PR, and verify Vercel preview.",
+      repository: "AIOS-HQ/aios-platform",
+    });
+
+    expect(plan.provider).toBe("mason");
+    expect(plan.repository).toBe("AIOS-HQ/aios-platform");
+    expect(plan.automaticSteps.map((step) => step.id)).toEqual(
+      expect.arrayContaining(["repository_inspection", "architecture_analysis", "validation", "learning"]),
+    );
+    expect(plan.approvalGatedSteps.map((step) => step.id)).toEqual(
+      expect.arrayContaining(["patch_generation", "pull_request"]),
+    );
+    expect(plan.memoryPlan.evolveCompanySkills).toBe(true);
+    expect(plan.memoryPlan.improveOrganizationalIntelligence).toBe(true);
+    expect(plan.boundarySummary).toContain("Founder-approval gated");
+  });
+
+  it("keeps only routine non-mutating runtime capabilities autonomous", () => {
+    const registry = getMasonCapabilityRegistry();
+    const inspect = registry.find((capability) => capability.id === "inspect_repositories");
+    const patch = registry.find((capability) => capability.id === "generate_patches");
+    const merge = registry.find((capability) => capability.id === "github.merge_pull_request");
+    const vercelRead = registry.find((capability) => capability.id === "vercel.deployment_status");
+
+    expect(inspect && isMasonRuntimeCapabilityAutonomous(inspect)).toBe(true);
+    expect(vercelRead && isMasonRuntimeCapabilityAutonomous(vercelRead)).toBe(true);
+    expect(patch && isMasonRuntimeCapabilityAutonomous(patch)).toBe(false);
+    expect(merge && isMasonRuntimeCapabilityAutonomous(merge)).toBe(false);
   });
 
   it("uses GitHub and Vercel connectors while excluding destructive or approval-bypassing capabilities", () => {
