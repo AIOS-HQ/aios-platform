@@ -26,6 +26,11 @@ import {
   type AdaptiveExecutionPlan,
 } from "@/lib/harmony/adaptive-planning";
 import {
+  ensureAutonomousObjectiveProposals,
+  generateObjectiveProposals,
+  type GeneratedObjectiveProposal,
+} from "@/lib/harmony/objective-generation";
+import {
   consultCompanySkills,
   type SkillUsageEvidence,
   type SkillConsultationPurpose,
@@ -132,6 +137,10 @@ export interface ExecutiveIntelligence {
   organization: OrganizationalIntelligence;
   planning: {
     current: AdaptiveExecutionPlan | null;
+  };
+  proactiveObjectives: {
+    generated: GeneratedObjectiveProposal[];
+    created: AgentObjective[];
   };
 }
 
@@ -396,6 +405,25 @@ export async function buildHarmonyExecutiveIntelligence(
         agent: planningTarget.agent,
       })
     : null;
+  const generatedObjectiveProposals = companyId
+    ? generateObjectiveProposals({
+        auditFindings: report.findings,
+        work,
+        objectives,
+        companySkills,
+        organization,
+        adaptivePlan,
+      })
+    : [];
+  const createdProactiveObjectives = companyId
+    ? await ensureAutonomousObjectiveProposals({
+        userId,
+        companyId,
+        proposals: generatedObjectiveProposals,
+        existingObjectives: objectives,
+        limit: 3,
+      })
+    : [];
   if (adaptivePlan) {
     addRecommendation(recommendations, {
       id: `adaptive-plan-${planningTarget?.id ?? adaptivePlan.objective}`,
@@ -405,6 +433,17 @@ export async function buildHarmonyExecutiveIntelligence(
       href: planningTarget ? `/harmony/workforce/${planningTarget.agent}` : "/harmony/workforce",
       title: adaptivePlan.objective,
       detail: adaptivePlan.executiveSummary,
+    });
+  }
+  if (createdProactiveObjectives.length > 0) {
+    addRecommendation(recommendations, {
+      id: "proactive-objectives",
+      priority: createdProactiveObjectives.some((objective) => objective.priority === "high") ? "high" : "medium",
+      kind: "review_approvals",
+      agent: "harmony",
+      href: "/harmony/review",
+      title: String(createdProactiveObjectives.length),
+      detail: `Newly proposed objective: ${createdProactiveObjectives[0]?.title ?? ""}`,
     });
   }
   for (const rec of recs.slice(0, 3)) {
@@ -552,6 +591,7 @@ export async function buildHarmonyExecutiveIntelligence(
     pendingMessages.length +
     proposedWork.length +
     proposedObjectives.length +
+    createdProactiveObjectives.length +
     blockedWork.length +
     blockedMessages.length +
     connectorIssues.length +
@@ -576,7 +616,8 @@ export async function buildHarmonyExecutiveIntelligence(
       activeObjectives: activeObjectives.length,
       activeWork: activeWork.length + messages.filter((m) => m.status === "delegated" || m.status === "in_progress").length,
       blockedWork: blockedWork.length + blockedMessages.length,
-      pendingApprovals: pendingMessages.length + proposedWork.length + proposedObjectives.length,
+      pendingApprovals:
+        pendingMessages.length + proposedWork.length + proposedObjectives.length + createdProactiveObjectives.length,
       failedExecutions,
       openRecommendations: recs.length,
       connectorIssues: connectorIssues.length,
@@ -615,6 +656,10 @@ export async function buildHarmonyExecutiveIntelligence(
     organization,
     planning: {
       current: adaptivePlan,
+    },
+    proactiveObjectives: {
+      generated: generatedObjectiveProposals,
+      created: createdProactiveObjectives,
     },
   };
 }
