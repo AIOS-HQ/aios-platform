@@ -8,14 +8,18 @@ import { listOpsEvents, type OpsEvent, type OpsLevel } from "@/lib/observability
 import { resolveOpsEvent, resolveAllOpsEvents } from "@/lib/observability/ops-actions";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
 import { getAiosAgent } from "@/lib/workforce/registry";
-import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { InlineEmpty } from "@/components/shared/inline-empty";
 import { ActionButton } from "@/components/shared/action-button";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+  MetricTile,
+} from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("operations");
@@ -52,8 +56,7 @@ function OpsRow({
 }) {
   const hasContext = e.context && Object.keys(e.context).length > 0;
   return (
-    <Card>
-      <CardContent className="flex items-start justify-between gap-4 p-4">
+    <li className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={LEVEL_VARIANT[e.level]} className="uppercase">{e.level}</Badge>
@@ -81,25 +84,21 @@ function OpsRow({
             {resolveLabel}
           </ActionButton>
         )}
-      </CardContent>
-    </Card>
+    </li>
   );
 }
 
 /** Compact agent→agent row for blocked delegations and approval bottlenecks. */
 function AgentMsgRow({ m, locale }: { m: AgentMessage; locale: string }) {
-  const FromIcon = getAgentIcon(m.from_agent);
-  const ToIcon = getAgentIcon(m.to_agent);
   const from = getAiosAgent(m.from_agent)?.name ?? m.from_agent;
   const to = getAiosAgent(m.to_agent)?.name ?? m.to_agent;
   return (
-    <Card>
-      <CardContent className="space-y-1 p-4">
-        <div className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-          {FromIcon ? <FromIcon className="size-3.5 text-muted-foreground" aria-hidden="true" /> : null}
+    <li className="space-y-2 p-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+          <AgentGlyph agent={m.from_agent} size="xs" />
           {from}
           <span className="text-muted-foreground" aria-hidden="true">→</span>
-          {ToIcon ? <ToIcon className="size-3.5 text-muted-foreground" aria-hidden="true" /> : null}
+          <AgentGlyph agent={m.to_agent} size="xs" />
           {to}
           <Badge variant={RISK_VARIANT[m.risk] ?? "outline"} className="text-[10px]">{m.risk}</Badge>
           <span className="ml-auto text-xs font-normal text-muted-foreground">
@@ -110,8 +109,7 @@ function AgentMsgRow({ m, locale }: { m: AgentMessage; locale: string }) {
         {m.outcome ? (
           <p className="line-clamp-2 text-xs text-muted-foreground">{m.outcome}</p>
         ) : null}
-      </CardContent>
-    </Card>
+    </li>
   );
 }
 
@@ -137,11 +135,11 @@ export default async function OperationsPage() {
   const blocked = agentMessages.filter((m) => m.status === "blocked");
   const awaiting = agentMessages.filter((m) => m.status === "awaiting_approval");
 
-  const tiles: { label: string; value: number; color: string }[] = [
-    { label: t("errors"), value: errorCount, color: "#dc2626" },
-    { label: t("warnings"), value: warnCount, color: "#ca8a04" },
-    { label: t("blockedDelegations"), value: blocked.length, color: "#dc2626" },
-    { label: t("awaitingApproval"), value: awaiting.length, color: "#2563eb" },
+  const tiles = [
+    { label: t("errors"), value: errorCount, icon: AlertTriangle, tone: "danger" as const },
+    { label: t("warnings"), value: warnCount, icon: Activity, tone: "warning" as const },
+    { label: t("blockedDelegations"), value: blocked.length, icon: AlertTriangle, tone: "danger" as const },
+    { label: t("awaitingApproval"), value: awaiting.length, icon: ShieldCheck, tone: "info" as const },
   ];
 
   return (
@@ -159,72 +157,58 @@ export default async function OperationsPage() {
         )}
       </PageHeader>
 
-      <div className="flex flex-col gap-6 lg:max-w-3xl">
+      <div className="flex flex-col gap-6">
         {/* ── Founder attention queue ─────────────────────────────── */}
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <Activity className="size-4" aria-hidden="true" />
-            {t("attentionQueue")}
-          </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <ExecutiveSection icon={Activity} title={t("attentionQueue")}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {tiles.map((tile) => (
-              <Card key={tile.label}>
-                <CardContent className="p-4">
-                  <p className="text-2xl font-bold" style={{ color: tile.value > 0 ? tile.color : undefined }}>
-                    {tile.value}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{tile.label}</p>
-                </CardContent>
-              </Card>
+              <MetricTile
+                key={tile.label}
+                label={tile.label}
+                value={tile.value}
+                icon={tile.icon}
+                tone={tile.value > 0 ? tile.tone : "neutral"}
+              />
             ))}
           </div>
-        </section>
+        </ExecutiveSection>
 
         {/* ── Blocked delegations ─────────────────────────────────── */}
         {blocked.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              <AlertTriangle className="size-4" aria-hidden="true" />
-              {t("blockedDelegations")}
-            </h2>
-            <div className="flex flex-col gap-3">
+          <ExecutiveSection icon={AlertTriangle} title={t("blockedDelegations")}>
+            <ExecutiveList>
               {blocked.map((m) => (
                 <AgentMsgRow key={m.id} m={m} locale={locale} />
               ))}
-            </div>
-          </section>
+            </ExecutiveList>
+          </ExecutiveSection>
         )}
 
         {/* ── Approval bottlenecks ────────────────────────────────── */}
         {awaiting.length > 0 && (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                <ShieldCheck className="size-4" aria-hidden="true" />
-                {t("awaitingApproval")}
-              </h2>
-              <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+          <ExecutiveSection
+            icon={ShieldCheck}
+            title={t("awaitingApproval")}
+            action={
+              <Button asChild size="sm" variant="outline">
                 <Link href="/settings/approvals">{t("openApprovalCenter")}</Link>
               </Button>
-            </div>
-            <div className="flex flex-col gap-3">
+            }
+          >
+            <ExecutiveList>
               {awaiting.map((m) => (
                 <AgentMsgRow key={m.id} m={m} locale={locale} />
               ))}
-            </div>
-          </section>
+            </ExecutiveList>
+          </ExecutiveSection>
         )}
 
         {/* ── Operational issues (severity-ordered) ───────────────── */}
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <AlertTriangle className="size-4" aria-hidden="true" />
-            {t("unresolved", { n: unresolved.length })}
-          </h2>
+        <ExecutiveSection icon={AlertTriangle} title={t("unresolved", { n: unresolved.length })}>
           {unresolved.length === 0 ? (
             <InlineEmpty icon={CheckCircle2} message={t("allClear")} />
           ) : (
-            <div className="flex flex-col gap-3">
+            <ExecutiveList>
               {unresolved.map((e) => (
                 <OpsRow
                   key={e.id}
@@ -235,17 +219,13 @@ export default async function OperationsPage() {
                   resolvedToast={t("resolvedToast")}
                 />
               ))}
-            </div>
+            </ExecutiveList>
           )}
-        </section>
+        </ExecutiveSection>
 
         {resolved.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              <CheckCircle2 className="size-4" aria-hidden="true" />
-              {t("recent")}
-            </h2>
-            <div className="flex flex-col gap-3 opacity-70">
+          <ExecutiveSection icon={CheckCircle2} title={t("recent")}>
+            <ExecutiveList className="opacity-75">
               {resolved.map((e) => (
                 <OpsRow
                   key={e.id}
@@ -256,8 +236,8 @@ export default async function OperationsPage() {
                   resolvedToast={t("resolvedToast")}
                 />
               ))}
-            </div>
-          </section>
+            </ExecutiveList>
+          </ExecutiveSection>
         )}
       </div>
     </>

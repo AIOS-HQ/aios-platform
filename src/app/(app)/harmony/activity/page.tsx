@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { ExecutiveList, ExecutiveSection, MetricTile } from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("os.activityFeed");
@@ -25,6 +26,7 @@ export default async function ActivityPage() {
     listCompanies(),
   ]);
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
+  const primaryKind = events[0]?.kind;
 
   return (
     <>
@@ -37,30 +39,45 @@ export default async function ActivityPage() {
           description={t("empty.description")}
         />
       ) : (
-        <ol className="relative space-y-4 border-l pl-6">
-          {events.map((e) => (
-            <li key={e.id} className="relative">
-              <span
-                className="absolute -left-[1.65rem] top-1.5 size-2.5 rounded-full bg-primary"
-                aria-hidden="true"
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {tk(e.kind)}
-                </Badge>
-                {e.company_id && companyName.get(e.company_id) && (
-                  <span className="text-xs text-muted-foreground">
-                    {companyName.get(e.company_id)}
-                  </span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {formatDate(e.created_at, locale)}
-                </span>
-              </div>
-              <p className="mt-1 text-sm">{e.summary}</p>
-            </li>
-          ))}
-        </ol>
+        <div className="space-y-6">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MetricTile label={t("title")} value={events.length} icon={Activity} />
+            <MetricTile
+              label={primaryKind ? tk(primaryKind) : t("title")}
+              value={primaryKind ? events.filter((e) => e.kind === primaryKind).length : 0}
+              icon={Activity}
+              tone="info"
+            />
+            <MetricTile
+              label={t("subtitle")}
+              value={new Set(events.map((e) => e.company_id).filter(Boolean)).size}
+              icon={Activity}
+              tone="success"
+            />
+          </div>
+          <ExecutiveSection icon={Activity} title={t("title")}>
+            <ExecutiveList>
+              {events.map((e) => (
+                <li key={e.id} className="relative p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {tk(e.kind)}
+                    </Badge>
+                    {e.company_id && companyName.get(e.company_id) && (
+                      <span className="text-xs text-muted-foreground">
+                        {companyName.get(e.company_id)}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(e.created_at, locale)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6">{e.summary}</p>
+                </li>
+              ))}
+            </ExecutiveList>
+          </ExecutiveSection>
+        </div>
       )}
     </>
   );
