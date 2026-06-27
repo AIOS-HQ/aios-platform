@@ -153,21 +153,9 @@ export async function findRelevantCompanySkills(
   query: string,
   limit = 5,
 ): Promise<CompanySkill[]> {
-  const terms = new Set(normalize(query).split(" ").filter((w) => w.length > 3));
-  const skills = await listCompanySkills(userId, companyId, { limit: 200 });
-  return skills
-    .map((skill) => {
-      const haystack = normalize(
-        `${skill.title} ${skill.category} ${skill.summary} ${skill.business_problem} ${skill.reusable_solution} ${skill.when_to_use.join(" ")}`,
-      );
-      let score = skill.confidence_score / 25 + skill.success_count - skill.failure_count;
-      for (const term of terms) if (haystack.includes(term)) score += 3;
-      return { skill, score };
-    })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ skill }) => skill);
+  const { retrieveCompanySkills } = await import("@/lib/company-skills/retrieval");
+  const result = await retrieveCompanySkills({ userId, companyId, query, limit });
+  return result.skills;
 }
 
 export async function learnCompanySkill(event: SkillLearningEvent): Promise<CompanySkill | null> {

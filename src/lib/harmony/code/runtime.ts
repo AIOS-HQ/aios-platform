@@ -254,15 +254,7 @@ export async function runMasonEngineeringRuntime(
     };
   }
 
-  const [skills, organization, julius, adaptivePlan, connectorResults] = await Promise.all([
-    consultCompanySkills({
-      userId: input.userId,
-      companyId: input.companyId,
-      agent: MASON_AGENT_KEY,
-      purpose: "objective_planning",
-      query: `${input.objective}\n${input.detail ?? ""}`,
-      emit: false,
-    }),
+  const [organization, julius, adaptivePlan, connectorResults] = await Promise.all([
     buildOrganizationalIntelligence(input.userId, input.companyId, { limit: 400 }),
     juliusRecall(input.userId, input.companyId, input.objective, 8),
     buildAdaptiveExecutionPlan({
@@ -274,6 +266,15 @@ export async function runMasonEngineeringRuntime(
     }),
     runSafeConnectorSteps(input, plan),
   ]);
+  const skills = await consultCompanySkills({
+    userId: input.userId,
+    companyId: input.companyId,
+    agent: MASON_AGENT_KEY,
+    purpose: "objective_planning",
+    query: `${input.objective}\n${input.detail ?? ""}`,
+    context: { organization, adaptivePlan },
+    emit: false,
+  });
 
   const artifacts: MasonRuntimeArtifact[] = [
     {
