@@ -103,7 +103,7 @@ export const DEPARTMENT_TEMPLATES: readonly DepartmentTemplate[] = [
     defaultAutonomy: 2,
     agents: [
       { key: "engineering_manager", name: "Engineering Manager", role: "Plans sprints, triages the backlog, reports status" },
-      { key: "coding", name: "Coding Agent", role: "Implements features and fixes" },
+      { key: "mason", name: "Mason", role: "Founder Native Chief Software Engineer — implements features and fixes through branch, PR, preview, and approval gates" },
       { key: "qa", name: "QA Agent", role: "Reviews changes and verifies quality" },
       { key: "testing", name: "Testing Agent", role: "Writes and runs automated tests" },
       { key: "deployment", name: "Deployment Agent", role: "Manages releases and deployments" },

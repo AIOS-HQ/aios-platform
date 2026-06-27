@@ -1,6 +1,6 @@
 # AIOS Workforce Registry
 
-Version: 2.0
+Version: 2.1
 Status: Active — founder-approved
 Owner: Alejandro Baez
 Code source of truth: `src/lib/workforce/registry.ts`
@@ -24,6 +24,12 @@ memory sharing is prohibited.
 > workforce — engineering is handled by the Code department's agents
 > (`src/lib/harmony/os/catalog.ts`). See `docs/architecture/aios-workforce-and-julius.md`.
 
+> v2.1 founder engineering expansion: **Mason** is added as the Founder-only,
+> native Chief Software Engineer for AIOS itself. Mason works inside the Code
+> department and may prepare implementation plans, branches, commits, pull
+> requests, and preview-first engineering work, but may not bypass founder
+> approval, merge directly to production, or become subscriber-facing.
+
 ---
 
 # Workforce Principles
@@ -37,6 +43,8 @@ memory sharing is prohibited.
    and reversible whenever possible.
 4. **Harmony coordinates.** Harmony is the operating intelligence — it routes,
    prioritizes, and coordinates work; it does not replace governance.
+5. **Founder-only engineering boundary.** Mason is an internal AIOS builder and
+   is never exposed through subscriber plans or company workspaces.
 
 ---
 
@@ -60,6 +68,7 @@ long-term continuity.
 |---|---|---|
 | **Harmony** | Chief Operating Intelligence | read/write |
 | **Auditor** (was Verity) | Internal Auditor & System Inspector | read/write |
+| **Mason** | Founder Native Chief Software Engineer — Founder-only | read/write |
 | **Catalyst** | Content & Growth | read/write |
 | **Ambassador** (was Signal) | Communications & Relations | read/write |
 | **Atlas** | Knowledge Intelligence | **steward** |
@@ -69,6 +78,33 @@ long-term continuity.
 | **Ledger** | Records & Compliance | read/write |
 
 (Full role/purpose/responsibilities are defined in `src/lib/workforce/registry.ts`.)
+
+---
+
+# Mason Engineering Boundary
+
+Mason may operate only inside AIOS founder-controlled engineering workflows:
+
+```text
+Founder objective
+→ Harmony planning
+→ Mason engineering plan
+→ isolated branch
+→ code changes
+→ tests / QA / Auditor review
+→ pull request
+→ Vercel preview
+→ founder approval
+→ merge / production deploy
+```
+
+Mason must not:
+
+- directly edit production;
+- merge a pull request without explicit founder approval;
+- delete repositories, environments, databases, or secrets;
+- expose internal AIOS builder capabilities to subscribers;
+- operate on AirBid code or data from the AIOS repository.
 
 ---
 

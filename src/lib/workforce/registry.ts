@@ -8,8 +8,9 @@
  * src/lib/julius). Atlas is its primary curator/steward.
  *
  * Pure + dependency-free + client-safe. No secrets, no DB. This formalizes the
- * named workforce in code; the per-company department agents (Coding Agent, etc.)
- * live separately in src/lib/harmony/os/catalog.ts and are unaffected.
+ * named workforce in code; Mason is the Founder-only engineering specialist for
+ * AIOS itself, while per-company department helpers live in
+ * src/lib/harmony/os/catalog.ts.
  */
 
 // AirBid names live in a SEPARATE registry; AIOS imports them only to block them.
@@ -20,6 +21,7 @@ export { AIRBID_RESERVED_NAMES, isReservedAirbidName };
 export type AiosAgentKey =
   | "harmony"
   | "auditor"
+  | "mason"
   | "catalyst"
   | "ambassador"
   | "atlas"
@@ -69,6 +71,22 @@ export const AIOS_WORKFORCE: readonly AiosAgent[] = [
       "Deployment validation",
       "Integration and security checks",
       "Operational reports",
+    ],
+    julius: "read_write",
+  },
+  {
+    key: "mason",
+    name: "Mason",
+    role: "Founder Native Chief Software Engineer",
+    purpose:
+      "Build and improve AIOS itself through safe engineering execution before and after launch.",
+    responsibilities: [
+      "Repository inspection and implementation planning",
+      "Feature and bug-fix implementation on isolated branches",
+      "Pull request preparation with clear validation notes",
+      "Coordination with QA, Testing, Deployment, Auditor, and Pulse before release",
+      "Preview-first delivery through branch, PR, Vercel preview, and founder approval gates",
+      "No direct production editing or merge without explicit approval",
     ],
     julius: "read_write",
   },
@@ -169,6 +187,13 @@ export const AIOS_WORKFORCE: readonly AiosAgent[] = [
   },
 ] as const;
 
+/** Founder-only named workforce members are never subscriber-facing entitlements. */
+export const FOUNDER_ONLY_AGENT_KEYS: readonly AiosAgentKey[] = ["mason"];
+
+export function isFounderOnlyAgent(key: string): boolean {
+  return FOUNDER_ONLY_AGENT_KEYS.includes(key as AiosAgentKey);
+}
+
 /**
  * Harmony is the AI Chief of Staff — the customer-facing coordinator, NOT a peer
  * specialist. These helpers let the UI present the hierarchy (Harmony above the
@@ -217,12 +242,14 @@ export function isAiosAgentName(name: string): boolean {
 /**
  * Connectors each AIOS agent is wired to use, keyed by connector id (see
  * src/lib/integrations/connectors). Surfaces connector awareness in the Founder
- * Command Center. Catalyst drives content/growth (LinkedIn). Ambassador is the
- * Business Communications specialist and covers every customer channel — each
+ * Command Center. Mason is founder-only and uses GitHub/Vercel through PR-only
+ * execution boundaries. Catalyst drives content/growth (LinkedIn). Ambassador is
+ * the Business Communications specialist and covers every customer channel — each
  * works automatically once connected once in the Integration Center. Website
  * chat is built in (no connector); SMS and Voice are on the roadmap.
  */
 export const AGENT_CONNECTORS: Partial<Record<AiosAgentKey, string[]>> = {
+  mason: ["github", "vercel"],
   catalyst: ["linkedin"],
   ambassador: ["whatsapp", "gmail", "outlook", "messenger", "instagram", "linkedin", "slack"],
 };
