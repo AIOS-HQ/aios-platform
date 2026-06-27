@@ -873,7 +873,76 @@
     "asOf": "As of {time}",
     "connectors": "Connectors",
     "connectorsHint": "Founder integrations and their connection status.",
-    "connectorExpired": "{name} authorization expired — reconnect needed"
+    "connectorExpired": "{name} authorization expired — reconnect needed",
+    "intel": {
+      "state": {
+        "critical": "Critical",
+        "attention": "Attention",
+        "operating": "Operating",
+        "quiet": "Quiet"
+      },
+      "headline": {
+        "critical": "Harmony sees {n} urgent item(s) that need executive action.",
+        "attention": "Harmony sees {n} item(s) that should be handled next.",
+        "operating": "Harmony is coordinating {n} active workstream(s).",
+        "quiet": "Harmony sees a quiet operating state."
+      },
+      "operatorRead": "{agents} agent(s) active · {work} workstream(s) moving · {approvals} approval(s) waiting · {risks} risk(s) · {context} Julius context signal(s).",
+      "topAction": "Open top action",
+      "fullBriefing": "Full briefing",
+      "metrics": {
+        "activeWork": "Active work",
+        "approvals": "Needs decision",
+        "blocked": "Blocked",
+        "agents": "Active agents",
+        "julius": "Julius context"
+      },
+      "priority": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "recommendation": {
+        "review_approvals": "Review {n} decision item(s) before work can move.",
+        "unblock_work": "Unblock or reassign: {title}.",
+        "reconnect_connector": "Reconnect {title} so the assigned agent can operate.",
+        "investigate_auditor_risk": "Investigate Auditor risk: {title}.",
+        "delegate_objective_work": "Delegate execution work for objective: {title}.",
+        "review_failed_execution": "Review {n} failed execution(s) and decide retry or escalation.",
+        "review_agent_recommendation": "Review {agent}'s recommendation: {title}.",
+        "continue_operating": "Continue operating; Harmony sees no critical intervention."
+      },
+      "delegation": {
+        "title": "Delegation Plan",
+        "description": "Harmony's recommended routing based on responsibility, risk, and current workload.",
+        "none": "No new delegation route is needed right now.",
+        "load": "{n} active item(s) currently assigned"
+      },
+      "routeSource": {
+        "objective": "Objective",
+        "blocked_work": "Blocked work",
+        "connector": "Connector",
+        "auditor": "Auditor",
+        "approval": "Approval"
+      },
+      "confidence": {
+        "high": "High confidence",
+        "medium": "Medium confidence",
+        "low": "Low confidence"
+      },
+      "auditorDomain": "{domain} findings",
+      "julius": {
+        "title": "Julius Context",
+        "description": "Harmony is using {n} organizational memory signal(s) to avoid repeated work and surface prior decisions.",
+        "open": "Open Julius",
+        "none": "No relevant Julius lessons or decisions yet."
+      },
+      "agentSignal": {
+        "active": "{n} active",
+        "blocked": "{n} blocked"
+      }
+    }
   },
   "workforce": {
     "title": "AI Workforce",
@@ -916,6 +985,7 @@
     "dispatchDesc": "Send a message or delegate a task to an AIOS agent. Risky or write actions require your approval.",
     "fromAgent": "From",
     "toAgent": "To",
+    "harmonyDecides": "Harmony decides",
     "subjectLabel": "Task",
     "subjectPlaceholder": "e.g. Draft the Q3 launch announcement",
     "bodyLabel": "Details",
