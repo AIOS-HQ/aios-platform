@@ -895,7 +895,8 @@
         "approvals": "Necesita decisión",
         "blocked": "Bloqueado",
         "agents": "Agentes activos",
-        "julius": "Contexto Julius"
+        "julius": "Contexto Julius",
+        "skills": "Habilidades de la empresa"
       },
       "priority": {
         "critical": "Crítico",
@@ -911,6 +912,7 @@
         "delegate_objective_work": "Delega trabajo de ejecución para el objetivo: {title}.",
         "review_failed_execution": "Revisa {n} ejecución(es) fallida(s) y decide reintentar o escalar.",
         "review_agent_recommendation": "Revisa la recomendación de {agent}: {title}.",
+        "reuse_company_skill": "Reutiliza la habilidad de la empresa: {title}.",
         "continue_operating": "Continúa operando; Harmony no ve intervención crítica."
       },
       "delegation": {
@@ -937,6 +939,13 @@
         "description": "Harmony usa {n} señal(es) de memoria organizacional para evitar trabajo repetido y mostrar decisiones previas.",
         "open": "Abrir Julius",
         "none": "Aún no hay lecciones o decisiones relevantes en Julius."
+      },
+      "skills": {
+        "title": "Biblioteca de habilidades de la empresa",
+        "description": "{n} habilidad(es) reutilizable(s) en Julius · {recent} aprendida(s) o mejorada(s) recientemente.",
+        "highest": "Mayor confianza",
+        "domain": "Dominio más fuerte",
+        "none": "Aún no hay habilidades de empresa reutilizables relevantes."
       },
       "agentSignal": {
         "active": "{n} activo(s)",

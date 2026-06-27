@@ -263,6 +263,23 @@ export async function respondToTask(params: {
     importance: finalStatus === "completed" ? 3 : 4,
   });
 
+  try {
+    const { learnCompanySkill } = await import("@/lib/company-skills/library");
+    await learnCompanySkill({
+      userId: params.userId,
+      companyId: params.companyId,
+      ownerAgent: params.fromAgent,
+      title: parent.subject,
+      summary: parent.body,
+      outcome,
+      success: finalStatus === "completed",
+      source: "agent_message",
+      sourceId: parent.id,
+    });
+  } catch (e) {
+    console.error("[a2a] learnCompanySkill", e);
+  }
+
   await emitActivity({
     userId: params.userId,
     companyId: params.companyId,

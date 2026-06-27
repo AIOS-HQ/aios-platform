@@ -17,6 +17,12 @@ import {
   type AiosAgentKey,
 } from "@/lib/workforce/registry";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
+import {
+  findRelevantCompanySkills,
+  listCompanySkills,
+  summarizeSkillMetrics,
+  type CompanySkill,
+} from "@/lib/company-skills/library";
 
 type Priority = "critical" | "high" | "medium" | "low";
 type Situation = "critical" | "attention" | "operating" | "quiet";
@@ -39,6 +45,7 @@ export interface ExecutiveRecommendation {
     | "delegate_objective_work"
     | "review_failed_execution"
     | "review_agent_recommendation"
+    | "reuse_company_skill"
     | "continue_operating";
   agent: string;
   href: string;
@@ -100,6 +107,10 @@ export interface ExecutiveIntelligence {
     recent: JuliusEntry[];
     decisions: JuliusEntry[];
     lessons: JuliusEntry[];
+  };
+  skills: {
+    relevant: CompanySkill[];
+    metrics: ReturnType<typeof summarizeSkillMetrics>;
   };
 }
 
@@ -187,6 +198,7 @@ export async function buildHarmonyExecutiveIntelligence(
     messages,
     awareness,
     juliusEntries,
+    companySkills,
   ] = await Promise.all([
     runAudit(userId),
     listWorkItems(userId, { companyId, limit: 400 }),
@@ -199,6 +211,7 @@ export async function buildHarmonyExecutiveIntelligence(
       ? getJuliusAwareness(userId, companyId)
       : Promise.resolve({ objectives: [], decisions: [], activities: [], knowledge: [], total: 0 }),
     companyId ? listJuliusEntries(userId, companyId, { limit: 200 }) : Promise.resolve([]),
+    companyId ? listCompanySkills(userId, companyId, { limit: 200 }) : Promise.resolve([]),
   ]);
 
   const connections = await connectionsPromise;
@@ -324,6 +337,25 @@ export async function buildHarmonyExecutiveIntelligence(
       href: "/harmony/review",
       title: rec.title,
       detail: rec.rationale ?? rec.detail ?? "",
+    });
+  }
+  const skillQuery = [
+    ...activeObjectives.slice(0, 3).map((o) => o.title),
+    ...blockedWork.slice(0, 3).map((w) => w.title),
+    ...risks.slice(0, 3).map((f) => f.title),
+  ].join(" ");
+  const relevantSkills = companyId
+    ? await findRelevantCompanySkills(userId, companyId, skillQuery || "company operations", 5)
+    : [];
+  for (const skill of relevantSkills.slice(0, 2)) {
+    addRecommendation(recommendations, {
+      id: `skill-${skill.id}`,
+      priority: skill.confidence_score >= 75 ? "high" : "medium",
+      kind: "reuse_company_skill",
+      agent: skill.owner_agent,
+      href: "/harmony/julius",
+      title: skill.title,
+      detail: skill.summary,
     });
   }
   if (recommendations.length === 0) {
@@ -463,6 +495,10 @@ export async function buildHarmonyExecutiveIntelligence(
       lessons: juliusEntries
         .filter((e) => e.kind === "knowledge" || e.kind === "historical")
         .slice(0, 4),
+    },
+    skills: {
+      relevant: relevantSkills,
+      metrics: summarizeSkillMetrics(companySkills),
     },
   };
 }

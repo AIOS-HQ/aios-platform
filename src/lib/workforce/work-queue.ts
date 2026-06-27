@@ -171,6 +171,22 @@ export async function setWorkItemStatus(
       const { resolvePrimaryCompanyId } = await import("@/lib/julius/wiring");
       const companyId = item?.company_id ?? (await resolvePrimaryCompanyId());
       if (companyId) {
+        if (item) {
+          const { learnCompanySkill } = await import("@/lib/company-skills/library");
+          await learnCompanySkill({
+            userId,
+            companyId,
+            ownerAgent: item.agent,
+            title: item.title,
+            summary: item.detail,
+            outcome: item.detail,
+            category: item.category,
+            objectiveId: item.objective_id,
+            success: true,
+            source: "work_item",
+            sourceId: item.id,
+          });
+        }
         const { reflectAfterEvent } = await import("@/lib/harmony/reflection");
         await reflectAfterEvent(userId, companyId, "work_completed");
       }
