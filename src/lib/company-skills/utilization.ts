@@ -1,10 +1,12 @@
 import "server-only";
 
 import { emitActivity } from "@/lib/harmony/os/events";
+import type { CompanySkill } from "@/lib/company-skills/library";
 import {
-  findRelevantCompanySkills,
-  type CompanySkill,
-} from "@/lib/company-skills/library";
+  explainSemanticSkillSelection,
+  retrieveCompanySkills,
+  type CompanySkillRetrievalContext,
+} from "@/lib/company-skills/retrieval";
 
 export type SkillConsultationPurpose =
   | "objective_planning"
@@ -34,6 +36,7 @@ export interface SkillConsultation {
   skills: SkillUsageEvidence[];
   summary: string;
   appliedAt: string;
+  retrievalMode: "semantic" | "fallback";
 }
 
 function purposeLabel(purpose: SkillConsultationPurpose): string {
@@ -126,6 +129,7 @@ export async function consultCompanySkills(params: {
   query: string;
   purpose: SkillConsultationPurpose;
   agent?: string | null;
+  context?: CompanySkillRetrievalContext;
   sourceType?: string | null;
   sourceId?: string | null;
   limit?: number;
@@ -138,23 +142,40 @@ export async function consultCompanySkills(params: {
     skills: [],
     summary: "No reusable Company Skills matched this decision.",
     appliedAt: new Date().toISOString(),
+    retrievalMode: "fallback",
   };
   if (!params.companyId || !query) return empty;
 
   try {
-    const relevant = await findRelevantCompanySkills(
-      params.userId,
-      params.companyId,
+    const retrieval = await retrieveCompanySkills({
+      userId: params.userId,
+      companyId: params.companyId,
       query,
-      params.limit ?? 4,
-    );
-    const skills = relevant.map((skill) => toSkillUsageEvidence(skill, query));
+      limit: params.limit ?? 4,
+      context: {
+        ...params.context,
+        agent: params.agent ?? params.context?.agent,
+        purpose: params.purpose,
+      },
+    });
+    const rankedById = new Map(retrieval.ranked.map((ranked) => [ranked.skill.id, ranked]));
+    const skills = retrieval.skills.map((skill) => {
+      const evidence = toSkillUsageEvidence(skill, query);
+      const ranked = rankedById.get(skill.id);
+      return ranked
+        ? {
+            ...evidence,
+            reason: explainSemanticSkillSelection(ranked),
+          }
+        : evidence;
+    });
     const consultation: SkillConsultation = {
       purpose: params.purpose,
       query,
       skills,
       summary: summarizeSkillConsultation(skills),
       appliedAt: new Date().toISOString(),
+      retrievalMode: retrieval.mode,
     };
 
     if (params.emit !== false) {

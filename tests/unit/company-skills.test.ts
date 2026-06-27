@@ -7,6 +7,7 @@ import {
   toSkillUsageEvidence,
   type SkillConsultation,
 } from "@/lib/company-skills/utilization";
+import { explainSemanticSkillSelection, type RankedCompanySkill } from "@/lib/company-skills/retrieval";
 import type { CompanySkill } from "@/lib/company-skills/library";
 
 const skill: CompanySkill = {
@@ -46,6 +47,7 @@ describe("company skill utilization", () => {
       skills: [evidence],
       summary: summarizeSkillConsultation([evidence]),
       appliedAt: "2026-06-27T00:00:00.000Z",
+      retrievalMode: "semantic",
     };
 
     expect(formatSkillContext(consultation.skills)).toContain("Launch checklist");
@@ -53,5 +55,22 @@ describe("company skill utilization", () => {
     expect(appendSkillContext("Prepare launch", consultation)).toContain(
       "Company Skills consulted",
     );
+  });
+
+  it("explains semantic retrieval ranking signals", () => {
+    const ranked: RankedCompanySkill = {
+      skill,
+      score: 92.5,
+      semanticSimilarity: 0.83,
+      mode: "semantic",
+      reasons: [
+        "semantic similarity 83%",
+        "confidence 82/100",
+        "supported by Organizational Intelligence",
+      ],
+    };
+
+    expect(explainSemanticSkillSelection(ranked)).toContain("semantic score 92.5");
+    expect(explainSemanticSkillSelection(ranked)).toContain("Organizational Intelligence");
   });
 });

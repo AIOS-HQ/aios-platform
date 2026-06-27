@@ -361,22 +361,20 @@ export async function buildAdaptiveExecutionPlan(params: {
   const title = params.title.trim();
   if (!params.companyId || !title) return null;
   const query = `${title}\n${params.detail ?? ""}`.trim();
-  const [skills, organization] = await Promise.all([
-    params.skills
-      ? Promise.resolve(params.skills)
-      : consultCompanySkills({
-          userId: params.userId,
-          companyId: params.companyId,
-          agent: params.agent ?? "harmony",
-          purpose: "objective_planning",
-          query,
-          limit: 6,
-          emit: false,
-        }).then((consultation) => consultation.skills),
-    params.organization
-      ? Promise.resolve(params.organization)
-      : buildOrganizationalIntelligence(params.userId, params.companyId, { limit: 400 }),
-  ]);
+  const organization =
+    params.organization ?? (await buildOrganizationalIntelligence(params.userId, params.companyId, { limit: 400 }));
+  const skills: SkillUsageEvidence[] =
+    params.skills ??
+    (await consultCompanySkills({
+      userId: params.userId,
+      companyId: params.companyId,
+      agent: params.agent ?? "harmony",
+      purpose: "objective_planning",
+      query,
+      context: { organization },
+      limit: 6,
+      emit: false,
+    }).then((consultation) => consultation.skills));
 
   return buildAdaptivePlanFromSignals({
     title,

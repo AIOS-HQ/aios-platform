@@ -256,20 +256,21 @@ export async function executeWorkItem(
     .eq("id", item.id)
     .eq("user_id", userId);
 
+  const organization = await buildOrganizationalIntelligence(userId, item.company_id, {
+    limit: 300,
+  });
+  const organizationalContext = formatOrganizationalContext(organization);
   const consultation = await consultCompanySkills({
     userId,
     companyId: item.company_id,
     agent: "harmony",
     purpose: "execution",
     query: `${item.title}\n${item.description ?? ""}`,
+    context: { organization },
     sourceType: "work_item",
     sourceId: item.id,
   });
   const skillContext = formatSkillContext(consultation.skills);
-  const organization = await buildOrganizationalIntelligence(userId, item.company_id, {
-    limit: 300,
-  });
-  const organizationalContext = formatOrganizationalContext(organization);
   const adaptivePlan = await buildAdaptiveExecutionPlan({
     userId,
     companyId: item.company_id,

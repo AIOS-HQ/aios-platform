@@ -31,11 +31,11 @@ import {
   type SkillConsultationPurpose,
 } from "@/lib/company-skills/utilization";
 import {
-  findRelevantCompanySkills,
   listCompanySkills,
   summarizeSkillMetrics,
   type CompanySkill,
 } from "@/lib/company-skills/library";
+import { retrieveCompanySkills } from "@/lib/company-skills/retrieval";
 
 type Priority = "critical" | "high" | "medium" | "low";
 type Situation = "critical" | "attention" | "operating" | "quiet";
@@ -424,7 +424,13 @@ export async function buildHarmonyExecutiveIntelligence(
     ...risks.slice(0, 3).map((f) => f.title),
   ].join(" ");
   const relevantSkills = companyId
-    ? await findRelevantCompanySkills(userId, companyId, skillQuery || "company operations", 5)
+    ? (await retrieveCompanySkills({
+        userId,
+        companyId,
+        query: skillQuery || "company operations",
+        limit: 5,
+        context: { organization, adaptivePlan },
+      })).skills
     : [];
   for (const skill of relevantSkills.slice(0, 2)) {
     addRecommendation(recommendations, {
