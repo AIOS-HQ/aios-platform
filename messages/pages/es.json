@@ -913,6 +913,8 @@
         "review_failed_execution": "Revisa {n} ejecución(es) fallida(s) y decide reintentar o escalar.",
         "review_agent_recommendation": "Revisa la recomendación de {agent}: {title}.",
         "reuse_company_skill": "Reutiliza la habilidad de la empresa: {title}.",
+        "apply_organizational_pattern": "Aplica el patrón organizacional probado: {title}.",
+        "resolve_organizational_bottleneck": "Resuelve el cuello de botella organizacional recurrente: {title}.",
         "continue_operating": "Continúa operando; Harmony no ve intervención crítica."
       },
       "delegation": {
@@ -947,6 +949,16 @@
         "domain": "Dominio más fuerte",
         "none": "Aún no hay habilidades de empresa reutilizables relevantes.",
         "used": "{title} · {confidence}/100"
+      },
+      "organization": {
+        "title": "Inteligencia organizacional",
+        "description": "{collaborations} patrón(es) de colaboración aprendido(s) · confiabilidad más fuerte {reliability}%.",
+        "open": "Abrir equipo",
+        "avgTime": "Horas promedio de finalización",
+        "approvals": "Frecuencia de aprobación",
+        "strongest": "Colaboración más fuerte",
+        "none": "Aún no surge un patrón organizacional estable.",
+        "bottleneck": "Cuello de botella recurrente: {title} en {count} evento(s)."
       },
       "agentSignal": {
         "active": "{n} activo(s)",

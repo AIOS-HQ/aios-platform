@@ -5,6 +5,10 @@ import { getTranslations } from "next-intl/server";
 import { getProvider } from "@/lib/ai/provider";
 import { consultCompanySkills, formatSkillContext } from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
+import {
+  buildOrganizationalIntelligence,
+  formatOrganizationalContext,
+} from "@/lib/organizational-intelligence/engine";
 import { runConnectorCapability } from "@/lib/integrations/connector-runtime";
 import {
   clampAutonomy,
@@ -258,6 +262,10 @@ export async function executeWorkItem(
     sourceId: item.id,
   });
   const skillContext = formatSkillContext(consultation.skills);
+  const organization = await buildOrganizationalIntelligence(userId, item.company_id, {
+    limit: 300,
+  });
+  const organizationalContext = formatOrganizationalContext(organization);
 
   const githubIntent = inferGithubIntent(item);
 
@@ -278,6 +286,8 @@ export async function executeWorkItem(
 
     const description = `${item.description ?? ""}${
       skillContext ? `\n\nCompany Skills applied before execution:\n${skillContext}` : ""
+    }${
+      organizationalContext ? `\n\nOrganizational Intelligence considered:\n${organizationalContext}` : ""
     }${note}`.slice(
       0,
       LIMITS.noteContent,
@@ -372,6 +382,10 @@ export async function executeWorkItem(
     });
     const prompt = `${item.title}\n\n${item.description ?? ""}${
       skillContext ? `\n\nUse these relevant Company Skills before deciding the execution approach:\n${skillContext}` : ""
+    }${
+      organizationalContext
+        ? `\n\nUse these Organizational Intelligence patterns before deciding sequencing, collaboration, and recovery path:\n${organizationalContext}`
+        : ""
     }`.trim();
     result = await getProvider().generate(prompt, system);
   } catch (err) {

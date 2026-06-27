@@ -8,6 +8,10 @@ import {
 } from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { juliusRecall, juliusRemember } from "@/lib/julius/wiring";
+import {
+  appendOrganizationalContext,
+  buildOrganizationalIntelligence,
+} from "@/lib/organizational-intelligence/engine";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
 /**
@@ -108,16 +112,35 @@ export async function sendAgentMessage(params: {
     query: `${subject}\n${params.body ?? ""}`,
     emit: false,
   });
+  const organization = await buildOrganizationalIntelligence(params.userId, params.companyId, {
+    limit: 300,
+  });
   if (params.attachJuliusContext !== false) {
     const entries = await juliusRecall(params.userId, params.companyId, subject, 5);
     context = {
       query: subject,
       julius: entries.map((e) => ({ id: e.id, title: e.title, kind: e.kind })),
       companySkills: consultation.skills,
+      organization: {
+        strongestCollaboration: organization.strongestCollaboration,
+        bottlenecks: organization.bottlenecks.slice(0, 3),
+        planningContext: organization.planningContext,
+      },
     };
   } else if (consultation.skills.length > 0) {
-    context = { companySkills: consultation.skills };
+    context = {
+      companySkills: consultation.skills,
+      organization: {
+        strongestCollaboration: organization.strongestCollaboration,
+        bottlenecks: organization.bottlenecks.slice(0, 3),
+        planningContext: organization.planningContext,
+      },
+    };
   }
+  const plannedBody = appendOrganizationalContext(
+    appendSkillContext(params.body, consultation),
+    organization,
+  );
 
   const gated = riskRequiresApproval(risk);
   const status: AgentMessageStatus = gated
@@ -138,7 +161,7 @@ export async function sendAgentMessage(params: {
       risk,
       parent_id: params.parentId ?? null,
       subject: subject.slice(0, 300),
-      body: (appendSkillContext(params.body, consultation) ?? "").slice(0, 8000),
+      body: (plannedBody ?? "").slice(0, 8000),
       context,
     })
     .select("*")
