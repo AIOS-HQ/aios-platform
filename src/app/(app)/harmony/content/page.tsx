@@ -1,7 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Clapperboard, Plug, Plus, Sparkles, Users, Wand2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Clapperboard,
+  Clock3,
+  ListChecks,
+  Plug,
+  Plus,
+  Sparkles,
+  Timer,
+  Users,
+  Wand2,
+} from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { listDepartments } from "@/lib/data/os/departments";
 import { listCompanies } from "@/lib/data/os/companies";
@@ -32,6 +43,12 @@ import { ContentSubnav } from "@/components/harmony/content/content-subnav";
 import { CatalystWorkspace } from "@/components/harmony/content/catalyst-workspace";
 import { DiscoveredConnectors } from "@/components/integrations/discovered-connectors";
 import { InlineEmpty } from "@/components/shared/inline-empty";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+  MetricTile,
+  SignalPill,
+} from "@/components/shared/executive";
 import { ActionButton } from "@/components/shared/action-button";
 import { cn } from "@/lib/utils";
 import type { TaskPriority } from "@/types/database";
@@ -159,35 +176,49 @@ export default async function ContentDepartmentPage({
       )}
 
       {companiesWithContent.length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map((s) => (
-            <Card key={s.key}>
-              <CardContent className="p-4">
-                <p className="text-2xl font-semibold tabular-nums">{s.value}</p>
-                <p className="text-xs text-muted-foreground">{tw(s.key)}</p>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricTile
+            label={tw(stats[0].key)}
+            value={stats[0].value}
+            icon={Clock3}
+            detail={t("board")}
+          />
+          <MetricTile
+            label={tw(stats[1].key)}
+            value={stats[1].value}
+            icon={Timer}
+            tone="info"
+            detail={t("helpers")}
+          />
+          <MetricTile
+            label={tw(stats[2].key)}
+            value={stats[2].value}
+            icon={ListChecks}
+            tone={stats[2].value > 0 ? "warning" : "neutral"}
+            detail={t("publishingNote")}
+          />
+          <MetricTile
+            label={tw(stats[3].key)}
+            value={stats[3].value}
+            icon={CheckCircle2}
+            tone="success"
+            detail={t("capabilities")}
+          />
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {/* Generation capabilities. */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Wand2 className="size-4 text-primary" aria-hidden="true" />
-                {t("capabilities")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <ExecutiveSection icon={Wand2} title={t("capabilities")}>
+            <Card>
+              <CardContent className="p-5">
               {companiesWithContent.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {t("enable.description")}
                 </p>
               ) : (
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {CONTENT_TASK_TYPES.map((task) => (
                     <GenerateContentDialog
                       key={task.key}
@@ -196,12 +227,15 @@ export default async function ContentDepartmentPage({
                     >
                       <button
                         type="button"
-                        className="rounded-lg border p-3 text-left transition hover:border-primary/40 hover:bg-accent"
+                        className="group min-h-28 rounded-xl border bg-background p-4 text-left shadow-soft transition hover:border-primary/40 hover:bg-accent"
                       >
-                        <span className="block text-sm font-medium">
+                        <span className="mb-3 flex size-9 items-center justify-center rounded-lg border bg-card text-primary transition group-hover:border-primary/30">
+                          <Wand2 className="size-4" aria-hidden="true" />
+                        </span>
+                        <span className="block text-sm font-semibold">
                           {tt(`${task.key}.label`)}
                         </span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                           {tt(`${task.key}.desc`)}
                         </span>
                       </button>
@@ -209,18 +243,14 @@ export default async function ContentDepartmentPage({
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ExecutiveSection>
 
           {/* Content work board. */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Clapperboard className="size-4 text-primary" aria-hidden="true" />
-                {t("board")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <ExecutiveSection icon={Clapperboard} title={t("board")}>
+            <Card>
+              <CardContent className="p-5">
               {work.length === 0 ? (
                 <InlineEmpty icon={Clapperboard} message={t("noWork")} />
               ) : (
@@ -228,10 +258,15 @@ export default async function ContentDepartmentPage({
                   {WORK_STATUSES.filter((s) => work.some((w) => w.status === s)).map(
                     (s) => (
                       <section key={s} aria-label={tw(s)}>
-                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {tw(s)}
-                        </h3>
-                        <ul className="space-y-2">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <SignalPill tone={s === "completed" ? "success" : "neutral"}>
+                            {tw(s)}
+                          </SignalPill>
+                          <span className="text-xs tabular-nums text-muted-foreground">
+                            {work.filter((w) => w.status === s).length}
+                          </span>
+                        </div>
+                        <ExecutiveList>
                           {work
                             .filter((w) => w.status === s)
                             .map((w) => (
@@ -239,19 +274,19 @@ export default async function ContentDepartmentPage({
                                 key={w.id}
                                 id={`item-${w.id}`}
                                 className={cn(
-                                  "flex scroll-mt-20 items-center justify-between gap-2 rounded-lg border p-3 transition-colors",
+                                  "flex scroll-mt-20 flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-center sm:justify-between",
                                   w.id === highlightId &&
-                                    "border-primary/50 bg-primary/5 ring-2 ring-primary/30",
+                                    "bg-primary/5 ring-2 ring-primary/30",
                                 )}
                               >
                                 <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="truncate text-sm font-medium">{w.title}</span>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="truncate text-sm font-semibold">{w.title}</span>
                                     <Badge variant={priorityVariant[w.priority]} className="shrink-0">
                                       {tp(w.priority)}
                                     </Badge>
                                   </div>
-                                  <p className="truncate text-xs text-muted-foreground">
+                                  <p className="mt-1 truncate text-xs text-muted-foreground">
                                     {companyName.get(w.company_id) ?? ""}
                                     {w.due_date ? ` · ${formatDate(w.due_date, locale)}` : ""}
                                   </p>
@@ -259,23 +294,22 @@ export default async function ContentDepartmentPage({
                                 <WorkStatusSelect id={w.id} status={w.status} />
                               </li>
                             ))}
-                        </ul>
+                        </ExecutiveList>
                       </section>
                     ),
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ExecutiveSection>
         </div>
 
         <div className="space-y-6">
           {/* Helpers. */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("helpers")}</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <ExecutiveSection icon={Users} title={t("helpers")}>
+            <Card>
+              <CardContent className="p-5">
               {helpers.length === 0 ? (
                 <InlineEmpty icon={Users} message={t("noHelpers")} />
               ) : (
@@ -284,7 +318,7 @@ export default async function ContentDepartmentPage({
                     <li key={d.id}>
                       <Link
                         href={`/harmony/departments/${d.id}`}
-                        className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:border-primary/40 hover:bg-accent"
+                        className="flex items-center justify-between gap-3 rounded-xl border bg-background p-3 text-sm shadow-soft transition hover:border-primary/40 hover:bg-accent"
                       >
                         <span className="truncate">
                           {companyName.get(d.company_id) ?? d.name}
@@ -298,18 +332,14 @@ export default async function ContentDepartmentPage({
                 </ul>
               )}
               <p className="mt-3 text-xs text-muted-foreground">{th("hint")}</p>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ExecutiveSection>
 
           {/* Future engines / integrations. */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Plug className="size-4 text-primary" aria-hidden="true" />
-                {t("engines")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <ExecutiveSection icon={Plug} title={t("engines")}>
+            <Card>
+              <CardContent className="space-y-4 p-5">
               {CONTENT_ENGINE_CATEGORIES.map((cat) => (
                 <div key={cat}>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -328,8 +358,9 @@ export default async function ContentDepartmentPage({
                 </div>
               ))}
               <p className="text-xs text-muted-foreground">{t("enginesHint")}</p>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ExecutiveSection>
         </div>
       </div>
     </>

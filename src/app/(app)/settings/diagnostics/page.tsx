@@ -16,8 +16,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
 import { ConnectKeyForm } from "@/components/integrations/connect-key-form";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+} from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("diagnostics");
@@ -52,25 +57,20 @@ export default async function DiagnosticsPage() {
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <div className="flex flex-col gap-6 lg:max-w-3xl">
+      <div className="flex flex-col gap-6">
         {readiness ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("production.title")}</CardTitle>
-              <CardDescription>{t("production.subtitle")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+          <ExecutiveSection
+            icon={readiness.status === "ok" ? CheckCircle2 : XCircle}
+            title={t("production.title")}
+            description={t("production.subtitle")}
+          >
+            <Card>
+              <CardContent className="space-y-5 p-5">
+              <div className="flex flex-col gap-3 rounded-lg border bg-background/70 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <span className="font-medium">{t("production.overall")}</span>
-                <span
-                  className={
-                    readiness.status === "ok"
-                      ? "font-semibold text-emerald-600"
-                      : "font-semibold text-warning"
-                  }
-                >
+                <Badge variant={readiness.status === "ok" ? "success" : "warning"}>
                   {t(`production.status.${readiness.status}`)}
-                </span>
+                </Badge>
               </div>
 
               {readiness.sections.map((section) => (
@@ -79,21 +79,15 @@ export default async function DiagnosticsPage() {
                     <h2 className="text-sm font-semibold">
                       {t(`production.sections.${section.id}`)}
                     </h2>
-                    <span
-                      className={
-                        section.status === "ok"
-                          ? "text-sm font-medium text-emerald-600"
-                          : "text-sm font-medium text-warning"
-                      }
-                    >
+                    <Badge variant={section.status === "ok" ? "success" : "warning"}>
                       {t(`production.status.${section.status}`)}
-                    </span>
+                    </Badge>
                   </div>
-                  <ul className="flex flex-col gap-2">
+                  <ExecutiveList>
                     {section.items.map((it) => (
                       <li
                         key={it.id}
-                        className="flex items-center justify-between gap-3 text-sm"
+                        className="flex flex-col gap-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
                       >
                         <span className="flex items-center gap-2">
                           {it.ok ? (
@@ -103,18 +97,19 @@ export default async function DiagnosticsPage() {
                           )}
                           {t(`production.items.${it.id}`)}
                         </span>
-                        <span className="truncate text-muted-foreground">{it.detail}</span>
+                        <span className="min-w-0 break-words text-muted-foreground sm:text-right">{it.detail}</span>
                       </li>
                     ))}
-                  </ul>
+                  </ExecutiveList>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ExecutiveSection>
         ) : null}
 
         {sections.map((s) => (
-          <Card key={s.provider}>
+          <Card key={s.provider} className="overflow-hidden">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div className="space-y-1">
                 <CardTitle>{s.name}</CardTitle>
@@ -128,13 +123,13 @@ export default async function DiagnosticsPage() {
                 />
               ) : null}
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-5 pt-0">
               {s.result.connected ? (
-                <ul className="flex flex-col gap-2">
+                <ExecutiveList>
                   {s.result.items.map((it) => (
                     <li
                       key={it.id}
-                      className="flex items-center justify-between gap-3 text-sm"
+                      className="flex flex-col gap-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
                     >
                       <span className="flex items-center gap-2">
                         {it.ok ? (
@@ -144,10 +139,10 @@ export default async function DiagnosticsPage() {
                         )}
                         {t(`capabilities.${it.id}`)}
                       </span>
-                      <span className="truncate text-muted-foreground">{it.detail}</span>
+                      <span className="min-w-0 break-words text-muted-foreground sm:text-right">{it.detail}</span>
                     </li>
                   ))}
-                </ul>
+                </ExecutiveList>
               ) : (
                 <div className="flex flex-col gap-3">
                   <p className="text-sm text-muted-foreground">

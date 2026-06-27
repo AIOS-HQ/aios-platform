@@ -7,9 +7,13 @@ import { isAgentActionStatus } from "@/lib/agent/tools/types";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ActionControls } from "@/components/agent/action-controls";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+  MetricTile,
+} from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("activity");
@@ -33,12 +37,15 @@ export default async function ActivityPage() {
   const user = await requireUser();
   const locale = await getLocale();
   const actions = await listAgentActions(user.id, { limit: 100 });
+  const pending = actions.filter((a) => a.status === "pending").length;
+  const failed = actions.filter((a) => a.status === "failed").length;
+  const executed = actions.filter((a) => a.status === "executed").length;
 
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <div className="flex flex-col gap-6 lg:max-w-3xl">
+      <div className="flex flex-col gap-6">
         {actions.length === 0 ? (
           <EmptyState
             icon={History}
@@ -46,10 +53,31 @@ export default async function ActivityPage() {
             description={t("empty.description")}
           />
         ) : (
-          <div className="flex flex-col gap-3">
+          <>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <MetricTile
+                label={t("statuses.pending")}
+                value={pending}
+                icon={History}
+                tone={pending > 0 ? "warning" : "neutral"}
+              />
+              <MetricTile
+                label={t("statuses.executed")}
+                value={executed}
+                icon={History}
+                tone="success"
+              />
+              <MetricTile
+                label={t("statuses.failed")}
+                value={failed}
+                icon={History}
+                tone={failed > 0 ? "danger" : "neutral"}
+              />
+            </div>
+            <ExecutiveSection icon={History} title={t("title")}>
+              <ExecutiveList>
             {actions.map((a) => (
-              <Card key={a.id}>
-                <CardContent className="flex items-start justify-between gap-4 p-4">
+              <li key={a.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-sm font-medium">{a.tool}</span>
@@ -70,10 +98,11 @@ export default async function ActivityPage() {
                     </p>
                   </div>
                   {a.status === "pending" ? <ActionControls id={a.id} /> : null}
-                </CardContent>
-              </Card>
+              </li>
             ))}
-          </div>
+              </ExecutiveList>
+            </ExecutiveSection>
+          </>
         )}
       </div>
     </>

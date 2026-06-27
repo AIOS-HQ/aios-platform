@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Activity, ListChecks, ListTodo, Network, Send, Users } from "lucide-react";
+import {
+  Activity,
+  Brain,
+  ListChecks,
+  ListTodo,
+  Network,
+  Send,
+  Users,
+} from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import {
   AIOS_WORKFORCE,
@@ -9,7 +17,6 @@ import {
   getAiosAgent,
   getHarmony,
 } from "@/lib/workforce/registry";
-import { AGENT_ICONS, JULIUS_ICON, getAgentIcon } from "@/lib/workforce/agent-icons";
 import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
@@ -17,15 +24,15 @@ import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { InlineEmpty } from "@/components/shared/inline-empty";
 import { AgentDispatchDialog } from "@/components/harmony/workforce/agent-dispatch-dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+  MetricTile,
+} from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("workforce");
@@ -48,13 +55,6 @@ const RISK_VARIANT: Record<string, "default" | "secondary" | "outline" | "destru
 };
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
-
-const STATUS_COLOR: Record<AgentStatus, string> = {
-  working: "#16a34a",
-  awaiting: "#ca8a04",
-  online: "#2563eb",
-  idle: "#64748b",
-};
 
 /** Derive a live status for an agent from its recent agent-to-agent messages. */
 function deriveState(key: string, messages: AgentMessage[]) {
@@ -103,7 +103,12 @@ export default async function WorkforcePage() {
 
   // Harmony — the AI Chief of Staff — coordinates the specialists below.
   const harmony = getHarmony();
-  const HarmonyIcon = AGENT_ICONS.harmony;
+  const specialistStates = WORKFORCE_SPECIALISTS.map((agent) => ({
+    agent,
+    state: deriveState(agent.key, messages),
+  }));
+  const workingAgents = specialistStates.filter(({ state }) => state.status === "working").length;
+  const pendingApprovals = Object.values(approvalsByAgent).reduce((sum, n) => sum + n, 0);
 
   return (
     <>
@@ -138,41 +143,75 @@ export default async function WorkforcePage() {
 
       <div className="flex flex-col gap-8">
         {/* ── Workforce Directory + Status Board ─────────────────────────── */}
-        <section>
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <Users className="size-4" aria-hidden="true" />
-            {t("directory")}
-          </h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricTile
+            label={t("specialists")}
+            value={WORKFORCE_SPECIALISTS.length}
+            icon={Users}
+            detail={t("directory")}
+          />
+          <MetricTile
+            label={t("status.working")}
+            value={workingAgents}
+            icon={Activity}
+            tone={workingAgents > 0 ? "success" : "neutral"}
+            detail={t("currentTask")}
+          />
+          <MetricTile
+            label={t("pendingApprovals", { n: pendingApprovals })}
+            value={pendingApprovals}
+            icon={ListTodo}
+            tone={pendingApprovals > 0 ? "warning" : "neutral"}
+            detail={t("reviewQueue")}
+          />
+          <MetricTile
+            label={t("brain")}
+            value={awareness.total}
+            icon={Brain}
+            tone="info"
+            detail={t("juliusEntries", { n: awareness.total })}
+          />
+        </div>
+
+        <ExecutiveSection
+          icon={Users}
+          title={t("directory")}
+          description={t("coordinatorHint")}
+        >
           {/* Harmony — the AI Chief of Staff — coordinates the specialists below. */}
-          <Card className="mb-4 border-primary/40 bg-primary/5">
-            <CardContent className="flex items-center gap-3 p-4">
-              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
-                <HarmonyIcon className="size-5" aria-hidden="true" />
-              </span>
+          <Card className="mb-4 overflow-hidden border-primary/40 bg-primary/5">
+            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+              <AgentGlyph
+                agent="harmony"
+                size="lg"
+                className="border-primary/40 bg-primary/10 text-primary"
+              />
               <div className="min-w-0">
-                <p className="truncate font-semibold">{harmony.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="truncate text-lg font-semibold tracking-tight">{harmony.name}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {t("coordinatorHint")}
                 </p>
               </div>
-              <Badge className="ml-auto shrink-0">{t("coordinator")}</Badge>
+              <Badge className="shrink-0 sm:ml-auto">{t("coordinator")}</Badge>
             </CardContent>
           </Card>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
             {t("specialists")}
           </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {/* Julius — the AIOS company brain, not a workforce agent. Clickable
                 destination: the Company Brain (org memory + the workforce around it). */}
             <Link href="/harmony/julius" className="block">
-              <Card className="border-primary/30 transition-colors hover:border-primary/50 hover:bg-primary/10">
-                <CardContent className="p-4">
+              <Card className="h-full border-primary/30 transition-colors hover:border-primary/50 hover:bg-primary/10">
+                <CardContent className="p-5">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
-                      <JULIUS_ICON className="size-5" aria-hidden="true" />
-                    </span>
+                    <AgentGlyph
+                      agent="julius"
+                      size="lg"
+                      className="border-primary/40 bg-primary/10 text-primary"
+                    />
                     <div className="min-w-0">
-                      <p className="truncate font-semibold">Julius</p>
+                      <p className="truncate text-base font-semibold">Julius</p>
                       <p className="truncate text-xs text-muted-foreground">{t("brainRole")}</p>
                     </div>
                     <Badge variant="secondary" className="ml-auto">{t("brain")}</Badge>
@@ -185,23 +224,20 @@ export default async function WorkforcePage() {
               </Card>
             </Link>
 
-            {WORKFORCE_SPECIALISTS.map((a) => {
-              const s = deriveState(a.key, messages);
-              const Icon = AGENT_ICONS[a.key];
+            {specialistStates.map(({ agent: a, state: s }) => {
               const sum = summary[a.key] ?? emptyAgentSummary();
-              const pendingApprovals = approvalsByAgent[a.key] ?? 0;
+              const agentPendingApprovals = approvalsByAgent[a.key] ?? 0;
               return (
-                <Card key={a.key}>
-                  <CardContent className="p-4">
+                <Card key={a.key} className="h-full overflow-hidden">
+                  <CardContent className="p-5">
                     <div className="flex items-center gap-3">
-                      <span
-                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border-2 bg-muted text-foreground"
-                        style={{ borderColor: STATUS_COLOR[s.status] }}
-                      >
-                        <Icon className="size-5" aria-hidden="true" />
-                      </span>
+                      <AgentGlyph
+                        agent={a.key}
+                        size="lg"
+                        className="border-2 bg-muted text-foreground"
+                      />
                       <div className="min-w-0">
-                        <p className="truncate font-semibold">{a.name}</p>
+                        <p className="truncate text-base font-semibold">{a.name}</p>
                         <p className="truncate text-xs text-muted-foreground">{a.role}</p>
                       </div>
                       <Badge variant={STATUS_VARIANT[s.status]} className="ml-auto shrink-0">
@@ -242,10 +278,10 @@ export default async function WorkforcePage() {
                         <Badge variant="outline" className="text-[10px]">{t("queuedWork", { n: sum.queuedWork })}</Badge>
                         <Badge variant="outline" className="text-[10px]">{t("openRecs", { n: sum.openRecommendations })}</Badge>
                         <Badge
-                          variant={pendingApprovals > 0 ? "default" : "outline"}
+                          variant={agentPendingApprovals > 0 ? "default" : "outline"}
                           className="text-[10px]"
                         >
-                          {t("pendingApprovals", { n: pendingApprovals })}
+                          {t("pendingApprovals", { n: agentPendingApprovals })}
                         </Badge>
                       </div>
                     </div>
@@ -265,45 +301,36 @@ export default async function WorkforcePage() {
               );
             })}
           </div>
-        </section>
+        </ExecutiveSection>
 
         {/* ── Agent Communications (A2A activity feed) ───────────────────── */}
-        <section>
+        <ExecutiveSection
+          icon={Activity}
+          title={t("activity")}
+          description={t("activityHint")}
+        >
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="size-4 text-primary" aria-hidden="true" />
-                {t("activity")}
-              </CardTitle>
-              <CardDescription>{t("activityHint")}</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="p-5">
               {messages.length === 0 ? (
                 <InlineEmpty icon={Activity} message={t("noActivity")} />
               ) : (
-                <ul className="space-y-3">
+                <ExecutiveList>
                   {messages.map((m) => {
                     const from = getAiosAgent(m.from_agent)?.name ?? m.from_agent;
                     const to = getAiosAgent(m.to_agent)?.name ?? m.to_agent;
-                    const FromIcon = getAgentIcon(m.from_agent);
-                    const ToIcon = getAgentIcon(m.to_agent);
                     const ctx = Array.isArray(
                       (m.context as { julius?: unknown[] } | null)?.julius,
                     )
                       ? ((m.context as { julius: unknown[] }).julius.length as number)
                       : 0;
                     return (
-                      <li key={m.id} className="rounded-lg border p-3">
+                      <li key={m.id} className="p-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="flex items-center gap-1.5 text-sm font-medium">
-                            {FromIcon ? (
-                              <FromIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                            ) : null}
+                          <span className="flex items-center gap-2 text-sm font-semibold">
+                            <AgentGlyph agent={m.from_agent} size="xs" />
                             {from}
                             <span className="text-muted-foreground" aria-hidden="true">→</span>
-                            {ToIcon ? (
-                              <ToIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                            ) : null}
+                            <AgentGlyph agent={m.to_agent} size="xs" />
                             {to}
                           </span>
                           <Badge variant="outline" className="text-[10px]">
@@ -329,11 +356,11 @@ export default async function WorkforcePage() {
                       </li>
                     );
                   })}
-                </ul>
+                </ExecutiveList>
               )}
             </CardContent>
           </Card>
-        </section>
+        </ExecutiveSection>
       </div>
     </>
   );

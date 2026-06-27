@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, Brain } from "lucide-react";
+import { ArrowLeft, Brain, Network } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { AIOS_WORKFORCE, getAiosAgent } from "@/lib/workforce/registry";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
@@ -10,9 +10,14 @@ import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
 import { PageHeader } from "@/components/shared/page-header";
 import { InlineEmpty } from "@/components/shared/inline-empty";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+  MetricTile,
+} from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("graph");
@@ -51,7 +56,8 @@ export default async function WorkforceGraphPage({
 
   const RANGE_DAYS: Record<string, number> = { "7d": 7, "30d": 30 };
   const days = RANGE_DAYS[sp.range ?? ""] ?? 0;
-  const cutoff = days > 0 ? Date.now() - days * 86_400_000 : 0;
+  const now = new Date();
+  const cutoff = days > 0 ? now.getTime() - days * 86_400_000 : 0;
 
   const [allMessages, julius, summary] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { limit: 200 }) : Promise.resolve([]),
@@ -149,8 +155,29 @@ export default async function WorkforceGraphPage({
       </PageHeader>
 
       <div className="flex flex-col gap-6">
-        <Card>
-          <CardContent className="p-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricTile
+            label={t("messages", { n: messages.length })}
+            value={messages.length}
+            icon={Network}
+            tone="info"
+          />
+          <MetricTile
+            label={t("topRoutes")}
+            value={topRoutes.length}
+            icon={Network}
+          />
+          <MetricTile
+            label={t("legend.juliusEdge")}
+            value={juliusEdges.length}
+            icon={Brain}
+            tone="success"
+          />
+        </div>
+
+        <ExecutiveSection icon={Network} title={t("title")} description={t("subtitle")}>
+          <Card className="overflow-hidden">
+            <CardContent className="p-4">
             <svg
               viewBox={`0 0 ${VW} ${VH}`}
               className="mx-auto block h-auto w-full max-w-[640px] text-foreground"
@@ -254,21 +281,19 @@ export default async function WorkforceGraphPage({
                 {t("legend.juliusEdge")}
               </span>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("topRoutes")}</CardTitle>
-            <CardDescription>{t("topRoutesHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ExecutiveSection icon={Network} title={t("topRoutes")} description={t("topRoutesHint")}>
+          <Card>
+            <CardContent className="p-5">
             {topRoutes.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("noRoutes")}</p>
             ) : (
-              <ul className="space-y-2">
+              <ExecutiveList>
                 {topRoutes.map((e) => (
-                  <li key={`${e.from}>${e.to}`} className="flex items-center justify-between gap-3 text-sm">
+                  <li key={`${e.from}>${e.to}`} className="flex flex-col gap-3 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
                     <span className="font-medium">{agentName(e.from)} → {agentName(e.to)}</span>
                     <span className="flex items-center gap-2">
                       {e.approvals > 0 ? <Badge variant="default" className="text-[10px]">{t("approvals", { n: e.approvals })}</Badge> : null}
@@ -276,10 +301,11 @@ export default async function WorkforceGraphPage({
                     </span>
                   </li>
                 ))}
-              </ul>
+              </ExecutiveList>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
       </div>
     </>
   );

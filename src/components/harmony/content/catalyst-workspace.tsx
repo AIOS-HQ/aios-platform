@@ -3,7 +3,6 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { getAiosAgent } from "@/lib/workforce/registry";
-import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { listWorkItems } from "@/lib/workforce/work-queue";
 import { listRecommendations } from "@/lib/workforce/recommendations";
 import {
@@ -16,6 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentRecommendations } from "@/components/harmony/workforce/agent-recommendations";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
+import { ExecutiveList, SignalPill } from "@/components/shared/executive";
 
 const AGENT = "catalyst";
 
@@ -49,7 +50,6 @@ export async function CatalystWorkspace() {
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
   const def = getAiosAgent(AGENT);
-  const Icon = getAgentIcon(AGENT);
 
   const [work, recs, autonomy] = await Promise.all([
     listWorkItems(user.id, { companyId, agent: AGENT, limit: 50 }),
@@ -60,31 +60,51 @@ export async function CatalystWorkspace() {
   const active = work.filter((w) => ACTIVE.includes(w.status));
 
   return (
-    <Card className="mb-6 border-primary/30">
-      <CardHeader>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 text-primary">
-            {Icon ? <Icon className="size-5" aria-hidden="true" /> : null}
-          </span>
+    <Card className="mb-6 overflow-hidden border-primary/30">
+      <CardHeader className="border-b bg-primary/5">
+        <div className="flex flex-wrap items-start gap-3">
+          <AgentGlyph
+            agent={AGENT}
+            size="lg"
+            className="border-primary/30 bg-primary/10 text-primary"
+          />
           <div className="min-w-0">
-            <CardTitle className="text-base">{t("opsTitle")}</CardTitle>
-            <CardDescription>{t("ownedBy", { name: def?.name ?? "Catalyst" })}</CardDescription>
+            <CardTitle className="text-lg tracking-tight">{t("opsTitle")}</CardTitle>
+            <CardDescription className="mt-1">
+              {t("ownedBy", { name: def?.name ?? "Catalyst" })}
+            </CardDescription>
           </div>
-          <Badge
-            variant={agentMode === "bounded" ? "default" : agentMode === "advisory" ? "secondary" : "outline"}
-            className="ml-auto"
-          >
-            {ta(`modes.${agentMode}`)}
-          </Badge>
+          <div className="ml-auto">
+            <SignalPill tone={agentMode === "bounded" ? "success" : agentMode === "advisory" ? "info" : "neutral"}>
+              {ta(`modes.${agentMode}`)}
+            </SignalPill>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border bg-background/70 p-3">
+            <p className="text-xl font-semibold tabular-nums">{active.length}</p>
+            <p className="text-xs text-muted-foreground">{t("workItems")}</p>
+          </div>
+          <div className="rounded-lg border bg-background/70 p-3">
+            <p className="text-xl font-semibold tabular-nums">{recs.length}</p>
+            <p className="text-xs text-muted-foreground">{t("recommendations")}</p>
+          </div>
+          <div className="rounded-lg border bg-background/70 p-3">
+            <p className="text-xl font-semibold tabular-nums">{work.length}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("ownedBy", { name: def?.name ?? "Catalyst" })}
+            </p>
+          </div>
+        </div>
+
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("workItems")}</h3>
           {active.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noWork")}</p>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ExecutiveList>
               {active.map((w) => {
                 const riskLevel = deriveRiskLevel(w.risk, w.risk_level);
                 const category = (w.category ?? null) as ActionCategory | null;
@@ -98,8 +118,8 @@ export async function CatalystWorkspace() {
                     })
                   : { decision: "pending_approval" as const, reason: "No action category set." };
                 return (
-                  <li key={w.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
-                    <span className="text-sm font-medium">{w.title}</span>
+                  <li key={w.id} className="flex flex-wrap items-center gap-2 p-4">
+                    <span className="text-sm font-semibold">{w.title}</span>
                     {w.category ? (
                       <Badge variant="secondary" className="text-[10px]">{ta(`categories.${w.category}`)}</Badge>
                     ) : null}
@@ -112,7 +132,7 @@ export async function CatalystWorkspace() {
                   </li>
                 );
               })}
-            </ul>
+            </ExecutiveList>
           )}
         </section>
 

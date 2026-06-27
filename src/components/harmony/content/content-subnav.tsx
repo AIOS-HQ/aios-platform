@@ -14,22 +14,23 @@ const TABS: { key: Tab; href: string }[] = [
 export async function ContentSubnav({ active }: { active: Tab }) {
   const t = await getTranslations("os.content.tabs");
   return (
-    <nav className="mb-6 flex gap-1 border-b" aria-label="Content sections">
-      {TABS.map((tab) => (
-        <Link
-          key={tab.key}
-          href={tab.href}
-          aria-current={tab.key === active ? "page" : undefined}
-          className={cn(
-            "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition",
-            tab.key === active
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {t(tab.key)}
-        </Link>
-      ))}
+    <nav className="mb-6 overflow-x-auto" aria-label="Content sections">
+      <div className="inline-flex min-w-full gap-1 rounded-xl border bg-card p-1 shadow-soft sm:min-w-0">
+        {TABS.map((tab) => (
+          <Link
+            key={tab.key}
+            href={tab.href}
+            aria-current={tab.key === active ? "page" : undefined}
+            className={cn(
+              "whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              tab.key === active &&
+                "bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground",
+            )}
+          >
+            {t(tab.key)}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }

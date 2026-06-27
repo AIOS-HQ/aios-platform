@@ -14,6 +14,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AutonomyControls } from "@/components/harmony/workforce/autonomy-controls";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
+import {
+  ExecutiveList,
+  ExecutiveSection,
+  MetricTile,
+} from "@/components/shared/executive";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("autonomy");
@@ -51,15 +57,19 @@ export default async function AutonomyPage() {
     }
   }
 
-  const tiles: { label: string; value: string; danger?: boolean }[] = [
-    { label: t("globalMode"), value: t(`modes.${state.global.mode}`) },
-    { label: t("killSwitch"), value: state.global.kill_switch ? t("on") : t("off"), danger: state.global.kill_switch },
-    { label: t("lockdown"), value: state.global.lockdown ? t("on") : t("off"), danger: state.global.lockdown },
-    { label: t("actionsToday"), value: String(actionsToday) },
-    { label: t("pendingApprovals"), value: String(byDecision["pending_approval"] ?? 0) },
+  const tiles = [
+    { label: t("globalMode"), value: t(`modes.${state.global.mode}`), tone: "info" as const },
+    { label: t("killSwitch"), value: state.global.kill_switch ? t("on") : t("off"), tone: state.global.kill_switch ? "danger" as const : "success" as const },
+    { label: t("lockdown"), value: state.global.lockdown ? t("on") : t("off"), tone: state.global.lockdown ? "danger" as const : "success" as const },
+    { label: t("actionsToday"), value: String(actionsToday), tone: "neutral" as const },
+    { label: t("pendingApprovals"), value: String(byDecision["pending_approval"] ?? 0), tone: (byDecision["pending_approval"] ?? 0) > 0 ? "warning" as const : "neutral" as const },
     {
       label: t("denied"),
       value: String((byDecision["denied"] ?? 0) + (byDecision["kill_switch"] ?? 0) + (byDecision["lockdown"] ?? 0)),
+      tone:
+        (byDecision["denied"] ?? 0) + (byDecision["kill_switch"] ?? 0) + (byDecision["lockdown"] ?? 0) > 0
+          ? "danger" as const
+          : "neutral" as const,
     },
   ];
 
@@ -67,32 +77,31 @@ export default async function AutonomyPage() {
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <div className="flex flex-col gap-8 lg:max-w-4xl">
+      <div className="flex flex-col gap-8">
         {/* ── Dashboard (Phase 10) ─────────────────────────────────────── */}
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <Activity className="size-4" aria-hidden="true" />
-            {t("dashboard")}
-          </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <ExecutiveSection icon={Activity} title={t("dashboard")}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {tiles.map((tile) => (
-              <Card key={tile.label}>
-                <CardContent className="p-4">
-                  <p className={`text-xl font-bold ${tile.danger ? "text-destructive" : ""}`}>{tile.value}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{tile.label}</p>
-                </CardContent>
-              </Card>
+              <MetricTile
+                key={tile.label}
+                label={tile.label}
+                value={tile.value}
+                icon={Activity}
+                tone={tile.tone}
+                valueClassName="text-xl"
+              />
             ))}
           </div>
           <Card>
-            <CardContent className="p-4">
-              <ul className="flex flex-col gap-1.5 text-sm">
+            <CardContent className="p-5">
+              <ExecutiveList>
                 {AIOS_WORKFORCE.map((a) => {
                   const s = state.agents[a.key];
                   const mode = s?.mode ?? "off";
                   return (
-                    <li key={a.key} className="flex flex-wrap items-center gap-2">
-                      <span className="w-28 font-medium">{a.name}</span>
+                    <li key={a.key} className="flex flex-wrap items-center gap-3 p-4">
+                      <AgentGlyph agent={a.key} size="xs" />
+                      <span className="w-28 font-semibold">{a.name}</span>
                       <Badge
                         variant={mode === "bounded" ? "default" : mode === "advisory" ? "secondary" : "outline"}
                         className="text-[10px]"
@@ -105,25 +114,25 @@ export default async function AutonomyPage() {
                     </li>
                   );
                 })}
-              </ul>
+              </ExecutiveList>
             </CardContent>
           </Card>
-        </section>
+        </ExecutiveSection>
 
         {/* ── Audit history ────────────────────────────────────────────── */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t("auditHistory")}</h2>
+        <ExecutiveSection icon={Activity} title={t("auditHistory")}>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               {audit.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("noAudit")}</p>
               ) : (
-                <ul className="flex flex-col gap-2">
+                <ExecutiveList>
                   {audit.map((a) => (
-                    <li key={a.id} className="flex flex-wrap items-center gap-2 border-b pb-2 text-sm last:border-0 last:pb-0">
+                    <li key={a.id} className="flex flex-wrap items-center gap-2 p-4 text-sm">
                       <Badge variant={DECISION_VARIANT[a.decision] ?? "outline"} className="text-[10px]">
                         {t(`decisions.${a.decision}`)}
                       </Badge>
+                      <AgentGlyph agent={a.agent} size="xs" />
                       <span className="font-medium">{getAiosAgent(a.agent)?.name ?? a.agent}</span>
                       {a.category ? (
                         <span className="text-xs text-muted-foreground">{t(`categories.${a.category}`)}</span>
@@ -133,15 +142,14 @@ export default async function AutonomyPage() {
                       <span className="shrink-0 text-xs text-muted-foreground">{formatDate(a.created_at, locale)}</span>
                     </li>
                   ))}
-                </ul>
+                </ExecutiveList>
               )}
             </CardContent>
           </Card>
-        </section>
+        </ExecutiveSection>
 
         {/* ── Controls (Phase 9) ───────────────────────────────────────── */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t("controls")}</h2>
+        <ExecutiveSection icon={Activity} title={t("controls")}>
           <AutonomyControls
             global={{
               mode: state.global.mode,
@@ -174,7 +182,7 @@ export default async function AutonomyPage() {
               };
             })}
           />
-        </section>
+        </ExecutiveSection>
       </div>
     </>
   );

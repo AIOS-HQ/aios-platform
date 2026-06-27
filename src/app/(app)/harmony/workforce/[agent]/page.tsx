@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { ArrowLeft, Lightbulb, MessageSquare, Target } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Lightbulb,
+  MessageSquare,
+  Target,
+} from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { getAgentPersona } from "@/lib/workforce/agent-personas";
-import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import { listChatMessages } from "@/lib/workforce/chat";
@@ -15,7 +20,7 @@ import { listWorkItems } from "@/lib/workforce/work-queue";
 import { listRecommendations } from "@/lib/workforce/recommendations";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AgentChat } from "@/components/harmony/workforce/agent-chat";
@@ -23,6 +28,7 @@ import { AgentObjectives } from "@/components/harmony/workforce/agent-objectives
 import { AgentRecommendations } from "@/components/harmony/workforce/agent-recommendations";
 import { AmbassadorCommsCard } from "@/components/harmony/workforce/ambassador-comms-card";
 import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
+import { ExecutiveSection, MetricTile } from "@/components/shared/executive";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
@@ -44,8 +50,7 @@ export default async function AgentProfilePage({
   const { agent } = await params;
   const def = getAiosAgent(agent);
   const persona = getAgentPersona(agent);
-  const Icon = getAgentIcon(agent);
-  if (!def || !persona || !Icon) notFound();
+  if (!def || !persona) notFound();
 
   const t = await getTranslations("workforce");
   const locale = await getLocale();
@@ -127,10 +132,10 @@ export default async function AgentProfilePage({
         </Button>
       </PageHeader>
 
-      <div className="flex flex-col gap-6 lg:max-w-3xl">
+      <div className="flex flex-col gap-6">
         {/* Identity + live status */}
-        <Card>
-          <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+        <Card className="overflow-hidden border-primary/20">
+          <CardContent className="flex flex-col gap-4 bg-primary/5 p-5 sm:flex-row sm:items-center">
             <AgentGlyph agent={agent} size="xl" title={def.name} />
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
@@ -158,53 +163,50 @@ export default async function AgentProfilePage({
         <AmbassadorCommsCard agentKey={agent} userId={user.id} />
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{t("currentTask")}</p>
-              <p className="mt-0.5 truncate text-sm font-medium">{inflight?.subject ?? t("none")}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{t("lastAction")}</p>
-              <p className="mt-0.5 truncate text-sm font-medium">{lastDone?.subject ?? t("none")}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{t("lastActive")}</p>
-              <p className="mt-0.5 truncate text-sm font-medium">
-                {lastActiveTs ? formatDate(lastActiveTs, locale) : t("none")}
-              </p>
-            </CardContent>
-          </Card>
+          <MetricTile
+            label={t("currentTask")}
+            value={inflight?.subject ?? t("none")}
+            icon={Target}
+            tone={inflight ? "info" : "neutral"}
+            valueClassName="text-sm leading-6"
+          />
+          <MetricTile
+            label={t("lastAction")}
+            value={lastDone?.subject ?? t("none")}
+            icon={CheckCircle2}
+            tone={lastDone ? "success" : "neutral"}
+            valueClassName="text-sm leading-6"
+          />
+          <MetricTile
+            label={t("lastActive")}
+            value={lastActiveTs ? formatDate(lastActiveTs, locale) : t("none")}
+            icon={MessageSquare}
+            valueClassName="text-sm leading-6"
+          />
         </div>
 
         {/* Metrics */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("metrics")}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <ExecutiveSection title={t("metrics")}>
+          <Card>
+            <CardContent className="grid gap-3 p-5 sm:grid-cols-3">
             {stats.map((s) => (
-              <div key={s.label}>
-                <p className="text-2xl font-bold">{s.value}</p>
+              <div key={s.label} className="rounded-xl border bg-background p-4 shadow-soft">
+                <p className="text-2xl font-semibold tabular-nums">{s.value}</p>
                 <p className="text-xs text-muted-foreground">{s.label}</p>
               </div>
             ))}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
 
         {/* Objectives */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="size-4 text-primary" aria-hidden="true" />
-              {t("objectives")}
-            </CardTitle>
-            <CardDescription>{t("objectivesHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ExecutiveSection
+          icon={Target}
+          title={t("objectives")}
+          description={t("objectivesHint")}
+        >
+          <Card>
+            <CardContent className="p-5">
             <AgentObjectives
               agent={agent}
               objectives={objectives.map((o) => ({
@@ -216,19 +218,18 @@ export default async function AgentProfilePage({
                 progress: o.progress,
               }))}
             />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
 
         {/* Recommendations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Lightbulb className="size-4 text-primary" aria-hidden="true" />
-              {t("recommendations")}
-            </CardTitle>
-            <CardDescription>{t("recommendationsHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ExecutiveSection
+          icon={Lightbulb}
+          title={t("recommendations")}
+          description={t("recommendationsHint")}
+        >
+          <Card>
+            <CardContent className="p-5">
             <AgentRecommendations
               recommendations={recommendations.map((r) => ({
                 id: r.id,
@@ -240,26 +241,26 @@ export default async function AgentProfilePage({
                 status: r.status,
               }))}
             />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
 
         {/* Chat */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="size-4 text-primary" aria-hidden="true" />
-              {t("chatWith", { name: def.name })}
-            </CardTitle>
-            <CardDescription>{t("chatHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ExecutiveSection
+          icon={MessageSquare}
+          title={t("chatWith", { name: def.name })}
+          description={t("chatHint")}
+        >
+          <Card>
+            <CardContent className="p-5">
             <AgentChat
               agent={agent}
               agentName={def.name}
               messages={chat.map((m) => ({ id: m.id, role: m.role, content: m.content }))}
             />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
       </div>
     </>
   );
