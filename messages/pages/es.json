@@ -873,7 +873,76 @@
     "asOf": "Actualizado {time}",
     "connectors": "Conectores",
     "connectorsHint": "Integraciones del fundador y su estado de conexión.",
-    "connectorExpired": "Autorización de {name} expirada — se requiere reconexión"
+    "connectorExpired": "Autorización de {name} expirada — se requiere reconexión",
+    "intel": {
+      "state": {
+        "critical": "Crítico",
+        "attention": "Atención",
+        "operating": "Operando",
+        "quiet": "Tranquilo"
+      },
+      "headline": {
+        "critical": "Harmony ve {n} elemento(s) urgente(s) que requieren acción ejecutiva.",
+        "attention": "Harmony ve {n} elemento(s) que deberían atenderse ahora.",
+        "operating": "Harmony está coordinando {n} flujo(s) de trabajo activo(s).",
+        "quiet": "Harmony ve un estado operativo tranquilo."
+      },
+      "operatorRead": "{agents} agente(s) activo(s) · {work} flujo(s) de trabajo en movimiento · {approvals} aprobación(es) en espera · {risks} riesgo(s) · {context} señal(es) de contexto de Julius.",
+      "topAction": "Abrir acción principal",
+      "fullBriefing": "Briefing completo",
+      "metrics": {
+        "activeWork": "Trabajo activo",
+        "approvals": "Necesita decisión",
+        "blocked": "Bloqueado",
+        "agents": "Agentes activos",
+        "julius": "Contexto Julius"
+      },
+      "priority": {
+        "critical": "Crítico",
+        "high": "Alto",
+        "medium": "Medio",
+        "low": "Bajo"
+      },
+      "recommendation": {
+        "review_approvals": "Revisa {n} elemento(s) de decisión para que el trabajo avance.",
+        "unblock_work": "Desbloquea o reasigna: {title}.",
+        "reconnect_connector": "Reconecta {title} para que el agente asignado pueda operar.",
+        "investigate_auditor_risk": "Investiga el riesgo del Auditor: {title}.",
+        "delegate_objective_work": "Delega trabajo de ejecución para el objetivo: {title}.",
+        "review_failed_execution": "Revisa {n} ejecución(es) fallida(s) y decide reintentar o escalar.",
+        "review_agent_recommendation": "Revisa la recomendación de {agent}: {title}.",
+        "continue_operating": "Continúa operando; Harmony no ve intervención crítica."
+      },
+      "delegation": {
+        "title": "Plan de delegación",
+        "description": "Rutas recomendadas por Harmony según responsabilidad, riesgo y carga actual.",
+        "none": "No se necesita una nueva ruta de delegación ahora.",
+        "load": "{n} elemento(s) activo(s) asignado(s)"
+      },
+      "routeSource": {
+        "objective": "Objetivo",
+        "blocked_work": "Trabajo bloqueado",
+        "connector": "Conector",
+        "auditor": "Auditor",
+        "approval": "Aprobación"
+      },
+      "confidence": {
+        "high": "Alta confianza",
+        "medium": "Confianza media",
+        "low": "Baja confianza"
+      },
+      "auditorDomain": "Hallazgos de {domain}",
+      "julius": {
+        "title": "Contexto Julius",
+        "description": "Harmony usa {n} señal(es) de memoria organizacional para evitar trabajo repetido y mostrar decisiones previas.",
+        "open": "Abrir Julius",
+        "none": "Aún no hay lecciones o decisiones relevantes en Julius."
+      },
+      "agentSignal": {
+        "active": "{n} activo(s)",
+        "blocked": "{n} bloqueado(s)"
+      }
+    }
   },
   "workforce": {
     "title": "Equipo de IA",
@@ -916,6 +985,7 @@
     "dispatchDesc": "Envía un mensaje o delega una tarea a un agente de AIOS. Las acciones de riesgo o escritura requieren tu aprobación.",
     "fromAgent": "De",
     "toAgent": "Para",
+    "harmonyDecides": "Harmony decide",
     "subjectLabel": "Tarea",
     "subjectPlaceholder": "p. ej. Redactar el anuncio de lanzamiento del T3",
     "bodyLabel": "Detalles",

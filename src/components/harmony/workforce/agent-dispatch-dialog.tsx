@@ -100,11 +100,12 @@ export function AgentDispatchDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="dispatch-to">{t("toAgent")}</Label>
-              <Select name="to_agent" defaultValue={toOptions[0]?.key ?? ""}>
+              <Select name="to_agent" defaultValue="auto">
                 <SelectTrigger id="dispatch-to">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="auto">{t("harmonyDecides")}</SelectItem>
                   {toOptions.map((a) => (
                     <SelectItem key={a.key} value={a.key}>
                       {a.name}

@@ -1,399 +1,394 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import {
-  AlertTriangle,
   Brain,
+  GitBranch,
   Plug,
   ShieldAlert,
   Sparkles,
-  Target,
+  Users,
 } from "lucide-react";
-import { runAudit, type Severity } from "@/lib/agents/auditor/service";
-import { getJuliusAwareness } from "@/lib/julius/wiring";
-import { listJuliusEntries } from "@/lib/julius/service";
-import { AIOS_WORKFORCE, AGENT_CONNECTORS } from "@/lib/workforce/registry";
+import {
+  buildHarmonyExecutiveIntelligence,
+  type ExecutiveRecommendation,
+} from "@/lib/harmony/executive-intelligence";
+import { AIOS_WORKFORCE, AGENT_CONNECTORS, getAiosAgent } from "@/lib/workforce/registry";
 import { getConnector } from "@/lib/integrations/connectors";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ExecutiveList,
+  ExecutiveSection,
+  SignalPill,
+} from "@/components/shared/executive";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const SEV_VARIANT: Record<Severity, "default" | "secondary" | "outline" | "destructive"> = {
-  ok: "secondary",
-  info: "outline",
-  warn: "default",
-  risk: "destructive",
-};
 
 export interface CommandCenterProps {
   userId: string;
   companyId: string | null;
-  objectives: { id: string; title: string }[];
-  pendingApprovals: number;
-  activity: { id: string; summary: string; created_at: string }[];
-  objectivesTotal: number;
-  workTotal: number;
-  decidedApprovals: number;
-  blockedWork: number;
-  connectors: {
-    id: string;
-    name: string;
-    status: string;
-    account: string | null;
-  }[];
 }
 
-type Rec = { priority: "founder" | "risk" | "improve" | "execution"; text: string };
+const REC_VARIANT: Record<
+  ExecutiveRecommendation["priority"],
+  "default" | "secondary" | "outline" | "destructive"
+> = {
+  critical: "destructive",
+  high: "default",
+  medium: "secondary",
+  low: "outline",
+};
+
+const POSTURE_VARIANT = {
+  ok: "success",
+  info: "secondary",
+  warn: "default",
+  risk: "destructive",
+} as const;
+
+const DOMAIN_AGENT: Record<string, string> = {
+  approvals: "ledger",
+  configuration: "pulse",
+  deployment: "pulse",
+  governance: "ledger",
+  risk: "aegis",
+  security: "aegis",
+  workflow: "auditor",
+};
+
+function agentName(key: string): string {
+  return getAiosAgent(key)?.name ?? key;
+}
+
+function recValues(rec: ExecutiveRecommendation) {
+  return {
+    n: rec.title,
+    title: rec.title,
+    detail: rec.detail,
+    agent: agentName(rec.agent),
+  };
+}
 
 /**
- * Founder Command Center sections — the primary operational cockpit, rendered
- * inside /harmony. Reuses the Auditor (risk) and Julius (awareness) engines.
- * Owner-scoped; Julius-backed sections are scoped to the primary company.
+ * Founder Command Center sections — Harmony's executive operator read.
+ * Reuses Auditor, Julius, connector health, A2A, work queue, objectives, and
+ * recommendations through a single server-side synthesis module.
  */
-export async function CommandCenter(props: CommandCenterProps) {
+export async function CommandCenter({ userId, companyId }: CommandCenterProps) {
   const t = await getTranslations("commandCenter");
-  // Reuse the connections namespace for connector status / account / reconnect.
   const tConn = await getTranslations("connections");
   const locale = await getLocale();
-  // Freshness stamp for cockpit sections — this view recomputes on every load,
-  // so "as of" reflects the moment the Auditor/attention data was generated.
-  const generatedAt = formatDateTime(new Date().toISOString(), locale);
-  // Connectors needing founder action (e.g. LinkedIn token expired → reconnect).
-  const expiredConnectors = props.connectors.filter((c) => c.status === "expired");
+  const intel = await buildHarmonyExecutiveIntelligence(userId, companyId);
+  const generatedAt = formatDateTime(intel.generatedAt, locale);
 
-  const report = await runAudit(props.userId);
-  const awareness = props.companyId
-    ? await getJuliusAwareness(props.userId, props.companyId)
-    : { objectives: [], decisions: [], activities: [], knowledge: [], total: 0 };
-  const juliusEntries = props.companyId
-    ? await listJuliusEntries(props.userId, props.companyId, { limit: 200 })
-    : [];
-
-  const activeFindings = report.findings.filter(
-    (f) => f.severity === "risk" || f.severity === "warn",
-  );
-  const governanceFindings = report.findings.filter((f) => f.domain === "governance");
-  const deploymentFindings = report.findings.filter((f) => f.domain === "deployment");
-
-  // Strategic recommendations from real Auditor + OS signals (prioritized).
-  const recs: Rec[] = [];
-  if (props.pendingApprovals > 0)
-    recs.push({ priority: "founder", text: t("rec.approvals", { n: props.pendingApprovals }) });
-  for (const f of report.findings.filter((f) => f.severity === "risk"))
-    recs.push({ priority: "risk", text: f.detail });
-  for (const f of report.findings.filter((f) => f.severity === "warn").slice(0, 3))
-    recs.push({ priority: "improve", text: f.detail });
-  if (props.objectivesTotal === 0)
-    recs.push({ priority: "execution", text: t("rec.firstObjective") });
-  if (recs.length === 0) recs.push({ priority: "improve", text: t("rec.allClear") });
-
-  const recVariant: Record<Rec["priority"], "default" | "secondary" | "outline" | "destructive"> = {
-    founder: "default",
-    risk: "destructive",
-    improve: "outline",
-    execution: "secondary",
-  };
-
-  // Agent health: real per-agent Julius contributions; Auditor shows live posture.
-  const contribByAgent = new Map<string, number>();
-  for (const e of juliusEntries)
-    contribByAgent.set(e.agent, (contribByAgent.get(e.agent) ?? 0) + 1);
+  const headlineTone =
+    intel.situation === "critical"
+      ? "danger"
+      : intel.situation === "attention"
+        ? "warning"
+        : intel.situation === "operating"
+          ? "success"
+          : "neutral";
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Needs Your Attention (leads the cockpit) ────────────────────── */}
-      {(() => {
-        const riskFindings = report.findings.filter((f) => f.severity === "risk");
-        const warnFindings = report.findings.filter((f) => f.severity === "warn");
-        const hasAttention =
-          props.pendingApprovals > 0 ||
-          props.blockedWork > 0 ||
-          expiredConnectors.length > 0 ||
-          riskFindings.length > 0 ||
-          warnFindings.length > 0;
-        return (
-          <Card className={hasAttention ? "border-destructive/40" : undefined}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="size-4 text-primary" aria-hidden="true" />
-                {t("needsAttention")}
-              </CardTitle>
-              <CardDescription>{t("needsAttentionHint")}</CardDescription>
-              <p className="text-xs text-muted-foreground">
-                {t("asOf", { time: generatedAt })}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {!hasAttention ? (
-                <p className="text-sm text-muted-foreground">{t("allClear")}</p>
-              ) : (
-                <ul className="space-y-2">
-                  {props.pendingApprovals > 0 && (
-                    <li className="flex items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 text-sm">
-                        <Badge variant="default">{t("attnAction")}</Badge>
-                        {t("approvalsNeed", { n: props.pendingApprovals })}
-                      </span>
-                      <Button asChild size="sm">
-                        <Link href="/harmony/approvals">{t("reviewApprovals")}</Link>
-                      </Button>
-                    </li>
-                  )}
-                  {props.blockedWork > 0 && (
-                    <li className="flex items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 text-sm">
-                        <Badge variant="default">{t("attnStalled")}</Badge>
-                        {t("stalledWork", { n: props.blockedWork })}
-                      </span>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href="/harmony/work">{t("viewWork")}</Link>
-                      </Button>
-                    </li>
-                  )}
-                  {expiredConnectors.map((c) => (
-                    <li key={`c${c.id}`} className="flex items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 text-sm">
-                        <Badge variant="destructive">{tConn("status.expired")}</Badge>
-                        {t("connectorExpired", { name: c.name })}
-                      </span>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href="/settings/connections">{tConn("reconnect")}</Link>
-                      </Button>
-                    </li>
-                  ))}
-                  {riskFindings.map((f, i) => (
-                    <li key={`r${i}`} className="flex items-center justify-between gap-3">
-                      <span className="flex min-w-0 items-start gap-2 text-sm">
-                        <Badge variant="destructive" className="mt-0.5 shrink-0">
-                          {t("sevName.risk")}
-                        </Badge>
-                        <span className="text-muted-foreground">{f.detail}</span>
-                      </span>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href="/settings/auditor">{t("investigate")}</Link>
-                      </Button>
-                    </li>
-                  ))}
-                  {warnFindings.slice(0, 3).map((f, i) => (
-                    <li key={`w${i}`} className="flex items-center justify-between gap-3">
-                      <span className="flex min-w-0 items-start gap-2 text-sm">
-                        <Badge variant="default" className="mt-0.5 shrink-0">
-                          {t("sevName.warn")}
-                        </Badge>
-                        <span className="text-muted-foreground">{f.detail}</span>
-                      </span>
-                      <Button asChild size="sm" variant="outline">
-                        <Link href="/settings/auditor">{t("investigate")}</Link>
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })()}
+      <Card className={intel.situation === "critical" ? "border-destructive/40" : undefined}>
+        <CardContent className="space-y-5 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex gap-3">
+              <AgentGlyph
+                agent="harmony"
+                size="lg"
+                className="border-primary/30 bg-primary/10 text-primary"
+              />
+              <div className="space-y-1">
+                <SignalPill tone={headlineTone}>{t(`intel.state.${intel.headline.key}`)}</SignalPill>
+                <h2 className="text-xl font-semibold tracking-tight">
+                  {t(`intel.headline.${intel.headline.key}`, {
+                    n: intel.headline.primaryCount,
+                  })}
+                </h2>
+                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {t("intel.operatorRead", {
+                    agents: intel.metrics.activeAgents,
+                    work: intel.metrics.activeWork,
+                    approvals: intel.metrics.pendingApprovals,
+                    risks: intel.auditor.risks.length,
+                    context: intel.metrics.juliusContext,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">{t("asOf", { time: generatedAt })}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <Link href={intel.recommendations[0]?.href ?? "/harmony/workforce"}>
+                  {t("intel.topAction")}
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/harmony/briefing">{t("intel.fullBriefing")}</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              [t("intel.metrics.activeWork"), intel.metrics.activeWork],
+              [t("intel.metrics.approvals"), intel.metrics.pendingApprovals],
+              [t("intel.metrics.blocked"), intel.metrics.blockedWork],
+              [t("intel.metrics.agents"), intel.metrics.activeAgents],
+              [t("intel.metrics.julius"), intel.metrics.juliusContext],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border bg-background/70 p-3">
+                <p className="text-xl font-semibold tabular-nums">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
+        <ExecutiveSection
+          icon={Sparkles}
+          title={t("recommendations")}
+          description={t("recommendationsHint")}
+        >
+          <ExecutiveList>
+            {intel.recommendations.map((rec) => (
+              <li key={rec.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={REC_VARIANT[rec.priority]}>
+                      {t(`intel.priority.${rec.priority}`)}
+                    </Badge>
+                    <AgentGlyph agent={rec.agent} size="xs" />
+                    <span className="text-sm font-semibold">{agentName(rec.agent)}</span>
+                  </div>
+                  <p className="text-sm">
+                    {t(`intel.recommendation.${rec.kind}`, recValues(rec))}
+                  </p>
+                  {rec.detail ? (
+                    <p className="line-clamp-2 text-xs text-muted-foreground">{rec.detail}</p>
+                  ) : null}
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0">
+                  <Link href={rec.href}>{t("review")}</Link>
+                </Button>
+              </li>
+            ))}
+          </ExecutiveList>
+        </ExecutiveSection>
+
+        <ExecutiveSection
+          icon={GitBranch}
+          title={t("intel.delegation.title")}
+          description={t("intel.delegation.description")}
+        >
+          {intel.delegationRoutes.length === 0 ? (
+            <Card>
+              <CardContent className="p-5 text-sm text-muted-foreground">
+                {t("intel.delegation.none")}
+              </CardContent>
+            </Card>
+          ) : (
+            <ExecutiveList>
+              {intel.delegationRoutes.map((route) => (
+                <li key={route.id} className="space-y-2 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AgentGlyph agent={route.agent} size="xs" />
+                    <span className="text-sm font-semibold">{agentName(route.agent)}</span>
+                    <Badge variant="outline">{t(`intel.routeSource.${route.source}`)}</Badge>
+                    <Badge variant={route.confidence === "high" ? "default" : "secondary"}>
+                      {t(`intel.confidence.${route.confidence}`)}
+                    </Badge>
+                  </div>
+                  <p className="text-sm">{route.reason}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("intel.delegation.load", { n: route.load })}
+                  </p>
+                </li>
+              ))}
+            </ExecutiveList>
+          )}
+        </ExecutiveSection>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* ── Risk Overview (Auditor) ───────────────────────────────────── */}
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ShieldAlert className="size-4 text-primary" aria-hidden="true" />
-              {t("riskOverview")}
-            </CardTitle>
+        <ExecutiveSection
+          icon={ShieldAlert}
+          title={t("riskOverview")}
+          description={intel.auditor.report.summary}
+          action={
             <Button asChild size="sm" variant="outline">
               <Link href="/settings/auditor">{t("openAuditor")}</Link>
             </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold">{report.score}</span>
-              <span className="text-sm text-muted-foreground">{t("riskScoreSuffix")}</span>
-              <Badge variant={SEV_VARIANT[report.posture]} className="ml-auto">
-                {t(`posture.${report.posture}`)}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="destructive">{t("sev.risk", { n: report.counts.risk })}</Badge>
-              <Badge variant="default">{t("sev.warn", { n: report.counts.warn })}</Badge>
-              <Badge variant="outline">{t("sev.info", { n: report.counts.info })}</Badge>
-              <Badge variant="secondary">{t("sev.ok", { n: report.counts.ok })}</Badge>
-            </div>
-            {activeFindings.length > 0 && (
-              <ul className="space-y-1 text-sm">
-                {activeFindings.slice(0, 4).map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Badge variant={SEV_VARIANT[f.severity]} className="mt-0.5 shrink-0">
-                      {t(`sevName.${f.severity}`)}
-                    </Badge>
-                    <span className="text-muted-foreground">{f.detail}</span>
+          }
+        >
+          <Card>
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-semibold">{intel.auditor.report.score}</span>
+                <span className="text-sm text-muted-foreground">{t("riskScoreSuffix")}</span>
+                <Badge
+                  variant={POSTURE_VARIANT[intel.auditor.report.posture]}
+                  className="ml-auto"
+                >
+                  {t(`posture.${intel.auditor.report.posture}`)}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="destructive">{t("sev.risk", { n: intel.auditor.report.counts.risk })}</Badge>
+                <Badge variant="default">{t("sev.warn", { n: intel.auditor.report.counts.warn })}</Badge>
+                <Badge variant="outline">{t("sev.info", { n: intel.auditor.report.counts.info })}</Badge>
+                <Badge variant="secondary">{t("sev.ok", { n: intel.auditor.report.counts.ok })}</Badge>
+              </div>
+              <ExecutiveList>
+                {intel.auditor.frequencyByDomain.slice(0, 5).map((domain) => (
+                  <li key={domain.domain} className="flex items-center justify-between gap-3 p-3 text-sm">
+                    <span className="flex items-center gap-2">
+                      <AgentGlyph agent={DOMAIN_AGENT[domain.domain] ?? "auditor"} size="xs" />
+                      {t("intel.auditorDomain", { domain: domain.domain })}
+                    </span>
+                    <Badge variant={REC_VARIANT[domain.highest]}>{domain.count}</Badge>
                   </li>
                 ))}
-              </ul>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {t("governanceLabel")}: {governanceFindings.length} ·{" "}
-              {t("deploymentLabel")}: {deploymentFindings.length}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("asOf", { time: generatedAt })}
-            </p>
-          </CardContent>
-        </Card>
+              </ExecutiveList>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
 
-        {/* ── Company Health ────────────────────────────────────────────── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Target className="size-4 text-primary" aria-hidden="true" />
-              {t("companyHealth")}
-            </CardTitle>
-            <CardDescription>{t("companyHealthHint")}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-2xl font-bold">{props.objectivesTotal}</p>
-              <p className="text-sm text-muted-foreground">{t("objectivesLabel")}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{props.workTotal}</p>
-              <p className="text-sm text-muted-foreground">{t("executionLabel")}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{props.pendingApprovals}</p>
-              <p className="text-sm text-muted-foreground">{t("approvalsPendingLabel")}</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{props.decidedApprovals}</p>
-              <p className="text-sm text-muted-foreground">{t("approvalsDecidedLabel")}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <ExecutiveSection
+          icon={Brain}
+          title={t("intel.julius.title")}
+          description={t("intel.julius.description", { n: intel.julius.total })}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/harmony/julius">{t("intel.julius.open")}</Link>
+            </Button>
+          }
+        >
+          <Card>
+            <CardContent className="p-5">
+              {intel.julius.lessons.length === 0 && intel.julius.decisions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("intel.julius.none")}</p>
+              ) : (
+                <ExecutiveList>
+                  {[...intel.julius.decisions, ...intel.julius.lessons].slice(0, 5).map((entry) => (
+                    <li key={entry.id} className="space-y-1 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AgentGlyph agent={entry.agent} size="xs" />
+                        <span className="text-sm font-semibold">{entry.title}</span>
+                        <Badge variant="outline">{entry.kind}</Badge>
+                      </div>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">
+                        {entry.content}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(entry.created_at, locale)}
+                      </p>
+                    </li>
+                  ))}
+                </ExecutiveList>
+              )}
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
       </div>
 
-      {/* ── Agent Health ────────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Brain className="size-4 text-primary" aria-hidden="true" />
-            {t("agentHealth")}
-          </CardTitle>
-          <CardDescription>{t("agentHealthHint")}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {AIOS_WORKFORCE.map((a) => {
-            const contributions = contribByAgent.get(a.key) ?? 0;
-            const statusText =
-              a.key === "auditor"
-                ? t(`posture.${report.posture}`)
-                : contributions > 0
-                  ? t("contributions", { n: contributions })
-                  : t("ready");
+      <ExecutiveSection
+        icon={Users}
+        title={t("agentHealth")}
+        description={t("agentHealthHint")}
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {AIOS_WORKFORCE.map((agent) => {
+            const signal = intel.workforce.find((w) => w.agent === agent.key);
             return (
-              <div key={a.key} className="rounded-lg border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-semibold">{a.name}</span>
-                  <Badge variant={a.key === "auditor" ? SEV_VARIANT[report.posture] : "secondary"}>
-                    {statusText}
-                  </Badge>
-                </div>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{a.role}</p>
-                {a.julius === "steward" && (
-                  <p className="mt-1 text-xs text-primary">{t("juliusSteward")}</p>
-                )}
-                {(AGENT_CONNECTORS[a.key] ?? []).length > 0 && (
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                    {(AGENT_CONNECTORS[a.key] ?? []).map((cid) => {
-                      const conn = getConnector(cid);
-                      return conn ? (
-                        <Badge key={cid} variant="outline" className="text-[10px]">
-                          {conn.initials}
-                        </Badge>
-                      ) : null;
-                    })}
+              <Card key={agent.key}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-center gap-3">
+                    <AgentGlyph agent={agent.key} size="sm" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{agent.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{agent.role}</p>
+                    </div>
                   </div>
-                )}
-              </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline" className="text-[10px]">
+                      {t("intel.agentSignal.active", { n: signal?.activeWork ?? 0 })}
+                    </Badge>
+                    <Badge
+                      variant={(signal?.blockedWork ?? 0) > 0 ? "destructive" : "outline"}
+                      className="text-[10px]"
+                    >
+                      {t("intel.agentSignal.blocked", { n: signal?.blockedWork ?? 0 })}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {t("contributions", { n: signal?.juliusEntries ?? 0 })}
+                    </Badge>
+                  </div>
+                  {agent.julius === "steward" ? (
+                    <p className="text-xs text-primary">{t("juliusSteward")}</p>
+                  ) : null}
+                  {(AGENT_CONNECTORS[agent.key] ?? []).length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1">
+                      {(AGENT_CONNECTORS[agent.key] ?? []).map((cid) => {
+                        const conn = getConnector(cid);
+                        return conn ? (
+                          <Badge key={cid} variant="outline" className="text-[10px]">
+                            {conn.initials}
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
             );
           })}
-        </CardContent>
-      </Card>
+        </div>
+      </ExecutiveSection>
 
-      {/* ── Connectors (founder integrations) ───────────────────────────── */}
-      {props.connectors.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Plug className="size-4 text-primary" aria-hidden="true" />
-              {t("connectors")}
-            </CardTitle>
-            <CardDescription>{t("connectorsHint")}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {props.connectors.map((c) => (
-              <div key={c.id} className="rounded-lg border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-semibold">{c.name}</span>
-                  <Badge
-                    variant={
-                      c.status === "connected"
-                        ? "success"
-                        : c.status === "expired"
-                          ? "destructive"
-                          : c.status === "ready"
-                            ? "outline"
-                            : "secondary"
-                    }
-                  >
-                    {tConn(`status.${c.status}`)}
-                  </Badge>
-                </div>
-                {c.account ? (
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {tConn("accountLabel", { account: c.account })}
-                  </p>
-                ) : null}
-              </div>
+      {intel.connectors.length > 0 ? (
+        <ExecutiveSection
+          icon={Plug}
+          title={t("connectors")}
+          description={t("connectorsHint")}
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {intel.connectors.map((connector) => (
+              <Card key={connector.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-semibold">{connector.name}</span>
+                    <Badge
+                      variant={
+                        connector.status === "connected"
+                          ? "success"
+                          : connector.status === "expired"
+                            ? "destructive"
+                            : connector.status === "ready"
+                              ? "outline"
+                              : "secondary"
+                      }
+                    >
+                      {tConn(`status.${connector.status}`)}
+                    </Badge>
+                  </div>
+                  {connector.account ? (
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {tConn("accountLabel", { account: connector.account })}
+                    </p>
+                  ) : null}
+                </CardContent>
+              </Card>
             ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── Strategic Recommendations ───────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="size-4 text-primary" aria-hidden="true" />
-            {t("recommendations")}
-          </CardTitle>
-          <CardDescription>{t("recommendationsHint")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {recs.slice(0, 6).map((r, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm">
-                <Badge variant={recVariant[r.priority]} className="mt-0.5 shrink-0">
-                  {t(`recPriority.${r.priority}`)}
-                </Badge>
-                <span>{r.text}</span>
-              </li>
-            ))}
-          </ul>
-          {awareness.total > 0 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              {t("juliusAware", { n: awareness.total })} ·{" "}
-              {formatDate(new Date().toISOString(), locale)}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </ExecutiveSection>
+      ) : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { CheckCircle2, Activity, Ban, Clock } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
@@ -10,10 +11,13 @@ import { listRecommendations } from "@/lib/workforce/recommendations";
 import { listObjectives } from "@/lib/workforce/objectives";
 import { listAutonomyAudit } from "@/lib/workforce/autonomy";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
+import { buildHarmonyExecutiveIntelligence } from "@/lib/harmony/executive-intelligence";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
 
 const DECISION_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   auto_executed: "default",
@@ -33,6 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FounderBriefingPage() {
   const t = await getTranslations("briefing");
   const ta = await getTranslations("autonomy");
+  const tc = await getTranslations("commandCenter");
   const locale = await getLocale();
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
@@ -45,12 +50,13 @@ export default async function FounderBriefingPage() {
     await reflectAfterEvent(user.id, companyId, "before_briefing");
   }
 
-  const [audit, work, recs, objectives, messages] = await Promise.all([
+  const [audit, work, recs, objectives, messages, intelligence] = await Promise.all([
     listAutonomyAudit(user.id, 200),
     listWorkItems(user.id, { companyId, limit: 300 }),
     listRecommendations(user.id, { companyId, limit: 300 }),
     listObjectives(user.id, { companyId, limit: 300 }),
     companyId ? listAgentMessages(user.id, companyId, { limit: 200 }) : Promise.resolve([]),
+    buildHarmonyExecutiveIntelligence(user.id, companyId),
   ]);
 
   const agentName = (k: string) => getAiosAgent(k)?.name ?? k;
@@ -80,10 +86,10 @@ export default async function FounderBriefingPage() {
   const why = audit.slice(0, 15);
 
   const tiles = [
-    { label: t("statCompleted"), value: completed.length + acceptedRecs, icon: CheckCircle2 },
-    { label: t("statAttempted"), value: audit.length, icon: Activity },
-    { label: t("statBlocked"), value: blocked.length + blockedWork.length, icon: Ban, danger: blocked.length + blockedWork.length > 0 },
-    { label: t("statWaiting"), value: waitingTotal, icon: Clock, emphasis: waitingTotal > 0 },
+    { label: t("statCompleted"), value: completed.length + acceptedRecs },
+    { label: t("statAttempted"), value: audit.length },
+    { label: t("statBlocked"), value: blocked.length + blockedWork.length, danger: blocked.length + blockedWork.length > 0 },
+    { label: t("statWaiting"), value: waitingTotal, emphasis: waitingTotal > 0 },
   ];
 
   return (
@@ -95,16 +101,61 @@ export default async function FounderBriefingPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {tiles.map((tile) => (
             <Card key={tile.label}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <tile.icon className={`size-5 ${tile.danger ? "text-destructive" : "text-primary"}`} aria-hidden="true" />
-                <div>
-                  <p className={`text-xl font-bold ${tile.danger ? "text-destructive" : ""}`}>{tile.value}</p>
-                  <p className="text-xs text-muted-foreground">{tile.label}</p>
-                </div>
+              <CardContent className="p-4">
+                <p className={`text-xl font-bold ${tile.danger ? "text-destructive" : ""}`}>{tile.value}</p>
+                <p className="text-xs text-muted-foreground">{tile.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="size-4 text-primary" aria-hidden="true" />
+              {tc("recommendations")}
+            </CardTitle>
+            <CardDescription>
+              {tc(`intel.headline.${intelligence.headline.key}`, {
+                n: intelligence.headline.primaryCount,
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-3">
+              {intelligence.recommendations.slice(0, 5).map((r) => (
+                <li
+                  key={r.id}
+                  className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-start sm:justify-between"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={r.priority === "critical" ? "destructive" : r.priority === "high" ? "default" : "outline"}>
+                        {tc(`intel.priority.${r.priority}`)}
+                      </Badge>
+                      <AgentGlyph agent={r.agent} size="xs" />
+                      <span className="text-sm font-medium">{agentName(r.agent)}</span>
+                    </div>
+                    <p className="text-sm">
+                      {tc(`intel.recommendation.${r.kind}`, {
+                        n: r.title,
+                        title: r.title,
+                        detail: r.detail,
+                        agent: agentName(r.agent),
+                      })}
+                    </p>
+                    {r.detail ? (
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{r.detail}</p>
+                    ) : null}
+                  </div>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={r.href}>{tc("review")}</Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
 
         {/* COMPLETED */}
         <Card>

@@ -11,6 +11,7 @@ import {
   type AgentMessageRisk,
 } from "@/lib/harmony/agents/a2a";
 import { getAiosAgent } from "@/lib/workforce/registry";
+import { chooseHarmonyDelegatee } from "@/lib/harmony/executive-intelligence";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 
@@ -33,7 +34,7 @@ export async function dispatchAgentTask(
   if (!companyId) return { status: "error", message: tw("dispatchNoCompany") };
 
   const fromAgent = String(formData.get("from_agent") ?? "harmony");
-  const toAgent = String(formData.get("to_agent") ?? "");
+  const toAgentRaw = String(formData.get("to_agent") ?? "");
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   const kindRaw = String(formData.get("kind") ?? "task") as AgentMessageKind;
@@ -42,6 +43,16 @@ export async function dispatchAgentTask(
   const risk: AgentMessageRisk = RISKS.includes(riskRaw) ? riskRaw : "routine";
 
   if (!subject) return { status: "error", message: t("errors.titleRequired") };
+  const toAgent =
+    toAgentRaw === "auto"
+      ? await chooseHarmonyDelegatee({
+          userId: user.id,
+          companyId,
+          subject,
+          body,
+          risk,
+        })
+      : toAgentRaw;
   if (fromAgent === toAgent)
     return { status: "error", message: tw("dispatchSameAgent") };
   if (!getAiosAgent(fromAgent) || !getAiosAgent(toAgent))
