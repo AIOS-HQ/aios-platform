@@ -86,9 +86,34 @@ const PHASE_CANDIDATES: Array<{
     summary: "Define the execution approach, interfaces, dependencies, and validation strategy.",
   },
   {
+    id: "engineering_implementation",
+    title: "Engineering Implementation",
+    keywords: [
+      "code",
+      "repo",
+      "repository",
+      "github",
+      "branch",
+      "pull request",
+      "pr",
+      "component",
+      "typescript",
+      "react",
+      "api",
+      "test",
+      "build",
+      "bug",
+      "fix",
+      "implement",
+    ],
+    agent: "mason",
+    summary:
+      "Prepare safe code changes through an isolated branch, pull request, preview, and founder approval path.",
+  },
+  {
     id: "implementation",
     title: "Implementation",
-    keywords: ["build", "implement", "create", "fix", "execute", "ship", "content", "campaign"],
+    keywords: ["create", "execute", "ship", "content", "campaign", "draft", "publish"],
     agent: "catalyst",
     summary: "Execute the core work using the selected approach and reusable company skills.",
   },
@@ -177,7 +202,7 @@ export function buildAdaptivePlanFromSignals(input: PlanInput): AdaptiveExecutio
         PHASE_CANDIDATES[0],
         PHASE_CANDIDATES[3],
         PHASE_CANDIDATES[4],
-        PHASE_CANDIDATES[6],
+        PHASE_CANDIDATES[7],
       ];
   const phasesWithValidation = basePhases.some((phase) => phase.id === "validation")
     ? basePhases
@@ -206,6 +231,7 @@ export function buildAdaptivePlanFromSignals(input: PlanInput): AdaptiveExecutio
     const approvalCheckpoint =
       phase.id === "risk" ||
       phase.id === "records" ||
+      phase.id === "engineering_implementation" ||
       phaseSkills.some((skill) => skill.approval_requirement !== "none") ||
       /production|publish|customer|payment|security|credential|token/.test(query);
     return {
