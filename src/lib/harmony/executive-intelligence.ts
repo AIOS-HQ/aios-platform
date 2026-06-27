@@ -18,6 +18,10 @@ import {
 } from "@/lib/workforce/registry";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
 import {
+  buildOrganizationalIntelligence,
+  type OrganizationalIntelligence,
+} from "@/lib/organizational-intelligence/engine";
+import {
   consultCompanySkills,
   type SkillUsageEvidence,
   type SkillConsultationPurpose,
@@ -51,6 +55,8 @@ export interface ExecutiveRecommendation {
     | "review_failed_execution"
     | "review_agent_recommendation"
     | "reuse_company_skill"
+    | "apply_organizational_pattern"
+    | "resolve_organizational_bottleneck"
     | "continue_operating";
   agent: string;
   href: string;
@@ -118,6 +124,7 @@ export interface ExecutiveIntelligence {
     relevant: CompanySkill[];
     metrics: ReturnType<typeof summarizeSkillMetrics>;
   };
+  organization: OrganizationalIntelligence;
 }
 
 const ACTIVE_WORK = new Set(["proposed", "approved", "in_progress"]);
@@ -237,6 +244,7 @@ export async function buildHarmonyExecutiveIntelligence(
     awareness,
     juliusEntries,
     companySkills,
+    organization,
   ] = await Promise.all([
     runAudit(userId),
     listWorkItems(userId, { companyId, limit: 400 }),
@@ -250,6 +258,7 @@ export async function buildHarmonyExecutiveIntelligence(
       : Promise.resolve({ objectives: [], decisions: [], activities: [], knowledge: [], total: 0 }),
     companyId ? listJuliusEntries(userId, companyId, { limit: 200 }) : Promise.resolve([]),
     companyId ? listCompanySkills(userId, companyId, { limit: 200 }) : Promise.resolve([]),
+    buildOrganizationalIntelligence(userId, companyId, { limit: 400 }),
   ]);
 
   const connections = await connectionsPromise;
@@ -394,6 +403,28 @@ export async function buildHarmonyExecutiveIntelligence(
       href: "/harmony/julius",
       title: skill.title,
       detail: skill.summary,
+    });
+  }
+  if (organization.mostEffectivePattern) {
+    addRecommendation(recommendations, {
+      id: `oie-pattern-${organization.mostEffectivePattern.id}`,
+      priority: organization.mostEffectivePattern.confidence >= 75 ? "high" : "medium",
+      kind: "apply_organizational_pattern",
+      agent: "harmony",
+      href: "/harmony/workforce",
+      title: organization.mostEffectivePattern.title,
+      detail: organization.mostEffectivePattern.detail,
+    });
+  }
+  if (organization.bottlenecks[0]) {
+    addRecommendation(recommendations, {
+      id: `oie-bottleneck-${organization.bottlenecks[0].id}`,
+      priority: organization.bottlenecks[0].severity === "high" ? "high" : "medium",
+      kind: "resolve_organizational_bottleneck",
+      agent: "harmony",
+      href: "/harmony/operations",
+      title: organization.bottlenecks[0].title,
+      detail: organization.bottlenecks[0].recommendation,
     });
   }
   if (recommendations.length === 0) {
@@ -543,6 +574,7 @@ export async function buildHarmonyExecutiveIntelligence(
       relevant: relevantSkills,
       metrics: summarizeSkillMetrics(companySkills),
     },
+    organization,
   };
 }
 
@@ -585,6 +617,9 @@ export async function chooseHarmonyDelegatee(params: {
     limit: 6,
     emit: false,
   });
+  const organization = await buildOrganizationalIntelligence(params.userId, params.companyId, {
+    limit: 300,
+  });
   const load = new Map<string, number>();
   for (const w of work.filter((w) => ACTIVE_WORK.has(w.status))) {
     load.set(w.agent, (load.get(w.agent) ?? 0) + 1);
@@ -608,9 +643,18 @@ export async function chooseHarmonyDelegatee(params: {
     const skillScore = skillConsultation.skills
       .filter((skill) => skill.owner_agent === agent.key)
       .reduce((score, skill) => score + 2 + skill.confidence_score / 25 + skill.success_count, 0);
+    const collaborationScore = organization.collaborations
+      .filter((collaboration) => collaboration.agents.includes(agent.key))
+      .reduce((score, collaboration) => score + collaboration.reliability / 25 + collaboration.completed, 0);
     return {
       agent: agent.key,
-      score: keywordScore + responsibilityScore + riskScore + skillScore - (load.get(agent.key) ?? 0),
+      score:
+        keywordScore +
+        responsibilityScore +
+        riskScore +
+        skillScore +
+        collaborationScore -
+        (load.get(agent.key) ?? 0),
     };
   });
 

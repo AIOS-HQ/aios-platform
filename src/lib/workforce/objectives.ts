@@ -7,6 +7,10 @@ import {
   recordSkillConsultation,
 } from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
+import {
+  appendOrganizationalContext,
+  buildOrganizationalIntelligence,
+} from "@/lib/organizational-intelligence/engine";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
 /**
@@ -81,7 +85,14 @@ export async function createObjective(params: {
     query: `${title}\n${params.detail ?? ""}`,
     emit: false,
   });
+  const organization = await buildOrganizationalIntelligence(params.userId, params.companyId, {
+    limit: 300,
+  });
   const supabase = await createClient();
+  const plannedDetail = appendOrganizationalContext(
+    appendSkillContext(params.detail, consultation),
+    organization,
+  );
   const { data, error } = await supabase
     .from("agent_objectives")
     .insert({
@@ -89,7 +100,7 @@ export async function createObjective(params: {
       company_id: params.companyId,
       agent: params.agent,
       title: title.slice(0, 300),
-      detail: appendSkillContext(params.detail, consultation)?.slice(0, 4000) ?? null,
+      detail: plannedDetail?.slice(0, 4000) ?? null,
       priority: params.priority ?? "medium",
       origin,
     })

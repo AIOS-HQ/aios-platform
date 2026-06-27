@@ -7,6 +7,10 @@ import {
   recordSkillConsultation,
 } from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
+import {
+  appendOrganizationalContext,
+  buildOrganizationalIntelligence,
+} from "@/lib/organizational-intelligence/engine";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
 /**
@@ -122,7 +126,14 @@ export async function createWorkItem(params: {
     query: `${title}\n${params.detail ?? ""}\n${category ?? ""}`,
     emit: false,
   });
+  const organization = await buildOrganizationalIntelligence(params.userId, params.companyId, {
+    limit: 300,
+  });
   const supabase = await createClient();
+  const plannedDetail = appendOrganizationalContext(
+    appendSkillContext(params.detail, consultation),
+    organization,
+  );
   const { data, error } = await supabase
     .from("agent_work_queue")
     .insert({
@@ -131,7 +142,7 @@ export async function createWorkItem(params: {
       agent: params.agent,
       objective_id: params.objectiveId ?? null,
       title: title.slice(0, 300),
-      detail: appendSkillContext(params.detail, consultation)?.slice(0, 8000) ?? null,
+      detail: plannedDetail?.slice(0, 8000) ?? null,
       kind: params.kind ?? "task",
       risk: RISK_FROM_LEVEL[riskLevel] ?? "routine",
       risk_level: riskLevel,

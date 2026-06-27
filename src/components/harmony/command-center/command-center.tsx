@@ -4,6 +4,7 @@ import {
   Brain,
   GitBranch,
   Library,
+  Network,
   Plug,
   ShieldAlert,
   Sparkles,
@@ -316,6 +317,67 @@ export async function CommandCenter({ userId, companyId }: CommandCenterProps) {
                   ))}
                 </ExecutiveList>
               )}
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
+
+        <ExecutiveSection
+          icon={Network}
+          title={t("intel.organization.title")}
+          description={t("intel.organization.description", {
+            collaborations: intel.organization.metrics.collaborations,
+            reliability: intel.organization.strongestCollaboration?.reliability ?? 0,
+          })}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/harmony/workforce">{t("intel.organization.open")}</Link>
+            </Button>
+          }
+        >
+          <Card>
+            <CardContent className="space-y-4 p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border bg-background/70 p-3">
+                  <p className="text-xl font-semibold">
+                    {intel.organization.metrics.averageCompletionHours ?? t("none")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t("intel.organization.avgTime")}</p>
+                </div>
+                <div className="rounded-lg border bg-background/70 p-3">
+                  <p className="text-xl font-semibold">
+                    {intel.organization.metrics.approvalFrequency}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t("intel.organization.approvals")}</p>
+                </div>
+              </div>
+              {intel.organization.strongestCollaboration ? (
+                <div className="space-y-2 rounded-lg border bg-background/70 p-4">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">
+                    {t("intel.organization.strongest")}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {intel.organization.strongestCollaboration.agents.map((agent) => (
+                      <AgentGlyph key={agent} agent={agent} size="xs" />
+                    ))}
+                    <span className="text-sm font-semibold">
+                      {intel.organization.strongestCollaboration.label}
+                    </span>
+                    <Badge variant="outline">
+                      {intel.organization.strongestCollaboration.reliability}%
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("intel.organization.none")}</p>
+              )}
+              {intel.organization.bottlenecks[0] ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("intel.organization.bottleneck", {
+                    title: intel.organization.bottlenecks[0].title,
+                    count: intel.organization.bottlenecks[0].count,
+                  })}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </ExecutiveSection>

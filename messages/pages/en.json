@@ -913,6 +913,8 @@
         "review_failed_execution": "Review {n} failed execution(s) and decide retry or escalation.",
         "review_agent_recommendation": "Review {agent}'s recommendation: {title}.",
         "reuse_company_skill": "Reuse company skill: {title}.",
+        "apply_organizational_pattern": "Apply proven organizational pattern: {title}.",
+        "resolve_organizational_bottleneck": "Resolve recurring organizational bottleneck: {title}.",
         "continue_operating": "Continue operating; Harmony sees no critical intervention."
       },
       "delegation": {
@@ -947,6 +949,16 @@
         "domain": "Strongest domain",
         "none": "No reusable company skills are relevant yet.",
         "used": "{title} · {confidence}/100"
+      },
+      "organization": {
+        "title": "Organizational Intelligence",
+        "description": "{collaborations} collaboration pattern(s) learned · strongest reliability {reliability}%.",
+        "open": "Open Workforce",
+        "avgTime": "Avg completion hours",
+        "approvals": "Approval frequency",
+        "strongest": "Strongest collaboration",
+        "none": "No stable organizational pattern has emerged yet.",
+        "bottleneck": "Recurring bottleneck: {title} across {count} event(s)."
       },
       "agentSignal": {
         "active": "{n} active",

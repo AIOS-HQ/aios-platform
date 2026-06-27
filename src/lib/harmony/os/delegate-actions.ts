@@ -9,6 +9,10 @@ import {
   consultCompanySkills,
   recordSkillConsultation,
 } from "@/lib/company-skills/utilization";
+import {
+  appendOrganizationalContext,
+  buildOrganizationalIntelligence,
+} from "@/lib/organizational-intelligence/engine";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { executeWorkItem } from "@/lib/harmony/os/execution";
@@ -64,6 +68,13 @@ export async function delegateToHarmony(
     query: `${title}\n${description ?? ""}`,
     emit: false,
   });
+  const organization = await buildOrganizationalIntelligence(user.id, companyId, {
+    limit: 300,
+  });
+  const plannedDescription = appendOrganizationalContext(
+    appendSkillContext(description, consultation),
+    organization,
+  );
   const { data, error } = await supabase
     .from("work_items")
     .insert({
@@ -72,7 +83,7 @@ export async function delegateToHarmony(
       department_id: departmentId,
       objective_id: refOrNull(formData.get("objective_id")),
       title,
-      description: appendSkillContext(description, consultation),
+      description: plannedDescription,
       status: "pending",
       priority: "medium",
     })
