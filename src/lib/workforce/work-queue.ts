@@ -11,6 +11,10 @@ import {
   appendOrganizationalContext,
   buildOrganizationalIntelligence,
 } from "@/lib/organizational-intelligence/engine";
+import {
+  appendAdaptivePlan,
+  buildAdaptiveExecutionPlan,
+} from "@/lib/harmony/adaptive-planning";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
 /**
@@ -134,6 +138,15 @@ export async function createWorkItem(params: {
     appendSkillContext(params.detail, consultation),
     organization,
   );
+  const adaptivePlan = await buildAdaptiveExecutionPlan({
+    userId: params.userId,
+    companyId: params.companyId,
+    title,
+    detail: params.detail,
+    agent: params.agent,
+    skills: consultation.skills,
+    organization,
+  });
   const { data, error } = await supabase
     .from("agent_work_queue")
     .insert({
@@ -142,7 +155,7 @@ export async function createWorkItem(params: {
       agent: params.agent,
       objective_id: params.objectiveId ?? null,
       title: title.slice(0, 300),
-      detail: plannedDetail?.slice(0, 8000) ?? null,
+      detail: (adaptivePlan ? appendAdaptivePlan(plannedDetail, adaptivePlan) : plannedDetail)?.slice(0, 8000) ?? null,
       kind: params.kind ?? "task",
       risk: RISK_FROM_LEVEL[riskLevel] ?? "routine",
       risk_level: riskLevel,

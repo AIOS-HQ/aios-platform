@@ -5,6 +5,7 @@ import {
   GitBranch,
   Library,
   Network,
+  PanelsTopLeft,
   Plug,
   ShieldAlert,
   Sparkles,
@@ -231,6 +232,52 @@ export async function CommandCenter({ userId, companyId }: CommandCenterProps) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {intel.planning.current ? (
+          <ExecutiveSection
+            icon={PanelsTopLeft}
+            title={t("intel.planning.title")}
+            description={t("intel.planning.description", {
+              confidence: intel.planning.current.confidence,
+              phases: intel.planning.current.phases.length,
+            })}
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link href="/harmony/workforce">{t("intel.planning.open")}</Link>
+              </Button>
+            }
+          >
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border bg-background/70 p-3">
+                    <p className="text-xl font-semibold">{intel.planning.current.confidence}%</p>
+                    <p className="text-xs text-muted-foreground">{t("intel.planning.confidence")}</p>
+                  </div>
+                  <div className="rounded-lg border bg-background/70 p-3">
+                    <p className="text-xl font-semibold">{intel.planning.current.estimatedEffort}</p>
+                    <p className="text-xs text-muted-foreground">{t("intel.planning.effort")}</p>
+                  </div>
+                </div>
+                <ExecutiveList>
+                  {intel.planning.current.phases.slice(0, 4).map((phase, index) => (
+                    <li key={phase.id} className="space-y-2 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{index + 1}</Badge>
+                        <AgentGlyph agent={phase.recommendedAgent} size="xs" />
+                        <span className="text-sm font-semibold">{phase.title}</span>
+                        <Badge variant={phase.approvalCheckpoint ? "default" : "secondary"}>
+                          {phase.confidence}/100
+                        </Badge>
+                      </div>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{phase.summary}</p>
+                    </li>
+                  ))}
+                </ExecutiveList>
+              </CardContent>
+            </Card>
+          </ExecutiveSection>
+        ) : null}
+
         <ExecutiveSection
           icon={ShieldAlert}
           title={t("riskOverview")}
