@@ -92,16 +92,17 @@ describe("department catalog", () => {
     }
   });
 
-  it("Code department is first-class with its five agents", () => {
+  it("Code department is first-class with Mason and its five agents", () => {
     const code = getDepartmentTemplate("code");
     expect(code).toBeDefined();
     expect(code?.agents.map((a) => a.key)).toEqual([
       "engineering_manager",
-      "coding",
+      "mason",
       "qa",
       "testing",
       "deployment",
     ]);
+    expect(code?.agents.find((agent) => agent.key === "mason")?.name).toBe("Mason");
   });
 
   it("exposes stable work / approval / activity enums", () => {
