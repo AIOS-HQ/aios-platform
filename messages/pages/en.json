@@ -915,6 +915,7 @@
         "reuse_company_skill": "Reuse company skill: {title}.",
         "apply_organizational_pattern": "Apply proven organizational pattern: {title}.",
         "resolve_organizational_bottleneck": "Resolve recurring organizational bottleneck: {title}.",
+        "review_adaptive_plan": "Review Harmony's adaptive execution plan for: {title}.",
         "continue_operating": "Continue operating; Harmony sees no critical intervention."
       },
       "delegation": {
@@ -959,6 +960,13 @@
         "strongest": "Strongest collaboration",
         "none": "No stable organizational pattern has emerged yet.",
         "bottleneck": "Recurring bottleneck: {title} across {count} event(s)."
+      },
+      "planning": {
+        "title": "Adaptive Planning",
+        "description": "{phases} execution phase(s) planned · {confidence}% confidence.",
+        "open": "Open Workforce",
+        "confidence": "Planning confidence",
+        "effort": "Estimated effort"
       },
       "agentSignal": {
         "active": "{n} active",

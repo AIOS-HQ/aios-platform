@@ -12,6 +12,10 @@ import {
   appendOrganizationalContext,
   buildOrganizationalIntelligence,
 } from "@/lib/organizational-intelligence/engine";
+import {
+  appendAdaptivePlan,
+  buildAdaptiveExecutionPlan,
+} from "@/lib/harmony/adaptive-planning";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
 /**
@@ -141,6 +145,30 @@ export async function sendAgentMessage(params: {
     appendSkillContext(params.body, consultation),
     organization,
   );
+  const adaptivePlan = await buildAdaptiveExecutionPlan({
+    userId: params.userId,
+    companyId: params.companyId,
+    title: subject,
+    detail: params.body,
+    agent: params.toAgent,
+    skills: consultation.skills,
+    organization,
+  });
+  if (adaptivePlan) {
+    context.adaptivePlan = {
+      confidence: adaptivePlan.confidence,
+      estimatedEffort: adaptivePlan.estimatedEffort,
+      phases: adaptivePlan.phases.map((phase) => ({
+        id: phase.id,
+        title: phase.title,
+        recommendedAgent: phase.recommendedAgent,
+        approvalCheckpoint: phase.approvalCheckpoint,
+        confidence: phase.confidence,
+      })),
+      approvalCheckpoints: adaptivePlan.approvalCheckpoints,
+    };
+  }
+  const finalBody = adaptivePlan ? appendAdaptivePlan(plannedBody, adaptivePlan) : plannedBody;
 
   const gated = riskRequiresApproval(risk);
   const status: AgentMessageStatus = gated
@@ -161,7 +189,7 @@ export async function sendAgentMessage(params: {
       risk,
       parent_id: params.parentId ?? null,
       subject: subject.slice(0, 300),
-      body: (plannedBody ?? "").slice(0, 8000),
+      body: (finalBody ?? "").slice(0, 8000),
       context,
     })
     .select("*")

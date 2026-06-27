@@ -13,6 +13,10 @@ import {
   appendOrganizationalContext,
   buildOrganizationalIntelligence,
 } from "@/lib/organizational-intelligence/engine";
+import {
+  appendAdaptivePlan,
+  buildAdaptiveExecutionPlan,
+} from "@/lib/harmony/adaptive-planning";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import type { ActionState } from "@/lib/types";
@@ -69,6 +73,15 @@ export async function createObjective(
     appendSkillContext(outcome, consultation),
     organization,
   );
+  const adaptivePlan = await buildAdaptiveExecutionPlan({
+    userId: user.id,
+    companyId,
+    title,
+    detail: outcome,
+    agent: "harmony",
+    skills: consultation.skills,
+    organization,
+  });
   const { data, error } = await supabase
     .from("objectives")
     .insert({
@@ -76,7 +89,7 @@ export async function createObjective(
       company_id: companyId,
       department_id: refOrNull(formData.get("department_id")),
       title,
-      outcome: plannedOutcome,
+      outcome: adaptivePlan ? appendAdaptivePlan(plannedOutcome, adaptivePlan) : plannedOutcome,
       due_date: orNull(formData.get("due_date")),
     })
     .select("id")

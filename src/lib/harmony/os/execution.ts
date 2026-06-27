@@ -9,6 +9,10 @@ import {
   buildOrganizationalIntelligence,
   formatOrganizationalContext,
 } from "@/lib/organizational-intelligence/engine";
+import {
+  buildAdaptiveExecutionPlan,
+  formatAdaptivePlan,
+} from "@/lib/harmony/adaptive-planning";
 import { runConnectorCapability } from "@/lib/integrations/connector-runtime";
 import {
   clampAutonomy,
@@ -266,6 +270,16 @@ export async function executeWorkItem(
     limit: 300,
   });
   const organizationalContext = formatOrganizationalContext(organization);
+  const adaptivePlan = await buildAdaptiveExecutionPlan({
+    userId,
+    companyId: item.company_id,
+    title: item.title,
+    detail: item.description,
+    agent: "harmony",
+    skills: consultation.skills,
+    organization,
+  });
+  const adaptivePlanContext = adaptivePlan ? formatAdaptivePlan(adaptivePlan) : "";
 
   const githubIntent = inferGithubIntent(item);
 
@@ -288,6 +302,8 @@ export async function executeWorkItem(
       skillContext ? `\n\nCompany Skills applied before execution:\n${skillContext}` : ""
     }${
       organizationalContext ? `\n\nOrganizational Intelligence considered:\n${organizationalContext}` : ""
+    }${
+      adaptivePlanContext ? `\n\nAdaptive Planning used before execution:\n${adaptivePlanContext}` : ""
     }${note}`.slice(
       0,
       LIMITS.noteContent,
@@ -385,6 +401,10 @@ export async function executeWorkItem(
     }${
       organizationalContext
         ? `\n\nUse these Organizational Intelligence patterns before deciding sequencing, collaboration, and recovery path:\n${organizationalContext}`
+        : ""
+    }${
+      adaptivePlanContext
+        ? `\n\nFollow this Adaptive Execution Plan unless the current facts require a safer adjustment:\n${adaptivePlanContext}`
         : ""
     }`.trim();
     result = await getProvider().generate(prompt, system);

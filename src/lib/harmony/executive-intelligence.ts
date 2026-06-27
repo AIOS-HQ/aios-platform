@@ -22,6 +22,10 @@ import {
   type OrganizationalIntelligence,
 } from "@/lib/organizational-intelligence/engine";
 import {
+  buildAdaptiveExecutionPlan,
+  type AdaptiveExecutionPlan,
+} from "@/lib/harmony/adaptive-planning";
+import {
   consultCompanySkills,
   type SkillUsageEvidence,
   type SkillConsultationPurpose,
@@ -57,6 +61,7 @@ export interface ExecutiveRecommendation {
     | "reuse_company_skill"
     | "apply_organizational_pattern"
     | "resolve_organizational_bottleneck"
+    | "review_adaptive_plan"
     | "continue_operating";
   agent: string;
   href: string;
@@ -125,6 +130,9 @@ export interface ExecutiveIntelligence {
     metrics: ReturnType<typeof summarizeSkillMetrics>;
   };
   organization: OrganizationalIntelligence;
+  planning: {
+    current: AdaptiveExecutionPlan | null;
+  };
 }
 
 const ACTIVE_WORK = new Set(["proposed", "approved", "in_progress"]);
@@ -375,6 +383,30 @@ export async function buildHarmonyExecutiveIntelligence(
       detail: o.detail ?? agentName(o.agent),
     });
   }
+  const planningTarget =
+    activeObjectives.find((o) => !workObjectiveIds.has(o.id)) ??
+    proposedObjectives[0] ??
+    null;
+  const adaptivePlan = planningTarget
+    ? await buildAdaptiveExecutionPlan({
+        userId,
+        companyId,
+        title: planningTarget.title,
+        detail: planningTarget.detail,
+        agent: planningTarget.agent,
+      })
+    : null;
+  if (adaptivePlan) {
+    addRecommendation(recommendations, {
+      id: `adaptive-plan-${planningTarget?.id ?? adaptivePlan.objective}`,
+      priority: adaptivePlan.confidence >= 75 ? "high" : "medium",
+      kind: "review_adaptive_plan",
+      agent: "harmony",
+      href: planningTarget ? `/harmony/workforce/${planningTarget.agent}` : "/harmony/workforce",
+      title: adaptivePlan.objective,
+      detail: adaptivePlan.executiveSummary,
+    });
+  }
   for (const rec of recs.slice(0, 3)) {
     addRecommendation(recommendations, {
       id: `agent-rec-${rec.id}`,
@@ -575,6 +607,9 @@ export async function buildHarmonyExecutiveIntelligence(
       metrics: summarizeSkillMetrics(companySkills),
     },
     organization,
+    planning: {
+      current: adaptivePlan,
+    },
   };
 }
 

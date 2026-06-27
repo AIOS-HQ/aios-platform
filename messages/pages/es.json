@@ -915,6 +915,7 @@
         "reuse_company_skill": "Reutiliza la habilidad de la empresa: {title}.",
         "apply_organizational_pattern": "Aplica el patrón organizacional probado: {title}.",
         "resolve_organizational_bottleneck": "Resuelve el cuello de botella organizacional recurrente: {title}.",
+        "review_adaptive_plan": "Revisa el plan de ejecución adaptativo de Harmony para: {title}.",
         "continue_operating": "Continúa operando; Harmony no ve intervención crítica."
       },
       "delegation": {
@@ -959,6 +960,13 @@
         "strongest": "Colaboración más fuerte",
         "none": "Aún no surge un patrón organizacional estable.",
         "bottleneck": "Cuello de botella recurrente: {title} en {count} evento(s)."
+      },
+      "planning": {
+        "title": "Planificación adaptativa",
+        "description": "{phases} fase(s) de ejecución planificada(s) · {confidence}% de confianza.",
+        "open": "Abrir equipo",
+        "confidence": "Confianza de planificación",
+        "effort": "Esfuerzo estimado"
       },
       "agentSignal": {
         "active": "{n} activo(s)",
