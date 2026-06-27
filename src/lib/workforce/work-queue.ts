@@ -1,6 +1,11 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
@@ -109,6 +114,14 @@ export async function createWorkItem(params: {
   const riskLevel = WORK_RISK_LEVELS.includes(rl) ? rl : "low";
   const cat = params.category ?? "";
   const category = WORK_CATEGORIES.includes(cat) ? cat : null;
+  const consultation = await consultCompanySkills({
+    userId: params.userId,
+    companyId: params.companyId,
+    agent: params.agent,
+    purpose: "work_item_generation",
+    query: `${title}\n${params.detail ?? ""}\n${category ?? ""}`,
+    emit: false,
+  });
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("agent_work_queue")
@@ -118,7 +131,7 @@ export async function createWorkItem(params: {
       agent: params.agent,
       objective_id: params.objectiveId ?? null,
       title: title.slice(0, 300),
-      detail: params.detail?.slice(0, 8000) ?? null,
+      detail: appendSkillContext(params.detail, consultation)?.slice(0, 8000) ?? null,
       kind: params.kind ?? "task",
       risk: RISK_FROM_LEVEL[riskLevel] ?? "routine",
       risk_level: riskLevel,
@@ -142,6 +155,16 @@ export async function createWorkItem(params: {
       refType: "agent_work_item",
       refId: item.id,
     });
+    if (consultation.skills.length > 0) {
+      await recordSkillConsultation({
+        userId: params.userId,
+        companyId: params.companyId,
+        agent: params.agent,
+        consultation,
+        sourceType: "agent_work_item",
+        sourceId: item.id,
+      });
+    }
   }
   return item;
 }

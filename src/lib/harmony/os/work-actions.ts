@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { WORK_STATUSES } from "@/lib/harmony/os/catalog";
@@ -57,6 +62,14 @@ export async function createWorkItem(
   }
 
   const supabase = await createClient();
+  const consultation = await consultCompanySkills({
+    userId: user.id,
+    companyId,
+    agent: "harmony",
+    purpose: "work_item_generation",
+    query: `${title}\n${description ?? ""}`,
+    emit: false,
+  });
   const { data, error } = await supabase
     .from("work_items")
     .insert({
@@ -66,7 +79,7 @@ export async function createWorkItem(
       project_id: refOrNull(formData.get("project_id")),
       agent_id: refOrNull(formData.get("agent_id")),
       title,
-      description,
+      description: appendSkillContext(description, consultation),
       priority: priority(formData.get("priority")),
       status: status(formData.get("status")),
       due_date: orNull(formData.get("due_date")),
@@ -87,6 +100,16 @@ export async function createWorkItem(
     refType: "work_item",
     refId: (data as { id: string }).id,
   });
+  if (consultation.skills.length > 0) {
+    await recordSkillConsultation({
+      userId: user.id,
+      companyId,
+      agent: "harmony",
+      consultation,
+      sourceType: "work_item",
+      sourceId: (data as { id: string }).id,
+    });
+  }
 
   revalidateWork();
   return { status: "success", message: t("saved") };

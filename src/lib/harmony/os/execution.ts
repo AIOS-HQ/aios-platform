@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTranslations } from "next-intl/server";
 import { getProvider } from "@/lib/ai/provider";
+import { consultCompanySkills, formatSkillContext } from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { runConnectorCapability } from "@/lib/integrations/connector-runtime";
 import {
@@ -247,6 +248,17 @@ export async function executeWorkItem(
     .eq("id", item.id)
     .eq("user_id", userId);
 
+  const consultation = await consultCompanySkills({
+    userId,
+    companyId: item.company_id,
+    agent: "harmony",
+    purpose: "execution",
+    query: `${item.title}\n${item.description ?? ""}`,
+    sourceType: "work_item",
+    sourceId: item.id,
+  });
+  const skillContext = formatSkillContext(consultation.skills);
+
   const githubIntent = inferGithubIntent(item);
 
   if (githubIntent) {
@@ -264,7 +276,9 @@ export async function executeWorkItem(
       2,
     )}`;
 
-    const description = `${item.description ?? ""}${note}`.slice(
+    const description = `${item.description ?? ""}${
+      skillContext ? `\n\nCompany Skills applied before execution:\n${skillContext}` : ""
+    }${note}`.slice(
       0,
       LIMITS.noteContent,
     );
@@ -356,7 +370,9 @@ export async function executeWorkItem(
     const system = to("execution.system", {
       department: departmentName || "Harmony",
     });
-    const prompt = `${item.title}\n\n${item.description ?? ""}`.trim();
+    const prompt = `${item.title}\n\n${item.description ?? ""}${
+      skillContext ? `\n\nUse these relevant Company Skills before deciding the execution approach:\n${skillContext}` : ""
+    }`.trim();
     result = await getProvider().generate(prompt, system);
   } catch (err) {
     console.error("[execution] provider.generate failed", err);

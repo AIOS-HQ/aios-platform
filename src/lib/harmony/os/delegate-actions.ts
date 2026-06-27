@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { executeWorkItem } from "@/lib/harmony/os/execution";
@@ -51,6 +56,14 @@ export async function delegateToHarmony(
   }
 
   const supabase = await createClient();
+  const consultation = await consultCompanySkills({
+    userId: user.id,
+    companyId,
+    agent: "harmony",
+    purpose: "delegation",
+    query: `${title}\n${description ?? ""}`,
+    emit: false,
+  });
   const { data, error } = await supabase
     .from("work_items")
     .insert({
@@ -59,7 +72,7 @@ export async function delegateToHarmony(
       department_id: departmentId,
       objective_id: refOrNull(formData.get("objective_id")),
       title,
-      description,
+      description: appendSkillContext(description, consultation),
       status: "pending",
       priority: "medium",
     })
@@ -81,6 +94,16 @@ export async function delegateToHarmony(
     refType: "work_item",
     refId: item.id,
   });
+  if (consultation.skills.length > 0) {
+    await recordSkillConsultation({
+      userId: user.id,
+      companyId,
+      agent: "harmony",
+      consultation,
+      sourceType: "work_item",
+      sourceId: item.id,
+    });
+  }
 
  const outcome = await executeWorkItem(supabase, user.id, item);
 revalidate();

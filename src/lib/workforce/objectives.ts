@@ -1,6 +1,11 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
@@ -68,6 +73,14 @@ export async function createObjective(params: {
     return null;
   }
   const origin: ObjectiveOrigin = params.origin ?? "founder";
+  const consultation = await consultCompanySkills({
+    userId: params.userId,
+    companyId: params.companyId,
+    agent: params.agent,
+    purpose: "objective_planning",
+    query: `${title}\n${params.detail ?? ""}`,
+    emit: false,
+  });
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("agent_objectives")
@@ -76,7 +89,7 @@ export async function createObjective(params: {
       company_id: params.companyId,
       agent: params.agent,
       title: title.slice(0, 300),
-      detail: params.detail?.slice(0, 4000) ?? null,
+      detail: appendSkillContext(params.detail, consultation)?.slice(0, 4000) ?? null,
       priority: params.priority ?? "medium",
       origin,
     })
@@ -97,6 +110,16 @@ export async function createObjective(params: {
       refType: "agent_objective",
       refId: objective.id,
     });
+    if (consultation.skills.length > 0) {
+      await recordSkillConsultation({
+        userId: params.userId,
+        companyId: params.companyId,
+        agent: params.agent,
+        consultation,
+        sourceType: "agent_objective",
+        sourceId: objective.id,
+      });
+    }
   }
   return objective;
 }

@@ -945,7 +945,8 @@
         "description": "{n} reusable skill(s) in Julius · {recent} learned or improved recently.",
         "highest": "Highest confidence",
         "domain": "Strongest domain",
-        "none": "No reusable company skills are relevant yet."
+        "none": "No reusable company skills are relevant yet.",
+        "used": "{title} · {confidence}/100"
       },
       "agentSignal": {
         "active": "{n} active",

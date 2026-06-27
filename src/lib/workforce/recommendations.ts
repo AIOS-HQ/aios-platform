@@ -1,6 +1,11 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { getAiosAgent } from "@/lib/workforce/registry";
 
@@ -59,6 +64,14 @@ export async function createRecommendation(params: {
     console.error("[workforce/recommendations] unknown agent", params.agent);
     return null;
   }
+  const consultation = await consultCompanySkills({
+    userId: params.userId,
+    companyId: params.companyId,
+    agent: params.agent,
+    purpose: "recommendation",
+    query: `${title}\n${params.detail ?? ""}\n${params.rationale ?? ""}`,
+    emit: false,
+  });
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("agent_recommendations")
@@ -68,7 +81,7 @@ export async function createRecommendation(params: {
       agent: params.agent,
       title: title.slice(0, 300),
       detail: params.detail?.slice(0, 4000) ?? null,
-      rationale: params.rationale?.slice(0, 4000) ?? null,
+      rationale: appendSkillContext(params.rationale, consultation)?.slice(0, 4000) ?? null,
     })
     .select("*")
     .maybeSingle();
@@ -87,6 +100,16 @@ export async function createRecommendation(params: {
       refType: "agent_recommendation",
       refId: rec.id,
     });
+    if (consultation.skills.length > 0) {
+      await recordSkillConsultation({
+        userId: params.userId,
+        companyId: params.companyId,
+        agent: params.agent,
+        consultation,
+        sourceType: "agent_recommendation",
+        sourceId: rec.id,
+      });
+    }
   }
   return rec;
 }

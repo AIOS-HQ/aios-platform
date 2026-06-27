@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import {
+  appendSkillContext,
+  consultCompanySkills,
+  recordSkillConsultation,
+} from "@/lib/company-skills/utilization";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import { emitActivity } from "@/lib/harmony/os/events";
 import type { ActionState } from "@/lib/types";
@@ -45,6 +50,14 @@ export async function createObjective(
   }
 
   const supabase = await createClient();
+  const consultation = await consultCompanySkills({
+    userId: user.id,
+    companyId,
+    agent: "harmony",
+    purpose: "objective_planning",
+    query: `${title}\n${outcome ?? ""}`,
+    emit: false,
+  });
   const { data, error } = await supabase
     .from("objectives")
     .insert({
@@ -52,7 +65,7 @@ export async function createObjective(
       company_id: companyId,
       department_id: refOrNull(formData.get("department_id")),
       title,
-      outcome,
+      outcome: appendSkillContext(outcome, consultation),
       due_date: orNull(formData.get("due_date")),
     })
     .select("id")
@@ -70,6 +83,16 @@ export async function createObjective(
     refType: "objective",
     refId: (data as { id: string }).id,
   });
+  if (consultation.skills.length > 0) {
+    await recordSkillConsultation({
+      userId: user.id,
+      companyId,
+      agent: "harmony",
+      consultation,
+      sourceType: "objective",
+      sourceId: (data as { id: string }).id,
+    });
+  }
 
   revalidateObjectives();
   return { status: "success", message: t("saved") };
