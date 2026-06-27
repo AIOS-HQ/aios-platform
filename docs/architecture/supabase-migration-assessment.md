@@ -95,5 +95,13 @@ select column_name from information_schema.columns
 where table_name='learning_settings' and column_name='require_approval';  -- 1 row
 ```
 
+The app also includes a founder/admin-only read-only verification surface at
+`/settings/diagnostics`. Once the Supabase diagnostics connection is configured,
+the **Production Foundation** card verifies the broader database foundation used
+by Harmony, Julius, Auditor, autonomy, integrations, memory, and approvals:
+migrations, required tables, required columns, required functions, required
+indexes, and RLS status. It also summarizes environment, AI Core, integrations,
+and security prerequisites without exposing secret values.
+
 **Bottom line:** all five are safe to apply; none are destructive; the only
 ordering constraint is #3 before #4. Apply when ready.

@@ -26,7 +26,7 @@ const MGMT = "https://api.supabase.com/v1/projects";
 /** Migrations this platform expects to exist (the additive ones we shipped). */
 const EXPECTED_MIGRATIONS = ["20260604000000", "20260605000000", "20260606000000"];
 
-async function runQuery(
+export async function runSupabaseManagementQuery(
   ref: string,
   token: string,
   query: string,
@@ -56,14 +56,14 @@ export async function runSupabaseDiagnostics(userId: string): Promise<Diagnostic
   const token = secret.accessToken;
   const items: DiagnosticItem[] = [];
 
-  const health = await runQuery(ref, token, "select 1 as ok;");
+  const health = await runSupabaseManagementQuery(ref, token, "select 1 as ok;");
   items.push({
     id: "db_health_check",
     ok: Array.isArray(health),
     detail: Array.isArray(health) ? "reachable" : "unreachable",
   });
 
-  const migs = await runQuery(
+  const migs = await runSupabaseManagementQuery(
     ref,
     token,
     "select version from supabase_migrations.schema_migrations;",
@@ -80,7 +80,7 @@ export async function runSupabaseDiagnostics(userId: string): Promise<Diagnostic
     items.push({ id: "migration_verification", ok: false, detail: "unavailable" });
   }
 
-  const tables = await runQuery(
+  const tables = await runSupabaseManagementQuery(
     ref,
     token,
     "select table_name from information_schema.tables where table_schema = 'public';",
@@ -91,7 +91,7 @@ export async function runSupabaseDiagnostics(userId: string): Promise<Diagnostic
     detail: Array.isArray(tables) ? `${tables.length} public tables` : "unavailable",
   });
 
-  const rls = await runQuery(
+  const rls = await runSupabaseManagementQuery(
     ref,
     token,
     "select relname, relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r';",
