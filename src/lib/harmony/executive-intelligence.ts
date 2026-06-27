@@ -31,6 +31,10 @@ import {
   type GeneratedObjectiveProposal,
 } from "@/lib/harmony/objective-generation";
 import {
+  buildWorkforceOptimization,
+  type WorkforceOptimizationSummary,
+} from "@/lib/harmony/workforce-optimization";
+import {
   consultCompanySkills,
   type SkillUsageEvidence,
   type SkillConsultationPurpose,
@@ -142,6 +146,7 @@ export interface ExecutiveIntelligence {
     generated: GeneratedObjectiveProposal[];
     created: AgentObjective[];
   };
+  workforceOptimization: WorkforceOptimizationSummary;
 }
 
 const ACTIVE_WORK = new Set(["proposed", "approved", "in_progress"]);
@@ -424,6 +429,13 @@ export async function buildHarmonyExecutiveIntelligence(
         limit: 3,
       })
     : [];
+  const workforceOptimization = buildWorkforceOptimization({
+    work,
+    objectives,
+    companySkills,
+    organization,
+    adaptivePlan,
+  });
   if (adaptivePlan) {
     addRecommendation(recommendations, {
       id: `adaptive-plan-${planningTarget?.id ?? adaptivePlan.objective}`,
@@ -444,6 +456,28 @@ export async function buildHarmonyExecutiveIntelligence(
       href: "/harmony/review",
       title: String(createdProactiveObjectives.length),
       detail: `Newly proposed objective: ${createdProactiveObjectives[0]?.title ?? ""}`,
+    });
+  }
+  for (const optimization of workforceOptimization.recommendations.slice(0, 2)) {
+    addRecommendation(recommendations, {
+      id: `workforce-optimization-${optimization.id}`,
+      priority:
+        optimization.riskLevel === "high"
+          ? "high"
+          : optimization.confidence >= 80
+            ? "high"
+            : "medium",
+      kind:
+        optimization.kind === "resolve_bottleneck"
+          ? "resolve_organizational_bottleneck"
+          : optimization.kind === "reuse_high_performing_collaboration" ||
+              optimization.kind === "improve_execution_sequence"
+            ? "apply_organizational_pattern"
+            : "review_agent_recommendation",
+      agent: optimization.recommendedOwner,
+      href: "/harmony/workforce",
+      title: optimization.title,
+      detail: `${optimization.suggestedAction} ${optimization.reason}`,
     });
   }
   for (const rec of recs.slice(0, 3)) {
@@ -661,6 +695,7 @@ export async function buildHarmonyExecutiveIntelligence(
       generated: generatedObjectiveProposals,
       created: createdProactiveObjectives,
     },
+    workforceOptimization,
   };
 }
 
