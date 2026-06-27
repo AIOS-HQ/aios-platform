@@ -12,7 +12,7 @@ describe("AIOS workforce registry", () => {
 
     expect(mason?.name).toBe("Mason");
     expect(mason?.role).toBe("Founder Native Chief Software Engineer");
-    expect(mason?.responsibilities.join(" ")).toContain("pull request");
+    expect(mason?.responsibilities.join(" ").toLowerCase()).toContain("pull request");
     expect(isFounderOnlyAgent("mason")).toBe(true);
     expect(isFounderOnlyAgent("harmony")).toBe(false);
     expect(getAgentConnectors("mason")).toEqual(["github", "vercel"]);

@@ -1,5 +1,6 @@
 import {
   Workflow,
+  Code2,
   ClipboardCheck,
   TrendingUp,
   Megaphone,
@@ -23,6 +24,7 @@ import type { AiosAgentKey } from "@/lib/workforce/registry";
  */
 export const AGENT_ICONS: Record<AiosAgentKey, LucideIcon> = {
   harmony: Workflow, // orchestration
+  mason: Code2, // founder-native engineering
   auditor: ClipboardCheck, // audit / verification
   catalyst: TrendingUp, // growth / marketing
   ambassador: Megaphone, // communications

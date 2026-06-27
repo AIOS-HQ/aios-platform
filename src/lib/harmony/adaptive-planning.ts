@@ -11,6 +11,10 @@ import {
   type OrganizationalIntelligence,
 } from "@/lib/organizational-intelligence/engine";
 import {
+  createMasonExecutionPlan,
+  masonOwnsEngineeringTask,
+} from "@/lib/harmony/code/mason";
+import {
   AIOS_WORKFORCE,
   WORKFORCE_SPECIALISTS,
   getAiosAgent,
@@ -90,6 +94,11 @@ const PHASE_CANDIDATES: Array<{
     title: "Engineering Implementation",
     keywords: [
       "code",
+      "software",
+      "website",
+      "web app",
+      "mobile app",
+      "saas",
       "repo",
       "repository",
       "github",
@@ -100,10 +109,22 @@ const PHASE_CANDIDATES: Array<{
       "typescript",
       "react",
       "api",
+      "database",
+      "supabase",
+      "integration",
+      "automation",
+      "script",
+      "infrastructure",
+      "config",
       "test",
+      "qa",
       "build",
       "bug",
       "fix",
+      "refactor",
+      "deploy",
+      "documentation",
+      "performance",
       "implement",
     ],
     agent: "mason",
@@ -175,6 +196,10 @@ function phaseConfidence(base: number, skillCount: number, organizationSignal: n
 
 export function buildAdaptivePlanFromSignals(input: PlanInput): AdaptiveExecutionPlan {
   const query = normalize(`${input.title} ${input.detail ?? ""}`);
+  const isMasonTask = masonOwnsEngineeringTask(query);
+  const masonPlan = isMasonTask
+    ? createMasonExecutionPlan({ title: input.title, detail: input.detail })
+    : null;
   const skillAgents = input.skills
     .map((skill) => agentForSkillOwner(skill.owner_agent))
     .filter((agent): agent is AiosAgentKey => Boolean(agent));
@@ -207,8 +232,14 @@ export function buildAdaptivePlanFromSignals(input: PlanInput): AdaptiveExecutio
   const phasesWithValidation = basePhases.some((phase) => phase.id === "validation")
     ? basePhases
     : [...basePhases, PHASE_CANDIDATES.find((phase) => phase.id === "validation")!];
+  const phasesWithMason = isMasonTask && !phasesWithValidation.some((phase) => phase.id === "engineering_implementation")
+    ? [
+        ...phasesWithValidation,
+        PHASE_CANDIDATES.find((phase) => phase.id === "engineering_implementation")!,
+      ]
+    : phasesWithValidation;
 
-  const sortedPhases = [...new Map(phasesWithValidation.map((phase) => [phase.id, phase])).values()].sort(
+  const sortedPhases = [...new Map(phasesWithMason.map((phase) => [phase.id, phase])).values()].sort(
     (a, b) =>
       PHASE_CANDIDATES.findIndex((phase) => phase.id === a.id) -
       PHASE_CANDIDATES.findIndex((phase) => phase.id === b.id),
@@ -237,7 +268,9 @@ export function buildAdaptivePlanFromSignals(input: PlanInput): AdaptiveExecutio
     return {
       id: phase.id,
       title: phase.title,
-      summary: phase.summary,
+      summary: phase.id === "engineering_implementation" && masonPlan
+        ? `${phase.summary} ${masonPlan.prReadySummary}`
+        : phase.summary,
       recommendedAgent: phaseSkills[0] ? (agentForSkillOwner(phaseSkills[0].owner_agent) ?? phase.agent) : phase.agent,
       dependencies: index === 0 ? [] : [sortedPhases[index - 1].id],
       approvalCheckpoint,
@@ -266,6 +299,7 @@ export function buildAdaptivePlanFromSignals(input: PlanInput): AdaptiveExecutio
     `Recommended workforce: ${recommendedWorkforce.map((agent) => getAiosAgent(agent)?.name ?? agent).join(", ")}.`,
     input.skills.length > 0 ? `Relevant Company Skills: ${input.skills.slice(0, 3).map((skill) => skill.title).join(", ")}.` : "No reusable Company Skills matched strongly yet.",
     organizationalContext ? "Organizational Intelligence influenced sequencing and risk planning." : "No stable Organizational Intelligence signal was available yet.",
+    masonPlan ? "Mason will own software execution inside branch, pull request, Vercel preview, and Founder approval boundaries." : "",
   ].join(" ");
 
   return {
