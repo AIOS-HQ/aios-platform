@@ -8,8 +8,15 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 
 const KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SITE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "AIOS_ADMIN_EMAILS",
+  "TOKEN_ENCRYPTION_KEY",
+  "CSP_MODE",
+  "VERCEL_ENV",
+  "NODE_ENV",
 ] as const;
 
 const original: Record<string, string | undefined> = {};
@@ -52,5 +59,49 @@ describe("env key resolution", () => {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "pub-key";
     const { isSupabaseConfigured } = await import("@/lib/env");
     expect(isSupabaseConfigured()).toBe(true);
+  });
+});
+
+describe("server production env validation", () => {
+  it("reports production-critical env vars without secret values", async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://x.supabase.co";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "pub-key";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-secret";
+    const { getMissingProductionEnv } = await import("@/lib/env.server");
+
+    expect(getMissingProductionEnv()).toEqual([
+      "AIOS_ADMIN_EMAILS",
+      "TOKEN_ENCRYPTION_KEY",
+    ]);
+  });
+
+  it("fails loudly only in production runtime", async () => {
+    process.env.VERCEL_ENV = "production";
+    const { assertProductionEnv } = await import("@/lib/env.server");
+
+    expect(() => assertProductionEnv()).toThrow(
+      "Missing production-critical environment variable",
+    );
+  });
+});
+
+describe("CSP mode defaults", () => {
+  it("defaults to report-only outside production", async () => {
+    const { cspMode } = await import("@/lib/security/csp");
+    expect(cspMode()).toBe("report-only");
+  });
+
+  it("defaults to enforce in production runtime", async () => {
+    process.env.VERCEL_ENV = "production";
+    const { cspMode } = await import("@/lib/security/csp");
+    expect(cspMode()).toBe("enforce");
+  });
+
+  it("respects explicit report-only mode in production", async () => {
+    process.env.VERCEL_ENV = "production";
+    process.env.CSP_MODE = "report-only";
+    const { cspMode } = await import("@/lib/security/csp");
+    expect(cspMode()).toBe("report-only");
   });
 });

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logSafeError } from "@/lib/security/safe-error";
 import {
   evaluate,
   deriveRiskLevel,
@@ -39,7 +40,8 @@ export async function POST(request: Request) {
     .eq("kill_switch", false)
     .eq("lockdown", false);
   if (gErr) {
-    return NextResponse.json({ ok: false, error: gErr.message }, { status: 500 });
+    logSafeError("[autonomy/tick] global query failed", gErr);
+    return NextResponse.json({ ok: false, error: "query_failed" }, { status: 500 });
   }
 
   const todayStart = new Date();

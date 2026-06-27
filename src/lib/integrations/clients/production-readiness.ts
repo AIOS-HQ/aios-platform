@@ -2,6 +2,7 @@ import "server-only";
 
 import { getConnections } from "@/lib/integrations/connections";
 import { isTokenEncryptionEnabled } from "@/lib/crypto/tokens";
+import { PRODUCTION_REQUIRED_ENV } from "@/lib/env.server";
 import { runSupabaseManagementQuery } from "@/lib/integrations/clients/supabase-diagnostics";
 
 export type ReadinessStatus = "ok" | "warn";
@@ -124,11 +125,8 @@ const REQUIRED_INDEXES = [
 ] as const;
 
 const REQUIRED_ENV = [
-  "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_APP_URL",
-  "NEXT_PUBLIC_SITE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "AIOS_ADMIN_EMAILS",
+  ...PRODUCTION_REQUIRED_ENV,
 ] as const;
 
 const OPTIONAL_INTEGRATION_ENV = [

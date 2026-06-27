@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { OAuthFamily } from "@/lib/integrations/connectors";
 import { encryptToken, decryptToken } from "@/lib/crypto/tokens";
+import { logSafeError } from "@/lib/security/safe-error";
 
 /**
  * OAuth token-refresh infrastructure (Phase 6a).
@@ -90,7 +91,7 @@ export async function refreshAccessToken(
       expiresAt,
     };
   } catch (e) {
-    console.error("[connectors] refresh error", family, e);
+    logSafeError(`[connectors] refresh error ${family}`, e);
     return null;
   }
 }

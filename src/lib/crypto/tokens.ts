@@ -2,6 +2,7 @@ import "server-only";
 
 import crypto from "node:crypto";
 import { isProductionRuntime } from "@/lib/env";
+import { logSafeError } from "@/lib/security/safe-error";
 
 /**
  * Token-at-rest encryption (Option A) — AES-256-GCM, server-only.
@@ -97,9 +98,7 @@ export function decryptToken(value: string | null): string | null {
   if (!value.startsWith(PREFIX)) return value;
   const key = getKey();
   if (!key) {
-    console.error(
-      "[crypto/tokens] encrypted token found but TOKEN_ENCRYPTION_KEY is not set",
-    );
+    console.error("[crypto/tokens] encrypted token found but key is not configured");
     return null;
   }
   try {
@@ -113,7 +112,7 @@ export function decryptToken(value: string | null): string | null {
     const out = Buffer.concat([decipher.update(ct), decipher.final()]);
     return out.toString("utf8");
   } catch (e) {
-    console.error("[crypto/tokens] decrypt failed", e instanceof Error ? e.message : e);
+    logSafeError("[crypto/tokens] decrypt failed", e);
     return null;
   }
 }
