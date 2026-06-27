@@ -140,6 +140,33 @@ async function postLifeOperatorMessage(
     status: "sent",
   });
 }
+
+async function recordExecutionSkill(
+  userId: string,
+  item: WorkItem,
+  outcome: ExecutionOutcome,
+  result: string,
+): Promise<void> {
+  if (!item.company_id) return;
+  try {
+    const { learnCompanySkill } = await import("@/lib/company-skills/library");
+    await learnCompanySkill({
+      userId,
+      companyId: item.company_id,
+      ownerAgent: "harmony",
+      title: item.title,
+      summary: item.description,
+      outcome: result,
+      objectiveId: item.objective_id,
+      success: outcome === "completed",
+      source: "work_item",
+      sourceId: item.id,
+    });
+  } catch (e) {
+    console.error("[execution] learnCompanySkill", e);
+  }
+}
+
 /**
  * Run a work item through its department's autonomy policy — the heart of the
  * Helper Execution System.
@@ -283,6 +310,8 @@ export async function executeWorkItem(
         refId: item.id,
       });
 
+      await recordExecutionSkill(userId, item, "blocked", description);
+
       return "blocked";
     }
 
@@ -315,6 +344,8 @@ export async function executeWorkItem(
         )}`,
       );
     }
+
+    await recordExecutionSkill(userId, item, "completed", description);
 
     return "completed";
   }
@@ -357,7 +388,9 @@ export async function executeWorkItem(
       .from("work_items")
       .update({ status: "blocked", description })
       .eq("id", item.id)
-      .eq("user_id", userId);
+        .eq("user_id", userId);
+
+    await recordExecutionSkill(userId, item, "blocked", description);
 
     return "blocked";
   }
@@ -383,6 +416,8 @@ export async function executeWorkItem(
   if (opts?.force) {
     await postLifeOperatorMessage(supabase, userId, result);
   }
+
+  await recordExecutionSkill(userId, item, "completed", result);
 
   return "completed";
 }

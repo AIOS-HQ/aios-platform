@@ -895,7 +895,8 @@
         "approvals": "Needs decision",
         "blocked": "Blocked",
         "agents": "Active agents",
-        "julius": "Julius context"
+        "julius": "Julius context",
+        "skills": "Company skills"
       },
       "priority": {
         "critical": "Critical",
@@ -911,6 +912,7 @@
         "delegate_objective_work": "Delegate execution work for objective: {title}.",
         "review_failed_execution": "Review {n} failed execution(s) and decide retry or escalation.",
         "review_agent_recommendation": "Review {agent}'s recommendation: {title}.",
+        "reuse_company_skill": "Reuse company skill: {title}.",
         "continue_operating": "Continue operating; Harmony sees no critical intervention."
       },
       "delegation": {
@@ -937,6 +939,13 @@
         "description": "Harmony is using {n} organizational memory signal(s) to avoid repeated work and surface prior decisions.",
         "open": "Open Julius",
         "none": "No relevant Julius lessons or decisions yet."
+      },
+      "skills": {
+        "title": "Company Skill Library",
+        "description": "{n} reusable skill(s) in Julius · {recent} learned or improved recently.",
+        "highest": "Highest confidence",
+        "domain": "Strongest domain",
+        "none": "No reusable company skills are relevant yet."
       },
       "agentSignal": {
         "active": "{n} active",

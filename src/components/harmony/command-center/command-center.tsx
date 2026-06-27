@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Brain,
   GitBranch,
+  Library,
   Plug,
   ShieldAlert,
   Sparkles,
@@ -139,7 +140,7 @@ export async function CommandCenter({ userId, companyId }: CommandCenterProps) {
               [t("intel.metrics.approvals"), intel.metrics.pendingApprovals],
               [t("intel.metrics.blocked"), intel.metrics.blockedWork],
               [t("intel.metrics.agents"), intel.metrics.activeAgents],
-              [t("intel.metrics.julius"), intel.metrics.juliusContext],
+              [t("intel.metrics.skills"), intel.skills.metrics.total],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border bg-background/70 p-3">
                 <p className="text-xl font-semibold tabular-nums">{value}</p>
@@ -256,6 +257,53 @@ export async function CommandCenter({ userId, companyId }: CommandCenterProps) {
                   </li>
                 ))}
               </ExecutiveList>
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
+
+        <ExecutiveSection
+          icon={Library}
+          title={t("intel.skills.title")}
+          description={t("intel.skills.description", {
+            n: intel.skills.metrics.total,
+            recent: intel.skills.metrics.recentlyLearned,
+          })}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/harmony/julius">{t("intel.julius.open")}</Link>
+            </Button>
+          }
+        >
+          <Card>
+            <CardContent className="space-y-4 p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border bg-background/70 p-3">
+                  <p className="text-xl font-semibold">{intel.skills.metrics.highestConfidence}</p>
+                  <p className="text-xs text-muted-foreground">{t("intel.skills.highest")}</p>
+                </div>
+                <div className="rounded-lg border bg-background/70 p-3">
+                  <p className="text-xl font-semibold">{intel.skills.metrics.fastestGrowingDomain ?? t("none")}</p>
+                  <p className="text-xs text-muted-foreground">{t("intel.skills.domain")}</p>
+                </div>
+              </div>
+              {intel.skills.relevant.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("intel.skills.none")}</p>
+              ) : (
+                <ExecutiveList>
+                  {intel.skills.relevant.slice(0, 4).map((skill) => (
+                    <li key={skill.source_entry_id} className="space-y-2 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AgentGlyph agent={skill.owner_agent} size="xs" />
+                        <span className="text-sm font-semibold">{skill.title}</span>
+                        <Badge variant="outline">{skill.confidence_score}/100</Badge>
+                      </div>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">
+                        {skill.summary}
+                      </p>
+                    </li>
+                  ))}
+                </ExecutiveList>
+              )}
             </CardContent>
           </Card>
         </ExecutiveSection>
