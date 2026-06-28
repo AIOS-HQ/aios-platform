@@ -6,10 +6,11 @@ import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { sendAgentChat } from "@/lib/workforce/chat";
 import { getAiosAgent } from "@/lib/workforce/registry";
+import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 
-/** Founder sends a message to an AIOS agent; the agent replies (advisory only). */
+/** Founder sends a message to an AIOS agent; Mason messages enter the engineering runtime path. */
 export async function sendAgentChatAction(
   _prev: ActionState,
   formData: FormData,
@@ -26,6 +27,13 @@ export async function sendAgentChatAction(
   }
 
   const companyId = await resolvePrimaryCompanyId();
+  if (agent === "mason") {
+    const result = await handleMasonEngineeringMessage({ userId: user.id, message });
+    await sendAgentChat({ userId: user.id, companyId, agent, message: `${message}\n\nMason runtime: ${result.status}. ${result.summary}` });
+    revalidatePath(`/harmony/workforce/${agent}`);
+    return { status: result.status === "failed" ? "error" : "success", message: result.status === "failed" ? result.summary : "" };
+  }
+
   const ok = await sendAgentChat({ userId: user.id, companyId, agent, message });
   if (!ok) return { status: "error", message: t("errors.generic") };
 
