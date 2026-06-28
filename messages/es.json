@@ -91,9 +91,73 @@
       "password": "Contraseña",
       "confirmPassword": "Confirmar contraseña"
     },
+    "executive": {
+      "homeAria": "Inicio de Harmony",
+      "eyebrow": "Sistema Operativo Autónomo",
+      "title": "Entra a tu espacio ejecutivo.",
+      "subtitle": "Harmony reúne tu sistema operativo, tu capa de inteligencia y tu fuerza laboral de IA en una superficie segura de mando.",
+      "support": "¿Necesitas ayuda para entrar a tu espacio?",
+      "supportCta": "Centro de ayuda",
+      "signals": [
+        "Sesión segura",
+        "Contexto operativo en vivo",
+        "Visibilidad de nivel ejecutivo"
+      ],
+      "feed": {
+        "label": "Feed en vivo de Harmony",
+        "previous": "Actualización anterior",
+        "next": "Siguiente actualización",
+        "customer": [
+          {
+            "label": "Harmony en acción",
+            "title": "Tu sistema operativo está listo",
+            "body": "Inicia sesión para coordinar tareas, objetivos, notas y decisiones diarias desde un solo espacio de Harmony.",
+            "tone": "status"
+          },
+          {
+            "label": "Actualizaciones de AIOS",
+            "title": "Una entrada ejecutiva más clara",
+            "body": "El espacio de autenticación ahora refleja el entorno operativo premium de AIOS.",
+            "tone": "feature"
+          },
+          {
+            "label": "Beneficios de suscripción",
+            "title": "Más contexto, menos cambios",
+            "body": "Harmony mantiene cerca tu contexto operativo personal para que puedas volver al trabajo rápidamente.",
+            "tone": "benefit"
+          },
+          {
+            "label": "Estado del sistema",
+            "title": "Servicios principales operando normalmente",
+            "body": "La autenticación y el acceso al espacio de Harmony están disponibles.",
+            "tone": "status"
+          }
+        ],
+        "founder": [
+          {
+            "label": "Inteligencia ejecutiva",
+            "title": "Contexto de mando preparado",
+            "body": "Las superficies de fundador pueden usar este feed para salud, revisiones, objetivos y visibilidad de despliegues.",
+            "tone": "status"
+          },
+          {
+            "label": "Salud de la compañía",
+            "title": "Señales operativas priorizadas",
+            "body": "Las revisiones críticas y avisos de producción están diseñados para aparecer antes que las actualizaciones generales.",
+            "tone": "alert"
+          },
+          {
+            "label": "Estado de la fuerza laboral de IA",
+            "title": "Resumen de fuerza laboral listo",
+            "body": "El mismo feed puede mostrar actualizaciones específicas de fundador sobre fuerza laboral y recomendaciones.",
+            "tone": "feature"
+          }
+        ]
+      }
+    },
     "login": {
       "title": "Bienvenido de nuevo",
-      "subtitle": "Inicia sesión en tu cuenta de AIOS.",
+      "subtitle": "Inicia sesión para entrar a tu espacio ejecutivo de AIOS.",
       "submit": "Iniciar sesión",
       "forgot": "¿Olvidaste tu contraseña?",
       "noAccount": "¿No tienes una cuenta?",
