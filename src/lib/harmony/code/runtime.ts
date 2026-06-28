@@ -8,6 +8,10 @@ import {
   type MasonNativeRuntimePlan,
   type MasonRuntimeStep,
 } from "@/lib/harmony/code/mason";
+import {
+  createMasonLiveExecutionPlan,
+  type MasonLiveFileChange,
+} from "@/lib/harmony/code/mason-live-execution";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { consultCompanySkills, recordSkillConsultation } from "@/lib/company-skills/utilization";
 import { learnCompanySkill } from "@/lib/company-skills/library";
@@ -29,6 +33,10 @@ export interface MasonEngineeringRuntimeInput {
   objectiveId?: string | null;
   approvedForMutation?: boolean;
   approvedForAirbid?: boolean;
+  baseBranch?: string | null;
+  branchName?: string | null;
+  fileChanges?: MasonLiveFileChange[];
+  openPullRequest?: boolean;
 }
 
 export interface MasonRuntimeArtifact {
@@ -39,6 +47,8 @@ export interface MasonRuntimeArtifact {
     | "organizational_intelligence"
     | "julius_context"
     | "delegation"
+    | "live_execution"
+    | "validation_request"
     | "memory";
   title: string;
   summary: string;
@@ -108,6 +118,93 @@ async function runSafeConnectorSteps(
   return results;
 }
 
+async function runApprovedLiveExecution(input: MasonEngineeringRuntimeInput): Promise<{
+  results: ConnectorRunResult[];
+  artifacts: MasonRuntimeArtifact[];
+}> {
+  if (!input.repository) {
+    return {
+      results: [],
+      artifacts: [
+        {
+          kind: "live_execution",
+          title: "Live execution not started",
+          summary: "Mason needs a Founder-scoped repository before branch, file, PR, or preview execution can run.",
+        },
+      ],
+    };
+  }
+
+  const livePlan = createMasonLiveExecutionPlan({
+    objective: input.objective,
+    repository: input.repository,
+    founderApproved: Boolean(input.approvedForMutation),
+    baseBranch: input.baseBranch,
+    branchName: input.branchName,
+    fileChanges: input.fileChanges,
+    openPullRequest: input.openPullRequest,
+  });
+
+  if (livePlan.status !== "ready") {
+    return {
+      results: [],
+      artifacts: [
+        {
+          kind: "live_execution",
+          title: "Live execution paused",
+          summary: livePlan.blockedReason ?? "Mason live execution is paused until Founder approval is complete.",
+          data: { bridgeStatus: livePlan.bridge.status },
+        },
+        {
+          kind: "validation_request",
+          title: "Validation request prepared",
+          summary: livePlan.validationRequest,
+          data: { commands: livePlan.validationCommands },
+        },
+      ],
+    };
+  }
+
+  const results: ConnectorRunResult[] = [];
+  for (const operation of livePlan.operations) {
+    results.push(
+      await runConnectorCapability(
+        input.userId,
+        operation.connectorId,
+        operation.capabilityId,
+        operation.params,
+        { approved: operation.approved },
+      ),
+    );
+  }
+
+  return {
+    results,
+    artifacts: [
+      {
+        kind: "live_execution",
+        title: "Live GitHub/Vercel execution wired",
+        summary: livePlan.operations.map((operation) => operation.summary).join(" "),
+        data: {
+          branch: livePlan.bridge.scopedPlan.branchName,
+          operations: livePlan.operations.map((operation) => ({
+            kind: operation.kind,
+            connectorId: operation.connectorId,
+            capabilityId: operation.capabilityId,
+          })),
+          connectorResults: results,
+        },
+      },
+      {
+        kind: "validation_request",
+        title: "Validation request prepared",
+        summary: livePlan.validationRequest,
+        data: { commands: livePlan.validationCommands, prBody: livePlan.prBody },
+      },
+    ],
+  };
+}
+
 function buildRuntimeReport(params: {
   input: MasonEngineeringRuntimeInput;
   plan: MasonNativeRuntimePlan;
@@ -152,7 +249,7 @@ async function recordMasonMemory(params: {
       objectiveId: input.objectiveId ?? null,
       repository: input.repository ?? null,
       categories: plan.classification.categories,
-      filesChanged: [],
+      filesChanged: (input.fileChanges ?? []).map((change) => change.path),
       validation: plan.executionPlan.validationSteps,
       connectorResults: connectorResults.map((result) => ({
         status: result.status,
@@ -191,7 +288,7 @@ async function recordMasonMemory(params: {
   return {
     kind: "memory",
     title: "Engineering memory recorded",
-    summary: "Mason recorded the objective, repository, validation plan, connector results, and lessons through Julius.",
+    summary: "Mason recorded the objective, repository, validation plan, connector results, file changes, and lessons through Julius.",
   };
 }
 
@@ -276,6 +373,9 @@ export async function runMasonEngineeringRuntime(
     emit: false,
   });
 
+  const liveExecution = await runApprovedLiveExecution(input);
+  const allConnectorResults = [...connectorResults, ...liveExecution.results];
+
   const artifacts: MasonRuntimeArtifact[] = [
     {
       kind: "company_skills",
@@ -298,6 +398,7 @@ export async function runMasonEngineeringRuntime(
       summary: `${julius.length} relevant Julius entr${julius.length === 1 ? "y" : "ies"} retrieved for engineering context.`,
       data: { entries: julius.map((entry) => ({ id: entry.id, title: entry.title, kind: entry.kind })) },
     },
+    ...liveExecution.artifacts,
   ];
 
   if (adaptivePlan) {
@@ -336,21 +437,21 @@ export async function runMasonEngineeringRuntime(
     input,
     plan,
     artifacts,
-    connectorResults,
+    connectorResults: allConnectorResults,
     adaptivePlanText,
   });
-  artifacts.push(await recordMasonMemory({ input, plan, report, connectorResults }));
+  artifacts.push(await recordMasonMemory({ input, plan, report, connectorResults: allConnectorResults }));
 
-  const status = plan.approvalGatedSteps.length > 0 ? "approval_required" : "analysis_completed";
+  const status = !input.approvedForMutation && plan.approvalGatedSteps.length > 0 ? "approval_required" : "analysis_completed";
 
   return {
     ok: true,
     status,
     plan,
     executedSteps: plan.automaticSteps,
-    pendingApprovalSteps: plan.approvalGatedSteps,
+    pendingApprovalSteps: input.approvedForMutation ? [] : plan.approvalGatedSteps,
     blockedSteps: plan.blockedSteps,
-    connectorResults,
+    connectorResults: allConnectorResults,
     artifacts,
     report,
   };
