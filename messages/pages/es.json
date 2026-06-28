@@ -235,6 +235,7 @@
     "ui": {
       "step": "Paso",
       "of": "de",
+      "home": "Inicio de Harmony",
       "back": "Atrás",
       "next": "Siguiente",
       "finish": "Finalizar",

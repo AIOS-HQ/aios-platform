@@ -29,6 +29,7 @@ export type OnboardingFlowData = {
 export type OnboardingUi = {
   step: string;
   of: string;
+  home: string;
   back: string;
   next: string;
   finish: string;

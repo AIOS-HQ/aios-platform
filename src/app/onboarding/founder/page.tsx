@@ -38,7 +38,7 @@ export default function FounderOnboardingPage() {
 
       <header className="relative z-10 px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-          <Link href="/" aria-label="Harmony home" className="inline-flex">
+          <Link href="/" aria-label={ui.home} className="inline-flex">
             <HarmonyLogo markClassName="size-11 sm:size-12" className="text-white" />
           </Link>
           <Button asChild variant="ghost" size="sm" className="text-sky-100 hover:bg-white/10 hover:text-white">

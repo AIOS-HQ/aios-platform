@@ -31,6 +31,8 @@ export default getRequestConfig(async () => {
   const onboarding = (await import(`../../messages/onboarding/${locale}.json`)).default;
   const oversight = (await import(`../../messages/oversight/${locale}.json`)).default;
   const ambassador = (await import(`../../messages/ambassador/${locale}.json`)).default;
+  const pageOnboarding = pages.onboarding ?? {};
+  const guidedOnboarding = onboarding.onboarding ?? {};
 
   return {
     locale,
@@ -41,6 +43,10 @@ export default getRequestConfig(async () => {
       ...julius,
       ...integrations,
       ...onboarding,
+      onboarding: {
+        ...pageOnboarding,
+        ...guidedOnboarding,
+      },
       ...oversight,
       ...ambassador,
     },
