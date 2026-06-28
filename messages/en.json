@@ -215,6 +215,11 @@
     "notes": "Notes",
     "onboarding": "Get started",
     "brain": "Memory",
+    "learning": "Learning",
+    "connections": "Connections",
+    "diagnostics": "Diagnostics",
+    "approvalCenter": "Approval Center",
+    "planBilling": "Plan",
     "operator": "Harmony",
     "advisor": "Suggestions",
     "commandCenter": "Command Center",
@@ -234,8 +239,11 @@
     "auditor": "Auditor",
     "pendingCount": "{count} pending",
     "sections": {
+      "primary": "Primary",
       "command": "Command Center",
-      "personal": "Personal"
+      "personal": "Personal",
+      "aios": "AIOS",
+      "account": "Account"
     },
     "workforce": "Workforce",
     "operations": "Operations",

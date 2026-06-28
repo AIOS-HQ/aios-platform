@@ -5,6 +5,7 @@ import {
   Building2,
   Clapperboard,
   Code2,
+  CreditCard,
   Eye,
   Gauge,
   LayoutDashboard,
@@ -35,6 +36,7 @@ export const NAV_ICONS = {
   Building2,
   Clapperboard,
   Code2,
+  CreditCard,
   Eye,
   Gauge,
   LayoutDashboard,
@@ -107,6 +109,7 @@ export type NavSection = {
  */
 export const navSections: NavSection[] = [
   {
+    titleKey: "primary",
     audience: "all",
     items: [
       { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
@@ -144,8 +147,25 @@ export const navSections: NavSection[] = [
     ],
   },
   {
+    titleKey: "aios",
+    audience: "customer",
+    items: [
+      { href: "/settings/memory", labelKey: "brain", icon: "BrainCircuit" },
+      { href: "/settings/learning", labelKey: "learning", icon: "Lightbulb" },
+      { href: "/settings/activity", labelKey: "activity", icon: "Activity" },
+      { href: "/settings/approvals", labelKey: "approvalCenter", icon: "ShieldCheck" },
+      { href: "/settings/integrations", labelKey: "integrations", icon: "Plug" },
+      { href: "/settings/connections", labelKey: "connections", icon: "Plug" },
+      { href: "/settings/diagnostics", labelKey: "diagnostics", icon: "AlertTriangle" },
+    ],
+  },
+  {
+    titleKey: "account",
     audience: "all",
-    items: [{ href: "/settings", labelKey: "settings", icon: "Settings" }],
+    items: [
+      { href: "/settings/billing", labelKey: "planBilling", icon: "CreditCard" },
+      { href: "/settings", labelKey: "settings", icon: "Settings", exact: true },
+    ],
   },
 ];
 
