@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
+import { isFounderUser } from "@/lib/auth/roles";
 import { getProfile, getUserSettings } from "@/lib/data/profile";
 import { getPlanContext } from "@/lib/billing/subscription";
 import { isStripeConfigured, listInvoices } from "@/lib/billing/stripe";
+import { settingsRouteCardsForRole } from "@/lib/settings/routes";
 import type { InvoiceView } from "@/lib/billing/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProfileForm } from "@/components/settings/profile-form";
@@ -37,6 +39,16 @@ export default async function SettingsPage() {
   const td = await getTranslations("diagnostics");
   const tap = await getTranslations("approvals");
   const tau = await getTranslations("auditor");
+  const translations = {
+    integrations: ti,
+    connections: tc,
+    diagnostics: td,
+    memory: tm,
+    learning: tl,
+    activity: ta,
+    approvals: tap,
+    auditor: tau,
+  };
   const user = await requireUser();
   const [profile, settings, planContext] = await Promise.all([
     getProfile(user.id),
@@ -64,6 +76,7 @@ export default async function SettingsPage() {
       console.error("[settings] listInvoices", e);
     }
   }
+  const isFounder = isFounderUser(user.email, profile?.role);
 
   return (
     <>
@@ -81,94 +94,22 @@ export default async function SettingsPage() {
           isTrialing={planContext.isTrialing}
           invoices={invoices}
         />
-        <Card>
-          <CardHeader>
-            <CardTitle>{ti("title")}</CardTitle>
-            <CardDescription>{ti("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/integrations">{ti("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{tc("title")}</CardTitle>
-            <CardDescription>{tc("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/connections">{tc("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{td("title")}</CardTitle>
-            <CardDescription>{td("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/diagnostics">{td("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{tm("title")}</CardTitle>
-            <CardDescription>{tm("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/memory">{tm("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{tl("title")}</CardTitle>
-            <CardDescription>{tl("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/learning">{tl("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{ta("title")}</CardTitle>
-            <CardDescription>{ta("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/activity">{ta("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{tap("title")}</CardTitle>
-            <CardDescription>{tap("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/approvals">{tap("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{tau("title")}</CardTitle>
-            <CardDescription>{tau("subtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/auditor">{tau("manage")}</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        {settingsRouteCardsForRole(isFounder).map((card) => {
+          const tt = translations[card.namespace];
+          return (
+            <Card key={card.key}>
+              <CardHeader>
+                <CardTitle>{tt("title")}</CardTitle>
+                <CardDescription>{tt("subtitle")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline">
+                  <Link href={card.href}>{tt("manage")}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
         <AccountCard
           email={user.email ?? ""}
           role={profile?.role ?? "personal_user"}

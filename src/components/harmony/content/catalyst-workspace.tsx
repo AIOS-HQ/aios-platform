@@ -164,7 +164,7 @@ export async function CatalystWorkspace() {
             <Link href="/harmony/autonomy">{t("openAutonomy")}</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href="/library">{t("openLibrary")}</Link>
+            <Link href="/harmony/content">{t("openLibrary")}</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
             <Link href={`/harmony/workforce/${AGENT}`}>{t("openCatalyst")}</Link>

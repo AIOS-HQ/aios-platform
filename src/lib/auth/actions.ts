@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { env, isSupabaseConfigured } from "@/lib/env";
+import { safeRedirectPath } from "@/lib/auth/redirects";
 import type { ActionState } from "@/lib/types";
 
 /** Maps a Supabase auth error to a localized, user-friendly message. */
@@ -30,6 +31,7 @@ export async function signIn(
   const t = await getTranslations("auth.errors");
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const redirectTo = safeRedirectPath(formData.get("redirect") ?? formData.get("next"));
 
   if (!email || !password) {
     return { status: "error", message: t("missingFields") };
@@ -45,7 +47,7 @@ export async function signIn(
     return { status: "error", message: await authErrorMessage(error) };
   }
 
-  redirect("/harmony");
+  redirect(redirectTo);
 }
 
 export async function signUp(

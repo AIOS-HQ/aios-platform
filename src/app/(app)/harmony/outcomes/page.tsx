@@ -94,7 +94,7 @@ export default async function CustomerOutcomesPage() {
                 </div>
 
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/library">{t("viewArtifacts")}</Link>
+                  <Link href="/harmony/content">{t("viewArtifacts")}</Link>
                 </Button>
               </CardContent>
             </Card>
