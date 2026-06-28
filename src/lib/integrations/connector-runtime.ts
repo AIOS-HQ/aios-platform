@@ -6,6 +6,7 @@ import { isConnectorConfigured } from "@/lib/integrations/connector-config";
 import { effectiveRisk } from "@/lib/agent/policy";
 import { runGithubRead } from "@/lib/integrations/clients/github";
 import { runGithubWrite } from "@/lib/integrations/clients/github-write";
+import { runVercelRead } from "@/lib/integrations/clients/vercel";
 
 /**
  * Connector capability runtime (Phase 6a).
@@ -13,9 +14,8 @@ import { runGithubWrite } from "@/lib/integrations/clients/github-write";
  * The single owner-scoped entry point for running a connector capability. It
  * records an audit row in `agent_actions` (RLS owner-scoped), enforces the
  * read/write policy (writes require founder approval), and refuses to run until
- * the connector is configured. Live provider clients are added per connector in
- * later PRs (gated on founder credentials); until then capabilities audit and
- * report their state without performing any external call.
+ * the connector is configured. Live GitHub and Vercel clients are routed here
+ * through owner-scoped audited execution.
  */
 
 export interface ConnectorRunResult {
@@ -75,8 +75,6 @@ export async function runConnectorCapability(
   const risk = effectiveRisk(capability);
   const requiresApproval = risk !== "routine";
 
-  // Sensitive (approval) and high-risk (destructive) actions are held for the
-  // founder; routine actions may proceed autonomously. Human-in-the-loop.
   if (requiresApproval && !options.approved) {
     await audit(
       userId,
@@ -93,13 +91,11 @@ export async function runConnectorCapability(
     };
   }
 
-  // Cannot run until the founder has configured the connector.
   if (!isConnectorConfigured(connector)) {
     await audit(userId, tool, "failed", requiresApproval, "not_configured", params);
     return { ok: false, status: "blocked", message: "not_configured" };
   }
 
-   // Live execution — GitHub capabilities. All owner-scoped + audited.
   if (connectorId === "github") {
     const result =
       capability.mode === "read"
@@ -107,16 +103,14 @@ export async function runConnectorCapability(
         : await runGithubWrite(userId, capabilityId, params);
 
     await audit(
-  userId,
-  tool,
-  result.ok ? "executed" : "failed",
-  requiresApproval,
-  result.ok ? null : (result.error ?? "failed"),
-  params,
-  result.ok
-    ? ((result.data ?? {}) as Record<string, unknown>)
-    : null,
-);
+      userId,
+      tool,
+      result.ok ? "executed" : "failed",
+      requiresApproval,
+      result.ok ? null : (result.error ?? "failed"),
+      params,
+      result.ok ? ((result.data ?? {}) as Record<string, unknown>) : null,
+    );
 
     return {
       ok: result.ok,
@@ -126,7 +120,27 @@ export async function runConnectorCapability(
     };
   }
 
-  // Other connectors' live clients (and GitHub writes) land in later PRs.
+  if (connectorId === "vercel" && capability.mode === "read") {
+    const result = await runVercelRead(userId, capabilityId, params);
+
+    await audit(
+      userId,
+      tool,
+      result.ok ? "executed" : "failed",
+      requiresApproval,
+      result.ok ? null : (result.error ?? "failed"),
+      params,
+      result.ok ? ((result.data ?? {}) as Record<string, unknown>) : null,
+    );
+
+    return {
+      ok: result.ok,
+      status: result.ok ? "executed" : "failed",
+      message: result.ok ? "ok" : (result.error ?? "failed"),
+      data: result.data,
+    };
+  }
+
   await audit(userId, tool, "failed", requiresApproval, "not_implemented", params);
   return { ok: false, status: "blocked", message: "not_implemented" };
 }
