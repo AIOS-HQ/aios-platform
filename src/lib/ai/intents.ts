@@ -93,6 +93,46 @@ const EXECUTION_ACTION_KW = [
   "delete",
 ];
 
+const NEGATED_EXECUTION_KW = [
+  "do not execute",
+  "don't execute",
+  "dont execute",
+  "no execution",
+  "do not create",
+  "don't create",
+  "dont create",
+  "do not make",
+  "don't make",
+  "dont make",
+  "do not open",
+  "don't open",
+  "dont open",
+  "do not fix",
+  "don't fix",
+  "dont fix",
+  "do not implement",
+  "don't implement",
+  "dont implement",
+  "do not change",
+  "don't change",
+  "dont change",
+  "do not run",
+  "don't run",
+  "dont run",
+  "do not merge",
+  "don't merge",
+  "dont merge",
+  "do not deploy",
+  "don't deploy",
+  "dont deploy",
+  "do not start",
+  "don't start",
+  "dont start",
+  "no work item",
+  "no approval",
+  "stay in chat",
+];
+
 const DIAGNOSTIC_KW = [
   "why",
   "what",
@@ -154,6 +194,9 @@ export function detectIntent(input: string): {
   }
   if (NEXT_KW.some((k) => text.includes(k))) {
     return { intent: "suggest_next_steps" };
+  }
+  if (hasAny(text, NEGATED_EXECUTION_KW)) {
+    return { intent: "general" };
   }
   if (isDiagnosticOnly(text)) {
     return { intent: "general" };
