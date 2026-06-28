@@ -11,6 +11,11 @@ import { buildRecommendations } from "@/lib/harmony/advisor";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { buildHarmonyReflection } from "@/lib/harmony/reflection";
 import { buildExecutiveWorkspace } from "@/lib/harmony/executive-workspace";
+import {
+  buildAutonomousExecutionOrchestration,
+  isMajorExecutionSequence,
+  recordAeoLaunchContext,
+} from "@/lib/harmony/autonomous-execution-orchestrator";
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
@@ -43,10 +48,18 @@ async function juliusSystemPrompt(base: string, userId: string): Promise<string>
   }
 }
 
-async function harmonySystemPrompt(base: string, userId: string): Promise<string> {
+async function harmonySystemPrompt(base: string, userId: string, input?: string): Promise<string> {
   try {
     const companyId = await resolvePrimaryCompanyId();
     if (companyId && (await currentUserIsAdmin())) {
+      if (input && isMajorExecutionSequence(input)) {
+        const orchestration = await buildAutonomousExecutionOrchestration({
+          userId,
+          companyId,
+          objective: input,
+        });
+        return `${base}\n\n${orchestration.executiveWorkspace.promptContext}\n\n${orchestration.promptContext}`;
+      }
       const workspace = await buildExecutiveWorkspace(userId, companyId);
       return `${base}\n\n${workspace.promptContext}`;
     }
@@ -258,6 +271,24 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   formData.set("title", title ?? text);
   formData.set("description", text);
 
+  let orchestrationSummary = "";
+  try {
+    const orchestration = await buildAutonomousExecutionOrchestration({
+      userId: user.id,
+      companyId: company.id,
+      objective: title ?? text,
+    });
+    await recordAeoLaunchContext(orchestration);
+    orchestrationSummary = [
+      `AEO status: ${orchestration.status}`,
+      `Next action: ${orchestration.nextRecommendedAction}`,
+      `Estimated completion: ${orchestration.estimatedCompletion}`,
+      `Affected departments: ${orchestration.affectedDepartments.join(", ")}`,
+    ].join("\n");
+  } catch (e) {
+    console.error("[operator-actions] AEO context failed", e);
+  }
+
   const result = await delegateToHarmony(
     { status: "success" },
     formData,
@@ -267,12 +298,14 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     supabase,
     user.id,
     conversationId,
-    {
-      intent: "execution_request",
-      reply: result.message ?? "Harmony delegated the work.",
-      actionTaken: {
-        type: "work_delegated",
-        label: title ?? text,
+      {
+        intent: "execution_request",
+        reply: [orchestrationSummary, result.message ?? "Harmony delegated the work."]
+          .filter(Boolean)
+          .join("\n\n"),
+        actionTaken: {
+          type: "work_delegated",
+          label: title ?? text,
       },
     },
   );
@@ -308,6 +341,24 @@ formData.set("company_id", company!.id);
 formData.set("title", text);
 formData.set("description", text);
 
+let orchestrationSummary = "";
+try {
+  const orchestration = await buildAutonomousExecutionOrchestration({
+    userId: user.id,
+    companyId: company!.id,
+    objective: text,
+  });
+  await recordAeoLaunchContext(orchestration);
+  orchestrationSummary = [
+    `AEO status: ${orchestration.status}`,
+    `Next action: ${orchestration.nextRecommendedAction}`,
+    `Estimated completion: ${orchestration.estimatedCompletion}`,
+    `Affected departments: ${orchestration.affectedDepartments.join(", ")}`,
+  ].join("\n");
+} catch (e) {
+  console.error("[operator-actions] AEO context failed", e);
+}
+
 const result = await delegateToHarmony(
   { status: "success" },
   formData
@@ -315,7 +366,9 @@ const result = await delegateToHarmony(
 
 return {
   intent: "general",
-  reply: result.message ?? "Harmony finished delegation.",
+  reply: [orchestrationSummary, result.message ?? "Harmony finished delegation."]
+    .filter(Boolean)
+    .join("\n\n"),
 };
     }
 
@@ -370,7 +423,7 @@ if (intent === "create_goal") {
         .join("\n")}`;
       const reply = await getProvider().generate(
         prompt,
-        await harmonySystemPrompt(to("system"), user.id),
+        await harmonySystemPrompt(to("system"), user.id, text),
       );
  return persistOperatorReply(
    supabase,
@@ -438,7 +491,7 @@ if (intent === "create_goal") {
   if (isRealProviderConfigured()) {
     const reply = await getProvider().generate(
       text,
-      await harmonySystemPrompt(to("system"), user.id),
+      await harmonySystemPrompt(to("system"), user.id, text),
     );
     return persistOperatorReply(
       supabase,
@@ -546,7 +599,7 @@ export async function beginHarmonyStream(
   if (!conversationId) return null;
 
   await saveOperatorMessage(supabase, user.id, conversationId, "inbound", text);
-  const system = await harmonySystemPrompt(to("system"), user.id);
+  const system = await harmonySystemPrompt(to("system"), user.id, text);
   return { system, prompt: text };
 }
 
