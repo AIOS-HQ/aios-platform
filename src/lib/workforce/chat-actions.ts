@@ -32,7 +32,7 @@ export async function sendAgentChatAction(
     const result = await handleMasonEngineeringMessage({
       userId: user.id,
       message,
-      founderApproved: masonFounderApproved(formData.get("founder_approved")),
+      founderApproved: masonFounderApproved(formData.get("founder_approved") ?? message),
     });
     await sendAgentChat({ userId: user.id, companyId, agent, message: `${message}\n\nMason runtime: ${result.status}. ${result.summary}` });
     revalidatePath(`/harmony/workforce/${agent}`);
