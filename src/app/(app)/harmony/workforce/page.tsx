@@ -17,7 +17,7 @@ import {
   getAiosAgent,
   getHarmony,
 } from "@/lib/workforce/registry";
-import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
+import { getWorkforceSummary, emptyAgentSummary, type AgentSummary } from "@/lib/workforce/summary";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
 import { formatDate } from "@/lib/format";
@@ -39,11 +39,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-type AgentStatus = "working" | "awaiting" | "online" | "idle";
+type AgentStatus = "working" | "awaiting" | "ready" | "online" | "idle";
 
 const STATUS_VARIANT: Record<AgentStatus, "default" | "secondary" | "outline" | "destructive"> = {
   working: "default",
   awaiting: "destructive",
+  ready: "secondary",
   online: "secondary",
   idle: "outline",
 };
@@ -56,8 +57,8 @@ const RISK_VARIANT: Record<string, "default" | "secondary" | "outline" | "destru
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 
-/** Derive a live status for an agent from its recent agent-to-agent messages. */
-function deriveState(key: string, messages: AgentMessage[]) {
+/** Derive operational state from live messages plus existing workload signals. */
+function deriveState(key: string, messages: AgentMessage[], summary: AgentSummary, pendingApprovals: number) {
   const mine = messages.filter((m) => m.from_agent === key || m.to_agent === key);
   const inflight = messages.find(
     (m) => m.to_agent === key && ACTIVE.includes(m.status),
@@ -69,9 +70,23 @@ function deriveState(key: string, messages: AgentMessage[]) {
   );
   let status: AgentStatus = "idle";
   if (inflight) status = inflight.status === "awaiting_approval" ? "awaiting" : "working";
+  else if (
+    summary.activeObjectives > 0 ||
+    summary.queuedWork > 0 ||
+    summary.openRecommendations > 0 ||
+    pendingApprovals > 0
+  ) status = "ready";
   else if (mine.length > 0) status = "online";
   return {
     status,
+    basis:
+      status === "ready"
+        ? "workload"
+        : status === "online"
+          ? "history"
+          : status === "idle"
+            ? "none"
+            : "live",
     currentTask: inflight?.subject ?? null,
     lastAction: lastDone?.subject ?? null,
     lastActive: mine[0]?.created_at ?? null,
@@ -103,10 +118,15 @@ export default async function WorkforcePage() {
 
   // Harmony — the AI Chief of Staff — coordinates the specialists below.
   const harmony = getHarmony();
-  const specialistStates = WORKFORCE_SPECIALISTS.map((agent) => ({
-    agent,
-    state: deriveState(agent.key, messages),
-  }));
+  const specialistStates = WORKFORCE_SPECIALISTS.map((agent) => {
+    const sum = summary[agent.key] ?? emptyAgentSummary();
+    return {
+      agent,
+      summary: sum,
+      pendingApprovals: approvalsByAgent[agent.key] ?? 0,
+      state: deriveState(agent.key, messages, sum, approvalsByAgent[agent.key] ?? 0),
+    };
+  });
   const workingAgents = specialistStates.filter(({ state }) => state.status === "working").length;
   const pendingApprovals = Object.values(approvalsByAgent).reduce((sum, n) => sum + n, 0);
 
@@ -224,9 +244,7 @@ export default async function WorkforcePage() {
               </Card>
             </Link>
 
-            {specialistStates.map(({ agent: a, state: s }) => {
-              const sum = summary[a.key] ?? emptyAgentSummary();
-              const agentPendingApprovals = approvalsByAgent[a.key] ?? 0;
+            {specialistStates.map(({ agent: a, state: s, summary: sum, pendingApprovals: agentPendingApprovals }) => {
               return (
                 <Card key={a.key} className="h-full overflow-hidden">
                   <CardContent className="p-5">
@@ -252,6 +270,10 @@ export default async function WorkforcePage() {
                       <div className="flex gap-2">
                         <dt className="w-24 shrink-0 text-muted-foreground">{t("lastAction")}</dt>
                         <dd className="min-w-0 truncate">{s.lastAction ?? t("none")}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="w-24 shrink-0 text-muted-foreground">{t("stateBasis")}</dt>
+                        <dd className="min-w-0 truncate">{t(`basis.${s.basis}`)}</dd>
                       </div>
                       <div className="flex gap-2">
                         <dt className="w-24 shrink-0 text-muted-foreground">{t("lastActive")}</dt>

@@ -28,6 +28,7 @@ const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
 const STATUS_COLOR: Record<string, string> = {
   working: "#16a34a",
   awaiting: "#ca8a04",
+  ready: "#0891b2",
   online: "#2563eb",
   idle: "#64748b",
   error: "#dc2626",
@@ -82,8 +83,11 @@ export default async function WorkforceGraphPage({
     const received = messages.filter((m) => m.to_agent === a.key).length;
     const active = messages.filter((m) => m.to_agent === a.key && ACTIVE.includes(m.status)).length;
     const inflight = messages.find((m) => m.to_agent === a.key && ACTIVE.includes(m.status));
+    const sum = summary[a.key] ?? emptyAgentSummary();
+    const pending = approvalsByAgent[a.key] ?? 0;
     const status = inflight
       ? inflight.status === "awaiting_approval" ? "awaiting" : "working"
+      : sum.activeObjectives > 0 || sum.queuedWork > 0 || sum.openRecommendations > 0 || pending > 0 ? "ready"
       : sent + received > 0 ? "online" : "idle";
     return {
       key: a.key,
@@ -125,6 +129,7 @@ export default async function WorkforceGraphPage({
 
   const legend = [
     { status: "working", label: t("legend.working") },
+    { status: "ready", label: t("legend.ready") },
     { status: "online", label: t("legend.online") },
     { status: "awaiting", label: t("legend.awaiting") },
     { status: "idle", label: t("legend.idle") },

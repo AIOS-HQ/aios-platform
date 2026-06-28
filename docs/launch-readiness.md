@@ -6,27 +6,28 @@ Last updated: 2026-06-28
 
 AIOS is launch-ready for a controlled public beta once production secrets,
 hosted Supabase migrations, domain configuration, and payment/email provider
-credentials are verified in the live environment. Sprint 2 completed the
-remaining product-facing polish that safely belongs before launch without
-building duplicate systems: public landing refinement, Harmony brand sizing,
-customer intelligence positioning, Founder Executive Feed visibility, mobile
-workspace polish, accessibility cleanup, English/Spanish parity, and launch
-certification documentation.
+credentials are verified in the live environment. Sprint 2 and the Founder
+Experience Certification pass completed the remaining product-facing polish
+that safely belongs before launch without building duplicate systems: public
+landing refinement, Harmony brand sizing, customer intelligence positioning,
+Founder Executive Feed visibility, premium Founder onboarding, accurate
+workforce operational state, mobile workspace polish, accessibility cleanup,
+English/Spanish parity, and launch certification documentation.
 
 ## Tracker
 
 | Area | Completion | Status | Notes |
 | --- | ---: | --- | --- |
-| Product experience | 94% | Ready for beta | Landing, brand, customer banner, responsive tabs, and localized copy are complete. Remaining work is production visual QA on the deployed domain. |
-| Founder experience | 92% | Ready for beta | Founder Executive Feed, briefing, operations, diagnostics, command center, workforce, autonomy, approvals, and Mason visibility exist. Remaining work is live-data validation after deployment. |
+| Product experience | 95% | Ready for beta | Landing, brand, customer banner, responsive tabs, and localized copy are complete. Remaining work is production visual QA on the deployed domain. |
+| Founder experience | 95% | Ready for beta | Founder Executive Feed, premium onboarding, briefing, operations, diagnostics, command center, workforce, autonomy, approvals, and Mason visibility exist. Remaining work is live-data validation after deployment. |
 | Subscriber experience | 90% | Ready for beta | Auth shell, onboarding, customer Harmony workspace, personal tasks/goals/notes, localization, settings, and plan-gated surfaces exist. Remaining work is end-to-end onboarding QA with production auth emails. |
-| Operational readiness | 86% | Needs live verification | Diagnostics for Supabase/Vercel/production readiness exist. Remaining work is live secret verification, hosted migrations, deployment health, GitHub checks, Vercel checks, and approval queue review. |
+| Operational readiness | 87% | Needs live verification | Diagnostics for Supabase/Vercel/production readiness exist and Founder onboarding now points to them. Remaining work is live secret verification, hosted migrations, deployment health, GitHub checks, Vercel checks, and approval queue review. |
 | Localization | 96% | Ready for beta | English and Spanish catalogs are parity-checked; new launch copy has Spanish equivalents. Official localized logo fallback is supported when official assets are added. |
 | Accessibility | 90% | Ready for beta | Semantic layout, skip target, keyboard tabs, labels, decorative watermark handling, and mobile drawer patterns exist. Remaining work is external screen-reader/browser smoke testing. |
 | Performance | 88% | Ready for beta | App uses server components, embedded brand asset, route loading skeletons, and no new client-heavy systems. Remaining work is deployed Lighthouse/Web Vitals sampling. |
 | Documentation | 93% | Ready for beta | Architecture, database, autonomy governance, connector setup, and launch readiness docs exist. Remaining work is final production runbook details after first live deployment. |
 
-Overall launch completion: **91%**.
+Overall launch completion: **92%**.
 
 ## Certification review
 
@@ -39,6 +40,9 @@ Overall launch completion: **91%**.
   existing components and message catalogs.
 - Founder-only operational routes remain protected by the existing Harmony route
   gate and admin role checks.
+- Founder onboarding now uses the same premium executive visual language as the
+  authentication shell and introduces Harmony, Mason, approvals, diagnostics,
+  and production-aware operating context before first workspace entry.
 
 ### Integration audit
 
@@ -79,6 +83,9 @@ Overall launch completion: **91%**.
 - Founder workflows are consolidated around Harmony, the Command Center,
   Briefing, Operations, Review, Approvals, Workforce, Autonomy, Activity, Code,
   and Diagnostics.
+- Workforce state no longer implies live execution when none exists: agents with
+  queued work, active objectives, recommendations, or approvals display a
+  truthful Ready state; agents with no live signals remain Idle.
 - Subscriber workflows are consolidated around onboarding, Harmony, tasks, goals,
   notes, settings, auth, and localized navigation.
 - Approval monitoring remains a first-class route through `/harmony/approvals`.

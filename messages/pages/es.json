@@ -244,70 +244,70 @@
     },
     "founder": {
       "eyebrow": "Onboarding del fundador",
-      "title": "Configura Harmony para dirigir tu empresa",
-      "subtitle": "Cinco pasos rápidos para poner a trabajar tu sistema operativo de IA — con el control en tus manos en cada etapa.",
+      "title": "Entra al Centro de Control Ejecutivo de AIOS",
+      "subtitle": "Cinco pasos para entender Harmony, el Founder OS, Mason, aprobaciones y preparación de producción antes de dirigir la empresa con AIOS.",
       "steps": [
         {
           "icon": "Sparkles",
           "title": "Bienvenido, fundador",
-          "body": "Harmony unifica tu vida y tu negocio y pone a trabajar a un equipo de asistentes de IA. Así lo pones en marcha.",
+          "body": "Harmony es tu operador ejecutivo: una sola puerta de entrada a inteligencia de la compañía, enrutamiento de trabajo, aprobaciones y el equipo de IAOS.",
           "points": [
-            "Ve toda la operación en un solo lugar",
-            "Mantén a una persona en el circuito por diseño",
-            "Empieza poco a poco y amplía la autonomía a medida que confías"
+            "Ve toda la operación en un espacio ejecutivo",
+            "Mantén la aprobación del fundador en el circuito por diseño",
+            "Amplía la autonomía solo cuando la evidencia lo respalde"
           ]
         },
         {
           "icon": "Network",
-          "title": "Conecta tu mundo",
-          "body": "Vincula las herramientas donde ya vive tu trabajo para que tus asistentes de IA actúen donde importa.",
+          "title": "Conecta la conciencia de producción",
+          "body": "Conecta los sistemas que AIOS necesita para monitorear preparación de lanzamiento y salud operativa.",
           "points": [
-            "Conecta calendario y correo",
-            "Añade los canales que usa tu equipo",
-            "Más integraciones llegan de forma continua"
+            "Verifica visibilidad de GitHub y Vercel",
+            "Conecta diagnósticos de Supabase de solo lectura",
+            "Mantén credenciales del lado del servidor y con aprobaciones"
           ]
         },
         {
           "icon": "Building2",
-          "title": "Levanta tu Hub de Negocio",
-          "body": "Reúne equipos, operaciones y comunicaciones en una sola superficie de mando.",
+          "title": "Levanta el Founder OS",
+          "body": "Reúne empresas, objetivos, departamentos, comunicaciones y eventos operativos en una sola superficie de mando.",
           "points": [
-            "Invita a personas y asistentes de IA",
-            "Activa los departamentos de IA que necesites",
-            "Estandariza cómo se ejecuta el trabajo recurrente"
+            "Crea el contexto de empresa que usa Harmony",
+            "Define objetivos y enruta trabajo a especialistas",
+            "Usa Julius y Habilidades de Empresa como memoria organizacional"
           ]
         },
         {
           "icon": "ShieldCheck",
           "title": "Define autonomía y aprobaciones",
-          "body": "Decide hasta dónde puede llegar Harmony por su cuenta y qué debe pasar primero por ti.",
+          "body": "Decide hasta dónde pueden llegar Harmony, Mason y el equipo por su cuenta y qué debe pasar primero por ti.",
           "points": [
             "Elige un nivel de autonomía por departamento",
-            "Envía acciones de alto impacto para aprobación",
+            "Envía acciones de alto impacto e ingeniería para aprobación",
             "Todo queda en un registro de auditoría"
           ]
         },
         {
           "icon": "Gauge",
-          "title": "Abre tu Centro de Mando",
-          "body": "Dirige toda la operación desde una pantalla — aprobaciones, supervisión en vivo y las métricas que importan.",
+          "title": "Abre tu Espacio Ejecutivo",
+          "body": "Dirige toda la operación desde una pantalla: informe, equipo, Mason, aprobaciones, diagnósticos y señales de lanzamiento.",
           "points": [
-            "Aprueba lo que te necesita",
-            "Observa asistentes y flujos en tiempo real",
-            "Sigue las señales que mueven el negocio"
+            "Revisa lo que requiere atención del fundador",
+            "Observa asistentes, flujos y bloqueos",
+            "Sigue preparación de GitHub, Vercel, producción y aprobaciones"
           ]
         }
       ],
       "done": {
-        "title": "Listo para operar",
-        "body": "Harmony está configurado para quitarte lo rutinario de encima. Crea tu cuenta para ponerlo a trabajar.",
+        "title": "Tu espacio de fundador está listo",
+        "body": "Crea tu cuenta o inicia sesión para abrir Harmony y operar AIOS con visibilidad de producción.",
         "primaryCta": {
           "label": "Crear tu cuenta",
           "href": "/signup"
         },
         "secondaryCta": {
-          "label": "Volver al inicio",
-          "href": "/"
+          "label": "Iniciar sesión",
+          "href": "/login"
         }
       }
     },
@@ -996,9 +996,17 @@
     "status": {
       "working": "Trabajando",
       "awaiting": "Esperando aprobación",
+      "ready": "Listo",
       "online": "En línea",
       "idle": "Inactivo",
       "error": "Error"
+    },
+    "stateBasis": "Estado",
+    "basis": {
+      "live": "Ejecución en vivo",
+      "workload": "Trabajo en cola",
+      "history": "Actividad reciente",
+      "none": "Sin trabajo en vivo"
     },
     "kind": {
       "message": "Mensaje",
@@ -1290,6 +1298,7 @@
     "approvals": "{n} aprob.",
     "legend": {
       "working": "Trabajando",
+      "ready": "Listo",
       "online": "En línea",
       "awaiting": "Esperando aprobación",
       "idle": "Inactivo",

@@ -331,7 +331,7 @@ export default function LandingPage() {
                       className="pointer-events-none absolute -inset-4 rounded-[1.75rem] border border-primary/30"
                       aria-hidden="true"
                     />
-                    <HarmonyMark className="relative size-20" title="Harmony" />
+                    <HarmonyMark className="relative size-24 sm:size-28" title="Harmony" />
                   </div>
                   <p className="text-sm text-muted-foreground">{hero.snapshot.caption}</p>
                 </div>
@@ -703,7 +703,7 @@ export default function LandingPage() {
             aria-hidden="true"
           />
           <div className="relative mx-auto w-full max-w-4xl px-4 py-24 text-center sm:px-6 lg:px-8 lg:py-32">
-            <HarmonyMark className="mx-auto size-12" title="Harmony" />
+            <HarmonyMark className="mx-auto size-14 sm:size-16" title="Harmony" />
             <h2 className="mt-6 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
               {finalCta.titleLead}{" "}
               <span className="bg-linear-to-r from-[#8fd0ff] to-[#2f6bff] bg-clip-text text-transparent">
