@@ -5,6 +5,7 @@ import { runMasonProductionRuntime } from "@/lib/harmony/code/mason-production-r
 export async function handleMasonEngineeringMessage(input: {
   userId: string;
   message: string;
+  founderApproved?: boolean;
 }) {
   const slug = input.message
     .toLowerCase()
@@ -17,7 +18,7 @@ export async function handleMasonEngineeringMessage(input: {
     objective: input.message,
     repository: "AIOS-HQ/aios-platform",
     requesterRole: "founder",
-    founderApproved: false,
+    founderApproved: input.founderApproved === true,
     branchName: `mason/${slug || "engineering-task"}`,
   });
 }
