@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
+import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { detectIntent } from "@/lib/ai/intents";
 import { getProvider, isRealProviderConfigured } from "@/lib/ai/provider";
 import { buildRecommendations } from "@/lib/harmony/advisor";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { buildHarmonyReflection } from "@/lib/harmony/reflection";
+import { buildExecutiveWorkspace } from "@/lib/harmony/executive-workspace";
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
@@ -21,7 +23,7 @@ import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database"
  * decisions, recent activity, knowledge). Company-scoped and fail-open: any
  * issue resolving context simply falls back to the base system prompt.
  */
-async function harmonySystemPrompt(base: string, userId: string): Promise<string> {
+async function juliusSystemPrompt(base: string, userId: string): Promise<string> {
   try {
     const companyId = await resolvePrimaryCompanyId();
     if (!companyId) return base;
@@ -39,6 +41,20 @@ async function harmonySystemPrompt(base: string, userId: string): Promise<string
   } catch {
     return base;
   }
+}
+
+async function harmonySystemPrompt(base: string, userId: string): Promise<string> {
+  try {
+    const companyId = await resolvePrimaryCompanyId();
+    if (companyId && (await currentUserIsAdmin())) {
+      const workspace = await buildExecutiveWorkspace(userId, companyId);
+      return `${base}\n\n${workspace.promptContext}`;
+    }
+  } catch (e) {
+    console.error("[operator-actions] executive workspace context failed", e);
+  }
+
+  return juliusSystemPrompt(base, userId);
 }
 
 /**
