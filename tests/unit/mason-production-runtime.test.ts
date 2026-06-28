@@ -8,6 +8,14 @@ vi.mock("@/lib/integrations/connections", () => ({
   ]),
 }));
 
+vi.mock("@/lib/integrations/connectors", () => ({
+  getConnector: vi.fn((id: string) => ({ id, auth: id === "vercel" ? "api_key" : "oauth2", requiredEnv: [] })),
+}));
+
+vi.mock("@/lib/integrations/connector-config", () => ({
+  isConnectorConfigured: vi.fn(() => true),
+}));
+
 vi.mock("@/lib/integrations/connector-runtime", () => ({
   runConnectorCapability: vi.fn(async () => ({ ok: true, status: "executed", message: "ok", data: { ok: true } })),
 }));
