@@ -53,7 +53,8 @@ const NEXT_KW = [
   "recomienda",
   "qué hago",
 ];
-const EXECUTION_KW = [
+
+const EXECUTION_SUBJECT_KW = [
   "github",
   "repo",
   "repository",
@@ -68,10 +69,47 @@ const EXECUTION_KW = [
   "database",
   "migration",
   "audit",
-  "fix",
-  "repair",
   "connector",
   "integration",
+];
+
+const EXECUTION_ACTION_KW = [
+  "fix",
+  "repair",
+  "implement",
+  "execute",
+  "create",
+  "open",
+  "merge",
+  "deploy",
+  "commit",
+  "update",
+  "change",
+  "run",
+  "resolve",
+  "wire",
+  "add",
+  "remove",
+  "delete",
+];
+
+const DIAGNOSTIC_KW = [
+  "why",
+  "what",
+  "which",
+  "where",
+  "who",
+  "when",
+  "how",
+  "diagnose",
+  "explain",
+  "identify",
+  "investigate",
+  "find root cause",
+  "root cause",
+  "file",
+  "function",
+  "line",
 ];
 
 function extractTitle(input: string, keywords: string[]): string {
@@ -89,6 +127,14 @@ function extractTitle(input: string, keywords: string[]): string {
   rest = rest.replace(/^[\s:,\-–]+/, "");
   rest = rest.replace(/^(to|a|an|the|that i|que|de|para)\s+/i, "");
   return rest.trim();
+}
+
+function hasAny(text: string, keywords: string[]): boolean {
+  return keywords.some((k) => text.includes(k));
+}
+
+function isDiagnosticOnly(text: string): boolean {
+  return hasAny(text, DIAGNOSTIC_KW) && !hasAny(text, EXECUTION_ACTION_KW);
 }
 
 /** Lightweight, bilingual (EN/ES) keyword intent detection for the Operator. */
@@ -109,11 +155,14 @@ export function detectIntent(input: string): {
   if (NEXT_KW.some((k) => text.includes(k))) {
     return { intent: "suggest_next_steps" };
   }
-  if (EXECUTION_KW.some((k) => text.includes(k))) {
-  return {
-    intent: "execution_request",
-    title: input.trim(),
-  };
-}
+  if (isDiagnosticOnly(text)) {
+    return { intent: "general" };
+  }
+  if (hasAny(text, EXECUTION_SUBJECT_KW) && hasAny(text, EXECUTION_ACTION_KW)) {
+    return {
+      intent: "execution_request",
+      title: input.trim(),
+    };
+  }
   return { intent: "general" };
 }
