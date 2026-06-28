@@ -4,6 +4,7 @@ import {
   canMasonOpenPullRequest,
   createMasonExecutionBridge,
   type MasonExecutionBridge,
+  type MasonRequesterRole,
   type MasonValidationCommand,
 } from "@/lib/harmony/code/mason-execution-bridge";
 
@@ -16,12 +17,18 @@ export interface MasonLiveFileChange {
 export type MasonLiveConnectorOperationKind =
   | "github_create_branch"
   | "github_commit_file"
+  | "validation_request"
   | "github_open_pull_request"
-  | "vercel_check_preview";
+  | "vercel_check_preview"
+  | "harmony_report_outcome"
+  | "activity_record"
+  | "review_queue_update"
+  | "julius_memory_update"
+  | "company_skill_update";
 
 export interface MasonLiveConnectorOperation {
   kind: MasonLiveConnectorOperationKind;
-  connectorId: "github" | "vercel";
+  connectorId: "github" | "vercel" | "harmony";
   capabilityId: string;
   params: Record<string, unknown>;
   approved: boolean;
@@ -32,10 +39,13 @@ export interface MasonLiveExecutionPlanInput {
   objective: string;
   repository: string;
   founderApproved: boolean;
+  requesterRole?: MasonRequesterRole;
   baseBranch?: string | null;
   branchName?: string | null;
   fileChanges?: MasonLiveFileChange[];
   openPullRequest?: boolean;
+  pullRequestUrl?: string | null;
+  vercelPreviewUrl?: string | null;
 }
 
 export interface MasonLiveExecutionPlan {
@@ -45,6 +55,8 @@ export interface MasonLiveExecutionPlan {
   validationCommands: MasonValidationCommand[];
   validationRequest: string;
   prBody: string;
+  reportingTargets: ["Activity", "Review Queue", "Outcomes", "Julius", "Company Skills"];
+  outcomeSummary: string;
   blockedReason: string | null;
 }
 
@@ -79,12 +91,83 @@ function validationRequest(commands: MasonValidationCommand[]): string {
   return `Run or verify: ${commands.join(", ")}.`;
 }
 
+function outcomeSummary(input: {
+  bridge: MasonExecutionBridge;
+  status: MasonLiveExecutionPlan["status"];
+  pullRequestUrl?: string | null;
+  vercelPreviewUrl?: string | null;
+}): string {
+  return [
+    `Mason live execution status: ${input.status}.`,
+    `Repository: ${input.bridge.scopedPlan.repository}.`,
+    `Branch: ${input.bridge.scopedPlan.branchName}.`,
+    `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
+    `Preview: ${input.vercelPreviewUrl ?? "not inspected yet"}.`,
+  ].join(" ");
+}
+
+function reportingOperations(input: {
+  bridge: MasonExecutionBridge;
+  summary: string;
+}): MasonLiveConnectorOperation[] {
+  const params = {
+    repository: input.bridge.scopedPlan.repository,
+    branch: input.bridge.scopedPlan.branchName,
+    objective: input.bridge.scopedPlan.objective,
+    summary: input.summary,
+    targets: input.bridge.reporting.targets,
+  };
+
+  return [
+    {
+      kind: "harmony_report_outcome",
+      connectorId: "harmony",
+      capabilityId: "report_mason_execution_outcome",
+      approved: true,
+      params,
+      summary: "Report Mason execution status through Harmony.",
+    },
+    {
+      kind: "activity_record",
+      connectorId: "harmony",
+      capabilityId: "emit_activity",
+      approved: true,
+      params,
+      summary: "Record Mason execution activity.",
+    },
+    {
+      kind: "review_queue_update",
+      connectorId: "harmony",
+      capabilityId: "update_review_queue",
+      approved: true,
+      params,
+      summary: "Update Founder Review Queue with PR, preview, validation, and merge gate status.",
+    },
+    {
+      kind: "julius_memory_update",
+      connectorId: "harmony",
+      capabilityId: "update_julius_memory",
+      approved: true,
+      params,
+      summary: "Store Mason execution memory in Julius.",
+    },
+    {
+      kind: "company_skill_update",
+      connectorId: "harmony",
+      capabilityId: "update_company_skills",
+      approved: true,
+      params,
+      summary: "Update Company Skills with reusable engineering execution learning.",
+    },
+  ];
+}
+
 export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput): MasonLiveExecutionPlan {
   const fileChanges = cleanFileChanges(input.fileChanges);
   const bridge = createMasonExecutionBridge({
     objective: input.objective,
     repository: input.repository,
-    requesterRole: "founder",
+    requesterRole: input.requesterRole ?? "founder",
     founderApproved: input.founderApproved,
     baseBranch: input.baseBranch,
     branchName: input.branchName,
@@ -92,43 +175,55 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   });
   const validationCommands = MASON_REQUIRED_VALIDATION_COMMANDS;
   const body = prBody({ bridge, fileChanges, validationCommands });
+  const reportingTargets = bridge.reporting.targets;
 
   if (!bridge.access.allowed || !bridge.scopedPlan.engineeringPromptRoutesToMason) {
+    const status = "blocked" as const;
     return {
       bridge,
-      status: "blocked",
+      status,
       operations: [],
       validationCommands,
       validationRequest: validationRequest(validationCommands),
       prBody: body,
+      reportingTargets,
+      outcomeSummary: outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl }),
       blockedReason: "Mason live execution is blocked because access or engineering routing failed.",
     };
   }
 
   if (!bridge.mutation.allowed || !canMasonOpenPullRequest(bridge)) {
+    const status = "approval_required" as const;
     return {
       bridge,
-      status: "approval_required",
+      status,
       operations: [],
       validationCommands,
       validationRequest: validationRequest(validationCommands),
       prBody: body,
+      reportingTargets,
+      outcomeSummary: outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl }),
       blockedReason: "Founder approval is required before Mason can create a branch, mutate files, or open a PR.",
     };
   }
 
   if (canMasonMerge(bridge)) {
+    const status = "blocked" as const;
     return {
       bridge,
-      status: "blocked",
+      status,
       operations: [],
       validationCommands,
       validationRequest: validationRequest(validationCommands),
       prBody: body,
+      reportingTargets,
+      outcomeSummary: outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl }),
       blockedReason: "Mason live execution cannot proceed with merge authority enabled.",
     };
   }
 
+  const status = "ready" as const;
+  const summary = outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl });
   const operations: MasonLiveConnectorOperation[] = [
     {
       kind: "github_create_branch",
@@ -156,6 +251,18 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
       },
       summary: `Commit ${change.path} to ${bridge.scopedPlan.branchName}.`,
     })),
+    {
+      kind: "validation_request",
+      connectorId: "harmony",
+      capabilityId: "request_validation_commands",
+      approved: true,
+      params: {
+        repo: bridge.scopedPlan.repository,
+        branch: bridge.scopedPlan.branchName,
+        commands: validationCommands,
+      },
+      summary: validationRequest(validationCommands),
+    },
   ];
 
   if (input.openPullRequest !== false) {
@@ -184,17 +291,22 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
       repo: bridge.scopedPlan.repository,
       branch: bridge.scopedPlan.branchName,
       objective: bridge.scopedPlan.objective,
+      previewUrl: input.vercelPreviewUrl ?? null,
     },
     summary: "Request Vercel preview/build status after PR creation.",
   });
 
+  operations.push(...reportingOperations({ bridge, summary }));
+
   return {
     bridge,
-    status: "ready",
+    status,
     operations,
     validationCommands,
     validationRequest: validationRequest(validationCommands),
     prBody: body,
+    reportingTargets,
+    outcomeSummary: summary,
     blockedReason: null,
   };
 }
