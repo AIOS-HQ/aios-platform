@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
-import { sendAgentChat } from "@/lib/workforce/chat";
+import { recordAgentChatExchange, sendAgentChat } from "@/lib/workforce/chat";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
 import { masonFounderApproved } from "@/lib/workforce/mason-approval";
@@ -34,7 +34,15 @@ export async function sendAgentChatAction(
       message,
       founderApproved: masonFounderApproved(formData.get("founder_approved") ?? message),
     });
-    await sendAgentChat({ userId: user.id, companyId, agent, message: `${message}\n\nMason runtime: ${result.status}. ${result.summary}` });
+    const ok = await recordAgentChatExchange({
+      userId: user.id,
+      companyId,
+      agent,
+      userMessage: message,
+      assistantMessage: `Mason runtime: ${result.status}.\n${result.summary}`,
+      refs: { runtime: result },
+    });
+    if (!ok) return { status: "error", message: t("errors.generic") };
     revalidatePath(`/harmony/workforce/${agent}`);
     return { status: result.status === "failed" ? "error" : "success", message: result.status === "failed" ? result.summary : "" };
   }
