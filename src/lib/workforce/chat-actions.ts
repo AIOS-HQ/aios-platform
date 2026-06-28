@@ -7,6 +7,7 @@ import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { sendAgentChat } from "@/lib/workforce/chat";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
+import { masonFounderApproved } from "@/lib/workforce/mason-approval";
 import { LIMITS, exceedsLimits } from "@/lib/limits";
 import type { ActionState } from "@/lib/types";
 
@@ -28,7 +29,11 @@ export async function sendAgentChatAction(
 
   const companyId = await resolvePrimaryCompanyId();
   if (agent === "mason") {
-    const result = await handleMasonEngineeringMessage({ userId: user.id, message });
+    const result = await handleMasonEngineeringMessage({
+      userId: user.id,
+      message,
+      founderApproved: masonFounderApproved(formData.get("founder_approved")),
+    });
     await sendAgentChat({ userId: user.id, companyId, agent, message: `${message}\n\nMason runtime: ${result.status}. ${result.summary}` });
     revalidatePath(`/harmony/workforce/${agent}`);
     return { status: result.status === "failed" ? "error" : "success", message: result.status === "failed" ? result.summary : "" };
