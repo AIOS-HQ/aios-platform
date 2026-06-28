@@ -126,7 +126,7 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
           companyId: input.companyId ?? null,
           actorType: "agent",
           actorId: "mason",
-          kind: "approval_requested",
+          kind: "approval",
           summary: String(payload.summary ?? "Mason runtime awaiting Founder review"),
           refType: "mason_review_queue",
           refId: String(payload.branch ?? "mason"),
