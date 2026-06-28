@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { FormMessage } from "@/components/shared/form-message";
 
-export function LoginForm() {
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
   const [state, action] = useActionState(signIn, idleState);
@@ -18,6 +18,7 @@ export function LoginForm() {
   return (
     <form action={action} className="space-y-4" noValidate>
       <FormMessage state={state} />
+      {redirectTo ? <input type="hidden" name="redirect" value={redirectTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="email">{t("fields.email")}</Label>
         <Input

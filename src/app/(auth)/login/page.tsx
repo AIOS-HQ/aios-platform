@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoginForm } from "@/components/auth/login-form";
+import { safeRedirectPath } from "@/lib/auth/redirects";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("auth.login");
@@ -18,12 +19,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; redirect?: string; next?: string }>;
 }) {
   const t = await getTranslations("auth");
   const tc = await getTranslations("common");
-  const { error } = await searchParams;
+  const { error, redirect, next } = await searchParams;
   const callbackError = error === "auth_callback";
+  const redirectTo = safeRedirectPath(redirect ?? next, "");
 
   return (
     <Card className="border-0 bg-transparent shadow-none">
@@ -44,7 +46,7 @@ export default async function LoginPage({
             {t("login.callbackError")}
           </p>
         )}
-        <LoginForm />
+        <LoginForm redirectTo={redirectTo} />
         <p className="text-center text-sm text-slate-300">
           {t("login.noAccount")}{" "}
           <Link
