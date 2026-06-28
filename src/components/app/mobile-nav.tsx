@@ -52,7 +52,7 @@ export function MobileNav({
         </div>
         <nav
           className="flex flex-1 flex-col gap-4 overflow-y-auto p-3"
-          aria-label="Mobile"
+          aria-label={t("mobile")}
         >
           {sections.map((section, i) => (
             <div

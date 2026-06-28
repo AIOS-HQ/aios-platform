@@ -36,10 +36,10 @@ export function SiteHeader() {
     >
       <nav
         className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
-        aria-label="Primary"
+        aria-label={t("cta.primaryNavigation")}
       >
         <Link href="/" className="flex items-center" aria-label={t("cta.home")}>
-          <HarmonyLogo markClassName="size-8 sm:size-9" />
+          <HarmonyLogo markClassName="size-9 sm:size-10" />
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">

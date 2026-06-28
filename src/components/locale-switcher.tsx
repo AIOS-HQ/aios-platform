@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Globe } from "lucide-react";
 import { setLocale } from "@/i18n/actions";
@@ -17,6 +17,7 @@ import {
 /** Language switcher. Writes the locale cookie via a server action, then refreshes. */
 export function LocaleSwitcher() {
   const locale = useLocale();
+  const t = useTranslations("common");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -29,7 +30,7 @@ export function LocaleSwitcher() {
 
   return (
     <Select value={locale} onValueChange={onChange} disabled={pending}>
-      <SelectTrigger className="h-9 w-[140px]" aria-label="Select language">
+      <SelectTrigger className="h-9 w-[140px]" aria-label={t("language")}>
         <Globe className="size-4 opacity-70" aria-hidden="true" />
         <SelectValue />
       </SelectTrigger>
