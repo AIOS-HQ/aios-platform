@@ -64,6 +64,59 @@ export async function countChatMessages(
   return count ?? 0;
 }
 
+export async function recordAgentChatExchange(params: {
+  userId: string;
+  companyId: string | null;
+  agent: string;
+  userMessage: string;
+  assistantMessage: string;
+  refs?: Record<string, unknown>;
+}): Promise<boolean> {
+  const userMessage = params.userMessage.trim();
+  const assistantMessage = params.assistantMessage.trim();
+  if (!userMessage || !assistantMessage) return false;
+  const agentDef = getAiosAgent(params.agent);
+  if (!agentDef) return false;
+
+  const supabase = await createClient();
+  const { error: userError } = await supabase.from("agent_chat_messages").insert({
+    user_id: params.userId,
+    company_id: params.companyId,
+    agent: params.agent,
+    role: "user",
+    content: userMessage.slice(0, LIMITS.noteContent),
+  });
+  if (userError) {
+    console.error("[workforce/chat] persist runtime user msg", userError.message);
+    return false;
+  }
+
+  const { error: assistantError } = await supabase.from("agent_chat_messages").insert({
+    user_id: params.userId,
+    company_id: params.companyId,
+    agent: params.agent,
+    role: "assistant",
+    content: assistantMessage.slice(0, LIMITS.noteContent),
+    refs: params.refs ?? {},
+  });
+  if (assistantError) {
+    console.error("[workforce/chat] persist runtime assistant msg", assistantError.message);
+    return false;
+  }
+
+  await emitActivity({
+    userId: params.userId,
+    companyId: params.companyId,
+    actorType: "founder",
+    kind: "agent_action",
+    summary: `Chatted with ${agentDef.name}`,
+    refType: "agent_chat",
+    refId: params.agent,
+  });
+
+  return true;
+}
+
 /**
  * Send a founder message to an agent and get its reply. Persists both turns,
  * grounds the reply in Julius context, and logs activity. Returns false on a
