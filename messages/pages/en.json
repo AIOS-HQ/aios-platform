@@ -244,70 +244,70 @@
     },
     "founder": {
       "eyebrow": "Founder onboarding",
-      "title": "Set up Harmony to run your company",
-      "subtitle": "Five quick steps to put your AI operating system to work — with you in command at every stage.",
+      "title": "Enter the AIOS Executive Control Center",
+      "subtitle": "Five steps to understand Harmony, the Founder OS, Mason, approvals, and production readiness before you run the company through AIOS.",
       "steps": [
         {
           "icon": "Sparkles",
           "title": "Welcome, founder",
-          "body": "Harmony unifies your life and your business and puts a team of AI helpers to work. Here is how to get it running.",
+          "body": "Harmony is your executive operator: one front door into company intelligence, work routing, approvals, and the AIOS workforce.",
           "points": [
-            "See the whole operation in one place",
-            "Keep a human in the loop by design",
-            "Start small and expand autonomy as you trust it"
+            "See the whole operation in one executive workspace",
+            "Keep Founder approval in the loop by design",
+            "Expand autonomy only when the evidence supports it"
           ]
         },
         {
           "icon": "Network",
-          "title": "Connect your world",
-          "body": "Link the tools your work already lives in so your AI helpers can act where it matters.",
+          "title": "Connect production awareness",
+          "body": "Connect the systems AIOS needs to monitor launch readiness and operational health.",
           "points": [
-            "Connect calendar and email",
-            "Add the channels your team uses",
-            "More integrations roll out continuously"
+            "Verify GitHub and Vercel visibility",
+            "Connect Supabase diagnostics for read-only checks",
+            "Keep credentials server-side and approval-gated"
           ]
         },
         {
           "icon": "Building2",
-          "title": "Stand up your Business Hub",
-          "body": "Bring teams, operations, and communications into one command surface.",
+          "title": "Stand up the Founder OS",
+          "body": "Bring companies, objectives, departments, communications, and operational events into one command surface.",
           "points": [
-            "Invite people and AI helpers",
-            "Turn on the AI departments you need",
-            "Standardize how recurring work runs"
+            "Create the company context Harmony uses",
+            "Set objectives and route work to specialists",
+            "Use Julius and Company Skills as organizational memory"
           ]
         },
         {
           "icon": "ShieldCheck",
           "title": "Set autonomy and approvals",
-          "body": "Decide how far Harmony can go on its own and what must route to you first.",
+          "body": "Decide how far Harmony, Mason, and the workforce can go on their own and what must route to you first.",
           "points": [
             "Choose an autonomy level per department",
-            "Send high-impact actions for approval",
+            "Route high-impact and engineering actions for approval",
             "Everything is captured in an audit trail"
           ]
         },
         {
           "icon": "Gauge",
-          "title": "Open your Command Center",
-          "body": "Steer the whole operation from one screen — approvals, live oversight, and the metrics that matter.",
+          "title": "Open your Executive Workspace",
+          "body": "Steer the whole operation from one screen: briefing, workforce, Mason, approvals, diagnostics, and launch signals.",
           "points": [
-            "Approve what needs you",
-            "Watch helpers and workflows in real time",
-            "Track the signals that move the business"
+            "Review what needs Founder attention",
+            "Watch helpers, workflows, and blockers",
+            "Track GitHub, Vercel, production, and approval readiness"
           ]
         }
       ],
       "done": {
-        "title": "You're ready to run",
-        "body": "Harmony is set up to take the routine off your plate. Create your account to put it to work.",
+        "title": "Your Founder workspace is ready",
+        "body": "Create your account or log in to open Harmony and start operating AIOS with production-aware visibility.",
         "primaryCta": {
           "label": "Create your account",
           "href": "/signup"
         },
         "secondaryCta": {
-          "label": "Back to home",
-          "href": "/"
+          "label": "Log in",
+          "href": "/login"
         }
       }
     },
@@ -996,9 +996,17 @@
     "status": {
       "working": "Working",
       "awaiting": "Awaiting approval",
+      "ready": "Ready",
       "online": "Online",
       "idle": "Idle",
       "error": "Error"
+    },
+    "stateBasis": "State",
+    "basis": {
+      "live": "Live execution",
+      "workload": "Work queued",
+      "history": "Recent activity",
+      "none": "No live work"
     },
     "kind": {
       "message": "Message",
@@ -1290,6 +1298,7 @@
     "approvals": "{n} approval",
     "legend": {
       "working": "Working",
+      "ready": "Ready",
       "online": "Online",
       "awaiting": "Awaiting approval",
       "idle": "Idle",

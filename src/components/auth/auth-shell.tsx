@@ -130,15 +130,15 @@ export function AuthShell({
     <div className="auth-executive relative min-h-dvh overflow-hidden bg-[#050814] text-white">
       <div className="pointer-events-none absolute inset-0 harmony-grid opacity-30" aria-hidden="true" />
       <div
-        className="pointer-events-none absolute left-1/2 top-[-14rem] h-[42rem] w-[60rem] -translate-x-1/2 rounded-full bg-sky-500/20 blur-[150px]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-sky-300/70 to-transparent"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute bottom-[-18rem] right-[-12rem] h-[40rem] w-[40rem] rounded-full bg-violet-500/15 blur-[150px]"
+        className="pointer-events-none absolute left-1/2 top-[-14rem] h-[42rem] w-[60rem] -translate-x-1/2 rounded-full bg-sky-500/18 blur-[150px]"
         aria-hidden="true"
       />
       <HarmonyMark
-        className="pointer-events-none absolute left-1/2 top-1/2 size-[22rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.07] blur-[0.2px] sm:size-[30rem] lg:left-[35%]"
+        className="pointer-events-none absolute left-1/2 top-1/2 size-[24rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.09] blur-[0.2px] sm:size-[32rem] lg:left-[35%]"
       />
 
       <header className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -154,8 +154,8 @@ export function AuthShell({
       <main id="main-content" className="relative z-10 px-4 pb-8 pt-2 sm:px-6 lg:px-8">
         <div className="mx-auto grid min-h-[calc(100dvh-6rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,30rem)] lg:gap-8">
           <aside className="hidden lg:block">
-            <div className="auth-executive-rail max-w-lg p-5">
-              <HarmonyMark className="size-16" title="Harmony" />
+            <div className="auth-executive-rail max-w-lg p-6">
+              <HarmonyMark className="size-20" title="Harmony" />
               <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/80">
                 {t("eyebrow")}
               </p>

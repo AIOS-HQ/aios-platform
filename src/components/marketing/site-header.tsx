@@ -39,7 +39,7 @@ export function SiteHeader() {
         aria-label="Primary"
       >
         <Link href="/" className="flex items-center" aria-label={t("cta.home")}>
-          <HarmonyLogo />
+          <HarmonyLogo markClassName="size-8 sm:size-9" />
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">

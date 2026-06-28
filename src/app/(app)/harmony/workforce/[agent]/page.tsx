@@ -18,6 +18,7 @@ import { listChatMessages } from "@/lib/workforce/chat";
 import { listObjectives } from "@/lib/workforce/objectives";
 import { listWorkItems } from "@/lib/workforce/work-queue";
 import { listRecommendations } from "@/lib/workforce/recommendations";
+import { getWorkforceSummary, emptyAgentSummary } from "@/lib/workforce/summary";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,6 +65,7 @@ export default async function AgentProfilePage({
     listRecommendations(user.id, { companyId, agent, status: "open" }),
     listWorkItems(user.id, { companyId, agent }),
   ]);
+  const summary = (await getWorkforceSummary(user.id, companyId))[agent] ?? emptyAgentSummary();
 
   const queuedWork = work.filter((w) => w.status === "proposed" || w.status === "approved").length;
   const openRecs = recommendations.length;
@@ -91,6 +93,8 @@ export default async function AgentProfilePage({
     ? inflight.status === "awaiting_approval"
       ? "awaiting"
       : "working"
+    : summary.activeObjectives > 0 || summary.queuedWork > 0 || summary.openRecommendations > 0 || pendingApprovals > 0
+      ? "ready"
     : messages.length > 0 || chat.length > 0
       ? "online"
       : "idle";
@@ -102,6 +106,7 @@ export default async function AgentProfilePage({
   const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
     working: "default",
     awaiting: "destructive",
+    ready: "secondary",
     online: "secondary",
     idle: "outline",
   };
