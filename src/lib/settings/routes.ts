@@ -33,5 +33,5 @@ export const SETTINGS_ROUTE_CARDS: SettingsRouteCard[] = [
 ];
 
 export function settingsRouteCardsForRole(isFounder: boolean): SettingsRouteCard[] {
-  return SETTINGS_ROUTE_CARDS.filter((card) => isFounder || !card.founderOnly);
+  return SETTINGS_ROUTE_CARDS.filter((card) => card.founderOnly && isFounder);
 }

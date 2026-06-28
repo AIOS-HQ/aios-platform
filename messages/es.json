@@ -215,6 +215,11 @@
     "notes": "Notas",
     "onboarding": "Empezar",
     "brain": "Memoria",
+    "learning": "Aprendizaje",
+    "connections": "Conexiones",
+    "diagnostics": "Diagnóstico",
+    "approvalCenter": "Centro de aprobaciones",
+    "planBilling": "Plan",
     "operator": "Harmony",
     "advisor": "Sugerencias",
     "commandCenter": "Centro de Mando",
@@ -234,8 +239,11 @@
     "auditor": "Auditor",
     "pendingCount": "{count} pendientes",
     "sections": {
+      "primary": "Principal",
       "command": "Centro de Mando",
-      "personal": "Personal"
+      "personal": "Personal",
+      "aios": "AIOS",
+      "account": "Cuenta"
     },
     "workforce": "Equipo IA",
     "operations": "Operaciones",

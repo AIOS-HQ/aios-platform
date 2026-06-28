@@ -29,6 +29,24 @@ function routeExists(href: string): boolean {
 }
 
 describe("launch route audit", () => {
+  const customerSidebarRoutes = [
+    "/harmony/operator",
+    "/harmony/personal",
+    "/harmony/onboarding",
+    "/harmony/tasks",
+    "/harmony/goals",
+    "/harmony/notes",
+    "/settings/memory",
+    "/settings/learning",
+    "/settings/activity",
+    "/settings/approvals",
+    "/settings/integrations",
+    "/settings/connections",
+    "/settings/diagnostics",
+    "/settings/billing",
+    "/settings",
+  ];
+
   it("keeps every founder sidebar route backed by an app route", () => {
     const founderRoutes = sectionsForAudience(true).flatMap((section) =>
       section.items.map((item) => item.href),
@@ -41,8 +59,14 @@ describe("launch route audit", () => {
     const subscriberRoutes = sectionsForAudience(false).flatMap((section) =>
       section.items.map((item) => item.href),
     );
+    expect(subscriberRoutes).toEqual(customerSidebarRoutes);
     expect(subscriberRoutes).not.toContain("/settings/auditor");
+    expect(subscriberRoutes).not.toContain("/harmony/auditor");
     expect(subscriberRoutes).not.toContain("/harmony/code");
+    expect(subscriberRoutes).not.toContain("/harmony/mason");
+    expect(subscriberRoutes).not.toContain("/settings/mason");
+    expect(subscriberRoutes).not.toContain("/harmony/workforce");
+    expect(subscriberRoutes).not.toContain("/harmony/oversight");
     expect(subscriberRoutes.filter((href) => !routeExists(href))).toEqual([]);
   });
 
@@ -50,24 +74,31 @@ describe("launch route audit", () => {
     expect(navSections.length).toBeGreaterThan(0);
     expect(sectionsForAudience(true)).toEqual(sectionsForAudience(true));
     expect(sectionsForAudience(false)).toEqual(sectionsForAudience(false));
+    expect(sectionsForAudience(false).flatMap((section) => section.items.map((item) => item.href))).toEqual(
+      customerSidebarRoutes,
+    );
   });
 
   it("keeps every settings card route backed by an app route", () => {
     expect(SETTINGS_ROUTE_CARDS.map((card) => card.href).filter((href) => !routeExists(href))).toEqual([]);
   });
 
-  it("hides founder-only settings cards from subscribers", () => {
-    expect(settingsRouteCardsForRole(false).map((card) => card.href)).not.toContain(
-      "/settings/auditor",
-    );
+  it("keeps settings launchers from being the customer access point for major AIOS areas", () => {
+    expect(settingsRouteCardsForRole(false).map((card) => card.href)).toEqual([]);
     expect(settingsRouteCardsForRole(true).map((card) => card.href)).toContain(
       "/settings/auditor",
+    );
+    expect(settingsRouteCardsForRole(true).map((card) => card.href)).not.toContain(
+      "/settings/integrations",
     );
   });
 
   it("keeps founder Harmony routes default-deny for subscribers", () => {
     expect(isFounderHarmonyPath("/harmony")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/code")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/workforce")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/mason")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/not-yet-known")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/personal")).toBe(false);
     expect(isFounderHarmonyPath("/harmony/tasks")).toBe(false);
   });
