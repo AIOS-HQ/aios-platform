@@ -39,8 +39,8 @@ export async function masonRuntimeHealth(userId: string) {
   const github = getConnector("github");
   const vercel = getConnector("vercel");
   return {
-    github: connected.has("github") && Boolean(github) && isConnectorConfigured(github),
-    vercel: Boolean(vercel) && isConnectorConfigured(vercel),
+    github: connected.has("github") && github ? isConnectorConfigured(github) : false,
+vercel: vercel ? isConnectorConfigured(vercel) : false,
     harmony: true,
   };
 }
