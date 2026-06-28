@@ -58,6 +58,37 @@ Creation is autonomous; **external publication always requires approval**; delet
 - Learning controls remain intact, including `require_approval` for new memories.
 - Secrets are never exposed; per-user credentials are stored server-side (service role), never returned to the browser.
 
+## Bounded autonomy controls
+
+The current Founder OS autonomy controls live at `/harmony/autonomy` and are
+implemented by `src/lib/workforce/autonomy.ts` and
+`src/lib/workforce/autonomy-actions.ts`.
+
+| Control | Meaning |
+| --- | --- |
+| Off | No autonomous execution. Work can still be proposed, but execution is denied or routed to approval. |
+| Advisory | Harmony and agents can recommend work, but founder approval is required before execution. |
+| Bounded | Eligible low/medium-risk work can execute only inside category, risk, quota, and restricted-category limits. |
+| Low threshold | Allows routine low-risk work only when the global, agent, and category policies all allow it. |
+| Medium threshold | Allows low and medium-risk work only when all policy layers allow it; medium-risk execution can notify the founder. |
+| Max Actions/Hour | Global hourly cap for auto-executed and auto-plus-notified decisions. `0` disables hourly autonomous execution. |
+| Delegation Depth | Maximum nested agent handoffs during an autonomous pass. `0` disables delegation chaining. |
+| Daily quota | Per-agent count of `auto_executed` and `notified` decisions since UTC midnight. `0` disables auto-execution for that agent. |
+| Monthly quota | Per-agent count of `auto_executed` and `notified` decisions since the first day of the UTC month. `0` disables auto-execution for that agent. |
+
+Restricted categories remain hard-coded approval-only:
+
+- financial
+- code
+- security
+- architecture
+- publishing
+- destructive
+
+High and critical risk always route to approval. The autonomy pass currently
+advances only safe internal work status; external connector mutations still use
+the connector policy and approval gates above.
+
 ## Remaining founder credential requirements
 
 Set in Vercel (Production + Preview); OAuth callback base `https://<prod-domain>/api/integrations/{id}/callback`.

@@ -119,13 +119,24 @@ export async function runAutonomyPass(_prev: ActionState, _formData: FormData): 
 
   const items = await listWorkItems(user.id, { companyId, status: "proposed", limit: 200 });
 
-  // Today's auto-action burn per agent (for budget enforcement).
+  // Auto-action burn for budget enforcement. Counts only internal decisions that
+  // actually auto-executed or auto-executed with notification.
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
+  const hourStart = new Date(Date.now() - 60 * 60 * 1000);
+  const monthStart = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1));
   const usedToday: Record<string, number> = {};
+  const usedMonth: Record<string, number> = {};
+  let usedHour = 0;
   for (const a of await listAutonomyAudit(user.id, 500)) {
     if ((a.decision === "auto_executed" || a.decision === "notified") && new Date(a.created_at) >= todayStart) {
       usedToday[a.agent] = (usedToday[a.agent] ?? 0) + 1;
+    }
+    if ((a.decision === "auto_executed" || a.decision === "notified") && new Date(a.created_at) >= monthStart) {
+      usedMonth[a.agent] = (usedMonth[a.agent] ?? 0) + 1;
+    }
+    if ((a.decision === "auto_executed" || a.decision === "notified") && new Date(a.created_at) >= hourStart) {
+      usedHour += 1;
     }
   }
 
@@ -148,8 +159,13 @@ export async function runAutonomyPass(_prev: ActionState, _formData: FormData): 
     // Budget gate: even auto-eligible items wait if the agent's daily budget is spent.
     if (decision.decision === "auto_executed" || decision.decision === "notified") {
       const limit = state.agents[it.agent]?.daily_action_limit ?? 0;
+      const monthlyLimit = state.agents[it.agent]?.monthly_action_limit ?? 0;
       if ((usedToday[it.agent] ?? 0) >= limit) {
         decision = { decision: "pending_approval", reason: "Daily autonomy budget exhausted." };
+      } else if ((usedMonth[it.agent] ?? 0) >= monthlyLimit) {
+        decision = { decision: "pending_approval", reason: "Monthly autonomy budget exhausted." };
+      } else if (usedHour >= state.global.max_actions_per_hour) {
+        decision = { decision: "pending_approval", reason: "Hourly autonomy budget exhausted." };
       }
     }
 
@@ -172,6 +188,8 @@ export async function runAutonomyPass(_prev: ActionState, _formData: FormData): 
       // never reach this branch, so nothing external/irreversible is touched.
       await setWorkItemStatus(user.id, it.id, "done");
       usedToday[it.agent] = (usedToday[it.agent] ?? 0) + 1;
+      usedMonth[it.agent] = (usedMonth[it.agent] ?? 0) + 1;
+      usedHour += 1;
     }
   }
 
