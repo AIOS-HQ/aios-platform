@@ -24,15 +24,30 @@ describe("Mason live execution planner", () => {
     expect(plan.bridge.mutation.allowed).toBe(false);
   });
 
-  it("creates a live GitHub and Vercel operation sequence after Founder approval", () => {
+  it("blocks subscriber access to Mason live execution", () => {
+    const plan = createMasonLiveExecutionPlan({ ...baseInput, founderApproved: true, requesterRole: "subscriber" });
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.operations).toEqual([]);
+    expect(plan.bridge.access.allowed).toBe(false);
+    expect(plan.blockedReason).toContain("access");
+  });
+
+  it("creates a live GitHub, validation, Vercel, and reporting operation sequence after Founder approval", () => {
     const plan = createMasonLiveExecutionPlan({ ...baseInput, founderApproved: true });
 
     expect(plan.status).toBe("ready");
     expect(plan.operations.map((operation) => operation.kind)).toEqual([
       "github_create_branch",
       "github_commit_file",
+      "validation_request",
       "github_open_pull_request",
       "vercel_check_preview",
+      "harmony_report_outcome",
+      "activity_record",
+      "review_queue_update",
+      "julius_memory_update",
+      "company_skill_update",
     ]);
     expect(plan.operations[0].params).toMatchObject({
       repo: "AIOS-HQ/aios-platform",
@@ -55,6 +70,10 @@ describe("Mason live execution planner", () => {
       "npm run i18n:check",
       "npm run build",
     ]);
+    expect(plan.operations.find((operation) => operation.kind === "validation_request")?.params).toMatchObject({
+      commands: plan.validationCommands,
+      branch: "mason/fix-github-integration",
+    });
     expect(plan.prBody).toContain("## Validation requested");
     expect(plan.prBody).toContain("Mason cannot merge this PR");
     expect(plan.bridge.mergePolicy.mergeAllowedNow).toBe(false);
@@ -66,5 +85,27 @@ describe("Mason live execution planner", () => {
     expect(plan.operations.map((operation) => operation.capabilityId)).not.toContain("merge_pull_request");
     expect(plan.operations.some((operation) => operation.capabilityId.includes("repository"))).toBe(false);
     expect(plan.bridge.mutation.destructiveActionsAllowed).toBe(false);
+  });
+
+  it("reports outcomes to Activity, Review Queue, Outcomes, Julius, and Company Skills", () => {
+    const plan = createMasonLiveExecutionPlan({
+      ...baseInput,
+      founderApproved: true,
+      pullRequestUrl: "PR-999",
+      vercelPreviewUrl: "preview-ready",
+    });
+
+    expect(plan.reportingTargets).toEqual(["Activity", "Review Queue", "Outcomes", "Julius", "Company Skills"]);
+    expect(plan.outcomeSummary).toContain("PR-999");
+    expect(plan.outcomeSummary).toContain("preview-ready");
+    expect(plan.operations.map((operation) => operation.capabilityId)).toEqual(
+      expect.arrayContaining([
+        "report_mason_execution_outcome",
+        "emit_activity",
+        "update_review_queue",
+        "update_julius_memory",
+        "update_company_skills",
+      ]),
+    );
   });
 });
