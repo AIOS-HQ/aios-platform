@@ -3,6 +3,8 @@ import "server-only";
 import { executeMasonRuntimePlan, type MasonRuntimeExecutorAdapters } from "@/lib/harmony/code/mason-runtime-executor";
 import type { MasonLiveExecutionPlanInput } from "@/lib/harmony/code/mason-live-execution";
 import { runConnectorCapability } from "@/lib/integrations/connector-runtime";
+import { getConnector } from "@/lib/integrations/connectors";
+import { isConnectorConfigured } from "@/lib/integrations/connector-config";
 import { getConnections } from "@/lib/integrations/connections";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { juliusRemember } from "@/lib/julius/wiring";
@@ -34,9 +36,11 @@ async function runRequiredConnector(
 export async function masonRuntimeHealth(userId: string) {
   const connections = await getConnections(userId);
   const connected = new Set(connections.filter((item) => item.status === "connected").map((item) => item.provider));
+  const github = getConnector("github");
+  const vercel = getConnector("vercel");
   return {
-    github: connected.has("github"),
-    vercel: connected.has("vercel"),
+    github: connected.has("github") && Boolean(github) && isConnectorConfigured(github),
+    vercel: Boolean(vercel) && isConnectorConfigured(vercel),
     harmony: true,
   };
 }
