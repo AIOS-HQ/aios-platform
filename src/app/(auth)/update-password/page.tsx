@@ -28,12 +28,16 @@ export default async function UpdatePasswordPage() {
 
   if (!user) {
     return (
-      <Card>
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl">{t("update.invalidTitle")}</CardTitle>
-          <CardDescription>{t("update.invalidBody")}</CardDescription>
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="space-y-2 px-5 pt-6 text-center sm:px-7 sm:pt-7">
+          <CardTitle className="text-2xl text-white sm:text-3xl">
+            {t("update.invalidTitle")}
+          </CardTitle>
+          <CardDescription className="text-sm leading-6 text-slate-300">
+            {t("update.invalidBody")}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-5 pb-6 sm:px-7 sm:pb-7">
           <Button asChild className="w-full">
             <Link href="/reset-password">{t("update.requestNew")}</Link>
           </Button>
@@ -43,12 +47,16 @@ export default async function UpdatePasswordPage() {
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl">{t("update.title")}</CardTitle>
-        <CardDescription>{t("update.subtitle")}</CardDescription>
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardHeader className="space-y-2 px-5 pt-6 text-center sm:px-7 sm:pt-7">
+        <CardTitle className="text-2xl text-white sm:text-3xl">
+          {t("update.title")}
+        </CardTitle>
+        <CardDescription className="text-sm leading-6 text-slate-300">
+          {t("update.subtitle")}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-6 sm:px-7 sm:pb-7">
         <UpdatePasswordForm />
       </CardContent>
     </Card>

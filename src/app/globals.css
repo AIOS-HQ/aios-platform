@@ -244,3 +244,69 @@
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 35%, transparent 100%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 35%, transparent 100%);
 }
+
+.auth-executive {
+  color-scheme: dark;
+  --background: oklch(0.15 0.03 260);
+  --foreground: oklch(0.98 0.01 255);
+  --card: oklch(0.19 0.035 260);
+  --card-foreground: oklch(0.98 0.01 255);
+  --popover: oklch(0.18 0.03 260);
+  --popover-foreground: oklch(0.98 0.01 255);
+  --primary: oklch(0.69 0.17 255);
+  --primary-foreground: oklch(0.12 0.02 260);
+  --secondary: oklch(0.24 0.035 260);
+  --secondary-foreground: oklch(0.96 0.01 255);
+  --muted: oklch(0.25 0.03 260);
+  --muted-foreground: oklch(0.76 0.02 255);
+  --accent: oklch(0.28 0.06 265);
+  --accent-foreground: oklch(0.96 0.01 255);
+  --border: oklch(0.38 0.03 260);
+  --input: oklch(0.38 0.03 260);
+  --ring: oklch(0.72 0.16 245);
+}
+
+.auth-executive-panel,
+.auth-executive-rail {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.115), rgba(255, 255, 255, 0.04)),
+    rgba(8, 13, 31, 0.72);
+  box-shadow:
+    0 24px 80px -36px rgba(56, 189, 248, 0.55),
+    0 18px 50px -30px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(22px);
+}
+
+.auth-executive-workspace label {
+  color: rgba(226, 232, 240, 0.92);
+}
+
+.auth-executive-workspace input {
+  height: 2.75rem;
+  border-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.055);
+  color: white;
+}
+
+.auth-executive-workspace input:focus-visible {
+  border-color: rgba(125, 211, 252, 0.5);
+  --tw-ring-color: rgba(125, 211, 252, 0.45);
+}
+
+.auth-executive-workspace input::placeholder {
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.auth-executive-workspace button[type="submit"] {
+  min-height: 2.75rem;
+  background: linear-gradient(135deg, #7dd3fc, #6366f1);
+  color: #06101f;
+  box-shadow: 0 14px 34px -18px rgba(125, 211, 252, 0.95);
+}
+
+.auth-executive-workspace button[type="submit"]:hover {
+  filter: brightness(1.06);
+}

@@ -91,9 +91,73 @@
       "password": "Password",
       "confirmPassword": "Confirm password"
     },
+    "executive": {
+      "homeAria": "Harmony home",
+      "eyebrow": "Autonomous Operating System",
+      "title": "Enter your executive workspace.",
+      "subtitle": "Harmony brings your operating system, intelligence layer, and AI workforce into one secure command surface.",
+      "support": "Need help entering your workspace?",
+      "supportCta": "Help center",
+      "signals": [
+        "Secure session handoff",
+        "Live operating context",
+        "Founder-grade visibility"
+      ],
+      "feed": {
+        "label": "Harmony Live Feed",
+        "previous": "Previous update",
+        "next": "Next update",
+        "customer": [
+          {
+            "label": "Harmony in Action",
+            "title": "Your operating system is ready",
+            "body": "Sign in to coordinate tasks, goals, notes, and daily decisions from one Harmony workspace.",
+            "tone": "status"
+          },
+          {
+            "label": "AIOS Updates",
+            "title": "A cleaner executive entrance",
+            "body": "The authentication workspace now mirrors the premium AIOS operating environment.",
+            "tone": "feature"
+          },
+          {
+            "label": "Subscription Benefits",
+            "title": "More context, less switching",
+            "body": "Harmony keeps your personal operating context close so you can return to work quickly.",
+            "tone": "benefit"
+          },
+          {
+            "label": "System Status",
+            "title": "Core services operating normally",
+            "body": "Authentication and Harmony workspace access are available.",
+            "tone": "status"
+          }
+        ],
+        "founder": [
+          {
+            "label": "Executive Intelligence",
+            "title": "Command context prepared",
+            "body": "Founder surfaces can use this feed for health, reviews, objectives, and deployment visibility.",
+            "tone": "status"
+          },
+          {
+            "label": "Company Health",
+            "title": "Operational signals prioritized",
+            "body": "Critical reviews and production notices are designed to appear ahead of general updates.",
+            "tone": "alert"
+          },
+          {
+            "label": "AI Workforce Status",
+            "title": "Workforce summary ready",
+            "body": "The same feed shell can surface founder-specific workforce and recommendation updates.",
+            "tone": "feature"
+          }
+        ]
+      }
+    },
     "login": {
       "title": "Welcome back",
-      "subtitle": "Log in to your AIOS account.",
+      "subtitle": "Log in to enter your AIOS executive workspace.",
       "submit": "Log in",
       "forgot": "Forgot password?",
       "noAccount": "Don't have an account?",
