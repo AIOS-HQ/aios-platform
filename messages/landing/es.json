@@ -98,6 +98,28 @@
         "Empresas en Crecimiento"
       ]
     },
+    "customerIntelligence": {
+      "label": "Inteligencia del cliente",
+      "title": "Harmony mantiene visibles las señales importantes antes de que se conviertan en trabajo manual.",
+      "body": "El espacio del cliente está construido alrededor del contexto: prioridades, aprobaciones, integraciones y próximas acciones se mantienen conectadas para que Harmony coordine el trabajo sin obligarte a buscar entre herramientas.",
+      "signals": [
+        {
+          "icon": "ShieldCheck",
+          "label": "Control",
+          "value": "Ejecución con aprobaciones"
+        },
+        {
+          "icon": "Network",
+          "label": "Contexto",
+          "value": "Señales personales y de negocio"
+        },
+        {
+          "icon": "Gauge",
+          "label": "Conciencia",
+          "value": "Estado operativo visible"
+        }
+      ]
+    },
     "problem": {
       "eyebrow": "El problema",
       "title": "Tu vida y tu negocio están dispersos en una decena de herramientas",

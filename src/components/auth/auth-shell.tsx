@@ -139,7 +139,6 @@ export function AuthShell({
       />
       <HarmonyMark
         className="pointer-events-none absolute left-1/2 top-1/2 size-[22rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.07] blur-[0.2px] sm:size-[30rem] lg:left-[35%]"
-        title="Harmony"
       />
 
       <header className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">

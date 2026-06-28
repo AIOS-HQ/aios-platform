@@ -191,7 +191,7 @@ export default async function OperationsPage() {
             title={t("awaitingApproval")}
             action={
               <Button asChild size="sm" variant="outline">
-                <Link href="/settings/approvals">{t("openApprovalCenter")}</Link>
+                <Link href="/harmony/approvals">{t("openApprovalCenter")}</Link>
               </Button>
             }
           >

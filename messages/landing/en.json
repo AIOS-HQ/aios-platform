@@ -98,6 +98,28 @@
         "Growing Companies"
       ]
     },
+    "customerIntelligence": {
+      "label": "Customer intelligence",
+      "title": "Harmony keeps the important signals visible before they become busywork.",
+      "body": "The customer workspace is built around context: priorities, approvals, integrations, and next actions stay connected so Harmony can coordinate the work without making you hunt through tools.",
+      "signals": [
+        {
+          "icon": "ShieldCheck",
+          "label": "Control",
+          "value": "Approval-aware execution"
+        },
+        {
+          "icon": "Network",
+          "label": "Context",
+          "value": "Personal and business signals"
+        },
+        {
+          "icon": "Gauge",
+          "label": "Awareness",
+          "value": "Operational status in view"
+        }
+      ]
+    },
     "problem": {
       "eyebrow": "The problem",
       "title": "Your life and your business are scattered across a dozen tools",

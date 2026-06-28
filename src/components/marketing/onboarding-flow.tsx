@@ -64,30 +64,27 @@ export function OnboardingFlow({
   storageKey: string;
 }) {
   const total = flow.steps.length;
-  const [index, setIndex] = useState(0);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
+  const [index, setIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
     try {
       const saved = window.localStorage.getItem(storageKey);
       if (saved !== null) {
         const n = Number.parseInt(saved, 10);
-        if (Number.isFinite(n) && n >= 0 && n <= total) setIndex(n);
+        if (Number.isFinite(n) && n >= 0 && n <= total) return n;
       }
     } catch {
       /* ignore storage errors */
     }
-    setReady(true);
-  }, [storageKey, total]);
+    return 0;
+  });
 
   useEffect(() => {
-    if (!ready) return;
     try {
       window.localStorage.setItem(storageKey, String(index));
     } catch {
       /* ignore storage errors */
     }
-  }, [index, ready, storageKey]);
+  }, [index, storageKey]);
 
   const done = index >= total;
   const pct = Math.round((Math.min(index, total) / total) * 100);

@@ -1,6 +1,8 @@
 # AIOS Architecture
 
 This document describes how the AIOS Platform is structured and the decisions behind it.
+For the launch-specific v1 blueprint, see
+[`docs/architecture/aios-v1-architecture-blueprint.md`](architecture/aios-v1-architecture-blueprint.md).
 
 ## Overview
 
@@ -80,6 +82,8 @@ Tailwind CSS v4 with CSS variables. Brand tokens (AIOS indigo, surfaces, semanti
 defined once in `src/app/globals.css` under `:root` / `.dark` and exposed to Tailwind via
 `@theme inline`. Dark mode is class-based (`.dark` on `<html>`), set before paint by
 `ThemeScript` to avoid flashes; toggled by `ThemeToggle` and persisted to `localStorage`.
+Harmony uses the official v2 logo as the canonical mark. `getHarmonyLogoSrc(locale)` supports
+official localized logo assets when they exist and falls back to the canonical mark otherwise.
 
 ## Supabase layering
 

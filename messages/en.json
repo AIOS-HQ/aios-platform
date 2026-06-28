@@ -1110,6 +1110,12 @@
     },
     "awareness": {
       "title": "Here's where things stand",
+      "founderFeedTitle": "Founder Executive Feed",
+      "founderFeedClear": "{active} active work items, {waiting} approvals, and {opportunities} opportunities are visible. Autonomy is in {mode} mode.",
+      "founderFeedAlert": "{active} active work items need attention with {waiting} approvals and {opportunities} opportunities in view. Autonomy is in {mode} mode.",
+      "founderLinksLabel": "Founder operational links",
+      "attention": "Needs attention",
+      "operating": "Operating",
       "completed": "Completed today",
       "waiting": "Waiting on you",
       "opportunities": "Opportunities",

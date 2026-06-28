@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { HARMONY_LOGO_SRC } from "./harmony-logo-asset";
+import { getHarmonyLogoSrc } from "./harmony-logo-asset";
 
 /**
  * Harmony brand mark — the official Harmony logo (v2).
@@ -16,14 +16,16 @@ import { HARMONY_LOGO_SRC } from "./harmony-logo-asset";
  */
 export function HarmonyMark({
   className,
+  locale,
   title,
 }: {
   className?: string;
+  locale?: string;
   title?: string;
 }) {
   return (
     <Image
-      src={HARMONY_LOGO_SRC}
+      src={getHarmonyLogoSrc(locale)}
       alt={title ?? ""}
       width={64}
       height={64}
@@ -101,17 +103,19 @@ export function HarmonyAvatar({
 export function HarmonyLogo({
   className,
   showWordmark = true,
+  locale,
   markClassName,
 }: {
   className?: string;
   showWordmark?: boolean;
+  locale?: string;
   markClassName?: string;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <HarmonyMark className={cn("size-8", markClassName)} title="Harmony" />
+      <HarmonyMark className={cn("size-7 sm:size-8", markClassName)} locale={locale} title="Harmony" />
       {showWordmark && (
-        <span className="text-lg font-semibold tracking-tight">Harmony</span>
+        <span className="text-base font-semibold sm:text-lg">Harmony</span>
       )}
     </span>
   );

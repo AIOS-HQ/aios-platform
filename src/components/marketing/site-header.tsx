@@ -63,7 +63,7 @@ export function SiteHeader() {
             <Link href="/login">{t("cta.login")}</Link>
           </Button>
           <Button asChild className="hidden sm:inline-flex">
-            <a href="/#waitlist">{t("cta.getEarlyAccess")}</a>
+            <Link href="/#waitlist">{t("cta.getEarlyAccess")}</Link>
           </Button>
           <button
             type="button"
@@ -95,7 +95,7 @@ export function SiteHeader() {
                 <Link href="/login">{t("cta.login")}</Link>
               </Button>
               <Button asChild onClick={() => setOpen(false)}>
-                <a href="/#waitlist">{t("cta.getEarlyAccess")}</a>
+                <Link href="/#waitlist">{t("cta.getEarlyAccess")}</Link>
               </Button>
             </div>
           </div>

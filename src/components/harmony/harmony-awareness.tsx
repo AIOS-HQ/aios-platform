@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getHarmonyAwareness } from "@/lib/harmony/awareness";
@@ -50,11 +51,31 @@ export async function HarmonyAwareness() {
     return (
       <Card className="mb-4 border-primary/30 bg-primary/5">
         <CardContent className="p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-            <HarmonyAvatar className="size-5" title="Harmony" />
-            {t("title")}
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 gap-3">
+              <HarmonyAvatar className="mt-0.5 size-7 shrink-0" title="Harmony" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{t("founderFeedTitle")}</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  {t(a.alert ? "founderFeedAlert" : "founderFeedClear", {
+                    waiting: a.waitingApprovals,
+                    opportunities: a.opportunities,
+                    active: a.activeWork,
+                    mode: a.autonomyMode,
+                  })}
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-background/70 px-3 py-1 text-xs font-medium">
+              {a.alert ? (
+                <AlertTriangle className="size-3.5 text-destructive" aria-hidden="true" />
+              ) : (
+                <CheckCircle2 className="size-3.5 text-primary" aria-hidden="true" />
+              )}
+              {a.alert ? t("attention") : t("operating")}
+            </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" aria-label={t("founderLinksLabel")}>
             {hub.map((c) => (
               <Link
                 key={c.href}
