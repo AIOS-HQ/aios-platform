@@ -128,6 +128,7 @@ function workspace(overrides: Partial<ExecutiveWorkspace> = {}): ExecutiveWorksp
     recentExecutionHistory: ["Harmony delegated launch validation."],
     productionHealthSignals: [],
     masonEngineeringActivity: [],
+    operationalDigitalTwin: null as never,
     promptContext: "Executive Workspace Context",
     ...overrides,
   };

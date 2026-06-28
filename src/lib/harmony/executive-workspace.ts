@@ -3,12 +3,19 @@ import "server-only";
 import { listDepartments } from "@/lib/data/os/departments";
 import { listActivity } from "@/lib/data/os/activity";
 import { listOpsEvents, type OpsEvent } from "@/lib/observability/ops";
+import { runGithubRead, type GitHubReadResult } from "@/lib/integrations/clients/github";
+import { runVercelDiagnostics } from "@/lib/integrations/clients/vercel-diagnostics";
+import type { DiagnosticsResult } from "@/lib/integrations/clients/supabase-diagnostics";
 import {
   buildHarmonyExecutiveIntelligence,
   type ExecutiveIntelligence,
 } from "@/lib/harmony/executive-intelligence";
 import { createMasonNativeRuntimePlan } from "@/lib/harmony/code/mason";
 import { getAiosAgent } from "@/lib/workforce/registry";
+import {
+  buildOperationalDigitalTwinFromSignals,
+  type OperationalDigitalTwin,
+} from "@/lib/harmony/operational-digital-twin";
 import type { Department, ActivityEvent } from "@/types/database";
 
 export type ExecutiveHealth = "critical" | "attention" | "healthy" | "quiet";
@@ -42,6 +49,7 @@ export interface ExecutiveWorkspace {
   recentExecutionHistory: string[];
   productionHealthSignals: string[];
   masonEngineeringActivity: string[];
+  operationalDigitalTwin: OperationalDigitalTwin;
   promptContext: string;
 }
 
@@ -271,6 +279,8 @@ export function buildExecutiveSnapshotFromIntelligence(input: {
   departments: Department[];
   recentActivity: ActivityEvent[];
   opsEvents: OpsEvent[];
+  github?: GitHubReadResult | null;
+  vercel?: DiagnosticsResult | null;
 }): Omit<ExecutiveWorkspace, "companyId" | "promptContext"> {
   const intelligence = input.intelligence;
   const recentExecutionHistory = activitySummaries(input.recentActivity);
@@ -342,7 +352,7 @@ export function buildExecutiveSnapshotFromIntelligence(input: {
     confidenceLevel: confidenceFrom(intelligence),
   };
 
-  return {
+  const base: Omit<ExecutiveWorkspace, "companyId" | "promptContext" | "operationalDigitalTwin"> = {
     generatedAt: new Date().toISOString(),
     snapshot,
     departments,
@@ -350,6 +360,23 @@ export function buildExecutiveSnapshotFromIntelligence(input: {
     recentExecutionHistory,
     productionHealthSignals,
     masonEngineeringActivity,
+  };
+  const workspaceForTwin = {
+    ...base,
+    companyId: null,
+    promptContext: "",
+  };
+  const operationalDigitalTwin = buildOperationalDigitalTwinFromSignals({
+    workspace: workspaceForTwin,
+    activity: input.recentActivity,
+    opsEvents: input.opsEvents,
+    github: input.github ?? null,
+    vercel: input.vercel ?? null,
+  });
+
+  return {
+    ...base,
+    operationalDigitalTwin,
   };
 }
 
@@ -401,6 +428,7 @@ export function formatExecutiveWorkspaceForPrompt(workspace: ExecutiveWorkspace)
     workspace.productionHealthSignals.length
       ? `Production/GitHub/Vercel signals:\n${workspace.productionHealthSignals.map((item) => `- ${item}`).join("\n")}`
       : "",
+    workspace.operationalDigitalTwin.promptContext,
     "Use this context before giving Founder recommendations. Behave as an Executive Chief of Staff, not a generic assistant.",
   ]
     .filter(Boolean)
@@ -411,17 +439,21 @@ export async function buildExecutiveWorkspace(
   userId: string,
   companyId: string | null,
 ): Promise<ExecutiveWorkspace> {
-  const [intelligence, departments, recentActivity, opsEvents] = await Promise.all([
+  const [intelligence, departments, recentActivity, opsEvents, github, vercel] = await Promise.all([
     buildHarmonyExecutiveIntelligence(userId, companyId),
     companyId ? listDepartments(companyId) : Promise.resolve([]),
     listActivity({ companyId: companyId ?? undefined, limit: 25 }),
     listOpsEvents(userId, { limit: 25, unresolvedOnly: false }),
+    runGithubRead(userId, "monitor_deployment", { repo: process.env.AIOS_GITHUB_REPO ?? "AIOS-HQ/aios-platform" }),
+    runVercelDiagnostics(userId),
   ]);
   const base = buildExecutiveSnapshotFromIntelligence({
     intelligence,
     departments,
     recentActivity,
     opsEvents,
+    github,
+    vercel,
   });
   const workspace: ExecutiveWorkspace = {
     ...base,
