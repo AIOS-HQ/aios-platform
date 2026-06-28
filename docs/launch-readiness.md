@@ -5,30 +5,31 @@ Last updated: 2026-06-28
 ## Executive summary
 
 AIOS is launch-ready for a controlled public beta once production secrets,
-hosted Supabase migrations, domain configuration, and payment/email provider
-credentials are verified in the live environment. Sprint 2 and the Founder
-Experience Certification pass completed the remaining product-facing polish
-that safely belongs before launch without building duplicate systems: public
-landing refinement, Harmony brand sizing, customer intelligence positioning,
-Founder Executive Feed visibility, premium Founder and Subscriber onboarding,
-accurate workforce operational state, mobile workspace polish, accessibility
-cleanup, English/Spanish parity, launch certification documentation, and public
-visual-regression evidence.
+hosted Supabase migrations, domain configuration, payment/email provider
+credentials, and authenticated smoke tests are verified in the live environment.
+Sprint 2, the Founder Experience Certification pass, and the PR #233
+production-readiness review completed the product-facing polish that safely
+belongs before launch without building duplicate systems: public landing
+refinement, Harmony brand sizing, customer intelligence positioning, Founder
+Executive Feed visibility, premium Founder and Subscriber onboarding, accurate
+workforce operational state, mobile workspace polish, customer sidebar cleanup,
+Autonomy quota clarity, accessibility cleanup, English/Spanish parity, launch
+certification documentation, and public visual-regression evidence.
 
 ## Tracker
 
 | Area | Completion | Status | Notes |
 | --- | ---: | --- | --- |
-| Product experience | 96% | Ready for beta | Landing, brand, customer banner, responsive tabs, localized copy, and public screenshot evidence are complete. Remaining work is production visual QA on the deployed domain. |
-| Founder experience | 95% | Ready for beta | Founder Executive Feed, premium onboarding, briefing, operations, diagnostics, command center, workforce, autonomy, approvals, and Mason visibility exist. Remaining work is live-data validation after deployment. |
-| Subscriber experience | 92% | Ready for beta | Auth shell, premium onboarding, customer Harmony workspace, personal tasks/goals/notes, localization, settings, and plan-gated surfaces exist. Remaining work is end-to-end onboarding QA with production auth emails. |
-| Operational readiness | 88% | Needs live verification | Diagnostics for Supabase/Vercel/production readiness exist and Founder onboarding now points to them. Remaining work is live secret verification, hosted migrations, deployment health, GitHub checks, Vercel checks, and approval queue review. |
+| Product experience | 96% | Ready for beta | Landing, brand, customer banner, responsive tabs, localized copy, customer-safe sidebar navigation, and public screenshot evidence are complete. Remaining work is production visual QA on the deployed domain and Harmony Chat multimodal input (#234). |
+| Founder experience | 95% | Ready for beta | Founder Executive Feed, premium onboarding, briefing, operations, diagnostics, command center, workforce, autonomy, approvals, and Mason visibility exist. Remaining work is live-data validation after deployment plus dashboard, command center, and companies refinement (#235, #236, #237). |
+| Subscriber experience | 93% | Ready for beta | Auth shell, premium onboarding, customer Harmony workspace, personal tasks/goals/notes, localized customer sidebar, settings, billing/plan, and plan-gated surfaces exist. Remaining work is end-to-end onboarding QA with production auth emails and Harmony Chat attachments/search (#234). |
+| Operational readiness | 90% | Needs live verification | Diagnostics for Supabase/Vercel/production readiness exist and Founder onboarding points to them. Autonomy quota semantics, tooltips, and usage visualization are clarified. Remaining work is live secret verification, hosted migrations, deployment health, GitHub checks, Vercel checks, approval queue review, bulk approval hardening, and deeper autonomy policy verification (#238, #239). |
 | Localization | 97% | Ready for beta | English and Spanish catalogs are parity-checked; onboarding catalog composition is repaired; new launch copy has Spanish equivalents. Official localized logo fallback is supported when official assets are added. |
 | Accessibility | 92% | Ready for beta | Semantic layout, skip target, keyboard tabs, localized labels, decorative watermark handling, and mobile drawer patterns exist. Remaining work is external screen-reader/browser smoke testing. |
 | Performance | 89% | Ready for beta | App uses server components, embedded brand asset, route loading skeletons, and no new client-heavy systems. Remaining work is deployed Lighthouse/Web Vitals sampling. |
-| Documentation | 95% | Ready for beta | Architecture, database, autonomy governance, connector setup, launch readiness docs, and product completion audit exist. Remaining work is final production runbook details after first live deployment. |
+| Documentation | 96% | Ready for beta | Architecture, database, autonomy governance, connector setup, launch readiness docs, product completion audit, and PR #233 production-readiness review exist. Remaining work is final production runbook details after first live deployment. |
 
-Overall launch completion: **93%**.
+Overall launch completion: **94%**.
 
 ## Certification review
 
@@ -90,16 +91,38 @@ Overall launch completion: **93%**.
 - Founder workflows are consolidated around Harmony, the Command Center,
   Briefing, Operations, Review, Approvals, Workforce, Autonomy, Activity, Code,
   and Diagnostics.
+- Customer workflows are now visible from the main sidebar instead of being
+  buried under Settings: Memory, Learning, Activity, Approval Center,
+  Integrations, Connections, Diagnostics, Billing/Plan, and Settings.
 - Workforce state no longer implies live execution when none exists: agents with
   queued work, active objectives, recommendations, or approvals display a
   truthful Ready state; agents with no live signals remain Idle.
 - Subscriber workflows are consolidated around onboarding, Harmony, tasks, goals,
   notes, settings, auth, and localized navigation.
 - Approval monitoring remains a first-class route through `/harmony/approvals`.
+- Autonomy controls now explain Off, Advisory, Bounded, Low, Medium, Max
+  Actions/Hour, Delegation Depth, Daily, Monthly, and 0-value semantics in the
+  product UI. Daily and monthly usage is visualized per agent.
+
+## PR #233 production-readiness review
+
+Detailed review artifact:
+`docs/launch-certification/pr-233-production-readiness-review.md`
+
+| Area | Disposition | Tracker |
+| --- | --- | --- |
+| Harmony Chat | Streaming exists; multimodal attachments, previews, upload progress, search, and voice input remain launch follow-up. | #234 |
+| Founder Dashboard | Core dashboard exists; KPI hierarchy, briefing quality, execution summaries, workforce visibility, company health, and empty states need refinement. | #235 |
+| Command Center | Core intelligence sections exist; prioritization, execution transparency, and confidence explanations need refinement. | #236 |
+| Companies | Core company management exists; multi-company scalability and summaries need refinement. | #237 |
+| Approval Center | Core pending/history flow exists; richer previews, filtering, before/after comparisons, and bulk decisions need refinement. | #238 |
+| Autonomy | Quota semantics, tooltips, mode docs, threshold docs, and usage visualization updated; deeper policy verification remains tracked. | #239 |
 
 ### Visual evidence
 
 - Product completion audit: `docs/launch-certification/product-completion-audit.md`
+- PR #233 production-readiness review:
+  `docs/launch-certification/pr-233-production-readiness-review.md`
 - Screenshot evidence: `docs/launch-certification/screenshots/*`
 
 ### Documentation review
@@ -134,6 +157,8 @@ Recent merged launch work reviewed from local Git history:
   credentials before paid public launch.
 - Founder/admin account and approval queue must be verified in production before
   opening access.
+- Broad production launch should not proceed until the tracked production
+  readiness issues are triaged: #234, #235, #236, #237, #238, and #239.
 
 ## Recommended final milestones
 

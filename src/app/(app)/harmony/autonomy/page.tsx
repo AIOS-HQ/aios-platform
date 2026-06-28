@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { AutonomyControls } from "@/components/harmony/workforce/autonomy-controls";
 import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
 import {
@@ -48,12 +49,17 @@ export default async function AutonomyPage() {
   todayStart.setUTCHours(0, 0, 0, 0);
   const byDecision: Record<string, number> = {};
   const autoToday: Record<string, number> = {};
+  const autoMonth: Record<string, number> = {};
   let actionsToday = 0;
+  const monthStart = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1));
   for (const a of audit) {
     byDecision[a.decision] = (byDecision[a.decision] ?? 0) + 1;
     if ((a.decision === "auto_executed" || a.decision === "notified") && new Date(a.created_at) >= todayStart) {
       actionsToday += 1;
       autoToday[a.agent] = (autoToday[a.agent] ?? 0) + 1;
+    }
+    if ((a.decision === "auto_executed" || a.decision === "notified") && new Date(a.created_at) >= monthStart) {
+      autoMonth[a.agent] = (autoMonth[a.agent] ?? 0) + 1;
     }
   }
 
@@ -98,19 +104,52 @@ export default async function AutonomyPage() {
                 {AIOS_WORKFORCE.map((a) => {
                   const s = state.agents[a.key];
                   const mode = s?.mode ?? "off";
+                  const dailyLimit = s?.daily_action_limit ?? 0;
+                  const monthlyLimit = s?.monthly_action_limit ?? 0;
+                  const dailyUsed = autoToday[a.key] ?? 0;
+                  const monthlyUsed = autoMonth[a.key] ?? 0;
                   return (
-                    <li key={a.key} className="flex flex-wrap items-center gap-3 p-4">
-                      <AgentGlyph agent={a.key} size="xs" />
-                      <span className="w-28 font-semibold">{a.name}</span>
-                      <Badge
-                        variant={mode === "bounded" ? "default" : mode === "advisory" ? "secondary" : "outline"}
-                        className="text-[10px]"
-                      >
-                        {t(`modes.${mode}`)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {t("budgetBurn", { used: autoToday[a.key] ?? 0, limit: s?.daily_action_limit ?? 0 })}
-                      </span>
+                    <li key={a.key} className="space-y-3 p-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <AgentGlyph agent={a.key} size="xs" />
+                        <span className="w-28 font-semibold">{a.name}</span>
+                        <Badge
+                          variant={mode === "bounded" ? "default" : mode === "advisory" ? "secondary" : "outline"}
+                          className="text-[10px]"
+                          title={t(`help.modes.${mode}`)}
+                        >
+                          {t(`modes.${mode}`)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {dailyLimit > 0
+                            ? t("budgetBurn", { used: dailyUsed, limit: dailyLimit })
+                            : t("budgetDisabled")}
+                        </span>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between gap-2 text-xs text-muted-foreground">
+                            <span>{t("dailyUsage")}</span>
+                            <span className="tabular-nums">
+                              {dailyLimit > 0
+                                ? t("quotaUsage", { used: dailyUsed, limit: dailyLimit })
+                                : t("quotaDisabled")}
+                            </span>
+                          </div>
+                          <Progress value={dailyLimit > 0 ? Math.min(100, (dailyUsed / dailyLimit) * 100) : 0} />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between gap-2 text-xs text-muted-foreground">
+                            <span>{t("monthlyUsage")}</span>
+                            <span className="tabular-nums">
+                              {monthlyLimit > 0
+                                ? t("quotaUsage", { used: monthlyUsed, limit: monthlyLimit })
+                                : t("quotaDisabled")}
+                            </span>
+                          </div>
+                          <Progress value={monthlyLimit > 0 ? Math.min(100, (monthlyUsed / monthlyLimit) * 100) : 0} />
+                        </div>
+                      </div>
                     </li>
                   );
                 })}
@@ -150,6 +189,18 @@ export default async function AutonomyPage() {
 
         {/* ── Controls (Phase 9) ───────────────────────────────────────── */}
         <ExecutiveSection icon={Activity} title={t("controls")}>
+          <div className="grid gap-3 lg:grid-cols-3">
+            {(["off", "advisory", "bounded"] as const).map((mode) => (
+              <Card key={mode}>
+                <CardContent className="space-y-1 p-4">
+                  <p className="text-sm font-semibold">{t(`modes.${mode}`)}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t(`help.modes.${mode}`)}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
           <AutonomyControls
             global={{
               mode: state.global.mode,

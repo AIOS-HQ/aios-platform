@@ -153,6 +153,8 @@ export function evaluate(input: EvalInput): EvalResult {
 
   if (mode === "off") return { decision: "denied", reason: "Autonomy is off." };
   if (mode === "advisory") return { decision: "pending_approval", reason: "Advisory mode — founder approval required." };
+  if (global.max_actions_per_hour <= 0)
+    return { decision: "pending_approval", reason: "No hourly autonomy budget configured." };
 
   // bounded mode — hard invariants first
   if (isRestrictedCategory(category))
