@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { getAgentIcon, JULIUS_ICON } from "@/lib/workforce/agent-icons";
+import { AGENT_ICONS, JULIUS_ICON } from "@/lib/workforce/agent-icons";
+import type { AiosAgentKey } from "@/lib/workforce/registry";
 
 export type AgentGlyphSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -38,7 +39,7 @@ export function AgentGlyph({
   className?: string;
   title?: string;
 }) {
-  const Icon = agent === "julius" ? JULIUS_ICON : getAgentIcon(agent);
+  const Icon = agent === "julius" ? JULIUS_ICON : AGENT_ICONS[agent as AiosAgentKey];
   if (!Icon) return null;
   return (
     <span

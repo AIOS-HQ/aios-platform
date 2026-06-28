@@ -113,7 +113,6 @@ export async function updateCategoryPolicy(_prev: ActionState, formData: FormDat
  * the founder clicks it.
  */
 export async function runAutonomyPass(_prev: ActionState, _formData: FormData): Promise<ActionState> {
-  const t = await getTranslations("harmony");
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
   const state = await getAutonomyState(user.id);

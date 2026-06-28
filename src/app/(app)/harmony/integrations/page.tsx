@@ -57,6 +57,7 @@ export default async function IntegrationsPage() {
   const connectors = listConnectors();
   const connections = await getConnections(user.id);
   const byProvider = new Map(connections.map((c) => [c.provider, c]));
+  const now = new Date().getTime();
 
   const connectedCount = connections.filter((c) => c.status === "connected").length;
 
@@ -69,7 +70,7 @@ export default async function IntegrationsPage() {
     const connected = conn?.status === "connected";
     if (connected) {
       const expired = conn?.expires_at
-        ? new Date(conn.expires_at).getTime() < Date.now()
+        ? new Date(conn.expires_at).getTime() < now
         : false;
       return expired ? "expired" : "connected";
     }

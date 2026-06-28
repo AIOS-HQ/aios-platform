@@ -116,7 +116,10 @@ docs/                 # architecture + setup documentation
 supabase/             # migrations + config (Sprint 1+)
 ```
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full design.
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full design,
+**[docs/architecture/aios-v1-architecture-blueprint.md](docs/architecture/aios-v1-architecture-blueprint.md)**
+for the v1 launch blueprint, and
+**[docs/launch-readiness.md](docs/launch-readiness.md)** for the current launch tracker.
 
 ---
 
@@ -140,6 +143,7 @@ foundation.
 - ✅ **Foundation** — Next.js + TS + Tailwind + shadcn/ui + Supabase clients + i18n + branding
 - ✅ **Sprint 1 — AIOS Core** — auth, profiles, roles, settings, schema, protected shell
 - ✅ **Sprint 2 — Harmony Lite** — dashboard, tasks, goals, notes, Personal Brain, Life Operator, Life Advisor
+- ✅ **Launch Sprint 2 — Product completion & readiness** — landing polish, Founder Executive Feed, diagnostics, localization, accessibility, and launch certification
 - ⬜ Opera (Business OS), mobile, marketplace, billing — _future phases_
 
 ## License

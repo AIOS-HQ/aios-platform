@@ -1110,6 +1110,12 @@
     },
     "awareness": {
       "title": "Esto es lo que hay",
+      "founderFeedTitle": "Feed Ejecutivo del Fundador",
+      "founderFeedClear": "{active} trabajos activos, {waiting} aprobaciones y {opportunities} oportunidades están visibles. La autonomía está en modo {mode}.",
+      "founderFeedAlert": "{active} trabajos activos requieren atención con {waiting} aprobaciones y {opportunities} oportunidades visibles. La autonomía está en modo {mode}.",
+      "founderLinksLabel": "Enlaces operativos del fundador",
+      "attention": "Requiere atención",
+      "operating": "Operando",
       "completed": "Completado hoy",
       "waiting": "Esperándote",
       "opportunities": "Oportunidades",

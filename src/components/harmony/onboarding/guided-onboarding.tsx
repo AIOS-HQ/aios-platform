@@ -128,7 +128,7 @@ export function GuidedOnboarding({ connectedIds }: { connectedIds: string[] }) {
     );
   }
 
-  function Group({ titleKey, ids }: { titleKey: string; ids: string[] }) {
+  function renderGroup(titleKey: string, ids: string[]) {
     if (ids.length === 0) return null;
     return (
       <div className="space-y-2">
@@ -287,11 +287,11 @@ export function GuidedOnboarding({ connectedIds }: { connectedIds: string[] }) {
               <p className="text-sm text-muted-foreground">{t("recommend.empty")}</p>
             ) : (
               <div className="space-y-4">
-                <Group titleKey="communication" ids={groups.communication} />
-                <Group titleKey="business" ids={groups.business} />
-                <Group titleKey="calendar" ids={groups.calendar} />
-                <Group titleKey="device" ids={groups.device} />
-                <Group titleKey="ai" ids={groups.ai} />
+                {renderGroup("communication", groups.communication)}
+                {renderGroup("business", groups.business)}
+                {renderGroup("calendar", groups.calendar)}
+                {renderGroup("device", groups.device)}
+                {renderGroup("ai", groups.ai)}
               </div>
             )}
           </div>

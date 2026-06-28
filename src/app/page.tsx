@@ -85,6 +85,12 @@ type Hero = {
   snapshot: { os: string; live: string; caption: string; cards: SnapshotCard[] };
 };
 type Audiences = { label: string; items: string[] };
+type CustomerIntelligenceBanner = {
+  label: string;
+  title: string;
+  body: string;
+  signals: { icon: string; label: string; value: string }[];
+};
 type ProblemSection = { eyebrow: string; title: string; subtitle: string; pains: IconText[] };
 type WhySection = { eyebrow: string; title: string; subtitle: string; pillars: IconText[] };
 type Hub = { id: string; eyebrow: string; title: string; subtitle: string; features: IconText[] };
@@ -221,6 +227,7 @@ export default function LandingPage() {
 
   const hero = t.raw("hero") as Hero;
   const audiences = t.raw("audiences") as Audiences;
+  const customerIntelligence = t.raw("customerIntelligence") as CustomerIntelligenceBanner;
   const problem = t.raw("problem") as ProblemSection;
   const why = t.raw("why") as WhySection;
   const hubs = t.raw("hubs") as Hub[];
@@ -243,7 +250,7 @@ export default function LandingPage() {
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute left-1/2 top-[-10%] h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-primary/20 blur-[140px]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent"
             aria-hidden="true"
           />
           <div className="relative mx-auto grid w-full max-w-7xl items-center gap-14 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-10 lg:py-28 lg:px-8">
@@ -301,7 +308,7 @@ export default function LandingPage() {
             {/* Hero visual: unified hubs snapshot */}
             <div className="relative lg:pl-6">
               <div
-                className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl"
+                className="pointer-events-none absolute -inset-4 rounded-[2rem] border border-primary/20"
                 aria-hidden="true"
               />
               <div className="relative rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl backdrop-blur-xl">
@@ -321,7 +328,7 @@ export default function LandingPage() {
                 <div className="my-6 flex flex-col items-center justify-center gap-3 py-2">
                   <div className="relative">
                     <div
-                      className="pointer-events-none absolute -inset-5 rounded-full bg-primary/25 blur-2xl"
+                      className="pointer-events-none absolute -inset-4 rounded-[1.75rem] border border-primary/30"
                       aria-hidden="true"
                     />
                     <HarmonyMark className="relative size-20" title="Harmony" />
@@ -352,6 +359,34 @@ export default function LandingPage() {
                   >
                     {a}
                   </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Customer intelligence banner */}
+          <div className="relative mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+            <div className="grid gap-5 rounded-2xl border border-primary/20 bg-primary/[0.04] p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  {customerIntelligence.label}
+                </p>
+                <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
+                  {customerIntelligence.title}
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  {customerIntelligence.body}
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[32rem]">
+                {customerIntelligence.signals.map((signal) => (
+                  <div key={signal.label} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                      <Icon name={signal.icon} className="size-4 text-primary" />
+                      {signal.label}
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-foreground">{signal.value}</p>
+                  </div>
                 ))}
               </div>
             </div>
@@ -523,7 +558,7 @@ export default function LandingPage() {
             {/* Command center panel mock */}
             <div className="relative">
               <div
-                className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl"
+                className="pointer-events-none absolute -inset-4 rounded-[2rem] border border-primary/20"
                 aria-hidden="true"
               />
               <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a1020]/80 shadow-2xl backdrop-blur-xl">
@@ -664,7 +699,7 @@ export default function LandingPage() {
         {/* ─────────────────────── Final CTA ─────────────────────── */}
         <section className="relative overflow-hidden border-t border-white/[0.06]">
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[150px]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent"
             aria-hidden="true"
           />
           <div className="relative mx-auto w-full max-w-4xl px-4 py-24 text-center sm:px-6 lg:px-8 lg:py-32">
