@@ -68,3 +68,6 @@ The platform remains suitable for a controlled beta after the standard
 production-only checks complete. The tracker issues above should be resolved
 before broad production launch, especially the chat attachment/storage work and
 approval bulk-decision safety work.
+
+Follow-up public-launch opportunity audit:
+`docs/launch-certification/production-launch-opportunities.md`.
