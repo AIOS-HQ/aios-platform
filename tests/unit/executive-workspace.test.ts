@@ -333,6 +333,7 @@ describe("executive workspace", () => {
     expect(prompt).toContain("Company Skills evolution");
     expect(prompt).toContain("Julius memory");
     expect(prompt).toContain("Production/GitHub/Vercel signals");
+    expect(prompt).toContain("Operational Digital Twin");
     expect(prompt).toContain("Use this context before giving Founder recommendations");
   });
 });
