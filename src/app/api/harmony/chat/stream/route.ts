@@ -27,7 +27,15 @@ export const dynamic = "force-dynamic";
 
 const encoder = new TextEncoder();
 const sse = (obj: unknown) => encoder.encode(`data: ${JSON.stringify(obj)}\n\n`);
-
+function isMasonHealthCommand(input: string): boolean {
+  const lower = (input ?? "").trim().toLowerCase();
+  return (
+    lower.includes("mason runtime health") ||
+    lower.includes("show mason runtime") ||
+    lower.includes("show mason health") ||
+    lower.includes("mason health")
+  );
+}
 export async function POST(req: Request): Promise<Response> {
   let input = "";
   try {
@@ -36,7 +44,10 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     // No / invalid body — treat as empty; runOperator will return its guidance.
   }
-
+if (isMasonHealthCommand(input)) {
+  const result = await runOperator(input);
+  return Response.json({ kind: "result", result });
+}
   // Non-streamable turns: delegate to the canonical brain, single JSON result.
   if (!(await isStreamableHarmonyTurn(input))) {
     try {
