@@ -19,11 +19,15 @@ export async function handleMasonEngineeringMessage(input: {
 }) {
   const slug = slugify(input.message);
 
-  return runMasonProductionRuntime({
+  return runMasonProductionRuntime({companyId: input.companyId ?? null,
     userId: input.userId,
     companyId: input.companyId ?? null,
     objective: input.message,
-    repository: input.repository ?? process.env.HARMONY_DEFAULT_GITHUB_REPO ?? process.env.GITHUB_DEFAULT_REPO ?? "AIOS-HQ/aios-platform",
+    repository:
+  input.repository ??
+  process.env.HARMONY_DEFAULT_GITHUB_REPO ??
+  process.env.GITHUB_DEFAULT_REPO ??
+  "AIOS-HQ/aios-platform",
     requesterRole: "founder",
     founderApproved: input.founderApproved === true,
     branchName: `mason/${slug || "engineering-task"}`,

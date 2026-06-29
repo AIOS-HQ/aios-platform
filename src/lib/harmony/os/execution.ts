@@ -14,6 +14,7 @@ import {
   formatAdaptivePlan,
 } from "@/lib/harmony/adaptive-planning";
 import { runConnectorCapability } from "@/lib/integrations/connector-runtime";
+import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
 import {
   clampAutonomy,
   requiresApproval,
@@ -35,7 +36,23 @@ function matchValue(text: string, key: string): string | null {
   const m = text.match(re);
   return m?.[1]?.trim() || null;
 }
+function isMasonEngineeringWork(item: WorkItem): boolean {
+  const text = `${item.title}\n${item.description ?? ""}`.toLowerCase();
 
+  return (
+    text.includes("mason") ||
+    text.includes("github") ||
+    text.includes("repo:") ||
+    text.includes("branch") ||
+    text.includes("pull request") ||
+    text.includes("pr ") ||
+    text.includes("commit") ||
+    text.includes("code") ||
+    text.includes("runtime") ||
+    text.includes("bug") ||
+    text.includes("fix")
+  );
+}
 function matchRepo(text: string): string | null {
   const m = text.match(/\brepo\s*[:=]\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/i);
   return m?.[1]?.trim() || null;
@@ -390,7 +407,61 @@ export async function executeWorkItem(
 
     return "completed";
   }
+   if (isMasonEngineeringWork(item)) {
+    const text = `${item.title}\n\n${item.description ?? ""}`.trim();
 
+    const masonResult = await handleMasonEngineeringMessage({
+      userId,
+      companyId: item.company_id,
+      repository: matchRepo(text),
+      message: text,
+      founderApproved: opts?.force === true,
+    });
+
+    const masonNote = [
+      `Mason status: ${masonResult.status}`,
+      `Summary: ${masonResult.summary}`,
+      `Pull request: ${masonResult.pullRequestUrl ?? "not returned"}`,
+      `Preview: ${masonResult.previewUrl ?? "not returned"}`,
+    ].join("\n");
+
+    const description = `${item.description ?? ""}\n\n${to("execution.resultLabel")}\n${masonNote}`.slice(
+      0,
+      LIMITS.noteContent,
+    );
+
+    const outcome: ExecutionOutcome =
+      masonResult.status === "completed" ? "completed" : "blocked";
+
+    await supabase
+      .from("work_items")
+      .update({ status: outcome, description })
+      .eq("id", item.id)
+      .eq("user_id", userId);
+
+    await emitActivity({
+      userId,
+      companyId: item.company_id,
+      departmentId: item.department_id,
+      actorType: "agent",
+      actorId: item.agent_id ?? "mason",
+      kind: outcome === "completed" ? "agent_action" : "system",
+      summary:
+        outcome === "completed"
+          ? `Mason completed engineering work: ${item.title}`
+          : `Mason blocked engineering work: ${item.title}`,
+      refType: "work_item",
+      refId: item.id,
+    });
+
+    if (opts?.force) {
+      await postLifeOperatorMessage(supabase, userId, masonNote);
+    }
+
+    await recordExecutionSkill(userId, item, outcome, masonNote);
+
+    return outcome;
+  }
   let result: string;
   let providerFailed = false;
   try {
