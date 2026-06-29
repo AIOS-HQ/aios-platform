@@ -380,11 +380,16 @@ const { data: company } = await supabase
   .maybeSingle();
 
 if (!company?.id) {
-  return {
-    intent: "general",
-    reply:
-      "Harmony needs a company before she can delegate business work.",
-  };
+  return persistOperatorReply(
+    supabase,
+    user.id,
+    conversationId,
+    {
+      intent: "general",
+      reply:
+        "Harmony needs a company before she can delegate business work.",
+    },
+  );
 }
 
 formData.set("company_id", company!.id);
@@ -414,12 +419,17 @@ const result = await delegateToHarmony(
   formData
 );
 
-return {
-  intent: "general",
-  reply: [orchestrationSummary, result.message ?? "Harmony finished delegation."]
-    .filter(Boolean)
-    .join("\n\n"),
-};
+return persistOperatorReply(
+  supabase,
+  user.id,
+  conversationId,
+  {
+    intent: "general",
+    reply: [orchestrationSummary, result.message ?? "Harmony finished delegation."]
+      .filter(Boolean)
+      .join("\n\n"),
+  },
+);
     }
 
 // Founder Harmony: autonomous by default.
