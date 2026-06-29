@@ -223,25 +223,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   if (!text) return { intent: "general", reply: to("empty") };
   const lowerText = text.toLowerCase();
 
-if (
-  lowerText.includes("mason runtime health") ||
-  lowerText.includes("show mason runtime") ||
-  lowerText.includes("show mason health") ||
-  lowerText.includes("mason health")
-) {
-  const health = await masonRuntimeHealth(user.id);
 
-  return {
-    intent: "general",
-    reply: [
-      "Mason Runtime Health",
-      "",
-      `GitHub: ${health.github ? "✅ true" : "❌ false"}`,
-      `Vercel: ${health.vercel ? "✅ true" : "❌ false"}`,
-      `Harmony: ${health.harmony ? "✅ true" : "❌ false"}`
-    ].join("\n"),
-  };
-}
   // Cap input length to bound AI token cost / abuse (no rate limiter yet — #43).
   if (text.length > LIMITS.operatorInput) {
     return { intent: "general", reply: to("tooLong") };
@@ -264,7 +246,30 @@ if (
     "inbound",
     text,
   );
+if (
+  lowerText.includes("mason runtime health") ||
+  lowerText.includes("show mason runtime") ||
+  lowerText.includes("show mason health") ||
+  lowerText.includes("mason health")
+) {
+  const health = await masonRuntimeHealth(user.id);
 
+  return persistOperatorReply(
+    supabase,
+    user.id,
+    conversationId,
+    {
+      intent: "general",
+      reply: [
+        "Mason Runtime Health",
+        "",
+        `GitHub: ${health.github ? "✅ true" : "❌ false"}`,
+        `Vercel: ${health.vercel ? "✅ true" : "❌ false"}`,
+        `Harmony: ${health.harmony ? "✅ true" : "❌ false"}`,
+      ].join("\n"),
+    },
+  );
+}
   const { intent, title } = detectIntent(text);
   if (intent === "execution_request") {
   const formData = new FormData();
