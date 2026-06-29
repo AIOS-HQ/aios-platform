@@ -31,6 +31,16 @@ function revalidateApprovals() {
   revalidatePath("/harmony/work");
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "unknown_error";
+  }
+}
+
 export async function createApproval(
   _prev: ActionState,
   formData: FormData,
@@ -100,7 +110,40 @@ export async function decideApproval(formData: FormData): Promise<void> {
       .eq("id", row.work_item_id)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (wi) await executeWorkItem(supabase, user.id, wi as WorkItem, { force: true });
+
+    if (wi) {
+      const workItem = wi as WorkItem;
+      try {
+        await executeWorkItem(supabase, user.id, workItem, { force: true });
+      } catch (err) {
+        const message = errorMessage(err);
+        console.error("[approval-actions] executeWorkItem", err);
+
+        await supabase
+          .from("work_items")
+          .update({
+            status: "blocked",
+            description: `${workItem.description ?? ""}\n\nApproval execution failed:\n${message}`.slice(
+              0,
+              LIMITS.noteContent,
+            ),
+          })
+          .eq("id", workItem.id)
+          .eq("user_id", user.id);
+
+        await emitActivity({
+          userId: user.id,
+          companyId: row.company_id ?? workItem.company_id ?? null,
+          departmentId: workItem.department_id,
+          actorType: "agent",
+          actorId: workItem.agent_id ?? "harmony",
+          kind: "system",
+          summary: `Approval execution failed: ${workItem.title}`,
+          refType: "work_item",
+          refId: workItem.id,
+        });
+      }
+    }
   }
 
   // Approving/rejecting a gated communications message delivers or cancels it
