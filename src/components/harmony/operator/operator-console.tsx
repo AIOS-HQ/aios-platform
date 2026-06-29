@@ -29,7 +29,7 @@ type Msg = {
 
 /** Distance (px) from the bottom within which we consider the user "following" live. */
 const BOTTOM_THRESHOLD = 80;
-
+const RECENT_LOCAL_UPDATE_MS = 10_000;
 /**
  * The canonical Harmony chat. One implementation, shared across founder,
  * personal, business, and enterprise experiences. Harmony — the AI Chief of
@@ -62,7 +62,11 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
    * pause it while streaming and resume automatically when the stream finishes.
    */
   const streamingRef = useRef(false);
+  const lastLocalUpdateRef = useRef(0);
 
+function markLocalUpdate() {
+  lastLocalUpdateRef.current = Date.now();
+}
   function isNearBottom(el: HTMLDivElement): boolean {
     return el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_THRESHOLD;
   }
@@ -87,6 +91,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
 
     const refresh = async () => {
       if (streamingRef.current) return;
+      if (Date.now() - lastLocalUpdateRef.current < RECENT_LOCAL_UPDATE_MS) return;
       try {
         const loaded = await loadOperatorMessages();
         if (active && !streamingRef.current) {
@@ -119,6 +124,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   ];
 
   function appendAssistant(r: OperatorResult) {
+    markLocalUpdate();
     setMessages((m) => [
       ...m,
       {
@@ -253,6 +259,7 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   ) {
     if (pending) return;
     atBottomRef.current = true;
+    markLocalUpdate();
     setMessages((m) =>
       m.map((x) => (x.id === msgId ? { ...x, resolved: true } : x)),
     );
