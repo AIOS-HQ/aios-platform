@@ -36,6 +36,12 @@ export interface MasonGithubRuntimeAdapter {
     base: string;
     body: string;
   }): Promise<Record<string, unknown>>;
+  createIssue(input: {
+    repository: string;
+    title: string;
+    body?: string | null;
+    labels?: string[] | null;
+  }): Promise<Record<string, unknown>>;
 }
 
 export interface MasonVercelRuntimeAdapter {
@@ -96,8 +102,19 @@ function requireStringArray(params: Record<string, unknown>, key: string): strin
   return value as string[];
 }
 
+function optionalStringArray(params: Record<string, unknown>, key: string): string[] | null {
+  const value = params[key];
+  if (!Array.isArray(value)) return null;
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
 function isMutationOperation(operation: MasonLiveConnectorOperation): boolean {
-  return operation.kind === "github_create_branch" || operation.kind === "github_commit_file" || operation.kind === "github_open_pull_request";
+  return (
+    operation.kind === "github_create_branch" ||
+    operation.kind === "github_commit_file" ||
+    operation.kind === "github_open_pull_request" ||
+    operation.kind === "github_create_issue"
+  );
 }
 
 function isMergeOrDestructive(operation: MasonLiveConnectorOperation): boolean {
@@ -145,6 +162,11 @@ function hasRuntimeEvidence(
       return (
         hasStringEvidence(output, ["url", "htmlUrl", "pullRequestUrl"]) ||
         hasNumberEvidence(output, ["id", "number", "pullRequestNumber"])
+      );
+    case "github_create_issue":
+      return (
+        hasStringEvidence(output, ["url", "htmlUrl", "issueUrl"]) ||
+        hasNumberEvidence(output, ["id", "number", "issueNumber"])
       );
     case "vercel_check_preview":
       return (
@@ -218,6 +240,14 @@ async function executeOperation(
           body: requireString(params, "body"),
         });
         break;
+      case "github_create_issue":
+        output = await adapters.github.createIssue({
+          repository: requireString(params, "repo"),
+          title: requireString(params, "title"),
+          body: optionalString(params, "body"),
+          labels: optionalStringArray(params, "labels"),
+        });
+        break;
       case "validation_request":
         output = await adapters.harmony.requestValidation({
           repository: requireString(params, "repo"),
@@ -278,7 +308,7 @@ async function executeOperation(
     return {
       operation,
       status: "failed",
-      summary: `Mason runtime failed while executing ${operation.kind}.`,
+      summary: `Mason runtime failed while executing ${operation.kind}.",
       error: error instanceof Error ? error.message : "Unknown runtime execution error.",
     };
   }
