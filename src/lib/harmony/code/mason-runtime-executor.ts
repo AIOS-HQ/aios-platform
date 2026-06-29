@@ -114,6 +114,60 @@ function outputUrl(output: Record<string, unknown> | undefined, keys: string[]):
   return null;
 }
 
+function hasStringEvidence(output: Record<string, unknown> | undefined, keys: string[]): boolean {
+  if (!output) return false;
+  return keys.some((key) => {
+    const value = output[key];
+    return typeof value === "string" && value.trim().length > 0;
+  });
+}
+
+function hasNumberEvidence(output: Record<string, unknown> | undefined, keys: string[]): boolean {
+  if (!output) return false;
+  return keys.some((key) => typeof output[key] === "number");
+}
+
+function hasBooleanEvidence(output: Record<string, unknown> | undefined, keys: string[]): boolean {
+  if (!output) return false;
+  return keys.some((key) => output[key] === true);
+}
+
+function hasRuntimeEvidence(
+  operation: MasonLiveConnectorOperation,
+  output: Record<string, unknown> | undefined,
+): boolean {
+  switch (operation.kind) {
+    case "github_create_branch":
+      return hasStringEvidence(output, ["branch", "name", "ref", "sha", "commitSha", "url", "htmlUrl"]);
+    case "github_commit_file":
+      return hasStringEvidence(output, ["sha", "commitSha", "contentSha", "commit", "url", "htmlUrl"]);
+    case "github_open_pull_request":
+      return (
+        hasStringEvidence(output, ["url", "htmlUrl", "pullRequestUrl"]) ||
+        hasNumberEvidence(output, ["id", "number", "pullRequestNumber"])
+      );
+    case "vercel_check_preview":
+      return (
+        hasStringEvidence(output, ["url", "previewUrl", "deploymentUrl", "status"]) ||
+        hasBooleanEvidence(output, ["ok", "ready"])
+      );
+    case "validation_request":
+      return hasBooleanEvidence(output, ["requested"]);
+    case "harmony_report_outcome":
+      return hasBooleanEvidence(output, ["reported"]);
+    case "activity_record":
+      return hasBooleanEvidence(output, ["recorded"]);
+    case "review_queue_update":
+      return hasBooleanEvidence(output, ["queued"]);
+    case "julius_memory_update":
+      return hasBooleanEvidence(output, ["remembered"]);
+    case "company_skill_update":
+      return hasBooleanEvidence(output, ["learned"]);
+    default:
+      return false;
+  }
+}
+
 async function executeOperation(
   operation: MasonLiveConnectorOperation,
   adapters: MasonRuntimeExecutorAdapters,
@@ -204,6 +258,16 @@ async function executeOperation(
         };
     }
 
+    if (!hasRuntimeEvidence(operation, output)) {
+      return {
+        operation,
+        status: "failed",
+        summary: `Mason runtime did not receive execution evidence for ${operation.kind}.`,
+        output,
+        error: "Missing verifiable runtime evidence from connector adapter.",
+      };
+    }
+
     return {
       operation,
       status: "completed",
@@ -241,7 +305,7 @@ export async function executeMasonRuntimePlan(
   for (const operation of plan.operations) {
     const result = await executeOperation(operation, adapters);
     results.push(result);
-    if (result.status === "blocked" || result.status === "failed") break;
+    if (result.status === "blocked" || result.status === "failed" || result.status === "skipped") break;
   }
 
   const pullRequestUrl = outputUrl(
@@ -252,16 +316,18 @@ export async function executeMasonRuntimePlan(
     results.find((result) => result.operation.kind === "vercel_check_preview")?.output,
     ["url", "previewUrl", "deploymentUrl"],
   );
-  const failedOrBlocked = results.find((result) => result.status === "blocked" || result.status === "failed");
+  const incomplete = results.find(
+    (result) => result.status === "blocked" || result.status === "failed" || result.status === "skipped",
+  );
 
   return {
     plan,
-    status: failedOrBlocked ? failedOrBlocked.status === "blocked" ? "blocked" : "failed" : "completed",
+    status: incomplete ? incomplete.status === "blocked" ? "blocked" : "failed" : "completed",
     results,
     pullRequestUrl,
     previewUrl,
-    summary: failedOrBlocked
-      ? failedOrBlocked.summary
+    summary: incomplete
+      ? incomplete.summary
       : `Mason executed ${results.length} runtime operation(s). PR: ${pullRequestUrl ?? "not returned"}. Preview: ${previewUrl ?? "not returned"}.`,
   };
 }
