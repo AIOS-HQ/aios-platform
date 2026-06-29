@@ -19,6 +19,7 @@ import {
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
+import { masonRuntimeHealth } from "@/lib/harmony/code/mason-production-runtime";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -220,6 +221,27 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   const user = await requireUser();
   const text = (input ?? "").trim();
   if (!text) return { intent: "general", reply: to("empty") };
+  const lowerText = text.toLowerCase();
+
+if (
+  lowerText.includes("mason runtime health") ||
+  lowerText.includes("show mason runtime") ||
+  lowerText.includes("show mason health") ||
+  lowerText.includes("mason health")
+) {
+  const health = await masonRuntimeHealth(user.id);
+
+  return {
+    intent: "general",
+    reply: [
+      "Mason Runtime Health",
+      "",
+      `GitHub: ${health.github ? "✅ true" : "❌ false"}`,
+      `Vercel: ${health.vercel ? "✅ true" : "❌ false"}`,
+      `Harmony: ${health.harmony ? "✅ true" : "❌ false"}`
+    ].join("\n"),
+  };
+}
   // Cap input length to bound AI token cost / abuse (no rate limiter yet — #43).
   if (text.length > LIMITS.operatorInput) {
     return { intent: "general", reply: to("tooLong") };
@@ -311,7 +333,7 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   );
 }
   // Founder Business Harmony
-        const lowerText = text.toLowerCase();
+        
 
     if (
       lowerText.startsWith("business:") ||
