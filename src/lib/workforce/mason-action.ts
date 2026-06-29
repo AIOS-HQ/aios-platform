@@ -21,7 +21,7 @@ export async function handleMasonEngineeringMessage(input: {
 
   return runMasonProductionRuntime({companyId: input.companyId ?? null,
     userId: input.userId,
-    companyId: input.companyId ?? null,
+    
     objective: input.message,
     repository:
   input.repository ??
