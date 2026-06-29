@@ -40,7 +40,7 @@ export async function masonRuntimeHealth(userId: string) {
   const vercel = getConnector("vercel");
   return {
     github: github ? connected.has("github") || isConnectorConfigured(github) : false,
-vercel: vercel ? isConnectorConfigured(vercel) : false,
+    vercel: vercel ? isConnectorConfigured(vercel) : false,
     harmony: true,
   };
 }
@@ -71,6 +71,15 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
           head: args.head,
           base: args.base,
           body: args.body,
+        });
+      },
+      createIssue(args) {
+        return runRequiredConnector(input.userId, "github", "create_issue", {
+          repo: args.repository,
+          repository: args.repository,
+          title: args.title,
+          body: args.body ?? null,
+          labels: args.labels ?? [],
         });
       },
     },
