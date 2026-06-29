@@ -2,21 +2,28 @@
 
 import { runMasonProductionRuntime } from "@/lib/harmony/code/mason-production-runtime";
 
-export async function handleMasonEngineeringMessage(input: {
-  userId: string;
-  message: string;
-  founderApproved?: boolean;
-}) {
-  const slug = input.message
+function slugify(value: string): string {
+  return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+}
+
+export async function handleMasonEngineeringMessage(input: {
+  userId: string;
+  message: string;
+  founderApproved?: boolean;
+  companyId?: string | null;
+  repository?: string | null;
+}) {
+  const slug = slugify(input.message);
 
   return runMasonProductionRuntime({
     userId: input.userId,
+    companyId: input.companyId ?? null,
     objective: input.message,
-    repository: "AIOS-HQ/aios-platform",
+    repository: input.repository ?? process.env.HARMONY_DEFAULT_GITHUB_REPO ?? process.env.GITHUB_DEFAULT_REPO ?? "AIOS-HQ/aios-platform",
     requesterRole: "founder",
     founderApproved: input.founderApproved === true,
     branchName: `mason/${slug || "engineering-task"}`,
