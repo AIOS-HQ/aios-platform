@@ -198,10 +198,10 @@ await supabase
     .select("id,direction,body,created_at")
     .eq("user_id", user.id)
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
-    .limit(100);
+    .order("created_at", { ascending: false })
+.limit(100);
 
- const messages = data ?? [];
+ const messages = (data ?? []).reverse();
 
 return messages.map((message, index) => {
   const previous = messages[index - 1];
