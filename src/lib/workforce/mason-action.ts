@@ -15,14 +15,15 @@ export async function handleMasonEngineeringMessage(input: {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
 
-  return runMasonProductionRuntime({companyId: input.companyId ?? null,
+    return runMasonProductionRuntime({
+    companyId: input.companyId ?? null,
     userId: input.userId,
     objective: input.message,
     repository:
-  input.repository ??
-  process.env.HARMONY_DEFAULT_GITHUB_REPO ??
-  process.env.GITHUB_DEFAULT_REPO ??
-  "AIOS-HQ/aios-platform",
+      input.repository ??
+      process.env.HARMONY_DEFAULT_GITHUB_REPO ??
+      process.env.GITHUB_DEFAULT_REPO ??
+      "AIOS-HQ/aios-platform",
     requesterRole: "founder",
     founderApproved: input.founderApproved === true,
     branchName: `mason/${slug || "engineering-task"}`,
