@@ -41,9 +41,23 @@ function inferBaseBranch(message: string): string | null {
   return sanitizeBranchName(match);
 }
 
-function isBranchOnlyRequest(message: string): boolean {
+function removeKnownBranchName(message: string, branchName: string | null): string {
+  if (!branchName) return message;
+  return message.replaceAll(branchName, "");
+}
+
+function explicitlyRequestsPullRequest(message: string, branchName: string | null): boolean {
+  const lower = removeKnownBranchName(message.toLowerCase(), branchName?.toLowerCase() ?? null);
+
+  return (
+    /\b(open|create|make|raise)\s+(a\s+)?(pull request|pr)\b/.test(lower) ||
+    /\b(pull request|pr)\s+(called|named|titled|from|into|to|for)\b/.test(lower)
+  );
+}
+
+function isBranchOnlyRequest(message: string, branchName: string | null): boolean {
   const lower = message.toLowerCase();
-  return /\b(create|new)\s+(a\s+)?branch\b/.test(lower) && !/\b(pull request|pr)\b/.test(lower);
+  return /\b(create|new)\s+(a\s+)?branch\b/.test(lower) && !explicitlyRequestsPullRequest(message, branchName);
 }
 
 export async function handleMasonEngineeringMessage(input: {
@@ -55,7 +69,7 @@ export async function handleMasonEngineeringMessage(input: {
 }) {
   const slug = slugify(input.message);
   const requestedBranch = inferRequestedBranch(input.message);
-  const branchOnly = isBranchOnlyRequest(input.message);
+  const branchOnly = isBranchOnlyRequest(input.message, requestedBranch);
 
   return runMasonProductionRuntime({
     companyId: input.companyId ?? null,
