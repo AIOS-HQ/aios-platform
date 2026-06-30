@@ -72,6 +72,14 @@ function wantsDirectIssue(input: MasonLiveExecutionPlanInput, fileChanges: Mason
   return fileChanges.length === 0 && /\b(issue|ticket|github issue)\b/i.test(input.objective);
 }
 
+function wantsBranchOnly(input: MasonLiveExecutionPlanInput, fileChanges: MasonLiveFileChange[]): boolean {
+  return (
+    input.openPullRequest === false &&
+    fileChanges.length === 0 &&
+    /\b(create|new)\s+(a\s+)?branch\b/i.test(input.objective)
+  );
+}
+
 function inferIssueTitle(input: MasonLiveExecutionPlanInput): string {
   const explicit = input.issueTitle?.trim();
   if (explicit) return explicit;
@@ -125,12 +133,17 @@ function outcomeSummary(input: {
   pullRequestUrl?: string | null;
   vercelPreviewUrl?: string | null;
   issueTitle?: string | null;
+  branchOnly?: boolean;
 }): string {
   return [
     `Mason live execution status: ${input.status}.`,
     `Repository: ${input.bridge.scopedPlan.repository}.`,
     `Branch: ${input.bridge.scopedPlan.branchName}.`,
-    input.issueTitle ? `Issue: ${input.issueTitle}.` : `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
+    input.branchOnly
+      ? "Branch-only execution: no pull request requested."
+      : input.issueTitle
+        ? `Issue: ${input.issueTitle}.`
+        : `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
     `Preview: ${input.vercelPreviewUrl ?? "not inspected yet"}.`,
   ].join(" ");
 }
@@ -275,6 +288,42 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
           labels: input.issueLabels ?? [],
         },
         summary: `Create GitHub issue: ${issueTitle}.`,
+      },
+      ...reportingOperations({ bridge, summary }),
+    ];
+
+    return {
+      bridge,
+      status,
+      operations,
+      validationCommands,
+      validationRequest: validationRequest(validationCommands),
+      prBody: body,
+      reportingTargets,
+      outcomeSummary: summary,
+      blockedReason: null,
+    };
+  }
+
+  if (wantsBranchOnly(input, fileChanges)) {
+    const summary = outcomeSummary({
+      bridge,
+      status,
+      branchOnly: true,
+      vercelPreviewUrl: input.vercelPreviewUrl,
+    });
+    const operations: MasonLiveConnectorOperation[] = [
+      {
+        kind: "github_create_branch",
+        connectorId: "github",
+        capabilityId: "create_branch",
+        approved: true,
+        params: {
+          repo: bridge.scopedPlan.repository,
+          branch: bridge.scopedPlan.branchName,
+          base: bridge.scopedPlan.baseBranch,
+        },
+        summary: `Create branch ${bridge.scopedPlan.branchName} from ${bridge.scopedPlan.baseBranch}.`,
       },
       ...reportingOperations({ bridge, summary }),
     ];
