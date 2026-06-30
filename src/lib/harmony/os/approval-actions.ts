@@ -29,6 +29,7 @@ function revalidateApprovals() {
   revalidatePath("/harmony", "layout");
   revalidatePath("/harmony/approvals");
   revalidatePath("/harmony/work");
+  revalidatePath("/harmony/operator");
 }
 
 function errorMessage(error: unknown): string {
@@ -39,6 +40,35 @@ function errorMessage(error: unknown): string {
   } catch {
     return "unknown_error";
   }
+}
+
+async function postApprovalOperatorMessage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  body: string,
+): Promise<void> {
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("contact", "life-operator")
+    .maybeSingle();
+
+  if (!conversation?.id) return;
+
+  await supabase.from("messages").insert({
+    user_id: userId,
+    conversation_id: conversation.id,
+    direction: "outbound",
+    body: body.slice(0, LIMITS.noteContent),
+    status: "sent",
+  });
+
+  await supabase
+    .from("conversations")
+    .update({ last_message_at: new Date().toISOString() })
+    .eq("id", conversation.id)
+    .eq("user_id", userId);
 }
 
 export async function createApproval(
@@ -114,7 +144,22 @@ export async function decideApproval(formData: FormData): Promise<void> {
     if (wi) {
       const workItem = wi as WorkItem;
       try {
-        await executeWorkItem(supabase, user.id, workItem, { force: true });
+        const outcome = await executeWorkItem(supabase, user.id, workItem, { force: true });
+        if (outcome === "blocked") {
+          const { data: updated } = await supabase
+            .from("work_items")
+            .select("description")
+            .eq("id", workItem.id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          await postApprovalOperatorMessage(
+            supabase,
+            user.id,
+            `Harmony blocked approved work: ${workItem.title}\n\n${String(
+              (updated as { description?: string | null } | null)?.description ?? "No execution detail returned.",
+            )}`,
+          );
+        }
       } catch (err) {
         const message = errorMessage(err);
         console.error("[approval-actions] executeWorkItem", err);
@@ -130,6 +175,12 @@ export async function decideApproval(formData: FormData): Promise<void> {
           })
           .eq("id", workItem.id)
           .eq("user_id", user.id);
+
+        await postApprovalOperatorMessage(
+          supabase,
+          user.id,
+          `Harmony could not execute approved work: ${workItem.title}\n\n${message}`,
+        );
 
         await emitActivity({
           userId: user.id,
