@@ -80,6 +80,10 @@ function wantsBranchOnly(input: MasonLiveExecutionPlanInput, fileChanges: MasonL
   );
 }
 
+function shouldOpenPullRequest(input: MasonLiveExecutionPlanInput): boolean {
+  return input.openPullRequest === true;
+}
+
 function inferIssueTitle(input: MasonLiveExecutionPlanInput): string {
   const explicit = input.issueTitle?.trim();
   if (explicit) return explicit;
@@ -134,6 +138,7 @@ function outcomeSummary(input: {
   vercelPreviewUrl?: string | null;
   issueTitle?: string | null;
   branchOnly?: boolean;
+  commitOnly?: boolean;
 }): string {
   return [
     `Mason live execution status: ${input.status}.`,
@@ -141,9 +146,11 @@ function outcomeSummary(input: {
     `Branch: ${input.bridge.scopedPlan.branchName}.`,
     input.branchOnly
       ? "Branch-only execution: no pull request requested."
-      : input.issueTitle
-        ? `Issue: ${input.issueTitle}.`
-        : `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
+      : input.commitOnly
+        ? "Commit-only execution: no pull request requested."
+        : input.issueTitle
+          ? `Issue: ${input.issueTitle}.`
+          : `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
     `Preview: ${input.vercelPreviewUrl ?? "not inspected yet"}.`,
   ].join(" ");
 }
@@ -267,6 +274,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   const status = "ready" as const;
   const issueTitle = inferIssueTitle(input);
   const issueBody = inferIssueBody(input);
+  const openPr = shouldOpenPullRequest(input);
 
   if (wantsDirectIssue(input, fileChanges)) {
     const summary = outcomeSummary({
@@ -341,7 +349,13 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
     };
   }
 
-  const summary = outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl });
+  const summary = outcomeSummary({
+    bridge,
+    status,
+    pullRequestUrl: input.pullRequestUrl,
+    vercelPreviewUrl: input.vercelPreviewUrl,
+    commitOnly: fileChanges.length > 0 && !openPr,
+  });
   const operations: MasonLiveConnectorOperation[] = [
     {
       kind: "github_create_branch",
@@ -383,7 +397,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
     },
   ];
 
-  if (input.openPullRequest !== false) {
+  if (openPr) {
     operations.push({
       kind: "github_open_pull_request",
       connectorId: "github",
@@ -398,21 +412,21 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
       },
       summary: "Open a PR with summary, risks, validation request, and Founder approval boundary.",
     });
-  }
 
-  operations.push({
-    kind: "vercel_check_preview",
-    connectorId: "vercel",
-    capabilityId: "deployment_status",
-    approved: false,
-    params: {
-      repo: bridge.scopedPlan.repository,
-      branch: bridge.scopedPlan.branchName,
-      objective: bridge.scopedPlan.objective,
-      previewUrl: input.vercelPreviewUrl ?? null,
-    },
-    summary: "Request Vercel preview/build status after PR creation.",
-  });
+    operations.push({
+      kind: "vercel_check_preview",
+      connectorId: "vercel",
+      capabilityId: "deployment_status",
+      approved: false,
+      params: {
+        repo: bridge.scopedPlan.repository,
+        branch: bridge.scopedPlan.branchName,
+        objective: bridge.scopedPlan.objective,
+        previewUrl: input.vercelPreviewUrl ?? null,
+      },
+      summary: "Request Vercel preview/build status after PR creation.",
+    });
+  }
 
   operations.push(...reportingOperations({ bridge, summary }));
 
