@@ -19,6 +19,7 @@ export type MasonLiveConnectorOperationKind =
   | "github_commit_file"
   | "validation_request"
   | "github_open_pull_request"
+  | "github_create_issue"
   | "vercel_check_preview"
   | "harmony_report_outcome"
   | "activity_record"
@@ -44,6 +45,9 @@ export interface MasonLiveExecutionPlanInput {
   branchName?: string | null;
   fileChanges?: MasonLiveFileChange[];
   openPullRequest?: boolean;
+  issueTitle?: string | null;
+  issueBody?: string | null;
+  issueLabels?: string[] | null;
   pullRequestUrl?: string | null;
   vercelPreviewUrl?: string | null;
 }
@@ -62,6 +66,30 @@ export interface MasonLiveExecutionPlan {
 
 function cleanFileChanges(fileChanges?: MasonLiveFileChange[]): MasonLiveFileChange[] {
   return (fileChanges ?? []).filter((change) => change.path.trim() && change.content.length > 0);
+}
+
+function wantsDirectIssue(input: MasonLiveExecutionPlanInput, fileChanges: MasonLiveFileChange[]): boolean {
+  return fileChanges.length === 0 && /\b(issue|ticket|github issue)\b/i.test(input.objective);
+}
+
+function inferIssueTitle(input: MasonLiveExecutionPlanInput): string {
+  const explicit = input.issueTitle?.trim();
+  if (explicit) return explicit;
+
+  const quoted = input.objective.match(/title:\s*["“]?([^"”\n]+)["”]?/i)?.[1]?.trim();
+  if (quoted) return quoted.slice(0, 160);
+
+  return input.objective.replace(/^harmony,?\s*/i, "").replace(/^ask mason to\s*/i, "").slice(0, 160);
+}
+
+function inferIssueBody(input: MasonLiveExecutionPlanInput): string {
+  const explicit = input.issueBody?.trim();
+  if (explicit) return explicit;
+  return [
+    "Created by Mason via Harmony autonomous execution.",
+    "",
+    `Original request: ${input.objective}`,
+  ].join("\n");
 }
 
 function prBody(input: {
@@ -96,12 +124,13 @@ function outcomeSummary(input: {
   status: MasonLiveExecutionPlan["status"];
   pullRequestUrl?: string | null;
   vercelPreviewUrl?: string | null;
+  issueTitle?: string | null;
 }): string {
   return [
     `Mason live execution status: ${input.status}.`,
     `Repository: ${input.bridge.scopedPlan.repository}.`,
     `Branch: ${input.bridge.scopedPlan.branchName}.`,
-    `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
+    input.issueTitle ? `Issue: ${input.issueTitle}.` : `PR: ${input.pullRequestUrl ?? "not opened yet"}.`,
     `Preview: ${input.vercelPreviewUrl ?? "not inspected yet"}.`,
   ].join(" ");
 }
@@ -203,7 +232,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
       prBody: body,
       reportingTargets,
       outcomeSummary: outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl }),
-      blockedReason: "Founder approval is required before Mason can create a branch, mutate files, or open a PR.",
+      blockedReason: "Founder approval is required before Mason can create a branch, mutate files, open a PR, or create a GitHub issue.",
     };
   }
 
@@ -223,6 +252,46 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   }
 
   const status = "ready" as const;
+  const issueTitle = inferIssueTitle(input);
+  const issueBody = inferIssueBody(input);
+
+  if (wantsDirectIssue(input, fileChanges)) {
+    const summary = outcomeSummary({
+      bridge,
+      status,
+      issueTitle,
+      vercelPreviewUrl: input.vercelPreviewUrl,
+    });
+    const operations: MasonLiveConnectorOperation[] = [
+      {
+        kind: "github_create_issue",
+        connectorId: "github",
+        capabilityId: "create_issue",
+        approved: true,
+        params: {
+          repo: bridge.scopedPlan.repository,
+          title: issueTitle,
+          body: issueBody,
+          labels: input.issueLabels ?? [],
+        },
+        summary: `Create GitHub issue: ${issueTitle}.`,
+      },
+      ...reportingOperations({ bridge, summary }),
+    ];
+
+    return {
+      bridge,
+      status,
+      operations,
+      validationCommands,
+      validationRequest: validationRequest(validationCommands),
+      prBody: body,
+      reportingTargets,
+      outcomeSummary: summary,
+      blockedReason: null,
+    };
+  }
+
   const summary = outcomeSummary({ bridge, status, pullRequestUrl: input.pullRequestUrl, vercelPreviewUrl: input.vercelPreviewUrl });
   const operations: MasonLiveConnectorOperation[] = [
     {
