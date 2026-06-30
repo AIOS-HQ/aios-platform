@@ -1,6 +1,7 @@
 "use server";
 
 import { runMasonProductionRuntime } from "@/lib/harmony/code/mason-production-runtime";
+import type { MasonLiveFileChange } from "@/lib/harmony/code/mason-live-execution";
 
 function slugify(value: string): string {
   return value
@@ -20,11 +21,23 @@ function sanitizeBranchName(value: string | null | undefined): string | null {
   return branch.length > 0 ? branch : null;
 }
 
+function sanitizePath(value: string | null | undefined): string | null {
+  const path = (value ?? "")
+    .trim()
+    .replace(/^['\"“”]+|['\"“”]+$/g, "")
+    .replace(/[\s).,;:!?]+$/g, "")
+    .replace(/^\.\//, "");
+
+  return path.length > 0 ? path : null;
+}
+
 function inferRequestedBranch(message: string): string | null {
   const patterns = [
     /\bbranch\s+(?:called|named)\s+([^\s,.;!?]+)/i,
     /\bbranch\s*[:=]\s*([^\s,.;!?]+)/i,
     /\bcreate\s+(?:a\s+)?branch\s+([^\s,.;!?]+)/i,
+    /\bin\s+branch\s+([^\s,.;!?]+)/i,
+    /\bto\s+([A-Za-z0-9._\/-]+)\s+and\s+commit\b/i,
   ];
 
   for (const pattern of patterns) {
@@ -41,12 +54,61 @@ function inferBaseBranch(message: string): string | null {
   return sanitizeBranchName(match);
 }
 
+function inferFilePath(message: string): string | null {
+  const patterns = [
+    /\b(?:add|create|write)\s+(?:a\s+)?(?:file\s+(?:named|called)\s+)?([A-Za-z0-9._\/-]+\.[A-Za-z0-9]+)\b/i,
+    /\bfile\s+(?:named|called)\s+([A-Za-z0-9._\/-]+\.[A-Za-z0-9]+)\b/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern)?.[1];
+    const path = sanitizePath(match);
+    if (path) return path;
+  }
+
+  return null;
+}
+
+function inferFileContent(message: string): string {
+  const quoted =
+    message.match(/\b(?:containing|with|text)\s+(?:the\s+text\s*)?["“]([^"”]+)["”]/i)?.[1] ??
+    message.match(/["“]([^"”]+)["”]/)?.[1];
+
+  return `${quoted?.trim() || "AIOS autonomous execution test successful."}\n`;
+}
+
+function inferFileChanges(message: string): MasonLiveFileChange[] | undefined {
+  const path = inferFilePath(message);
+  if (!path) return undefined;
+
+  return [
+    {
+      path,
+      content: inferFileContent(message),
+      message: `Mason add ${path}`,
+    },
+  ];
+}
+
 function removeKnownBranchName(message: string, branchName: string | null): string {
   if (!branchName) return message;
   return message.replaceAll(branchName, "");
 }
 
+function suppressesPullRequest(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    /\bwithout\s+(opening|creating|making|raising)\s+(a\s+)?(pull request|pr)\b/.test(lower) ||
+    /\b(no|not)\s+(pull request|pr)\b/.test(lower) ||
+    /\bmust\s+not\s+open\s+(a\s+)?(pull request|pr)s?\b/.test(lower) ||
+    /\bdo\s+not\s+open\s+(a\s+)?(pull request|pr)s?\b/.test(lower) ||
+    /\bdon't\s+open\s+(a\s+)?(pull request|pr)s?\b/.test(lower)
+  );
+}
+
 function explicitlyRequestsPullRequest(message: string, branchName: string | null): boolean {
+  if (suppressesPullRequest(message)) return false;
+
   const lower = removeKnownBranchName(message.toLowerCase(), branchName?.toLowerCase() ?? null);
 
   return (
@@ -60,6 +122,11 @@ function isBranchOnlyRequest(message: string, branchName: string | null): boolea
   return /\b(create|new)\s+(a\s+)?branch\b/.test(lower) && !explicitlyRequestsPullRequest(message, branchName);
 }
 
+function isCommitOnlyRequest(message: string, branchName: string | null): boolean {
+  const lower = message.toLowerCase();
+  return /\b(add|create|write|commit)\b/.test(lower) && /\b(file|commit|\.md|\.ts|\.tsx|\.json)\b/.test(lower) && !explicitlyRequestsPullRequest(message, branchName);
+}
+
 export async function handleMasonEngineeringMessage(input: {
   userId: string;
   message: string;
@@ -69,7 +136,10 @@ export async function handleMasonEngineeringMessage(input: {
 }) {
   const slug = slugify(input.message);
   const requestedBranch = inferRequestedBranch(input.message);
+  const fileChanges = inferFileChanges(input.message);
   const branchOnly = isBranchOnlyRequest(input.message, requestedBranch);
+  const commitOnly = isCommitOnlyRequest(input.message, requestedBranch);
+  const prRequested = explicitlyRequestsPullRequest(input.message, requestedBranch);
 
   return runMasonProductionRuntime({
     companyId: input.companyId ?? null,
@@ -84,6 +154,7 @@ export async function handleMasonEngineeringMessage(input: {
     founderApproved: input.founderApproved === true,
     baseBranch: inferBaseBranch(input.message),
     branchName: requestedBranch ?? `mason/${slug || "engineering-task"}`,
-    openPullRequest: branchOnly ? false : undefined,
+    fileChanges,
+    openPullRequest: prRequested ? true : branchOnly || commitOnly || suppressesPullRequest(input.message) ? false : undefined,
   });
 }
