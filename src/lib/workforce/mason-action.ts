@@ -10,6 +10,42 @@ function slugify(value: string): string {
     .slice(0, 48);
 }
 
+function sanitizeBranchName(value: string | null | undefined): string | null {
+  const branch = (value ?? "")
+    .trim()
+    .replace(/^refs\/heads\//i, "")
+    .replace(/^['\"“”]+|['\"“”]+$/g, "")
+    .replace(/[\s).,;:!?]+$/g, "");
+
+  return branch.length > 0 ? branch : null;
+}
+
+function inferRequestedBranch(message: string): string | null {
+  const patterns = [
+    /\bbranch\s+(?:called|named)\s+([^\s,.;!?]+)/i,
+    /\bbranch\s*[:=]\s*([^\s,.;!?]+)/i,
+    /\bcreate\s+(?:a\s+)?branch\s+([^\s,.;!?]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern)?.[1];
+    const branch = sanitizeBranchName(match);
+    if (branch) return branch;
+  }
+
+  return null;
+}
+
+function inferBaseBranch(message: string): string | null {
+  const match = message.match(/\bfrom\s+([^\s,.;!?]+)/i)?.[1] ?? message.match(/\bbase\s*[:=]\s*([^\s,.;!?]+)/i)?.[1];
+  return sanitizeBranchName(match);
+}
+
+function isBranchOnlyRequest(message: string): boolean {
+  const lower = message.toLowerCase();
+  return /\b(create|new)\s+(a\s+)?branch\b/.test(lower) && !/\b(pull request|pr)\b/.test(lower);
+}
+
 export async function handleMasonEngineeringMessage(input: {
   userId: string;
   message: string;
@@ -18,11 +54,12 @@ export async function handleMasonEngineeringMessage(input: {
   repository?: string | null;
 }) {
   const slug = slugify(input.message);
+  const requestedBranch = inferRequestedBranch(input.message);
+  const branchOnly = isBranchOnlyRequest(input.message);
 
-    return runMasonProductionRuntime({
+  return runMasonProductionRuntime({
     companyId: input.companyId ?? null,
     userId: input.userId,
-    
     objective: input.message,
     repository:
       input.repository ??
@@ -31,6 +68,8 @@ export async function handleMasonEngineeringMessage(input: {
       "AIOS-HQ/aios-platform",
     requesterRole: "founder",
     founderApproved: input.founderApproved === true,
-    branchName: `mason/${slug || "engineering-task"}`,
+    baseBranch: inferBaseBranch(input.message),
+    branchName: requestedBranch ?? `mason/${slug || "engineering-task"}`,
+    openPullRequest: branchOnly ? false : undefined,
   });
 }
