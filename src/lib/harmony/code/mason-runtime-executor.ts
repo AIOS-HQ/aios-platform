@@ -96,6 +96,10 @@ function outputUrl(output: Record<string, unknown> | undefined, keys: string[]):
   return null;
 }
 
+function outputString(output: Record<string, unknown> | undefined, keys: string[]): string | null {
+  return outputUrl(output, keys);
+}
+
 function hasStringEvidence(output: Record<string, unknown> | undefined, keys: string[]): boolean {
   if (!output) return false;
   return keys.some((key) => typeof output[key] === "string" && String(output[key]).trim().length > 0);
@@ -201,7 +205,7 @@ async function executeOperation(operation: MasonLiveConnectorOperation, adapters
     return {
       operation,
       status: "failed",
-      summary: `Mason runtime failed while executing ${operation.kind}.",
+      summary: `Mason runtime failed while executing ${operation.kind}.`,
       error: error instanceof Error ? error.message : "Unknown runtime execution error.",
     };
   }
@@ -223,7 +227,25 @@ export async function executeMasonRuntimePlan(input: MasonLiveExecutionPlanInput
 
   const pullRequestUrl = outputUrl(results.find((result) => result.operation.kind === "github_open_pull_request")?.output, ["url", "htmlUrl", "pullRequestUrl"]);
   const previewUrl = outputUrl(results.find((result) => result.operation.kind === "vercel_check_preview")?.output, ["url", "previewUrl", "deploymentUrl"]);
+  const branchOutput = results.find((result) => result.operation.kind === "github_create_branch")?.output;
+  const commitResults = results.filter((result) => result.operation.kind === "github_commit_file" && result.status === "completed");
+  const latestCommitOutput = commitResults.at(-1)?.output;
+  const branch = outputString(branchOutput, ["branch", "name", "ref"]);
+  const committedFiles = commitResults
+    .map((result) => outputString(result.output, ["path", "file", "filename"]) ?? outputString(result.operation.params, ["path"]))
+    .filter((item): item is string => Boolean(item));
+  const commitSha = outputString(latestCommitOutput, ["commitSha", "sha", "commit", "contentSha"]);
+  const commitUrl = outputString(latestCommitOutput, ["url", "htmlUrl", "commitUrl"]);
   const incomplete = results.find((result) => result.status === "blocked" || result.status === "failed" || result.status === "skipped");
+  const evidence = [
+    `Mason executed ${results.length} runtime operation(s).`,
+    `Branch: ${branch ?? "not returned"}.`,
+    committedFiles.length ? `Committed files: ${committedFiles.join(", ")}.` : "Committed files: none.",
+    `Commit: ${commitSha ?? "not returned"}.`,
+    `Commit URL: ${commitUrl ?? "not returned"}.`,
+    `PR: ${pullRequestUrl ?? "not requested"}.`,
+    `Preview: ${previewUrl ?? "not requested"}.`,
+  ].join(" ");
 
   return {
     plan,
@@ -231,6 +253,6 @@ export async function executeMasonRuntimePlan(input: MasonLiveExecutionPlanInput
     results,
     pullRequestUrl,
     previewUrl,
-    summary: incomplete ? incomplete.summary : `Mason executed ${results.length} runtime operation(s). PR: ${pullRequestUrl ?? "not returned"}. Preview: ${previewUrl ?? "not returned"}.`,
+    summary: incomplete ? `${incomplete.summary} ${evidence}` : evidence,
   };
 }
