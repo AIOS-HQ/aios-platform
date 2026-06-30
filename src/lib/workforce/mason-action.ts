@@ -3,6 +3,8 @@
 import { runMasonProductionRuntime } from "@/lib/harmony/code/mason-production-runtime";
 import type { MasonLiveFileChange } from "@/lib/harmony/code/mason-live-execution";
 
+const DEFAULT_AUTONOMY_TEST_CONTENT = "AIOS autonomous execution test successful.";
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -69,12 +71,29 @@ function inferFilePath(message: string): string | null {
   return null;
 }
 
-function inferFileContent(message: string): string {
-  const quoted =
-    message.match(/\b(?:containing|with|text)\s+(?:the\s+text\s*)?["“]([^"”]+)["”]/i)?.[1] ??
-    message.match(/["“]([^"”]+)["”]/)?.[1];
+function isPromptEcho(value: string, originalMessage: string): boolean {
+  const normalizedValue = value.trim().toLowerCase();
+  const normalizedMessage = originalMessage.trim().toLowerCase();
 
-  return `${quoted?.trim() || "AIOS autonomous execution test successful."}\n`;
+  return (
+    normalizedValue.length === 0 ||
+    normalizedValue === normalizedMessage ||
+    normalizedValue.startsWith("harmony, ask mason") ||
+    normalizedValue.startsWith("ask mason") ||
+    /\b(commit|pull request|open pr|without opening a pr|without opening a pull request)\b/.test(normalizedValue)
+  );
+}
+
+function inferFileContent(message: string): string {
+  const explicitContent =
+    message.match(/\b(?:containing|with)\s+(?:the\s+text\s*)?["“]([^"”]+)["”]/i)?.[1] ??
+    message.match(/\bcontent\s*[:=]\s*["“]([^"”]+)["”]/i)?.[1] ??
+    message.match(/\bwrite\s+["“]([^"”]+)["”]/i)?.[1];
+
+  const candidate = explicitContent?.trim();
+  const safeContent = candidate && !isPromptEcho(candidate, message) ? candidate : DEFAULT_AUTONOMY_TEST_CONTENT;
+
+  return `${safeContent}\n`;
 }
 
 function inferFileChanges(message: string): MasonLiveFileChange[] | undefined {
