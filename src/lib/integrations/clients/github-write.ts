@@ -10,8 +10,20 @@ export interface GitHubWriteResult {
   error?: string;
 }
 
+function sanitizeRepo(repo: string): string {
+  return repo
+    .trim()
+    .replace(/^https?:\/\/github\.com\//i, "")
+    .replace(/^github\.com\//i, "")
+    .replace(/\.git$/i, "")
+    .replace(/[\s).,;:!?]+$/g, "")
+    .split("/")
+    .slice(0, 2)
+    .join("/");
+}
+
 function encodeRepo(repo: string): string {
-  return repo.split("/").map(encodeURIComponent).join("/");
+  return sanitizeRepo(repo).split("/").map(encodeURIComponent).join("/");
 }
 
 function encodePath(path: string): string {
@@ -88,8 +100,8 @@ export async function runGithubWrite(
   capabilityId: string,
   params: Record<string, unknown>,
 ): Promise<GitHubWriteResult> {
-  const repo = typeof params.repo === "string" ? params.repo.trim() : "";
-  if (!repo) return { ok: false, error: "repo_required" };
+  const repo = typeof params.repo === "string" ? sanitizeRepo(params.repo) : "";
+  if (!repo || !repo.includes("/")) return { ok: false, error: "repo_required" };
 
   const repoEnc = encodeRepo(repo);
 
