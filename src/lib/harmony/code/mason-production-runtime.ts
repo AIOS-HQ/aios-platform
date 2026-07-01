@@ -33,6 +33,11 @@ async function runRequiredConnector(
   return result.data ?? { ok: true };
 }
 
+function noRequestLabel(value: string | null, summary: string, marker: "PR" | "Preview"): string | null {
+  if (value) return value;
+  return summary.includes(`${marker}: not requested`) ? "not requested" : null;
+}
+
 export async function masonRuntimeHealth(userId: string) {
   const connections = await getConnections(userId);
   const connected = new Set(connections.filter((item) => item.status === "connected").map((item) => item.provider));
@@ -198,7 +203,7 @@ export async function runMasonProductionRuntime(
   return {
     status: result.status,
     summary: result.summary,
-    pullRequestUrl: result.pullRequestUrl,
-    previewUrl: result.previewUrl,
+    pullRequestUrl: noRequestLabel(result.pullRequestUrl, result.summary, "PR"),
+    previewUrl: noRequestLabel(result.previewUrl, result.summary, "Preview"),
   };
 }
