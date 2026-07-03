@@ -110,9 +110,9 @@ export async function revokeDirectiveAction(
   await emitActivity({
     userId: user.id,
     companyId,
-    actorType: "user",
+    actorType: "founder",
     actorId: user.id,
-    kind: "founder_directive_revoked",
+    kind: "system",
     summary: `Founder revoked directive ${directiveId}.`,
     refType: "directive",
     refId: directiveId,
