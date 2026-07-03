@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
@@ -25,6 +25,12 @@ import {
   isOversizedOperatorInput,
   saveOversizedInstructionAsWork,
 } from "@/lib/harmony/operator-intake";
+import {
+  buildAiosCommunicationPrompt,
+  executiveCompletionReport,
+  formatConversationContext,
+  formatLongFounderPrompt,
+} from "@/lib/communication/standard";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -55,6 +61,12 @@ async function juliusSystemPrompt(base: string, userId: string): Promise<string>
 }
 
 async function harmonySystemPrompt(base: string, userId: string, input?: string): Promise<string> {
+  const locale = await getLocale();
+  const communication = buildAiosCommunicationPrompt({
+    locale,
+    agentName: "Harmony",
+    input,
+  });
   try {
     const companyId = await resolvePrimaryCompanyId();
     if (companyId && (await currentUserIsAdmin())) {
@@ -64,16 +76,16 @@ async function harmonySystemPrompt(base: string, userId: string, input?: string)
           companyId,
           objective: input,
         });
-        return `${base}\n\n${orchestration.executiveWorkspace.promptContext}\n\n${orchestration.promptContext}`;
+        return `${base}\n\n${communication}\n\n${orchestration.executiveWorkspace.promptContext}\n\n${orchestration.promptContext}`;
       }
       const workspace = await buildExecutiveWorkspace(userId, companyId);
-      return `${base}\n\n${workspace.promptContext}`;
+      return `${base}\n\n${communication}\n\n${workspace.promptContext}`;
     }
   } catch (e) {
     console.error("[operator-actions] executive workspace context failed", e);
   }
 
-  return juliusSystemPrompt(base, userId);
+  return juliusSystemPrompt(`${base}\n\n${communication}`, userId);
 }
 
 /**
@@ -184,6 +196,56 @@ async function persistOperatorReply(
   return result;
 }
 
+async function loadRecentOperatorContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  conversationId: string,
+  currentText?: string,
+) {
+  const { data } = await supabase
+    .from("messages")
+    .select("direction,body")
+    .eq("user_id", userId)
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(9);
+
+  const messages = ((data ?? []) as { direction: "inbound" | "outbound"; body: string }[])
+    .reverse()
+    .map((message) => ({
+      role: message.direction === "inbound" ? ("user" as const) : ("assistant" as const),
+      text: message.body,
+    }));
+
+  const last = messages.at(-1);
+  if (
+    currentText &&
+    last?.role === "user" &&
+    last.text.trim() === currentText.trim()
+  ) {
+    messages.pop();
+  }
+
+  return messages.slice(-8);
+}
+
+function buildFounderPrompt(
+  text: string,
+  context: { role: "user" | "assistant"; text: string }[],
+): string {
+  const formattedInput = formatLongFounderPrompt(text);
+  const formattedContext = formatConversationContext(context);
+  if (!formattedContext) return formattedInput;
+
+  return [
+    "Recent conversation context:",
+    formattedContext,
+    "",
+    "Current founder request:",
+    formattedInput,
+  ].join("\n");
+}
+
 export async function loadOperatorMessages() {
   const user = await requireUser();
   const supabase = await createClient();
@@ -244,6 +306,7 @@ return messages.map((message, index) => {
  * functional via the rule-based paths.
  */
 export async function runOperator(input: string): Promise<OperatorResult> {
+  const locale = await getLocale();
   const to = await getTranslations("operator");
   const ta = await getTranslations("advisor");
   const user = await requireUser();
@@ -354,15 +417,40 @@ if (
     formData,
   );
 
+  const spanish = locale.toLowerCase().startsWith("es");
+  const report = executiveCompletionReport({
+    locale,
+    completedWork:
+      result.message ??
+      (spanish
+        ? "Enruté el trabajo al carril operativo correcto."
+        : "I routed the work to the right operating lane."),
+    businessImpact: spanish
+      ? "La solicitud ya está capturada y avanzando por el flujo de AIOS en lugar de quedar abierta en el chat."
+      : "The request is now captured and moving through the AIOS workflow instead of staying in chat.",
+    technicalImpact:
+      orchestrationSummary ||
+      (spanish
+        ? "Harmony conservó el contexto de ejecución para el siguiente paso aprobado."
+        : "Harmony preserved the execution context for the next approved step."),
+    risk: spanish
+      ? "Bajo en esta etapa. Cualquier acción sensible o con impacto en producción sigue requiriendo aprobación."
+      : "Low at this stage. Any sensitive or production-impacting action still requires approval.",
+    nextStep: spanish
+      ? "Revisa cualquier solicitud de aprobación que te muestre antes de que continúe la ejecución."
+      : "Review any approval request I surface before execution continues.",
+    launchReadiness: spanish
+      ? "Mejora la disciplina operativa; la validación en producción sigue siendo un paso separado."
+      : "Improved for operating discipline; live production validation still remains separate.",
+  });
+
   return persistOperatorReply(
     supabase,
     user.id,
     conversationId,
       {
         intent: "execution_request",
-        reply: [orchestrationSummary, result.message ?? "Harmony delegated the work."]
-          .filter(Boolean)
-          .join("\n\n"),
+        reply: report,
         actionTaken: {
           type: "work_delegated",
           label: title ?? text,
@@ -429,15 +517,40 @@ const result = await delegateToHarmony(
   formData
 );
 
+const spanish = locale.toLowerCase().startsWith("es");
+const report = executiveCompletionReport({
+  locale,
+  completedWork:
+    result.message ??
+    (spanish
+      ? "Enruté el trabajo al carril operativo correcto."
+      : "I routed the work to the right operating lane."),
+  businessImpact: spanish
+    ? "La solicitud ya está capturada y avanzando por el flujo de la compañía en lugar de quedar como una instrucción abierta."
+    : "The request is now captured and moving through the company workflow instead of staying as an open instruction.",
+  technicalImpact:
+    orchestrationSummary ||
+    (spanish
+      ? "Harmony conservó el contexto operativo para el siguiente paso aprobado."
+      : "Harmony preserved the operating context for the next approved step."),
+  risk: spanish
+    ? "Bajo en esta etapa. Cualquier acción sensible o con impacto en producción sigue requiriendo aprobación."
+    : "Low at this stage. Any sensitive or production-impacting action still requires approval.",
+  nextStep: spanish
+    ? "Revisa la cola de trabajo o el centro de aprobaciones si te muestro una decisión pendiente."
+    : "Review the work queue or approval center if I surface a decision for you.",
+  launchReadiness: spanish
+    ? "Mejora la disciplina operativa; la validación en producción sigue siendo un paso separado."
+    : "Improved for operating discipline; live production validation still remains separate.",
+});
+
 return persistOperatorReply(
   supabase,
   user.id,
   conversationId,
   {
     intent: "general",
-    reply: [orchestrationSummary, result.message ?? "Harmony finished delegation."]
-      .filter(Boolean)
-      .join("\n\n"),
+    reply: report,
   },
 );
     }
@@ -448,31 +561,41 @@ const effectiveAutonomy: AutonomyLevel = 4;
 const mustApprove = requiresApproval(effectiveAutonomy);
 
 if (intent === "create_task") {
-  if (!title) return { intent, reply: to("needTaskTitle") };
+  if (!title) {
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent,
+      reply: to("needTaskTitle"),
+    });
+  }
 
   if (!mustApprove) {
     return confirmOperatorAction("create_task", title);
   }
 
-  return {
+  return persistOperatorReply(supabase, user.id, conversationId, {
     intent,
     reply: to("proposeTask", { title }),
     proposedAction: { type: "create_task", title },
-  };
+  });
 }
 
 if (intent === "create_goal") {
-  if (!title) return { intent, reply: to("needGoalTitle") };
+  if (!title) {
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent,
+      reply: to("needGoalTitle"),
+    });
+  }
 
   if (!mustApprove) {
     return confirmOperatorAction("create_goal", title);
   }
 
-  return {
+  return persistOperatorReply(supabase, user.id, conversationId, {
     intent,
     reply: to("proposeGoal", { title }),
     proposedAction: { type: "create_goal", title },
-  };
+  });
 }
 
 
@@ -485,7 +608,12 @@ if (intent === "create_goal") {
       .order("updated_at", { ascending: false })
       .limit(20);
     const notes = (data as { title: string; content: string }[] | null) ?? [];
-    if (!notes.length) return { intent, reply: to("noNotes") };
+    if (!notes.length) {
+      return persistOperatorReply(supabase, user.id, conversationId, {
+        intent,
+        reply: to("noNotes"),
+      });
+    }
 
     if (isRealProviderConfigured()) {
       const prompt = `${to("summaryPrompt")}\n\n${notes
@@ -504,10 +632,10 @@ if (intent === "create_goal") {
     }
 
     const lines = notes.slice(0, 8).map((n) => `• ${n.title || "Untitled"}`);
-    return {
+    return persistOperatorReply(supabase, user.id, conversationId, {
       intent,
       reply: `${to("summaryIntro", { count: notes.length })}\n${lines.join("\n")}`,
-    };
+    });
   }
 
   if (intent === "suggest_next_steps") {
@@ -524,7 +652,10 @@ if (intent === "create_goal") {
     const lines = recs
       .slice(0, 4)
       .map((r) => `• ${ta(`rec.${r.key}`, r.values ?? {})}`);
-    return { intent, reply: `${to("suggestIntro")}\n${lines.join("\n")}` };
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent,
+      reply: `${to("suggestIntro")}\n${lines.join("\n")}`,
+    });
   }
 
   // Executive reflection — Harmony surfaces what she has learned from real
@@ -559,8 +690,14 @@ if (intent === "create_goal") {
 
   // Free-form question.
   if (isRealProviderConfigured()) {
-    const reply = await getProvider().generate(
+    const context = await loadRecentOperatorContext(
+      supabase,
+      user.id,
+      conversationId,
       text,
+    );
+    const reply = await getProvider().generate(
+      buildFounderPrompt(text, context),
       await harmonySystemPrompt(to("system"), user.id, text),
     );
     return persistOperatorReply(
@@ -588,17 +725,20 @@ export async function confirmOperatorAction(
   if (!clean) return { intent: "general", reply: to("empty") };
 
   const supabase = await createClient();
+  const conversationId = await getOrCreateOperatorConversation(supabase, user.id);
   if (type === "create_task") {
     await supabase
       .from("personal_tasks")
       .insert({ user_id: user.id, title: clean });
     revalidatePath("/harmony");
     revalidatePath("/harmony/tasks");
-    return {
+    const result: OperatorResult = {
       intent: "create_task",
       reply: to("taskCreated", { title: clean }),
       actionTaken: { type: "task_created", label: clean },
     };
+    if (!conversationId) return result;
+    return persistOperatorReply(supabase, user.id, conversationId, result);
   }
 
   await supabase
@@ -606,11 +746,13 @@ export async function confirmOperatorAction(
     .insert({ user_id: user.id, title: clean });
   revalidatePath("/harmony");
   revalidatePath("/harmony/goals");
-  return {
+  const result: OperatorResult = {
     intent: "create_goal",
     reply: to("goalCreated", { title: clean }),
     actionTaken: { type: "goal_created", label: clean },
   };
+  if (!conversationId) return result;
+  return persistOperatorReply(supabase, user.id, conversationId, result);
 }
 
 /**
@@ -668,9 +810,14 @@ export async function beginHarmonyStream(
   const conversationId = await getOrCreateOperatorConversation(supabase, user.id);
   if (!conversationId) return null;
 
+  const context = await loadRecentOperatorContext(
+    supabase,
+    user.id,
+    conversationId,
+  );
   await saveOperatorMessage(supabase, user.id, conversationId, "inbound", text);
   const system = await harmonySystemPrompt(to("system"), user.id, text);
-  return { system, prompt: text };
+  return { system, prompt: buildFounderPrompt(text, context) };
 }
 
 /**

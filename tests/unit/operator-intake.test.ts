@@ -5,10 +5,11 @@ import {
   saveOversizedInstructionAsWork,
 } from "@/lib/harmony/operator-intake";
 import { getPendingApprovalQueue } from "@/lib/harmony/autonomy/review-queue";
+import { LIMITS } from "@/lib/limits";
 import type { ApprovalPayload } from "@/lib/harmony/autonomy/types";
 
 const SHORT = "Harmony, summarize today's standup.";
-const LONG = "Do the following in detail:\n" + "x".repeat(2500);
+const LONG = "Do the following in detail:\n" + "x".repeat(LIMITS.operatorInput + 1);
 
 describe("Operator input intake — long instruction handling", () => {
   it("short Harmony prompt is not oversized", () => {
