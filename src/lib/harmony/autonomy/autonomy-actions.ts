@@ -73,7 +73,7 @@ export async function createDirectiveAction(
     companyId,
     actorType: "founder",
     actorId: user.id,
-    kind: "founder_directive_created",
+    kind: "system",
     summary: `Founder authorized ${agent} to ${allowedActions.join(", ")} in ${domain}.`,
     refType: "directive",
     refId: directive.id,
