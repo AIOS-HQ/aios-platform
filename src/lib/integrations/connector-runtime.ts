@@ -3,7 +3,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
-import { evaluateConnectorRun } from "@/lib/harmony/autonomy/connector-policy";
+import { evaluateConnectorRun, buildConnectorApprovalPayload } from "@/lib/harmony/autonomy/connector-policy";
+import { createApprovalPayload } from "@/lib/harmony/autonomy/data-access";
 import type { AutonomyLevel } from "@/lib/harmony/autonomy/types";
 import { runGithubRead } from "@/lib/integrations/clients/github";
 import { runGithubWrite } from "@/lib/integrations/clients/github-write";
@@ -25,6 +26,8 @@ export interface ConnectorRunResult {
   status: "executed" | "pending" | "blocked" | "failed";
   message: string;
   data?: Record<string, unknown>;
+  /** Set when the action paused for approval — links to the Review Queue payload. */
+  approval_id?: string;
 }
 
 async function audit(
@@ -63,7 +66,7 @@ export async function runConnectorCapability(
   connectorId: string,
   capabilityId: string,
   params: Record<string, unknown> = {},
-  options: { approved?: boolean; autonomyLevel?: AutonomyLevel } = {},
+  options: { approved?: boolean; autonomyLevel?: AutonomyLevel; companyId?: string | null } = {},
 ): Promise<ConnectorRunResult> {
   const tool = `connector:${connectorId}.${capabilityId}`;
   const connector = getConnector(connectorId);
@@ -86,6 +89,13 @@ export async function runConnectorCapability(
   }
 
   if (requiresApproval && !options.approved) {
+    // Persist a resumable approval payload (Review Queue + execution-resumption),
+    // alongside the agent_actions audit row.
+    const approval = await createApprovalPayload(
+      userId,
+      options.companyId ?? null,
+      buildConnectorApprovalPayload(connectorId, capabilityId, params, policy),
+    );
     await audit(
       userId,
       tool,
@@ -97,6 +107,7 @@ export async function runConnectorCapability(
     return {
       ok: true,
       status: "pending",
+      approval_id: approval?.approval_id,
       message: policy.destructive ? "needs_approval_destructive" : "needs_approval",
     };
   }

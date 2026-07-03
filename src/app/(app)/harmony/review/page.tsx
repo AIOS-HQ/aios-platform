@@ -7,6 +7,7 @@ import { getAiosAgent } from "@/lib/workforce/registry";
 import { listObjectives } from "@/lib/workforce/objectives";
 import { listWorkItems } from "@/lib/workforce/work-queue";
 import { listRecommendations } from "@/lib/workforce/recommendations";
+import { getPendingApprovalQueue } from "@/lib/harmony/autonomy/review-queue";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReviewQueue } from "@/components/harmony/workforce/review-queue";
@@ -23,9 +24,10 @@ export default async function ReviewQueuePage() {
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [objectives, work, recs] = await Promise.all([
+  const [objectives, work, approvals, recs] = await Promise.all([
     listObjectives(user.id, { companyId, status: "proposed", limit: 100 }),
     listWorkItems(user.id, { companyId, status: "proposed", limit: 100 }),
+    getPendingApprovalQueue(user.id, companyId),
     listRecommendations(user.id, { companyId, status: "open", limit: 100 }),
   ]);
 
@@ -56,6 +58,13 @@ export default async function ReviewQueuePage() {
                 agentName: getAiosAgent(wk.agent)?.name ?? wk.agent,
                 title: wk.title,
                 risk: wk.risk,
+              }))}
+              approvals={approvals.map((a) => ({
+                approvalId: a.approvalId,
+                agent: a.agent,
+                agentName: getAiosAgent(a.agent)?.name ?? a.agent,
+                label: a.label,
+                destructive: a.destructive,
               }))}
             />
           </CardContent>

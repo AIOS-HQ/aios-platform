@@ -3,6 +3,7 @@ import "server-only";
 import { executeMasonRuntimePlan, type MasonRuntimeExecutorAdapters } from "@/lib/harmony/code/mason-runtime-executor";
 import type { MasonLiveExecutionPlanInput } from "@/lib/harmony/code/mason-live-execution";
 import { runConnectorCapability } from "@/lib/integrations/connector-runtime";
+import { determineMasonExecutionReadiness } from "@/lib/harmony/autonomy/mason-integration";
 import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
 import { getConnections } from "@/lib/integrations/connections";
@@ -185,10 +186,47 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
   };
 }
 
+/**
+ * Default Mason autonomy level for the policy-engine gate. Level 0 keeps Mason
+ * Founder-gated by default (every action pauses for approval) while still
+ * honoring explicit Founder directives that authorize specific actions. An
+ * explicit founderApproved input (e.g. from execution-resumption) short-circuits
+ * the engine to execute.
+ */
+const MASON_DEFAULT_AUTONOMY_LEVEL = 0 as const;
+
 export async function runMasonProductionRuntime(
   input: MasonProductionRuntimeInput,
   adapters: MasonRuntimeExecutorAdapters = createMasonProductionAdapters(input),
 ): Promise<MasonProductionRuntimeResult> {
+  // Route the execute/pause decision through the Unified Autonomy Policy Engine.
+  // Approval-required work persists a resumable approval_payload (surfaced in the
+  // Review Queue) instead of silently blocking.
+  const readiness = await determineMasonExecutionReadiness(
+    input.userId,
+    input.companyId ?? null,
+    input.objective,
+    input.repository,
+    MASON_DEFAULT_AUTONOMY_LEVEL,
+    input.founderApproved,
+  );
+  if (readiness.requires_approval) {
+    return {
+      status: "blocked",
+      summary: `Awaiting Founder approval.${readiness.approval_id ? ` Approval ID: ${readiness.approval_id}.` : ""} ${readiness.reason}`,
+      pullRequestUrl: null,
+      previewUrl: null,
+    };
+  }
+  if (readiness.is_blocked) {
+    return {
+      status: "blocked",
+      summary: `Execution blocked: ${readiness.reason}`,
+      pullRequestUrl: null,
+      previewUrl: null,
+    };
+  }
+
   const health = await masonRuntimeHealth(input.userId);
   if (!health.github || !health.vercel || !health.harmony) {
     return {
@@ -199,7 +237,12 @@ export async function runMasonProductionRuntime(
     };
   }
 
-  const result = await executeMasonRuntimePlan(input, adapters);
+  // The engine authorized execution (founder approval or directive) — run the
+  // plan as Founder-approved for the execution-bridge boundary.
+  const authorizedInput: MasonProductionRuntimeInput = input.founderApproved
+    ? input
+    : { ...input, founderApproved: true };
+  const result = await executeMasonRuntimePlan(authorizedInput, adapters);
   return {
     status: result.status,
     summary: result.summary,

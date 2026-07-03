@@ -30,6 +30,7 @@ import {
   rejectApproval,
   getApprovalPayload,
 } from "./data-access";
+import { resumeApprovedExecution, recordRejectedExecution } from "./execution-resumption";
 
 /**
  * Server action: Founder creates a new directive.
@@ -146,28 +147,33 @@ export async function approveActionAction(
     return { status: "error", message: t("errors.approvalNotFound") };
   }
 
-  const ok = await approveApproval(user.id, approvalId);
-  if (!ok) {
-    return { status: "error", message: t("errors.generic") };
+  // Resume the exact saved execution while the payload is still pending; mark it
+  // approved only once the runtime confirms the action ran, so a failed resume
+  // stays retryable in the Review Queue.
+  const resume = await resumeApprovedExecution(user.id, approvalId, companyId);
+  if (resume.ok) {
+    await approveApproval(user.id, approvalId);
   }
 
-  // Emit activity
   await emitActivity({
     userId: user.id,
     companyId,
     actorType: "founder",
     actorId: user.id,
     kind: "approval",
-    summary: `Founder approved ${payload.original_agent} to ${payload.original_action}.`,
+    summary: resume.ok
+      ? `Founder approved ${payload.original_agent} to ${payload.original_action}; execution resumed.`
+      : `Founder approved ${payload.original_agent} to ${payload.original_action}, but resume failed: ${resume.error ?? "unknown"}.`,
     refType: "approval",
     refId: approvalId,
   });
 
-  // TODO: Resume the paused execution with the approval token
-  // This would call back into the execution runtime with founderApproved=true
-
   revalidatePath("/harmony/review");
   revalidatePath("/harmony/approvals");
+
+  if (!resume.ok) {
+    return { status: "error", message: t("errors.generic") };
+  }
 
   return { status: "success", message: "" };
 }
@@ -200,6 +206,9 @@ export async function rejectActionAction(
   if (!ok) {
     return { status: "error", message: t("errors.generic") };
   }
+
+  // Block the execution with the Founder's reason (audited in execution_results).
+  await recordRejectedExecution(user.id, payload, reason, companyId);
 
   // Emit activity
   await emitActivity({

@@ -7,12 +7,12 @@
  * (`effectiveRisk`) previously used by `connector-runtime.ts`, so connector
  * execution shares one source of truth with every other agent.
  *
- * Pure and dependency-free (engine risk-mapping + autonomy-levels + the connector
- * capability type only): no I/O, client-safe, and unit-testable without a database.
+ * Pure and dependency-free (engine risk-mapping + autonomy-levels + types +
+ * the connector capability type only): no I/O, client-safe, unit-testable.
  */
 
 import type { ConnectorCapability } from "@/lib/integrations/connectors";
-import type { AutonomyLevel, RiskClass } from "./types";
+import type { ActionType, ApprovalPayload, AutonomyLevel, RiskClass } from "./types";
 import { capabilityRisk } from "./risk-mapping";
 import {
   canExecuteRoutineAtLevel,
@@ -91,5 +91,46 @@ export function evaluateConnectorRun(
     decision,
     requiresApproval: decision !== "execute",
     reason,
+  };
+}
+
+/**
+ * Representative engine ActionType for a connector capability's risk class.
+ * The policy decision depends only on risk, so a per-risk representative keeps
+ * the engine's audit typing valid while the real connectorId/capabilityId are
+ * preserved in the approval payload's params for display + resumption.
+ */
+function connectorRiskToAction(risk: RiskClass): ActionType {
+  if (risk === "destructive") return "delete_repository";
+  if (risk === "approval") return "publish_externally";
+  return "analyze_metrics";
+}
+
+/**
+ * Build a Founder approval payload for a connector capability that needs
+ * approval. `original_params` carries the connectorId + capabilityId + params
+ * so the Review Queue can display the capability and execution-resumption can
+ * re-dispatch `runConnectorCapability(..., { approved: true })` after approval.
+ */
+export function buildConnectorApprovalPayload(
+  connectorId: string,
+  capabilityId: string,
+  params: Record<string, unknown>,
+  policy: ConnectorRunPolicy,
+  now: Date = new Date(),
+): ApprovalPayload {
+  const suffix = Math.random().toString(36).slice(2, 9);
+  return {
+    approval_id: `approval_conn_${now.getTime()}_${suffix}`,
+    original_actor: "agent",
+    original_agent: "harmony",
+    original_domain: "operations",
+    original_action: connectorRiskToAction(policy.risk),
+    original_params: { connectorId, capabilityId, params },
+    required_context: {
+      repository: typeof params.repo === "string" ? params.repo : undefined,
+    },
+    created_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + 72 * 60 * 60 * 1000).toISOString(),
   };
 }
