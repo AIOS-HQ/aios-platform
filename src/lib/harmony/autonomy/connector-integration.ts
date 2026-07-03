@@ -22,7 +22,6 @@ import type {
   AutonomyLevel,
   FounderDirective,
 } from "./types";
-import { capabilityRisk } from "./risk-mapping";
 
 /**
  * Map connector capability to a policy action type.
@@ -118,15 +117,17 @@ export async function validateConnectorCapabilityExecution(
   if (needsApproval(decision)) {
     // Create and persist the approval payload
     if (decision.approval_payload) {
-      const approvalId = await createApprovalPayload(userId, companyId, decision.approval_payload);
-      return {
-        can_execute: true,
-        can_execute_now: false,
-        needs_approval: true,
-        is_blocked: false,
-        approval_id: approvalId,
-        reason: decision.reason,
-      };
+      const approvalPayload = await createApprovalPayload(userId, companyId, decision.approval_payload);
+      if (approvalPayload) {
+        return {
+          can_execute: true,
+          can_execute_now: false,
+          needs_approval: true,
+          is_blocked: false,
+          approval_id: approvalPayload.approval_id,
+          reason: decision.reason,
+        };
+      }
     }
   }
 
