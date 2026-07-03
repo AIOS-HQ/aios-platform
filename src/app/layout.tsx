@@ -7,7 +7,18 @@ import { ThemeScript } from "@/components/theme-script";
 import { APP_DESCRIPTION, APP_FULL_NAME } from "@/lib/constants";
 import "./globals.css";
 
+function metadataBaseUrl(): URL {
+  const configured =
+    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  try {
+    return new URL(configured || "http://localhost:3000");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: metadataBaseUrl(),
   title: { default: `${APP_FULL_NAME} — Intelligent Operating Systems`, template: `%s · ${APP_FULL_NAME}` },
   description: APP_DESCRIPTION,
   applicationName: APP_FULL_NAME,

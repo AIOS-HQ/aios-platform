@@ -438,31 +438,41 @@ const effectiveAutonomy: AutonomyLevel = 4;
 const mustApprove = requiresApproval(effectiveAutonomy);
 
 if (intent === "create_task") {
-  if (!title) return { intent, reply: to("needTaskTitle") };
+  if (!title) {
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent,
+      reply: to("needTaskTitle"),
+    });
+  }
 
   if (!mustApprove) {
     return confirmOperatorAction("create_task", title);
   }
 
-  return {
+  return persistOperatorReply(supabase, user.id, conversationId, {
     intent,
     reply: to("proposeTask", { title }),
     proposedAction: { type: "create_task", title },
-  };
+  });
 }
 
 if (intent === "create_goal") {
-  if (!title) return { intent, reply: to("needGoalTitle") };
+  if (!title) {
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent,
+      reply: to("needGoalTitle"),
+    });
+  }
 
   if (!mustApprove) {
     return confirmOperatorAction("create_goal", title);
   }
 
-  return {
+  return persistOperatorReply(supabase, user.id, conversationId, {
     intent,
     reply: to("proposeGoal", { title }),
     proposedAction: { type: "create_goal", title },
-  };
+  });
 }
 
 
@@ -475,7 +485,12 @@ if (intent === "create_goal") {
       .order("updated_at", { ascending: false })
       .limit(20);
     const notes = (data as { title: string; content: string }[] | null) ?? [];
-    if (!notes.length) return { intent, reply: to("noNotes") };
+    if (!notes.length) {
+      return persistOperatorReply(supabase, user.id, conversationId, {
+        intent,
+        reply: to("noNotes"),
+      });
+    }
 
     if (isRealProviderConfigured()) {
       const prompt = `${to("summaryPrompt")}\n\n${notes
@@ -494,10 +509,10 @@ if (intent === "create_goal") {
     }
 
     const lines = notes.slice(0, 8).map((n) => `• ${n.title || "Untitled"}`);
-    return {
+    return persistOperatorReply(supabase, user.id, conversationId, {
       intent,
       reply: `${to("summaryIntro", { count: notes.length })}\n${lines.join("\n")}`,
-    };
+    });
   }
 
   if (intent === "suggest_next_steps") {
@@ -514,7 +529,10 @@ if (intent === "create_goal") {
     const lines = recs
       .slice(0, 4)
       .map((r) => `• ${ta(`rec.${r.key}`, r.values ?? {})}`);
-    return { intent, reply: `${to("suggestIntro")}\n${lines.join("\n")}` };
+    return persistOperatorReply(supabase, user.id, conversationId, {
+      intent,
+      reply: `${to("suggestIntro")}\n${lines.join("\n")}`,
+    });
   }
 
   // Executive reflection — Harmony surfaces what she has learned from real
@@ -578,17 +596,20 @@ export async function confirmOperatorAction(
   if (!clean) return { intent: "general", reply: to("empty") };
 
   const supabase = await createClient();
+  const conversationId = await getOrCreateOperatorConversation(supabase, user.id);
   if (type === "create_task") {
     await supabase
       .from("personal_tasks")
       .insert({ user_id: user.id, title: clean });
     revalidatePath("/harmony");
     revalidatePath("/harmony/tasks");
-    return {
+    const result: OperatorResult = {
       intent: "create_task",
       reply: to("taskCreated", { title: clean }),
       actionTaken: { type: "task_created", label: clean },
     };
+    if (!conversationId) return result;
+    return persistOperatorReply(supabase, user.id, conversationId, result);
   }
 
   await supabase
@@ -596,11 +617,13 @@ export async function confirmOperatorAction(
     .insert({ user_id: user.id, title: clean });
   revalidatePath("/harmony");
   revalidatePath("/harmony/goals");
-  return {
+  const result: OperatorResult = {
     intent: "create_goal",
     reply: to("goalCreated", { title: clean }),
     actionTaken: { type: "goal_created", label: clean },
   };
+  if (!conversationId) return result;
+  return persistOperatorReply(supabase, user.id, conversationId, result);
 }
 
 /**

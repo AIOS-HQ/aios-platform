@@ -23,8 +23,36 @@ export interface DiagnosticsResult {
 
 const MGMT = "https://api.supabase.com/v1/projects";
 
-/** Migrations this platform expects to exist (the additive ones we shipped). */
-const EXPECTED_MIGRATIONS = ["20260604000000", "20260605000000", "20260606000000"];
+/** Migrations this platform expects in production for the launch candidate. */
+const EXPECTED_MIGRATIONS = [
+  "20260601000000",
+  "20260601000100",
+  "20260601000600",
+  "20260601000700",
+  "20260601000800",
+  "20260601000900",
+  "20260601001000",
+  "20260601001100",
+  "20260602000000",
+  "20260603000000",
+  "20260604000000",
+  "20260605000000",
+  "20260606000000",
+  "20260607000000",
+  "20260608000000",
+  "20260615000100",
+  "20260616140000",
+  "20260617120000",
+  "20260624000000",
+  "20260624010000",
+  "20260624020000",
+  "20260624030000",
+  "20260624040000",
+  "20260624050000",
+  "20260624060000",
+  "20260624070000",
+  "20260625000000",
+] as const;
 
 export async function runSupabaseManagementQuery(
   ref: string,

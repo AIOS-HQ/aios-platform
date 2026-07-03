@@ -9,6 +9,24 @@ vi.mock("@/lib/integrations/connections", () => ({
 }));
 
 vi.mock("@/lib/integrations/connectors", () => ({
+  CONNECTORS: [
+    {
+      id: "github",
+      capabilities: [
+        { id: "create_branch", mode: "write", risk: "routine" },
+        { id: "open_pull_request", mode: "write", risk: "routine" },
+        { id: "merge_pull_request", mode: "write", risk: "approval" },
+        { id: "delete_repository", mode: "write", risk: "destructive" },
+      ],
+    },
+    {
+      id: "vercel",
+      capabilities: [
+        { id: "deployment_status", mode: "read" },
+        { id: "trigger_deployment", mode: "write", risk: "routine" },
+      ],
+    },
+  ],
   getConnector: vi.fn((id: string) => ({ id, auth: id === "vercel" ? "api_key" : "oauth2", requiredEnv: [] })),
 }));
 
