@@ -11,9 +11,10 @@ import {
   runOperator,
 } from "@/lib/harmony/operator-actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { HarmonyAvatar } from "@/components/brand/harmony-logo";
 import { cn } from "@/lib/utils";
+import { LIMITS } from "@/lib/limits";
 import type { OperatorResult } from "@/lib/ai/types";
 
 type Msg = {
@@ -431,14 +432,23 @@ function markLocalUpdate() {
           e.preventDefault();
           send(input);
         }}
-        className="flex items-center gap-2 border-t p-3"
+        className="flex items-end gap-2 border-t p-3"
       >
-        <Input
+        <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t("placeholder")}
           aria-label={t("inputLabel")}
           disabled={pending}
+          maxLength={LIMITS.operatorInput}
+          rows={1}
+          className="max-h-40 min-h-10 resize-none"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send(input);
+            }
+          }}
         />
         <Button
           type="submit"

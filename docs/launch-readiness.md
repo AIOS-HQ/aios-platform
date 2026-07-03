@@ -1,6 +1,6 @@
 # AIOS Launch Readiness Tracker
 
-Last updated: 2026-06-28
+Last updated: 2026-07-03
 
 ## Executive summary
 
@@ -8,30 +8,97 @@ AIOS is launch-ready for a controlled public beta once production secrets,
 hosted Supabase migrations, domain configuration, payment/email provider
 credentials, and authenticated smoke tests are verified in the live environment.
 Sprint 2, the Founder Experience Certification pass, the PR #233
-production-readiness review, and the production launch opportunities audit
+production-readiness review, the production launch opportunities audit, and
+EX-001 Executive Experience Layer
 completed the product-facing polish that safely belongs before launch without
 building duplicate systems: public landing
 refinement, Harmony brand sizing, customer intelligence positioning, Founder
 Executive Feed visibility, premium Founder and Subscriber onboarding, accurate
 workforce operational state, mobile workspace polish, customer sidebar cleanup,
 Autonomy quota clarity, accessibility cleanup, English/Spanish parity, launch
-certification documentation, production opportunity tracking, and public
-visual-regression evidence.
+certification documentation, production opportunity tracking, public
+visual-regression evidence, executive communication standards, long-prompt
+Harmony handling, and conversation continuity.
 
 ## Tracker
 
 | Area | Completion | Status | Notes |
 | --- | ---: | --- | --- |
-| Product experience | 96% | Ready for beta | Landing, brand, customer banner, responsive tabs, localized copy, customer-safe sidebar navigation, and public screenshot evidence are complete. Remaining work is production visual QA on the deployed domain, Harmony Chat multimodal input (#234), and demo/investor readiness (#244). |
-| Founder experience | 95% | Ready for beta | Founder Executive Feed, premium onboarding, briefing, operations, diagnostics, command center, workforce, autonomy, approvals, and Mason visibility exist. Remaining work is live-data validation after deployment plus dashboard, command center, companies, AI workforce, and Julius refinement (#235, #236, #237, #241, #243). |
-| Subscriber experience | 93% | Ready for beta | Auth shell, premium onboarding, customer Harmony workspace, personal tasks/goals/notes, localized customer sidebar, settings, billing/plan, and plan-gated surfaces exist. Remaining work is end-to-end onboarding QA with production auth emails and Harmony Chat attachments/search (#234). |
+| Product experience | 97% | Ready for beta | Landing, brand, customer banner, responsive tabs, localized copy, customer-safe sidebar navigation, public screenshot evidence, executive communication standard, and long-prompt Harmony handling are complete. Remaining work is production visual QA on the deployed domain, Harmony Chat multimodal input (#234), and demo/investor readiness (#244). |
+| Founder experience | 96% | Ready for beta | Founder Executive Feed, premium onboarding, briefing, operations, diagnostics, command center, workforce, autonomy, approvals, Mason visibility, executive reporting language, adaptive response guidance, and conversation continuity exist. Remaining work is live-data validation after deployment plus dashboard, command center, companies, AI workforce, and Julius refinement (#235, #236, #237, #241, #243). |
+| Subscriber experience | 94% | Ready for beta | Auth shell, premium onboarding, customer Harmony workspace, personal tasks/goals/notes, localized customer sidebar, settings, billing/plan, plan-gated surfaces, and more natural bilingual Harmony communication exist. Remaining work is end-to-end onboarding QA with production auth emails and Harmony Chat attachments/search (#234). |
 | Operational readiness | 90% | Needs live verification | Diagnostics for Supabase/Vercel/production readiness exist and Founder onboarding points to them. Autonomy quota semantics, tooltips, and usage visualization are clarified. Remaining work is live secret verification, hosted migrations, deployment health, GitHub checks, Vercel checks, approval queue review, connector health/retries, bulk approval hardening, and deeper autonomy policy verification (#238, #239, #242). |
-| Localization | 97% | Ready for beta | English and Spanish catalogs are parity-checked; onboarding catalog composition is repaired; new launch copy has Spanish equivalents. Official localized logo fallback is supported when official assets are added. |
+| Localization | 98% | Ready for beta | English and Spanish catalogs are parity-checked; onboarding catalog composition is repaired; new launch and executive communication copy has native Spanish equivalents. Official localized logo fallback is supported when official assets are added. |
 | Accessibility | 92% | Ready for beta | Semantic layout, skip target, keyboard tabs, localized labels, decorative watermark handling, and mobile drawer patterns exist. Remaining work is external screen-reader/browser smoke testing, mobile route sweeps, and keyboard shortcut review (#245, #41). |
 | Performance | 89% | Ready for beta | App uses server components, embedded brand asset, route loading skeletons, and no new client-heavy systems. Remaining work is deployed Lighthouse/Web Vitals sampling, pagination/query efficiency, telemetry, and production analytics (#245, #37, #39, #43). |
-| Documentation | 96% | Ready for beta | Architecture, database, autonomy governance, connector setup, launch readiness docs, product completion audit, PR #233 production-readiness review, and production launch opportunities audit exist. Remaining work is final production runbook details after first live deployment. |
+| Documentation | 97% | Ready for beta | Architecture, database, autonomy governance, connector setup, launch readiness docs, product completion audit, PR #233 production-readiness review, production launch opportunities audit, and the AIOS Communication Standard exist. Remaining work is final production runbook details after first live deployment. |
 
-Overall launch completion: **94%**.
+Overall launch completion: **95%**.
+
+Estimated beta readiness: **96%**.
+Estimated production readiness: **92%** until live credentials, deployment,
+Stripe, auth email, telemetry, and authenticated smoke tests are verified.
+Estimated public launch readiness: **88%** until high-priority production
+readiness issues are closed or accepted for controlled beta.
+
+## EX-001 Executive Experience Layer
+
+Status: complete for controlled beta, pending live founder smoke with real AI
+provider and production data.
+
+Completed:
+
+- Centralized AIOS Communication Standard added for Harmony and future AIOS
+  agents.
+- Harmony provider prompts now include permanent executive voice, adaptive
+  detail guidance, technical-noise rules, and native English/Spanish
+  communication instructions.
+- Harmony free-form replies now include recent conversation context so short
+  follow-ups such as "continue", "review this", "fix it", "translate it", and
+  "summarize" have continuity.
+- Long founder briefs are accepted up to 12,000 characters and internally
+  segmented before being sent to the provider.
+- Harmony chat input now supports multiline executive prompts with Shift+Enter
+  for line breaks.
+- Rule-based Harmony copy was rewritten in English and Spanish to sound more
+  natural, executive, and outcome-oriented.
+- Delegation/execution-request replies now use an executive report structure:
+  completed work, business impact, technical impact, risk, next step, and launch
+  readiness.
+- Structured Harmony replies and task/goal confirmations persist to
+  conversation history so they survive refresh/polling.
+- Unit coverage added for response-mode detection, long-prompt segmentation,
+  conversation-context formatting, and bilingual executive reports.
+
+Remaining:
+
+- Live AI-provider prompt QA with founder, investor, technical, Spanish, and
+  long-brief scenarios.
+- Broader copy pass across every non-Harmony system notification and settings
+  surface.
+- Attachment, upload, preview, search, and richer context visibility remain in
+  #234 and #241.
+
+## Launch Opportunities & Recommendations
+
+| Priority | Area | Recommendation | Why it matters |
+| --- | --- | --- | --- |
+| Critical | Live production verification | Verify Supabase migrations, production env vars, auth email redirects, Stripe webhooks, and founder/subscriber smoke tests in production. | Local readiness is strong, but public launch depends on real environment validation. |
+| Critical | Harmony multimodal intake | Complete attachments, previews, upload progress, and conversation search (#234). | Founders need to hand Harmony real artifacts, not only text. |
+| High | Durable telemetry | Add product analytics, error monitoring, connector retry telemetry, and waitlist capture (#245, #43). | Launch operations need observable activation, failures, and conversion. |
+| High | Connector health | Add connector sync status, retry history, and remediation guidance (#242). | Connector failure must be visible before it blocks execution. |
+| High | Approval previews | Add richer before/after previews, filters, and bulk decisions (#238). | Founders need confidence before approving high-impact actions. |
+| Medium | Agent voice inheritance | Apply `docs/communication/aios-communication-standard.md` across Mason, Atlas, Pulse, Ledger, Catalyst, and future agents. | Consistent voice prevents AIOS from feeling like multiple disconnected LLMs. |
+| Medium | Performance and scale | Add pagination and query efficiency for growing history, companies, approvals, and activity (#37, #39). | Investor demos and beta cohorts should remain fast with realistic data volume. |
+
+Recommended launch order:
+
+1. Complete live production verification and environment hardening.
+2. Finish Harmony multimodal intake and context visibility.
+3. Harden connector health/retries and telemetry.
+4. Improve Approval Center previews and filtering.
+5. Expand investor/demo mode with safe seeded data.
+6. Continue agent-profile, Julius, and multi-company scalability work.
 
 ## Certification review
 
