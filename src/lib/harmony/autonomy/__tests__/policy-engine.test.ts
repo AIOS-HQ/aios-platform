@@ -38,6 +38,7 @@ import {
 import type {
   AutonomyPolicyRequest,
   FounderDirective,
+  AutonomyLevel,
 } from "@/lib/harmony/autonomy/types";
 
 describe("Autonomy Policy Engine", () => {
@@ -358,10 +359,7 @@ describe("Autonomy Policy Engine", () => {
         };
 
         const decision = evaluateAutonomyPolicy(request);
-        expect(needsApproval(decision)).toBe(
-          true,
-          `Level ${level} should require approval for merge`,
-        );
+        expect(needsApproval(decision), `Level ${level} should require approval for merge`).toBe(true);
       }
     });
 
@@ -385,13 +383,13 @@ describe("Autonomy Policy Engine", () => {
   // ===== Execution Scope =====
   describe("Execution Scope & Rate Limiting", () => {
     it("higher autonomy levels get higher rate limits", () => {
-      for (let level = 0; level <= 4; level++) {
+      for (const level of [0, 1, 2, 3, 4] satisfies AutonomyLevel[]) {
         const request: AutonomyPolicyRequest = {
           actor: "agent",
           agent: "mason",
           domain: "engineering",
           action: "create_branch",
-          current_autonomy_level: level as any,
+          current_autonomy_level: level,
           applicable_directives: [],
         };
 
