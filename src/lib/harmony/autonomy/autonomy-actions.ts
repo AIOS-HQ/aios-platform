@@ -155,7 +155,7 @@ export async function approveActionAction(
   await emitActivity({
     userId: user.id,
     companyId,
-    actorType: "user",
+    actorType: "founder",
     actorId: user.id,
     kind: "approval_granted",
     summary: `Founder approved ${payload.original_agent} to ${payload.original_action}.`,
