@@ -71,7 +71,7 @@ export async function createDirectiveAction(
   await emitActivity({
     userId: user.id,
     companyId,
-    actorType: "user",
+    actorType: "founder",
     actorId: user.id,
     kind: "founder_directive_created",
     summary: `Founder authorized ${agent} to ${allowedActions.join(", ")} in ${domain}.`,
