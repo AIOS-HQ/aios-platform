@@ -13,7 +13,6 @@
 import "server-only";
 
 import type { ConnectorCapability } from "@/lib/integrations/connectors";
-import { getActiveDirectives } from "./data-access";
 import { evaluateAutonomyPolicy, canExecute, needsApproval, isBlocked } from "./policy-engine";
 import { createApprovalPayload } from "./data-access";
 import type {
@@ -21,6 +20,7 @@ import type {
   AutonomyPolicyRequest,
   ActionType,
   AutonomyLevel,
+  FounderDirective,
 } from "./types";
 import { capabilityRisk } from "./risk-mapping";
 
@@ -56,7 +56,7 @@ export async function evaluateConnectorCapabilityPolicy(
   // Get applicable Founder directives
   // For connectors, directives might not map 1:1 to agent/domain,
   // so we might return empty here. This is a TODO for connector-specific directives.
-  const directives = []; // TODO: lookup connector-specific directives
+  const directives: FounderDirective[] = []; // TODO: lookup connector-specific directives
 
   // Build the policy request
   const request: AutonomyPolicyRequest = {
@@ -118,13 +118,13 @@ export async function validateConnectorCapabilityExecution(
   if (needsApproval(decision)) {
     // Create and persist the approval payload
     if (decision.approval_payload) {
-      const stored = await createApprovalPayload(userId, companyId, decision.approval_payload);
+      const approvalId = await createApprovalPayload(userId, companyId, decision.approval_payload);
       return {
-        can_execute: true, // CAN execute (eventually, after approval)
-        can_execute_now: false, // But NOT RIGHT NOW
+        can_execute: true,
+        can_execute_now: false,
         needs_approval: true,
         is_blocked: false,
-        approval_id: stored?.approval_id,
+        approval_id: approvalId,
         reason: decision.reason,
       };
     }
@@ -140,12 +140,12 @@ export async function validateConnectorCapabilityExecution(
     };
   }
 
-  // Fallback
+  // Default safe fallback
   return {
     can_execute: false,
     can_execute_now: false,
     needs_approval: false,
     is_blocked: true,
-    reason: "Unknown policy state",
+    reason: "Policy decision was indeterminate; blocked for safety.",
   };
 }
