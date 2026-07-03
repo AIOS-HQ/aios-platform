@@ -42,7 +42,12 @@ const baseInput = {
 describe("Mason runtime executor", () => {
   it("executes approved GitHub, validation, Vercel, and Harmony operations in order", async () => {
     const runtimeAdapters = adapters();
-    const result = await executeMasonRuntimePlan(baseInput, runtimeAdapters);
+    // Intent-driven behavior: the PR + Vercel preview operations exist only when
+    // the caller explicitly requests a pull request (openPullRequest: true).
+    const result = await executeMasonRuntimePlan(
+      { ...baseInput, openPullRequest: true },
+      runtimeAdapters,
+    );
 
     expect(result.status).toBe("completed");
     expect(result.results.map((item) => item.operation.kind)).toEqual([
