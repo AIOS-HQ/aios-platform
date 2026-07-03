@@ -4,6 +4,7 @@ import {
   type MasonLiveExecutionPlan,
   type MasonLiveExecutionPlanInput,
 } from "@/lib/harmony/code/mason-live-execution";
+import { evaluateMasonOperationGate } from "@/lib/harmony/autonomy/mason-policy";
 
 export type MasonRuntimeExecutionStatus = "completed" | "blocked" | "failed";
 export type MasonRuntimeOperationStatus = "completed" | "blocked" | "failed" | "skipped";
@@ -78,14 +79,9 @@ function optionalStringArray(params: Record<string, unknown>, key: string): stri
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-function isMutationOperation(operation: MasonLiveConnectorOperation): boolean {
-  return ["github_create_branch", "github_commit_file", "github_open_pull_request", "github_create_issue"].includes(operation.kind);
-}
-
-function isMergeOrDestructive(operation: MasonLiveConnectorOperation): boolean {
-  const text = `${operation.kind} ${operation.capabilityId}`.toLowerCase();
-  return /merge|delete|destroy|drop|wipe|production_deploy|deploy_production/.test(text);
-}
+// Operation risk classification + gating is delegated to the Unified Autonomy
+// Policy Engine (see @/lib/harmony/autonomy/mason-policy) so the Mason runtime
+// shares one source of truth with every other agent.
 
 function outputUrl(output: Record<string, unknown> | undefined, keys: string[]): string | null {
   if (!output) return null;
@@ -145,12 +141,15 @@ function hasRuntimeEvidence(operation: MasonLiveConnectorOperation, output: Reco
 }
 
 async function executeOperation(operation: MasonLiveConnectorOperation, adapters: MasonRuntimeExecutorAdapters): Promise<MasonRuntimeOperationResult> {
-  if (!operation.approved && isMutationOperation(operation)) {
-    return { operation, status: "blocked", summary: "Mutation operation blocked because it was not approved." };
-  }
-
-  if (isMergeOrDestructive(operation)) {
-    return { operation, status: "blocked", summary: "Mason runtime blocked merge or destructive operation." };
+  // Unified Autonomy Policy Engine gate — the single source of truth for whether
+  // a Mason connector operation may run (replaces local mutation/merge heuristics).
+  const gate = evaluateMasonOperationGate({
+    kind: operation.kind,
+    capabilityId: operation.capabilityId,
+    approved: operation.approved,
+  });
+  if (!gate.allow) {
+    return { operation, status: "blocked", summary: gate.reason };
   }
 
   try {

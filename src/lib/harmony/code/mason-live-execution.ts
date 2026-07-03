@@ -7,6 +7,10 @@ import {
   type MasonRequesterRole,
   type MasonValidationCommand,
 } from "@/lib/harmony/code/mason-execution-bridge";
+import {
+  classifyMasonOperation,
+  resolveMasonOperationApproval,
+} from "@/lib/harmony/autonomy/mason-policy";
 
 export interface MasonLiveFileChange {
   path: string;
@@ -211,6 +215,32 @@ function reportingOperations(input: {
   ];
 }
 
+/**
+ * Route every emitted operation through the Unified Autonomy Policy Engine:
+ * drop actions Mason may never perform (e.g., repository deletion) and let the
+ * engine — not local flags — decide each operation's final approval state.
+ * Governed routine writes inherit the Founder-approved execution scope;
+ * approval- or destructive-class actions are never auto-approved by scope.
+ */
+function governMasonOperations(
+  operations: MasonLiveConnectorOperation[],
+): MasonLiveConnectorOperation[] {
+  return operations
+    .filter(
+      (operation) =>
+        classifyMasonOperation(operation.kind, operation.capabilityId).allowedForMason,
+    )
+    .map((operation) => ({
+      ...operation,
+      approved: resolveMasonOperationApproval(
+        operation.kind,
+        operation.capabilityId,
+        operation.approved,
+        true,
+      ),
+    }));
+}
+
 export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput): MasonLiveExecutionPlan {
   const fileChanges = cleanFileChanges(input.fileChanges);
   const bridge = createMasonExecutionBridge({
@@ -303,7 +333,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
     return {
       bridge,
       status,
-      operations,
+      operations: governMasonOperations(operations),
       validationCommands,
       validationRequest: validationRequest(validationCommands),
       prBody: body,
@@ -339,7 +369,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
     return {
       bridge,
       status,
-      operations,
+      operations: governMasonOperations(operations),
       validationCommands,
       validationRequest: validationRequest(validationCommands),
       prBody: body,
@@ -433,7 +463,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   return {
     bridge,
     status,
-    operations,
+    operations: governMasonOperations(operations),
     validationCommands,
     validationRequest: validationRequest(validationCommands),
     prBody: body,
