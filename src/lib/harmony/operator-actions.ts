@@ -20,6 +20,11 @@ import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
 import { masonRuntimeHealth } from "@/lib/harmony/code/mason-production-runtime";
+import { createWorkItem } from "@/lib/workforce/work-queue";
+import {
+  isOversizedOperatorInput,
+  saveOversizedInstructionAsWork,
+} from "@/lib/harmony/operator-intake";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -247,9 +252,14 @@ export async function runOperator(input: string): Promise<OperatorResult> {
   const lowerText = text.toLowerCase();
 
 
-  // Cap input length to bound AI token cost / abuse (no rate limiter yet — #43).
-  if (text.length > LIMITS.operatorInput) {
-    return { intent: "general", reply: to("tooLong") };
+  // Long Founder instructions must never fail silently or be refused. Instead of
+  // dropping over-limit input, capture the full text as a tracked work item and
+  // reply with its id (root-cause fix for the operator input cap).
+  if (isOversizedOperatorInput(text)) {
+    return saveOversizedInstructionAsWork(user.id, text, {
+      resolveCompanyId: resolvePrimaryCompanyId,
+      createWorkItem,
+    });
   }
 
   const supabase = await createClient();
@@ -361,7 +371,7 @@ if (
   );
 }
   // Founder Business Harmony
-        
+
 
     if (
       lowerText.startsWith("business:") ||
