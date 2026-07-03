@@ -3,7 +3,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
-import { effectiveRisk } from "@/lib/agent/policy";
+import { evaluateConnectorRun } from "@/lib/harmony/autonomy/connector-policy";
+import type { AutonomyLevel } from "@/lib/harmony/autonomy/types";
 import { runGithubRead } from "@/lib/integrations/clients/github";
 import { runGithubWrite } from "@/lib/integrations/clients/github-write";
 import { runVercelRead } from "@/lib/integrations/clients/vercel";
@@ -12,10 +13,11 @@ import { runVercelRead } from "@/lib/integrations/clients/vercel";
  * Connector capability runtime (Phase 6a).
  *
  * The single owner-scoped entry point for running a connector capability. It
- * records an audit row in `agent_actions` (RLS owner-scoped), enforces the
- * read/write policy (writes require founder approval), and refuses to run until
- * the connector is configured. Live GitHub and Vercel clients are routed here
- * through owner-scoped audited execution.
+ * records an audit row in `agent_actions` (RLS owner-scoped), routes the
+ * approval decision through the Unified Autonomy Policy Engine (routine executes;
+ * approval/destructive pause for Founder approval), and refuses to run until the
+ * connector is configured. Live GitHub and Vercel clients are routed here through
+ * owner-scoped audited execution.
  */
 
 export interface ConnectorRunResult {
@@ -61,7 +63,7 @@ export async function runConnectorCapability(
   connectorId: string,
   capabilityId: string,
   params: Record<string, unknown> = {},
-  options: { approved?: boolean } = {},
+  options: { approved?: boolean; autonomyLevel?: AutonomyLevel } = {},
 ): Promise<ConnectorRunResult> {
   const tool = `connector:${connectorId}.${capabilityId}`;
   const connector = getConnector(connectorId);
@@ -72,8 +74,16 @@ export async function runConnectorCapability(
     return { ok: false, status: "failed", message: "unknown_capability" };
   }
 
-  const risk = effectiveRisk(capability);
-  const requiresApproval = risk !== "routine";
+  // Route the connector approval decision through the Unified Autonomy Policy
+  // Engine (risk-mapping + autonomy levels) instead of a local risk heuristic,
+  // so connector execution shares one source of truth with every other agent.
+  const policy = evaluateConnectorRun(capability, options.autonomyLevel);
+  const requiresApproval = policy.requiresApproval;
+
+  if (policy.decision === "blocked") {
+    await audit(userId, tool, "blocked", requiresApproval, "policy_blocked", params);
+    return { ok: false, status: "blocked", message: "policy_blocked" };
+  }
 
   if (requiresApproval && !options.approved) {
     await audit(
@@ -81,13 +91,13 @@ export async function runConnectorCapability(
       tool,
       "pending",
       true,
-      risk === "destructive" ? "destructive" : null,
+      policy.destructive ? "destructive" : null,
       params,
     );
     return {
       ok: true,
       status: "pending",
-      message: risk === "destructive" ? "needs_approval_destructive" : "needs_approval",
+      message: policy.destructive ? "needs_approval_destructive" : "needs_approval",
     };
   }
 
