@@ -34,7 +34,9 @@ describe("Mason live execution planner", () => {
   });
 
   it("creates a live GitHub, validation, Vercel, and reporting operation sequence after Founder approval", () => {
-    const plan = createMasonLiveExecutionPlan({ ...baseInput, founderApproved: true });
+    // Intent-driven behavior: PR + Vercel preview operations require an explicit
+    // openPullRequest request; branch/commit remain routine under Founder scope.
+    const plan = createMasonLiveExecutionPlan({ ...baseInput, founderApproved: true, openPullRequest: true });
 
     expect(plan.status).toBe("ready");
     expect(plan.operations.map((operation) => operation.kind)).toEqual([
@@ -91,6 +93,7 @@ describe("Mason live execution planner", () => {
     const plan = createMasonLiveExecutionPlan({
       ...baseInput,
       founderApproved: true,
+      openPullRequest: true,
       pullRequestUrl: "PR-999",
       vercelPreviewUrl: "preview-ready",
     });
