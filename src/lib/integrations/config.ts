@@ -1,20 +1,25 @@
 import "server-only";
 
 import { env } from "@/lib/env";
-import type { IntegrationProvider } from "@/lib/integrations/catalog";
-import { resolveOAuthFamily } from "@/lib/integrations/oauth-families";
+import { type OAuthFamily, resolveOAuthFamily } from "@/lib/integrations/oauth-families";
 
 /**
- * Server-only integration configuration. Credentials are read lazily from env
- * at call time via the unified OAuth family registry (`oauth-families.ts`), so
- * the build is green with nothing configured. A provider is "available" only
- * once its family's credentials are present. This module owns the provider-
- * level authorize/exchange surface; the family endpoints + env live in one
- * place so authorize and refresh can never drift.
+ * Server-only OAuth authorize/exchange surface for the config-driven connector
+ * pipeline. Works for ANY provider via a minimal shape (satisfied by both the
+ * legacy catalog `IntegrationProvider` and the unified registry
+ * `ConnectorDefinition`), so one pipeline serves every connector. Credentials
+ * are read lazily from the unified OAuth family registry.
  */
 
-/** Whether a provider is configured and therefore connectable. */
-export function isProviderConfigured(provider: IntegrationProvider): boolean {
+export interface OAuthProviderRef {
+  id: string;
+  auth: string;
+  oauthFamily?: OAuthFamily;
+  scopes?: string[];
+}
+
+/** Whether an OAuth provider's family credentials are present. */
+export function isProviderConfigured(provider: OAuthProviderRef): boolean {
   if (provider.auth === "api_key") {
     return provider.id === "openai" ? Boolean(process.env.OPENAI_API_KEY) : false;
   }
@@ -33,7 +38,7 @@ export function getRedirectUri(providerId: string): string {
 }
 
 /** Build the provider's OAuth authorize URL, or null if unconfigured / not oauth2. */
-export function buildAuthorizeUrl(provider: IntegrationProvider, state: string): string | null {
+export function buildAuthorizeUrl(provider: OAuthProviderRef, state: string): string | null {
   if (provider.auth !== "oauth2" || !provider.oauthFamily) return null;
   const fam = resolveOAuthFamily(provider.oauthFamily);
   if (!fam) return null;
@@ -57,12 +62,11 @@ export interface TokenResult {
 }
 
 /**
- * Exchange an authorization code for tokens (standard OAuth2 auth-code grant).
- * Generic across families; returns nulls on failure so callers degrade safely.
- * NOTE: validate per-provider in test mode before relying on live tokens.
+ * Exchange an authorization code for tokens (standard OAuth2 auth-code grant),
+ * generic across all families. Returns nulls on failure so callers degrade safely.
  */
 export async function exchangeCodeForToken(
-  provider: IntegrationProvider,
+  provider: OAuthProviderRef,
   code: string,
 ): Promise<TokenResult | null> {
   if (provider.auth !== "oauth2" || !provider.oauthFamily) return null;

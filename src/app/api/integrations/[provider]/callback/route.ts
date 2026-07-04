@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
-import { getIntegration } from "@/lib/integrations/catalog";
+import { getConnectorDefinition } from "@/lib/integrations/registry";
 import { exchangeCodeForToken } from "@/lib/integrations/config";
 import { upsertConnection } from "@/lib/integrations/connections";
 
@@ -13,7 +13,14 @@ function base(): string {
   return (env.siteUrl || "http://localhost:3000").replace(/\/$/, "");
 }
 
-/** OAuth callback: verify CSRF state, exchange the code, persist the connection. */
+/**
+ * Universal OAuth callback endpoint (Group A2).
+ *
+ * Resolves the provider from the unified connector registry, so every
+ * OAuth-family connector inherits one callback: verify CSRF state, exchange the
+ * authorization code, and persist the connection (tokens encrypted at rest by
+ * the connections layer). No per-provider code.
+ */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ provider: string }> },
@@ -23,8 +30,8 @@ export async function GET(
   const fail = (reason: string) =>
     NextResponse.redirect(`${b}/settings/integrations?error=${reason}&provider=${pid}`);
 
-  const provider = getIntegration(pid);
-  if (!provider) return fail("unknown");
+  const def = getConnectorDefinition(pid);
+  if (!def) return fail("unknown");
 
   const url = new URL(req.url);
   if (url.searchParams.get("error")) return fail("denied");
@@ -40,14 +47,14 @@ export async function GET(
     return fail("state");
   }
 
-  const token = await exchangeCodeForToken(provider, code);
+  const token = await exchangeCodeForToken(def, code);
   if (!token || !token.accessToken) return fail("exchange");
 
   await upsertConnection({
     user_id: cUid,
     provider: pid,
     status: "connected",
-    scopes: token.scope ?? (provider.scopes ?? []).join(" "),
+    scopes: token.scope ?? (def.scopes ?? []).join(" "),
     external_account: null,
     access_token: token.accessToken,
     refresh_token: token.refreshToken,
