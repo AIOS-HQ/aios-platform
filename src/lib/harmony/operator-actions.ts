@@ -25,6 +25,8 @@ import {
   isOversizedOperatorInput,
   saveOversizedInstructionAsWork,
 } from "@/lib/harmony/operator-intake";
+import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
+import { masonOwnsEngineeringTask } from "@/lib/harmony/code/mason";
 import type { OperatorResult } from "@/lib/ai/types";
 import type { PersonalGoal, PersonalNote, PersonalTask } from "@/types/database";
 
@@ -330,6 +332,33 @@ if (
   formData.set("company_id", company.id);
   formData.set("title", title ?? text);
   formData.set("description", text);
+
+  // Unified execution path: engineering requests route through the Unified
+  // Autonomy Policy Engine via Mason's production runtime, which persists an
+  // approval_payload for high-risk work and resumes through the execution spine.
+  // Falls back to legacy delegation on any error so the operator never regresses.
+  if (masonOwnsEngineeringTask(text)) {
+    try {
+      const mason = await handleMasonEngineeringMessage({
+        userId: user.id,
+        companyId: company.id,
+        message: text,
+        founderApproved: false,
+      });
+      return persistOperatorReply(supabase, user.id, conversationId, {
+        intent: "execution_request",
+        reply: ["Routed to Mason through the Unified Autonomy Policy Engine.", mason.summary]
+          .filter(Boolean)
+          .join("\n\n"),
+        actionTaken: { type: "work_delegated", label: title ?? text },
+      });
+    } catch (e) {
+      console.error(
+        "[operator-actions] engineering spine routing failed; falling back to legacy delegation",
+        e,
+      );
+    }
+  }
 
   let orchestrationSummary = "";
   try {
