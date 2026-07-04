@@ -1,62 +1,17 @@
 import "server-only";
 
 import { env } from "@/lib/env";
-import type { IntegrationProvider, OAuthFamily } from "@/lib/integrations/catalog";
+import type { IntegrationProvider } from "@/lib/integrations/catalog";
+import { resolveOAuthFamily } from "@/lib/integrations/oauth-families";
 
 /**
- * Server-only integration configuration. All credentials are read lazily from
- * env at call time, so the build is green with nothing configured. A provider
- * is "available" only once its credentials are present.
+ * Server-only integration configuration. Credentials are read lazily from env
+ * at call time via the unified OAuth family registry (`oauth-families.ts`), so
+ * the build is green with nothing configured. A provider is "available" only
+ * once its family's credentials are present. This module owns the provider-
+ * level authorize/exchange surface; the family endpoints + env live in one
+ * place so authorize and refresh can never drift.
  */
-
-interface OAuthFamilyDef {
-  clientIdEnv: string;
-  clientSecretEnv: string;
-  authUrl: string;
-  tokenUrl: string;
-  /** Some providers name the client id param differently (TikTok: client_key). */
-  clientIdParam: string;
-  /** Extra authorize params (e.g. Google offline access). */
-  authParams?: Record<string, string>;
-}
-
-const FAMILIES: Record<OAuthFamily, OAuthFamilyDef> = {
-  google: {
-    clientIdEnv: "GOOGLE_CLIENT_ID",
-    clientSecretEnv: "GOOGLE_CLIENT_SECRET",
-    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-    tokenUrl: "https://oauth2.googleapis.com/token",
-    clientIdParam: "client_id",
-    authParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
-  },
-  linkedin: {
-    clientIdEnv: "LINKEDIN_CLIENT_ID",
-    clientSecretEnv: "LINKEDIN_CLIENT_SECRET",
-    authUrl: "https://www.linkedin.com/oauth/v2/authorization",
-    tokenUrl: "https://www.linkedin.com/oauth/v2/accessToken",
-    clientIdParam: "client_id",
-  },
-  tiktok: {
-    clientIdEnv: "TIKTOK_CLIENT_KEY",
-    clientSecretEnv: "TIKTOK_CLIENT_SECRET",
-    authUrl: "https://www.tiktok.com/v2/auth/authorize/",
-    tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
-    clientIdParam: "client_key",
-  },
-};
-
-interface ResolvedFamily extends OAuthFamilyDef {
-  clientId: string;
-  clientSecret: string;
-}
-
-function resolveFamily(family: OAuthFamily): ResolvedFamily | null {
-  const def = FAMILIES[family];
-  const clientId = process.env[def.clientIdEnv] ?? "";
-  const clientSecret = process.env[def.clientSecretEnv] ?? "";
-  if (!clientId || !clientSecret) return null;
-  return { ...def, clientId, clientSecret };
-}
 
 /** Whether a provider is configured and therefore connectable. */
 export function isProviderConfigured(provider: IntegrationProvider): boolean {
@@ -64,7 +19,7 @@ export function isProviderConfigured(provider: IntegrationProvider): boolean {
     return provider.id === "openai" ? Boolean(process.env.OPENAI_API_KEY) : false;
   }
   if (provider.auth === "oauth2" && provider.oauthFamily) {
-    return resolveFamily(provider.oauthFamily) !== null;
+    return resolveOAuthFamily(provider.oauthFamily) !== null;
   }
   return false;
 }
@@ -80,7 +35,7 @@ export function getRedirectUri(providerId: string): string {
 /** Build the provider's OAuth authorize URL, or null if unconfigured / not oauth2. */
 export function buildAuthorizeUrl(provider: IntegrationProvider, state: string): string | null {
   if (provider.auth !== "oauth2" || !provider.oauthFamily) return null;
-  const fam = resolveFamily(provider.oauthFamily);
+  const fam = resolveOAuthFamily(provider.oauthFamily);
   if (!fam) return null;
 
   const params = new URLSearchParams({
@@ -111,7 +66,7 @@ export async function exchangeCodeForToken(
   code: string,
 ): Promise<TokenResult | null> {
   if (provider.auth !== "oauth2" || !provider.oauthFamily) return null;
-  const fam = resolveFamily(provider.oauthFamily);
+  const fam = resolveOAuthFamily(provider.oauthFamily);
   if (!fam) return null;
 
   const body = new URLSearchParams({
