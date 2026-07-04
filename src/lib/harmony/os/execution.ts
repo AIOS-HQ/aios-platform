@@ -346,18 +346,6 @@ export async function executeWorkItem(
       .eq("id", item.id)
       .eq("user_id", userId);
 
-    await supabase.from("approvals").insert({
-      user_id: userId,
-      company_id: item.company_id,
-      department_id: item.department_id,
-      agent_id: item.agent_id,
-      work_item_id: item.id,
-      type: "content",
-      title: item.title,
-      summary: item.description,
-      risk: item.priority,
-    });
-
     await emitActivity({
       userId,
       companyId: item.company_id,
@@ -368,18 +356,15 @@ export async function executeWorkItem(
       refId: item.id,
     });
 
-    // Unified spine: also record the gated work item as an approval_payload so it
-    // appears in the Review Queue's Pending Approvals and can be resumed via the
-    // execution spine. Fail-open — the legacy approval above remains the fallback.
-    try {
-      await createApprovalPayload(
-        userId,
-        item.company_id,
-        buildWorkItemApprovalPayload({ id: item.id, title: item.title, companyId: item.company_id }),
-      );
-    } catch (e) {
-      console.error("[execution] approval_payload dual-write failed; legacy approval retained", e);
-    }
+    // Single execution path: the gated work item is recorded as an approval_payload
+    // and resumed through the Unified Autonomy Policy Engine's execution spine
+    // (Review Queue → approve/reject → resumeApprovedExecution). The legacy
+    // `approvals` table write has been retired; the spine is the sole approval path.
+    await createApprovalPayload(
+      userId,
+      item.company_id,
+      buildWorkItemApprovalPayload({ id: item.id, title: item.title, companyId: item.company_id }),
+    );
 
     return "awaiting_approval";
   }
