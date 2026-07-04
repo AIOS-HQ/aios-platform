@@ -33,7 +33,7 @@ export function ExecutiveSection({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 gap-3">
           {Icon && (
-            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground shadow-soft">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground shadow-[var(--shadow-soft)]">
               <Icon className="size-4" aria-hidden="true" />
             </span>
           )}
@@ -139,7 +139,7 @@ export function ExecutiveList({
   className?: string;
 }) {
   return (
-    <div className={cn("divide-y rounded-xl border bg-card shadow-soft", className)}>
+    <div className={cn("divide-y rounded-xl border bg-card shadow-[var(--shadow-soft)]", className)}>
       {children}
     </div>
   );
