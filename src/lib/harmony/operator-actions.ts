@@ -25,6 +25,10 @@ import {
   isOversizedOperatorInput,
   saveOversizedInstructionAsWork,
 } from "@/lib/harmony/operator-intake";
+import {
+  harmonyClarifyExecution,
+  consumePendingHarmonyClarification,
+} from "@/lib/harmony/clarification";
 import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
 import { masonOwnsEngineeringTask } from "@/lib/harmony/code/mason";
 import type { OperatorResult } from "@/lib/ai/types";
@@ -281,6 +285,14 @@ export async function runOperator(input: string): Promise<OperatorResult> {
     "inbound",
     text,
   );
+
+  // Clarification lifecycle (Foundation 2): if Harmony previously paused this
+  // founder for a clarification, treat this message as the answer — persist it,
+  // update Julius, and resume the paused objective automatically. No restart.
+  const resumed = await consumePendingHarmonyClarification(user.id, text);
+  if (resumed) {
+    return persistOperatorReply(supabase, user.id, conversationId, resumed);
+  }
 if (
   lowerText.includes("mason runtime health") ||
   lowerText.includes("show mason runtime") ||
@@ -317,11 +329,18 @@ if (
     .maybeSingle();
 
   if (!company?.id) {
+    // Foundation 2: instead of a flat refusal, ask a structured clarification
+    // (with WHY) and persist it so the objective resumes once answered.
+    const clarify = await harmonyClarifyExecution({
+      userId: user.id,
+      companyId: null,
+      objective: title ?? text,
+    });
     return persistOperatorReply(
       supabase,
       user.id,
       conversationId,
-      {
+      clarify ?? {
         intent: "general",
         reply:
           "Harmony needs a company before she can delegate business work.",
