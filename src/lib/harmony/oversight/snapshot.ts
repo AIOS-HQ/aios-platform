@@ -4,6 +4,7 @@ import { listConversations } from "@/lib/data/comms/conversations";
 import { listChannels } from "@/lib/data/comms/channels";
 import { listAwaitingApprovalMessages } from "@/lib/data/comms/messages";
 import { listApprovals } from "@/lib/data/os/approvals";
+import { getPendingApprovalQueue } from "@/lib/harmony/autonomy/review-queue";
 import { listWorkItems } from "@/lib/data/os/work-items";
 import { listAllAgents } from "@/lib/data/os/agents";
 import { listActivity } from "@/lib/data/os/activity";
@@ -18,6 +19,10 @@ import type { ChannelKind } from "@/types/database";
  * existing data layers (comms, approvals, work, agents, activity, autonomy,
  * reflection) and composes them — it owns no state of its own and never writes.
  * Everything here is grounded in real rows; nothing is fabricated.
+ *
+ * Approvals are read as a UNION of the legacy `approvals` table (comms/A2A/
+ * manual) and the new `approval_payloads` spine (work/Mason/connectors) during
+ * the autonomy-spine migration, so escalations and counts reflect every store.
  *
  * Two concepts in the spec have no first-class model yet (a schema addition is a
  * founder-gated migration): a numeric per-action "confidence" score and a
@@ -68,17 +73,27 @@ export async function getOversightSnapshot(
   userId: string,
   companyId: string | null,
 ): Promise<OversightSnapshot> {
-  const [conversations, channels, awaiting, pendingApprovals, workItems, agents, recent, autonomy] =
-    await Promise.all([
-      listConversations(),
-      listChannels(),
-      listAwaitingApprovalMessages(),
-      listApprovals({ companyId: companyId ?? undefined, status: "pending" }),
-      listWorkItems(companyId ? { companyId } : undefined),
-      listAllAgents(),
-      listActivity({ companyId: companyId ?? undefined, limit: 10 }),
-      getAutonomyState(userId),
-    ]);
+  const [
+    conversations,
+    channels,
+    awaiting,
+    pendingApprovals,
+    spineApprovals,
+    workItems,
+    agents,
+    recent,
+    autonomy,
+  ] = await Promise.all([
+    listConversations(),
+    listChannels(),
+    listAwaitingApprovalMessages(),
+    listApprovals({ companyId: companyId ?? undefined, status: "pending" }),
+    getPendingApprovalQueue(userId, companyId),
+    listWorkItems(companyId ? { companyId } : undefined),
+    listAllAgents(),
+    listActivity({ companyId: companyId ?? undefined, limit: 10 }),
+    getAutonomyState(userId),
+  ]);
 
   const activeConv = conversations.filter((c) => c.status === "open").length;
   const pendingConv = conversations.filter((c) => c.status === "pending").length;
@@ -86,7 +101,13 @@ export async function getOversightSnapshot(
   const connectedChannels = channels.filter((c) => c.status === "connected");
   const channelKinds = [...new Set(connectedChannels.map((c) => c.kind))];
 
+  // Approvals are the UNION of legacy (comms/A2A/manual) and spine (work/Mason/
+  // connector) pending items. High-risk = legacy `risk === "high"` OR spine
+  // `destructive`.
   const highRiskApprovals = pendingApprovals.filter((a) => a.risk === "high");
+  const spineHighRisk = spineApprovals.filter((p) => p.destructive);
+  const totalPendingApprovals = pendingApprovals.length + spineApprovals.length;
+  const totalHighRiskApprovals = highRiskApprovals.length + spineHighRisk.length;
 
   const inProgress = workItems.filter((w) => w.status === "in_progress");
   const blocked = workItems.filter((w) => w.status === "blocked");
@@ -104,6 +125,12 @@ export async function getOversightSnapshot(
       source: "approval" as const,
       title: a.title,
       detail: a.summary ?? "",
+    })),
+    ...spineHighRisk.map((p) => ({
+      id: p.approvalId,
+      source: "approval" as const,
+      title: p.label,
+      detail: "",
     })),
     ...blocked.map((w) => ({
       id: w.id,
@@ -138,7 +165,7 @@ export async function getOversightSnapshot(
   }
 
   const needsAttention =
-    escalations.length > 0 || pendingApprovals.length > 0 || awaiting.length > 0;
+    escalations.length > 0 || totalPendingApprovals > 0 || awaiting.length > 0;
   const tone: OversightTone = needsAttention
     ? "attention"
     : inProgress.length > 0 || activeConv > 0
@@ -150,7 +177,7 @@ export async function getOversightSnapshot(
     conversations: { active: activeConv, pending: pendingConv, total: conversations.length },
     pendingHarmonyResponses: awaiting.length,
     channels: { connected: connectedChannels.length, total: channels.length, kinds: channelKinds },
-    approvals: { pending: pendingApprovals.length, highRisk: highRiskApprovals.length },
+    approvals: { pending: totalPendingApprovals, highRisk: totalHighRiskApprovals },
     work: { inProgress: inProgress.length, pending: pendingWork, blocked: blocked.length, delegations },
     workforce: { total: agents.length, active: activeAgents, paused: pausedAgents },
     automations: {

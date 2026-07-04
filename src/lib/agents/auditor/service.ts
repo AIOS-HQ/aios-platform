@@ -7,6 +7,7 @@ import { classifyTool } from "@/lib/agent/policy";
 import { juliusRemember, resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { getAutonomyState, listAutonomyAudit } from "@/lib/workforce/autonomy";
 import { listApprovals } from "@/lib/data/os/approvals";
+import { getPendingApprovalQueue } from "@/lib/harmony/autonomy/review-queue";
 import { listConversations } from "@/lib/data/comms/conversations";
 import { createWorkItem, listWorkItems } from "@/lib/workforce/work-queue";
 import { emitActivity } from "@/lib/harmony/os/events";
@@ -212,16 +213,23 @@ export async function runAudit(userId: string): Promise<AuditReport> {
     detail: `${blockedDecisions} autonomy action(s) blocked or denied across the last ${autonomyAudit.length} decision(s).`,
   });
 
-  const pendingApprovals = await listApprovals({ status: "pending" });
-  const highRiskApprovals = pendingApprovals.filter((a) => a.risk === "high").length;
+  // Approval Center backlog — UNION of the legacy `approvals` table (comms/A2A/
+  // manual) and the `approval_payloads` spine (work/Mason/connectors) during the
+  // autonomy-spine migration, so the backlog reflects every pending approval.
+  const legacyPending = await listApprovals({ status: "pending" });
+  const spinePending = await getPendingApprovalQueue(userId, await resolvePrimaryCompanyId());
+  const pendingApprovalCount = legacyPending.length + spinePending.length;
+  const highRiskApprovals =
+    legacyPending.filter((a) => a.risk === "high").length +
+    spinePending.filter((p) => p.destructive).length;
   findings.push({
     domain: "approvals",
     title: "Approval Center backlog",
-    severity: highRiskApprovals > 0 ? "risk" : pendingApprovals.length > 0 ? "info" : "ok",
+    severity: highRiskApprovals > 0 ? "risk" : pendingApprovalCount > 0 ? "info" : "ok",
     detail:
       highRiskApprovals > 0
-        ? `${highRiskApprovals} high-risk approval(s) and ${pendingApprovals.length - highRiskApprovals} other(s) awaiting the owner.`
-        : `${pendingApprovals.length} approval(s) awaiting the owner.`,
+        ? `${highRiskApprovals} high-risk approval(s) and ${pendingApprovalCount - highRiskApprovals} other(s) awaiting the owner.`
+        : `${pendingApprovalCount} approval(s) awaiting the owner.`,
   });
 
   const conversations = await listConversations();
