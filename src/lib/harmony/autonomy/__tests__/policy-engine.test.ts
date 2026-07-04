@@ -359,10 +359,7 @@ describe("Autonomy Policy Engine", () => {
         };
 
         const decision = evaluateAutonomyPolicy(request);
-        expect(needsApproval(decision)).toBe(
-          true,
-          `Level ${level} should require approval for merge`,
-        );
+        expect(needsApproval(decision)).toBe(true);
       }
     });
 
