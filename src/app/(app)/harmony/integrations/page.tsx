@@ -4,11 +4,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Plug, ShieldCheck, ArrowUpRight, ChevronDown, Wrench } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import {
-  listConnectors,
-  countCapabilities,
   CONNECTOR_CATEGORIES,
   type ConnectorCategory,
 } from "@/lib/integrations/connectors";
+import { listConnectorDefinitions } from "@/lib/integrations/registry";
 import { getConnections } from "@/lib/integrations/connections";
 import { connectAffordanceFor } from "@/lib/integrations/connect-gate";
 import { formatDate } from "@/lib/format";
@@ -38,20 +37,34 @@ const STATUS_VARIANT: Record<ConnStatus, "default" | "secondary" | "outline" | "
   comingSoon: "outline",
 };
 
+/** Count read/write capabilities from a registry connector definition. */
+function countCaps(caps: ReadonlyArray<{ mode: "read" | "write" }>): {
+  read: number;
+  write: number;
+} {
+  let read = 0;
+  let write = 0;
+  for (const cap of caps) {
+    if (cap.mode === "write") write += 1;
+    else read += 1;
+  }
+  return { read, write };
+}
+
 /**
  * AIOS Integration Center — securely connect AIOS to external systems.
  *
  * This is the founder's connection layer. It is NOT a communications or content
  * tool: Communications operates customer conversations and Content publishes
- * marketing — both CONSUME the services connected here. Reads the connector
- * framework (registry) and the owner-scoped connection state (status,
- * permissions, health, audit). OAuth is used wherever a connector is wired;
- * advanced per-key configuration is intentionally not surfaced here.
+ * marketing — both CONSUME the services connected here.
  *
- * Stage 1c: the Connect action is gated by the dev_configured invariant
- * (connectAffordanceFor) — a provider that is wired for OAuth but not yet
- * developer-configured shows a "Finish setup" path to the Developer Platform
- * instead of a live Connect that would fail. Gated behind CONNECTOR_GATE_ENABLED.
+ * Group A2: reads the UNIFIED CONNECTOR REGISTRY (listConnectorDefinitions) so
+ * every provider in the Connector Operating System surfaces here — the same
+ * source the Developer Platform and the universal connect/callback pipeline use.
+ * The Connect action is gated by the dev_configured invariant
+ * (connectAffordanceFor): a provider wired for OAuth but not yet developer-
+ * configured shows a "Finish setup" path to the Developer Platform instead of a
+ * live Connect that would fail. Gated behind CONNECTOR_GATE_ENABLED.
  *
  * Founder-gated: lives under /harmony and is not a customer prefix, so
  * isFounderHarmonyPath keeps it founder-only.
@@ -61,7 +74,7 @@ export default async function IntegrationsPage() {
   const locale = await getLocale();
   const user = await requireUser();
 
-  const connectors = listConnectors();
+  const connectors = listConnectorDefinitions();
   const connections = await getConnections(user.id);
   const byProvider = new Map(connections.map((c) => [c.provider, c]));
   const now = new Date().getTime();
@@ -114,7 +127,7 @@ export default async function IntegrationsPage() {
                 {items.map((c) => {
                   const conn = byProvider.get(c.id);
                   const status = statusOf(c.id, c.authorizable);
-                  const caps = countCapabilities(c);
+                  const caps = countCaps(c.capabilities);
                   const affordance = connectAffordanceFor(c.id, {
                     connected: status === "connected",
                     expired: status === "expired",
