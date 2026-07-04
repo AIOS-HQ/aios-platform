@@ -90,7 +90,7 @@ export default async function DashboardPage() {
 
       {/* Harmony — the customer's AI Chief of Staff — is the front door: ask for
           anything and Harmony coordinates the work behind the scenes. */}
-      <Card className="mb-6 border-primary/30 bg-primary/5">
+      <Card className="mb-6 border-primary/30 bg-primary/5 glow-primary">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <HarmonyAvatar className="size-5" title="Harmony" />
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {recentNotes.map((n) => (
-                  <div key={n.id} className="rounded-lg border p-3">
+                  <div key={n.id} className="rounded-xl border p-3 transition-colors hover:bg-muted/30">
                     <p className="truncate text-sm font-medium">
                       {n.title || t("untitledNote")}
                     </p>
