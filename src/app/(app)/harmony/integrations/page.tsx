@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Plug, ShieldCheck, ArrowUpRight, ChevronDown } from "lucide-react";
+import { Plug, ShieldCheck, ArrowUpRight, ChevronDown, Wrench } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import {
   listConnectors,
@@ -9,6 +10,7 @@ import {
   type ConnectorCategory,
 } from "@/lib/integrations/connectors";
 import { getConnections } from "@/lib/integrations/connections";
+import { connectAffordanceFor } from "@/lib/integrations/connect-gate";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -45,6 +47,11 @@ const STATUS_VARIANT: Record<ConnStatus, "default" | "secondary" | "outline" | "
  * framework (registry) and the owner-scoped connection state (status,
  * permissions, health, audit). OAuth is used wherever a connector is wired;
  * advanced per-key configuration is intentionally not surfaced here.
+ *
+ * Stage 1c: the Connect action is gated by the dev_configured invariant
+ * (connectAffordanceFor) — a provider that is wired for OAuth but not yet
+ * developer-configured shows a "Finish setup" path to the Developer Platform
+ * instead of a live Connect that would fail. Gated behind CONNECTOR_GATE_ENABLED.
  *
  * Founder-gated: lives under /harmony and is not a customer prefix, so
  * isFounderHarmonyPath keeps it founder-only.
@@ -108,7 +115,12 @@ export default async function IntegrationsPage() {
                   const conn = byProvider.get(c.id);
                   const status = statusOf(c.id, c.authorizable);
                   const caps = countCapabilities(c);
-                  const canConnect = Boolean(c.authorizable && status !== "connected");
+                  const affordance = connectAffordanceFor(c.id, {
+                    connected: status === "connected",
+                    expired: status === "expired",
+                  });
+                  const canConnect = affordance === "connect" || affordance === "reauthorize";
+                  const finishSetup = affordance === "finish_setup";
                   const cardContent = (
                     <>
                       <CardHeader className="flex-row items-center gap-3 space-y-0">
@@ -119,9 +131,13 @@ export default async function IntegrationsPage() {
                             {t(`auth.${c.auth}`)}
                           </CardDescription>
                         </div>
-                        <Badge variant={STATUS_VARIANT[status]} className="shrink-0">
-                          {t(`status.${status}`)}
-                        </Badge>
+                        {finishSetup ? (
+                          <Badge variant="outline" className="shrink-0">Setup required</Badge>
+                        ) : (
+                          <Badge variant={STATUS_VARIANT[status]} className="shrink-0">
+                            {t(`status.${status}`)}
+                          </Badge>
+                        )}
                       </CardHeader>
                       <CardContent className="space-y-2 text-xs text-muted-foreground">
                         {caps.read + caps.write > 0 ? (
@@ -135,6 +151,9 @@ export default async function IntegrationsPage() {
                         ) : null}
                         {status === "expired" ? (
                           <p className="text-destructive">{t("expiredHint")}</p>
+                        ) : null}
+                        {finishSetup ? (
+                          <p>Developer setup required before this connector can be authorized.</p>
                         ) : null}
                       </CardContent>
                     </>
@@ -153,6 +172,8 @@ export default async function IntegrationsPage() {
                         >
                           {cardContent}
                         </a>
+                      ) : finishSetup ? (
+                        <div>{cardContent}</div>
                       ) : (
                         <details>
                           <summary className="cursor-pointer list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
@@ -199,6 +220,20 @@ export default async function IntegrationsPage() {
                             {t("docs")}
                             <ArrowUpRight className="size-3" aria-hidden="true" />
                           </a>
+                        </div>
+                      ) : finishSetup ? (
+                        <div className="flex flex-wrap items-center gap-2 px-6 pb-4 text-xs text-muted-foreground">
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled>
+                            <Plug className="size-3.5" aria-hidden="true" />
+                            {t("connect")}
+                          </Button>
+                          <Link
+                            href="/harmony/developer"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+                          >
+                            <Wrench className="size-3" aria-hidden="true" />
+                            Finish setup in Developer Platform
+                          </Link>
                         </div>
                       ) : null}
                     </Card>
