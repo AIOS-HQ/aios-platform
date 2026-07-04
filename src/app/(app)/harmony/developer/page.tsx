@@ -10,6 +10,7 @@ import { getRedirectUri } from "@/lib/integrations/config";
 import { connectGateEnabled } from "@/lib/integrations/connect-gate";
 import { hasCapabilityHandler } from "@/lib/integrations/runtime/runtime";
 import { ensureProvidersRegistered } from "@/lib/integrations/providers";
+import { RuntimeSelfTest } from "@/components/integrations/runtime-self-test";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +95,9 @@ export default async function DeveloperPlatformPage() {
                 retry, health, telemetry, recovery, audit). Remaining connectors inherit the
                 same runtime as their handlers are implemented.
               </p>
+              <div className="pt-1">
+                <RuntimeSelfTest />
+              </div>
             </div>
           </CardContent>
         </Card>
