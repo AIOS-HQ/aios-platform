@@ -9,6 +9,7 @@ import { idleState } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { FormMessage } from "@/components/shared/form-message";
+import { cn } from "@/lib/utils";
 
 export interface ReviewObjective {
   id: string;
@@ -106,7 +107,7 @@ export function ReviewQueue({
         ) : (
           <ul className="flex flex-col gap-2">
             {objectives.map((o) => (
-              <li key={o.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+              <li key={o.id} className="flex flex-wrap items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/30">
                 <Badge variant="secondary" className="text-[10px]">{o.agentName}</Badge>
                 <span className="text-sm font-medium">{o.title}</span>
                 <span className="ml-auto flex gap-1.5">
@@ -141,7 +142,7 @@ export function ReviewQueue({
         ) : (
           <ul className="flex flex-col gap-2">
             {work.map((wk) => (
-              <li key={wk.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+              <li key={wk.id} className="flex flex-wrap items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/30">
                 <Badge variant="secondary" className="text-[10px]">{wk.agentName}</Badge>
                 <span className="text-sm">{wk.title}</span>
                 <Badge variant={RISK_VARIANT[wk.risk] ?? "outline"} className="text-[10px]">
@@ -178,7 +179,15 @@ export function ReviewQueue({
         ) : (
           <ul className="flex flex-col gap-2">
             {approvals.map((a) => (
-              <li key={a.approvalId} className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+              <li
+                key={a.approvalId}
+                className={cn(
+                  "flex flex-wrap items-center gap-2 rounded-xl border p-3 transition-colors",
+                  a.destructive
+                    ? "border-destructive/40 bg-destructive/5"
+                    : "hover:bg-muted/30",
+                )}
+              >
                 <Badge variant="secondary" className="text-[10px]">{a.agentName}</Badge>
                 <span className="text-sm font-medium">{a.label}</span>
                 {a.destructive ? (
@@ -189,7 +198,7 @@ export function ReviewQueue({
                     type="button"
                     disabled={busyId === a.approvalId}
                     onClick={() => decide(a.approvalId, "approve")}
-                    className="h-7 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                    className="h-7 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
                     {t("approve")}
                   </button>
