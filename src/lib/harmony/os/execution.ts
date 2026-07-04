@@ -22,6 +22,8 @@ import {
   type AutonomyLevel,
 } from "@/lib/harmony/os/autonomy";
 import { LIMITS } from "@/lib/limits";
+import { createApprovalPayload } from "@/lib/harmony/autonomy/data-access";
+import { buildWorkItemApprovalPayload } from "@/lib/harmony/autonomy/work-approval";
 import type { WorkItem } from "@/types/database";
 
 export type ExecutionOutcome = "completed" | "awaiting_approval" | "blocked";
@@ -300,6 +302,13 @@ export async function executeWorkItem(
 ): Promise<ExecutionOutcome> {
   const to = await getTranslations("os");
 
+  // Idempotency: never re-run a work item that already completed. Guards against
+  // double-execution if both the legacy approval and the new approval_payload for
+  // the same item are actioned during the unification transition.
+  if (item.status === "completed") {
+    return "completed";
+  }
+
   let level: AutonomyLevel = 0;
   let departmentName = "";
 
@@ -358,6 +367,19 @@ export async function executeWorkItem(
       refType: "work_item",
       refId: item.id,
     });
+
+    // Unified spine: also record the gated work item as an approval_payload so it
+    // appears in the Review Queue's Pending Approvals and can be resumed via the
+    // execution spine. Fail-open — the legacy approval above remains the fallback.
+    try {
+      await createApprovalPayload(
+        userId,
+        item.company_id,
+        buildWorkItemApprovalPayload({ id: item.id, title: item.title, companyId: item.company_id }),
+      );
+    } catch (e) {
+      console.error("[execution] approval_payload dual-write failed; legacy approval retained", e);
+    }
 
     return "awaiting_approval";
   }

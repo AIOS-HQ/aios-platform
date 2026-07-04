@@ -41,6 +41,9 @@ function labelFor(payload: ApprovalPayload): string {
   if (typeof params.connectorId === "string" && typeof params.capabilityId === "string") {
     return `${params.connectorId}.${params.capabilityId}`;
   }
+  if (typeof params.workItemTitle === "string" && params.workItemTitle.length > 0) {
+    return params.workItemTitle;
+  }
   return payload.original_action;
 }
 
