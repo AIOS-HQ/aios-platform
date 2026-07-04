@@ -7,6 +7,8 @@ import { objectiveAction } from "@/lib/workforce/objectives-actions";
 import { workItemAction } from "@/lib/workforce/work-queue-actions";
 import { idleState } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { FormMessage } from "@/components/shared/form-message";
 import { cn } from "@/lib/utils";
@@ -55,6 +57,9 @@ const WORK_OPS: [string, string][] = [
  * pending autonomy approvals (approval_payloads). Objective/work reuse their
  * server actions; autonomy approvals post to the approve/reject route which
  * resumes or blocks the exact saved execution.
+ *
+ * Rejection reasons are captured via an in-app dialog (not a native prompt) so
+ * the flow is styled, accessible, and testable in automated/headless contexts.
  */
 export function ReviewQueue({
   objectives,
@@ -69,30 +74,47 @@ export function ReviewQueue({
   const [objState, objAction] = useActionState(objectiveAction, idleState);
   const [workState, workAction] = useActionState(workItemAction, idleState);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
   const router = useRouter();
 
   useEffect(() => {
     if (objState.status === "success" || workState.status === "success") router.refresh();
   }, [objState, workState, router]);
 
-  async function decide(approvalId: string, decision: "approve" | "reject") {
-    let reason: string | undefined;
-    if (decision === "reject") {
-      const entered = window.prompt("Reason for rejecting this action:");
-      if (entered === null) return; // cancelled
-      reason = entered;
-    }
+  async function submitDecision(
+    approvalId: string,
+    decision: "approve" | "reject",
+    rejectReason?: string,
+  ) {
     setBusyId(approvalId);
     try {
       await fetch("/api/harmony/autonomy/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approval_id: approvalId, decision, reason }),
+        body: JSON.stringify({ approval_id: approvalId, decision, reason: rejectReason }),
       });
       router.refresh();
     } finally {
       setBusyId(null);
     }
+  }
+
+  function openReject(approvalId: string) {
+    setReason("");
+    setRejectId(approvalId);
+  }
+
+  function closeReject() {
+    setRejectId(null);
+    setReason("");
+  }
+
+  function confirmReject() {
+    if (!rejectId) return;
+    const id = rejectId;
+    closeReject();
+    void submitDecision(id, "reject", reason.trim() || undefined);
   }
 
   return (
@@ -197,7 +219,7 @@ export function ReviewQueue({
                   <button
                     type="button"
                     disabled={busyId === a.approvalId}
-                    onClick={() => decide(a.approvalId, "approve")}
+                    onClick={() => submitDecision(a.approvalId, "approve")}
                     className="h-7 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
                     {t("approve")}
@@ -205,7 +227,7 @@ export function ReviewQueue({
                   <button
                     type="button"
                     disabled={busyId === a.approvalId}
-                    onClick={() => decide(a.approvalId, "reject")}
+                    onClick={() => openReject(a.approvalId)}
                     className="h-7 rounded-md border px-2 text-xs font-medium hover:bg-accent disabled:opacity-50"
                   >
                     {t("dismiss")}
@@ -216,6 +238,42 @@ export function ReviewQueue({
           </ul>
         )}
       </section>
+
+      <Dialog
+        open={rejectId !== null}
+        onOpenChange={(open) => {
+          if (!open) closeReject();
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Reject this action</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Add a reason so the audit trail captures why this action was blocked.
+            The exact saved execution stays blocked and can be retried later.
+          </p>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            autoFocus
+            placeholder="Reason for rejecting this action…"
+            className="min-h-20 w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={closeReject}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={confirmReject}
+              disabled={busyId !== null}
+            >
+              Reject
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
