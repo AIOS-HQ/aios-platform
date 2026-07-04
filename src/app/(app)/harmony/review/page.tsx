@@ -36,7 +36,7 @@ export default async function ReviewQueuePage() {
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       <div className="flex flex-col gap-6 lg:max-w-3xl">
-        <Card>
+        <Card className="card-elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ListTodo className="size-4 text-primary" aria-hidden="true" />
@@ -70,7 +70,7 @@ export default async function ReviewQueuePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Lightbulb className="size-4 text-primary" aria-hidden="true" />
