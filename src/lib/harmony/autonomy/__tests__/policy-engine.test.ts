@@ -37,6 +37,7 @@ import {
 } from "@/lib/harmony/autonomy/autonomy-levels";
 import type {
   AutonomyPolicyRequest,
+  AutonomyLevel,
   FounderDirective,
 } from "@/lib/harmony/autonomy/types";
 
@@ -391,7 +392,7 @@ describe("Autonomy Policy Engine", () => {
           agent: "mason",
           domain: "engineering",
           action: "create_branch",
-          current_autonomy_level: level as any,
+          current_autonomy_level: level as AutonomyLevel,
           applicable_directives: [],
         };
 
