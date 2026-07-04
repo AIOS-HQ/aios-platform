@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildWorkItemApprovalPayload } from "@/lib/harmony/autonomy/work-approval";
 import { resumeApprovedExecution, type ResumeDeps } from "@/lib/harmony/autonomy/execution-resumption";
+import { getPendingApprovalQueue } from "@/lib/harmony/autonomy/review-queue";
 import type { ExecutionResult } from "@/lib/harmony/autonomy/types";
 
 const T0 = new Date("2026-07-04T00:00:00.000Z");
@@ -39,6 +40,13 @@ describe("Work-item approval bridge (execution spine)", () => {
     expect(outcome.ok).toBe(true);
     expect(rec.calls).toHaveLength(1);
     expect(rec.calls[0]).toMatchObject({ status: "completed", required_approval: true });
+  });
+
+  it("Review Queue label uses the work item title", async () => {
+    const p = buildWorkItemApprovalPayload({ id: "wi_5", title: "Approve Q3 budget" }, T0);
+    const items = await getPendingApprovalQueue("u", null, { listPendingApprovals: async () => [p] });
+    expect(items).toHaveLength(1);
+    expect(items[0].label).toBe("Approve Q3 budget");
   });
 
   it("resume blocks a work item whose execution does not complete", async () => {
