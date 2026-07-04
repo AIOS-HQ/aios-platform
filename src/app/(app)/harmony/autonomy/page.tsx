@@ -21,6 +21,7 @@ import {
   ExecutiveSection,
   MetricTile,
 } from "@/components/shared/executive";
+import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("autonomy");
@@ -34,6 +35,14 @@ const DECISION_VARIANT: Record<string, "default" | "secondary" | "outline" | "de
   denied: "destructive",
   kill_switch: "destructive",
   lockdown: "destructive",
+};
+
+// Escalating tier indicator for the autonomy modes (off → advisory → bounded):
+// the dot fills with primary as the agent gains authority. Presentational only.
+const MODE_DOT: Record<"off" | "advisory" | "bounded", string> = {
+  off: "bg-muted-foreground/40",
+  advisory: "bg-primary/60",
+  bounded: "bg-primary",
 };
 
 export default async function AutonomyPage() {
@@ -98,7 +107,7 @@ export default async function AutonomyPage() {
               />
             ))}
           </div>
-          <Card>
+          <Card className="card-elevated">
             <CardContent className="p-5">
               <ExecutiveList>
                 {AIOS_WORKFORCE.map((a) => {
@@ -160,7 +169,7 @@ export default async function AutonomyPage() {
 
         {/* ── Audit history ────────────────────────────────────────────── */}
         <ExecutiveSection icon={Activity} title={t("auditHistory")}>
-          <Card>
+          <Card className="card-elevated">
             <CardContent className="p-5">
               {audit.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("noAudit")}</p>
@@ -191,9 +200,15 @@ export default async function AutonomyPage() {
         <ExecutiveSection icon={Activity} title={t("controls")}>
           <div className="grid gap-3 lg:grid-cols-3">
             {(["off", "advisory", "bounded"] as const).map((mode) => (
-              <Card key={mode}>
+              <Card key={mode} className="card-elevated">
                 <CardContent className="space-y-1 p-4">
-                  <p className="text-sm font-semibold">{t(`modes.${mode}`)}</p>
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <span
+                      className={cn("size-2 shrink-0 rounded-full", MODE_DOT[mode])}
+                      aria-hidden="true"
+                    />
+                    {t(`modes.${mode}`)}
+                  </p>
                   <p className="text-xs leading-5 text-muted-foreground">
                     {t(`help.modes.${mode}`)}
                   </p>
