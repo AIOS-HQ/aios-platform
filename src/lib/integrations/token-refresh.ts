@@ -1,42 +1,20 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { OAuthFamily } from "@/lib/integrations/connectors";
+import { type OAuthFamily, resolveOAuthFamily } from "@/lib/integrations/oauth-families";
 import { encryptToken, decryptToken } from "@/lib/crypto/tokens";
 import { logSafeError } from "@/lib/security/safe-error";
 
 /**
- * OAuth token-refresh infrastructure (Phase 6a).
+ * OAuth token-refresh infrastructure.
  *
- * Dormant until a founder sets the per-family client credentials in env. No
- * secrets live in code: client id/secret are read from env at call time, and
- * refreshed access tokens are written back to the existing token columns via the
- * service-role client (token columns are never exposed to the browser).
+ * Reads the family's endpoints + credentials from the unified OAuth family
+ * registry (`oauth-families.ts`) — the SAME source authorization uses — so the
+ * refresh and authorize paths can never disagree on endpoints or env-var names.
+ * Dormant until a platform admin sets the family's client credentials. No
+ * secrets in code; refreshed access tokens are written back to the existing
+ * token columns via the service-role client (never exposed to the browser).
  */
-
-interface FamilyOAuth {
-  tokenUrl: string;
-  clientIdEnv: string;
-  clientSecretEnv: string;
-}
-
-const FAMILY_OAUTH: Record<OAuthFamily, FamilyOAuth> = {
-  google: {
-    tokenUrl: "https://oauth2.googleapis.com/token",
-    clientIdEnv: "GOOGLE_OAUTH_CLIENT_ID",
-    clientSecretEnv: "GOOGLE_OAUTH_CLIENT_SECRET",
-  },
-  github: {
-    tokenUrl: "https://github.com/login/oauth/access_token",
-    clientIdEnv: "GITHUB_OAUTH_CLIENT_ID",
-    clientSecretEnv: "GITHUB_OAUTH_CLIENT_SECRET",
-  },
-  slack: {
-    tokenUrl: "https://slack.com/api/oauth.v2.access",
-    clientIdEnv: "SLACK_CLIENT_ID",
-    clientSecretEnv: "SLACK_CLIENT_SECRET",
-  },
-};
 
 export interface RefreshedToken {
   accessToken: string;
@@ -46,20 +24,18 @@ export interface RefreshedToken {
 
 /**
  * Exchange a refresh token for a fresh access token. Returns null when the
- * family is unknown or the platform credentials are not set (not live yet).
+ * family does not support refresh, the platform credentials are not set, or no
+ * refresh token is available.
  */
 export async function refreshAccessToken(
   family: OAuthFamily,
   refreshToken: string,
 ): Promise<RefreshedToken | null> {
-  const cfg = FAMILY_OAUTH[family];
-  if (!cfg) return null;
-  const clientId = process.env[cfg.clientIdEnv];
-  const clientSecret = process.env[cfg.clientSecretEnv];
-  if (!clientId || !clientSecret || !refreshToken) return null;
+  const fam = resolveOAuthFamily(family);
+  if (!fam || !fam.refreshSupported || !refreshToken) return null;
 
   try {
-    const res = await fetch(cfg.tokenUrl, {
+    const res = await fetch(fam.tokenUrl, {
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded",
@@ -68,8 +44,8 @@ export async function refreshAccessToken(
       body: new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: refreshToken,
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: fam.clientId,
+        client_secret: fam.clientSecret,
       }),
     });
     if (!res.ok) {
