@@ -42,9 +42,18 @@ targeted unit runs noted below.
 `mason-policy` 5/5 · `mason-runtime-executor` 5/5 · `mason-live-execution` 6/6 ·
 `mason-execution-bridge` 7/7 · `limits` 6/6. No regressions observed in these.
 
-## 3. Prerequisite — #285 migration applied ⏳
+## 3. Prerequisite — #285 migration applied ✅ APPLIED & VERIFIED (project `aios-platform`, 2026-07-03)
 
-Confirm the three tables exist in the target database:
+Applied via Supabase MCP (`apply_migration` → `{"success": true}`) to project
+`aios-platform` (ref `vgsqgxpwjnwssconsptn`, Postgres 17.6). Live confirmation (real query output):
+
+- **Tables + RLS:** `founder_directives`, `approval_payloads`, `execution_results` — all present, `rls_enabled = true`.
+- **Policies (12):** `owner_select` / `owner_insert` / `owner_update` / `owner_delete` on each table.
+- **Indexes:** `*_pkey` + unique (`approval_payloads_approval_id_key`, `execution_results_execution_id_key`) + `*_owner_idx`, `*_company_idx`, `founder_directives_lookup_idx`.
+- **Trigger:** `set_founder_directives_updated_at` (BEFORE UPDATE on `founder_directives`).
+- **Grants:** `authenticated` → SELECT, INSERT, UPDATE, DELETE on all three.
+
+Confirmation SQL used (re-runnable):
 
 ```sql
 select to_regclass('public.founder_directives')  as founder_directives,
@@ -127,7 +136,7 @@ Fill in per run.
 | Date (UTC) | Check | Result | Runner | Evidence (PR/commit, SQL output, screenshot) |
 |------------|-------|--------|--------|----------------------------------------------|
 | | §2 typecheck/lint/build/i18n | ⏳ | | |
-| | §3 migration applied | ⏳ | | |
+| 2026-07-03 | §3 migration applied + schema verified | ✅ | Release Eng (agent · Supabase MCP) | apply_migration `{success:true}`; tables+RLS+12 policies+indexes+trigger+grants confirmed via live SQL |
 | | §4.1 Mason approve→resume | ⏳ | | |
 | | §4.2 reject→blocked | ⏳ | | |
 | | §4.3 long prompt→work item | ⏳ | | |
