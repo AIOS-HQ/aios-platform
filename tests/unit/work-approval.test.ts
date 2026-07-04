@@ -1,0 +1,56 @@
+import { describe, expect, it, vi } from "vitest";
+import { buildWorkItemApprovalPayload } from "@/lib/harmony/autonomy/work-approval";
+import { resumeApprovedExecution, type ResumeDeps } from "@/lib/harmony/autonomy/execution-resumption";
+import type { ExecutionResult } from "@/lib/harmony/autonomy/types";
+
+const T0 = new Date("2026-07-04T00:00:00.000Z");
+
+function recorder() {
+  const calls: ExecutionResult[] = [];
+  const fn: ResumeDeps["recordExecutionResult"] = async (_u, _c, result) => {
+    calls.push(result);
+    return result;
+  };
+  return { calls, fn };
+}
+
+describe("Work-item approval bridge (execution spine)", () => {
+  it("builds a work-item approval payload carrying the work item id + title", () => {
+    const p = buildWorkItemApprovalPayload({ id: "wi_1", title: "Publish Q3 report", companyId: "c1" }, T0);
+    expect(p.approval_id.startsWith("approval_wi_")).toBe(true);
+    expect(p.original_agent).toBe("harmony");
+    expect(p.original_domain).toBe("operations");
+    expect(p.original_params).toMatchObject({ workItemId: "wi_1", workItemTitle: "Publish Q3 report" });
+    expect(new Date(p.expires_at).getTime()).toBeGreaterThan(new Date(p.created_at).getTime());
+  });
+
+  it("resume dispatches a work-item payload to executeWorkItem(force) and records completion", async () => {
+    const rec = recorder();
+    const runWorkItem = vi.fn(async () => "completed" as const);
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_wi_x", "c1", {
+      getApprovalPayload: async () => buildWorkItemApprovalPayload({ id: "wi_9", title: "Ship it" }, T0),
+      recordExecutionResult: rec.fn,
+      runWorkItem,
+      now: () => T0,
+    });
+
+    expect(runWorkItem).toHaveBeenCalledWith("user-1", "wi_9");
+    expect(outcome.ok).toBe(true);
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]).toMatchObject({ status: "completed", required_approval: true });
+  });
+
+  it("resume blocks a work item whose execution does not complete", async () => {
+    const rec = recorder();
+    const outcome = await resumeApprovedExecution("user-1", "a", null, {
+      getApprovalPayload: async () => buildWorkItemApprovalPayload({ id: "wi_2", title: "x" }, T0),
+      recordExecutionResult: rec.fn,
+      runWorkItem: async () => "blocked" as const,
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(rec.calls[0]).toMatchObject({ status: "blocked" });
+  });
+});

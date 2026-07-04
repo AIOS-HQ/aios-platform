@@ -14,6 +14,7 @@
 import "server-only";
 
 import type { ApprovalPayload, ExecutionResult } from "./types";
+import type { WorkItem } from "@/types/database";
 
 export interface ResumeDeps {
   getApprovalPayload: (userId: string, approvalId: string) => Promise<ApprovalPayload | null>;
@@ -42,6 +43,10 @@ export interface ResumeDeps {
     pullRequestUrl: string | null;
     previewUrl: string | null;
   }>;
+  runWorkItem: (
+    userId: string,
+    workItemId: string,
+  ) => Promise<"completed" | "awaiting_approval" | "blocked">;
   now: () => Date;
 }
 
@@ -61,6 +66,19 @@ function defaultDeps(): ResumeDeps {
       ),
     runMason: async (input) =>
       (await import("@/lib/harmony/code/mason-production-runtime")).runMasonProductionRuntime(input),
+    runWorkItem: async (userId, workItemId) => {
+      const { createClient } = await import("@/lib/supabase/server");
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("work_items")
+        .select("*")
+        .eq("id", workItemId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!data) return "blocked";
+      const { executeWorkItem } = await import("@/lib/harmony/os/execution");
+      return executeWorkItem(supabase, userId, data as WorkItem, { force: true });
+    },
     now: () => new Date(),
   };
 }
@@ -198,6 +216,37 @@ export async function resumeApprovedExecution(
       return {
         ok: masonRes.status === "completed",
         error: masonRes.status === "completed" ? undefined : masonRes.summary,
+        execution_result: result ?? undefined,
+      };
+    }
+
+    // Work-item dispatch — payload carries a work item id (generic Harmony work).
+    if (typeof params.workItemId === "string") {
+      const outcome = await d.runWorkItem(userId, params.workItemId);
+      const status: ExecutionResult["status"] =
+        outcome === "completed"
+          ? "completed"
+          : outcome === "awaiting_approval"
+            ? "pending_approval"
+            : "blocked";
+      const result = await recordResult(
+        d,
+        userId,
+        companyId,
+        approval,
+        status,
+        outcome === "completed"
+          ? undefined
+          : {
+              code: outcome,
+              message: `Work item ${params.workItemId} resumed with outcome: ${outcome}.`,
+              recoverable: outcome !== "blocked",
+            },
+        { workItemId: params.workItemId, outcome },
+      );
+      return {
+        ok: outcome === "completed",
+        error: outcome === "completed" ? undefined : outcome,
         execution_result: result ?? undefined,
       };
     }
