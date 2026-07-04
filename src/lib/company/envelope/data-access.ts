@@ -78,7 +78,7 @@ export async function getEnvelope(companyId: string): Promise<CompanyContextEnve
     console.error("[company/envelope] getEnvelope", error.message);
     return null;
   }
-  return data ? fromRow(data as EnvelopeRow) : null;
+  return data ? fromRow(data as unknown as EnvelopeRow) : null;
 }
 
 export interface EnvelopeUpsert {
