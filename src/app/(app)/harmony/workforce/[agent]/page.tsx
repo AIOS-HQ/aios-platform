@@ -139,7 +139,7 @@ export default async function AgentProfilePage({
 
       <div className="flex flex-col gap-6">
         {/* Identity + live status */}
-        <Card className="overflow-hidden border-primary/20">
+        <Card className="overflow-hidden border-primary/20 glow-primary">
           <CardContent className="flex flex-col gap-4 bg-primary/5 p-5 sm:flex-row sm:items-center">
             <AgentGlyph agent={agent} size="xl" title={def.name} />
             <div className="min-w-0 flex-1 space-y-1">
@@ -195,7 +195,7 @@ export default async function AgentProfilePage({
           <Card>
             <CardContent className="grid gap-3 p-5 sm:grid-cols-3">
             {stats.map((s) => (
-              <div key={s.label} className="rounded-xl border bg-background p-4 shadow-soft">
+              <div key={s.label} className="rounded-xl border bg-background p-4 shadow-[var(--shadow-soft)]">
                 <p className="text-2xl font-semibold tabular-nums">{s.value}</p>
                 <p className="text-xs text-muted-foreground">{s.label}</p>
               </div>
