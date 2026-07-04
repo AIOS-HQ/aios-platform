@@ -69,7 +69,7 @@ export function HarmonyWorkspace({
       <div
         role="tablist"
         aria-label="Harmony"
-        className="mb-4 flex gap-1 overflow-x-auto border-b"
+        className="mb-4 inline-flex gap-1 overflow-x-auto rounded-xl border bg-muted/30 p-1"
       >
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
@@ -83,10 +83,10 @@ export function HarmonyWorkspace({
             onClick={() => setTab(key)}
             onKeyDown={onTabKeyDown}
             className={cn(
-              "-mb-px flex shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+              "flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
               tab === key
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Icon className="size-4" aria-hidden="true" />
