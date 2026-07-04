@@ -12,8 +12,7 @@ import type {
 
 /**
  * Company Context Envelope persistence — owner-scoped through the RLS server
- * client (never the service-role client). One row per company. Additive + inert
- * until a worker/UI reads it. Degrades gracefully if the table is absent.
+ * client. One row per company. Additive + inert until a worker/UI reads it.
  */
 
 const COLUMNS =
@@ -21,36 +20,49 @@ const COLUMNS =
   "policies,governance,permissions,workforce,connectors,skills,knowledge_ref," +
   "founder_preferences,security_profile,operating_rules,created_at,updated_at";
 
-type Row = Record<string, unknown>;
-
-function obj(v: unknown): Record<string, unknown> {
-  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+interface EnvelopeRow {
+  company_id: string;
+  schema_version: number | null;
+  company_name: string | null;
+  industry: string | null;
+  brand: CompanyBrand | null;
+  objectives: CompanyObjective[] | null;
+  departments: DepartmentDef[] | null;
+  policies: Record<string, unknown> | null;
+  governance: Record<string, unknown> | null;
+  permissions: unknown[] | null;
+  workforce: WorkerActivation[] | null;
+  connectors: ConnectorBinding[] | null;
+  skills: unknown[] | null;
+  knowledge_ref: string | null;
+  founder_preferences: Record<string, unknown> | null;
+  security_profile: Record<string, unknown> | null;
+  operating_rules: unknown[] | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
-function arr<T>(v: unknown): T[] {
-  return Array.isArray(v) ? (v as T[]) : [];
-}
 
-function fromRow(r: Row): CompanyContextEnvelope {
+function fromRow(row: EnvelopeRow): CompanyContextEnvelope {
   return {
-    companyId: String(r.company_id ?? ""),
-    schemaVersion: typeof r.schema_version === "number" ? r.schema_version : 1,
-    companyName: (r.company_name as string | null) ?? null,
-    industry: (r.industry as string | null) ?? null,
-    brand: obj(r.brand) as CompanyBrand,
-    objectives: arr<CompanyObjective>(r.objectives),
-    departments: arr<DepartmentDef>(r.departments),
-    policies: obj(r.policies),
-    governance: obj(r.governance),
-    permissions: arr<unknown>(r.permissions),
-    workforce: arr<WorkerActivation>(r.workforce),
-    connectors: arr<ConnectorBinding>(r.connectors),
-    skills: arr<unknown>(r.skills),
-    knowledgeRef: (r.knowledge_ref as string | null) ?? null,
-    founderPreferences: obj(r.founder_preferences),
-    securityProfile: obj(r.security_profile),
-    operatingRules: arr<unknown>(r.operating_rules),
-    createdAt: r.created_at as string | undefined,
-    updatedAt: r.updated_at as string | undefined,
+    companyId: row.company_id,
+    schemaVersion: row.schema_version ?? 1,
+    companyName: row.company_name ?? null,
+    industry: row.industry ?? null,
+    brand: row.brand ?? {},
+    objectives: row.objectives ?? [],
+    departments: row.departments ?? [],
+    policies: row.policies ?? {},
+    governance: row.governance ?? {},
+    permissions: row.permissions ?? [],
+    workforce: row.workforce ?? [],
+    connectors: row.connectors ?? [],
+    skills: row.skills ?? [],
+    knowledgeRef: row.knowledge_ref ?? null,
+    founderPreferences: row.founder_preferences ?? {},
+    securityProfile: row.security_profile ?? {},
+    operatingRules: row.operating_rules ?? [],
+    createdAt: row.created_at ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   };
 }
 
@@ -66,45 +78,56 @@ export async function getEnvelope(companyId: string): Promise<CompanyContextEnve
     console.error("[company/envelope] getEnvelope", error.message);
     return null;
   }
-  return data ? fromRow(data as Row) : null;
+  return data ? fromRow(data as EnvelopeRow) : null;
 }
 
-export interface EnvelopeUpsert extends Partial<Omit<CompanyContextEnvelope, "companyId">> {
+export interface EnvelopeUpsert {
   companyId: string;
-  /** Owner (founder) user id — must equal auth.uid() for the RLS insert/update. */
   userId: string;
-}
-
-/** Camel → column mapping for the writable envelope sections. */
-function toRow(input: EnvelopeUpsert): Row {
-  const row: Row = { company_id: input.companyId, user_id: input.userId };
-  const set = (col: string, v: unknown) => {
-    if (v !== undefined) row[col] = v;
-  };
-  set("schema_version", input.schemaVersion);
-  set("company_name", input.companyName);
-  set("industry", input.industry);
-  set("brand", input.brand);
-  set("objectives", input.objectives);
-  set("departments", input.departments);
-  set("policies", input.policies);
-  set("governance", input.governance);
-  set("permissions", input.permissions);
-  set("workforce", input.workforce);
-  set("connectors", input.connectors);
-  set("skills", input.skills);
-  set("knowledge_ref", input.knowledgeRef);
-  set("founder_preferences", input.founderPreferences);
-  set("security_profile", input.securityProfile);
-  set("operating_rules", input.operatingRules);
-  return row;
+  schemaVersion?: number;
+  companyName?: string | null;
+  industry?: string | null;
+  brand?: CompanyBrand;
+  objectives?: CompanyObjective[];
+  departments?: DepartmentDef[];
+  policies?: Record<string, unknown>;
+  governance?: Record<string, unknown>;
+  permissions?: unknown[];
+  workforce?: WorkerActivation[];
+  connectors?: ConnectorBinding[];
+  skills?: unknown[];
+  knowledgeRef?: string | null;
+  founderPreferences?: Record<string, unknown>;
+  securityProfile?: Record<string, unknown>;
+  operatingRules?: unknown[];
 }
 
 export async function upsertEnvelope(input: EnvelopeUpsert): Promise<boolean> {
   const supabase = await createClient();
+  const row: Record<string, unknown> = {
+    company_id: input.companyId,
+    user_id: input.userId,
+  };
+  if (input.schemaVersion !== undefined) row.schema_version = input.schemaVersion;
+  if (input.companyName !== undefined) row.company_name = input.companyName;
+  if (input.industry !== undefined) row.industry = input.industry;
+  if (input.brand !== undefined) row.brand = input.brand;
+  if (input.objectives !== undefined) row.objectives = input.objectives;
+  if (input.departments !== undefined) row.departments = input.departments;
+  if (input.policies !== undefined) row.policies = input.policies;
+  if (input.governance !== undefined) row.governance = input.governance;
+  if (input.permissions !== undefined) row.permissions = input.permissions;
+  if (input.workforce !== undefined) row.workforce = input.workforce;
+  if (input.connectors !== undefined) row.connectors = input.connectors;
+  if (input.skills !== undefined) row.skills = input.skills;
+  if (input.knowledgeRef !== undefined) row.knowledge_ref = input.knowledgeRef;
+  if (input.founderPreferences !== undefined) row.founder_preferences = input.founderPreferences;
+  if (input.securityProfile !== undefined) row.security_profile = input.securityProfile;
+  if (input.operatingRules !== undefined) row.operating_rules = input.operatingRules;
+
   const { error } = await supabase
     .from("company_context_envelope")
-    .upsert(toRow(input), { onConflict: "company_id" });
+    .upsert(row, { onConflict: "company_id" });
   if (error) {
     console.error("[company/envelope] upsertEnvelope", error.message);
     return false;
@@ -112,7 +135,6 @@ export async function upsertEnvelope(input: EnvelopeUpsert): Promise<boolean> {
   return true;
 }
 
-/** Writable jsonb/scalar section names (server-validated allow-list). */
 export type EnvelopeSection =
   | "brand"
   | "objectives"
