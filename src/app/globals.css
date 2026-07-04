@@ -310,3 +310,55 @@
 .auth-executive-workspace button[type="submit"]:hover {
   filter: brightness(1.06);
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   AIOS design system — reusable premium surfaces (Harmony visual language).
+   Additive, opt-in utility classes used across the redesign: dark glass panels,
+   soft blue glow, rounded elevation, and a neural grid backdrop. Scoped to their
+   own class names so existing screens are unaffected until each surface adopts
+   them. Pair with a dark surface (e.g. inside `.dark` or a scoped dark wrapper).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Floating glassmorphism panel — the core redesign card surface. */
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035)),
+    rgba(8, 13, 31, 0.66);
+  box-shadow:
+    0 20px 60px -34px rgba(56, 189, 248, 0.45),
+    0 16px 44px -28px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Soft Harmony-blue glow for hero CTAs / focused command-center widgets. */
+.glow-primary {
+  box-shadow:
+    0 0 0 1px rgba(125, 211, 252, 0.15),
+    0 18px 60px -24px rgba(99, 102, 241, 0.55);
+}
+
+/* Neural / blueprint grid backdrop (generalized from the marketing hero). */
+.surface-grid {
+  background-image:
+    linear-gradient(to right, rgba(120, 160, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 160, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Rounded, softly elevated card for the authenticated app (theme-aware). */
+.card-elevated {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Reduced-motion users get no backdrop blur animation cost. */
+@media (prefers-reduced-motion: reduce) {
+  .glass-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
