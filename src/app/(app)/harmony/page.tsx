@@ -135,7 +135,7 @@ export default async function CommandCenterPage() {
     <>
       <PageHeader title={t("greeting", { name })} description={t("subtitle")}>
         <HarmonyDelegateDialog companies={companyOpts} objectives={objectives.map((o) => ({ id: o.id, name: o.title }))} departments={deptOpts}>
-          <Button>
+          <Button className="glow-primary">
             <Sparkles className="size-4" aria-hidden="true" />
             {t("delegate")}
           </Button>
@@ -161,7 +161,7 @@ export default async function CommandCenterPage() {
       <CommandCenterRecommendations userId={user.id} companyId={companies[0]?.id ?? null} />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 card-elevated">
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2 text-base">
               <Building2 className="size-4 text-primary" aria-hidden="true" />
@@ -188,7 +188,7 @@ export default async function CommandCenterPage() {
                         <Link
                           key={c.id}
                           href={`/harmony/companies/${c.slug}`}
-                          className="group rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-accent"
+                          className="group rounded-xl border p-4 transition-all hover:border-primary/40 hover:bg-accent hover:shadow-lg"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="truncate font-semibold">{c.name}</span>
@@ -208,7 +208,7 @@ export default async function CommandCenterPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Activity className="size-4 text-primary" aria-hidden="true" />
