@@ -1,0 +1,47 @@
+{
+  "marketplace": {
+    "title": "Marketplace",
+    "subtitle": "Instala trabajadores IA, departamentos, habilidades, conectores y paneles — o despliega una empresa autónoma completa.",
+    "browse": "Explorar",
+    "itemsCount": "{count} elementos",
+    "empty": "Aún no hay elementos aquí — próximamente.",
+    "trust": "Cada elemento está versionado, verificado, valorado y consciente de dependencias — instalable, actualizable y con reversión segura.",
+    "labels": {
+      "deploymentTime": "Tiempo de despliegue",
+      "version": "Versión",
+      "rating": "Valoración",
+      "unrated": "Nuevo",
+      "workers": "Trabajadores IA",
+      "connectors": "Conectores",
+      "dependencies": "Dependencias",
+      "none": "Ninguna",
+      "changelog": "Registro de cambios",
+      "screenshots": "Capturas",
+      "preview": "Vista previa",
+      "objectives": "Objetivos",
+      "details": "Detalles",
+      "estMinutes": "~{n} min"
+    },
+    "verification": {
+      "verified": "Verificado",
+      "unverified": "Sin verificar",
+      "pending": "En revisión",
+      "rejected": "Rechazado"
+    },
+    "actions": {
+      "install": "Instalar",
+      "update": "Actualizar",
+      "rollback": "Revertir",
+      "uninstall": "Desinstalar",
+      "deploy": "Desplegar",
+      "working": "Trabajando…",
+      "installed": "Instalado",
+      "selectCompany": "Selecciona una empresa antes de instalar.",
+      "blocked": "No se puede continuar",
+      "applied": "Listo — aplicado a tu empresa.",
+      "failed": "Algo salió mal. Inténtalo de nuevo."
+    },
+    "screenshotsPlaceholder": "Capturas próximamente.",
+    "changelogInitial": "Versión inicial."
+  }
+}
