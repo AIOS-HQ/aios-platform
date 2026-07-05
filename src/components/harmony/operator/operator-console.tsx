@@ -68,7 +68,19 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  // Lazy initializer (not an effect) so persisted bookmarks are present on the
+  // first client render without a synchronous setState-in-effect. SSR-safe: on
+  // the server there is no localStorage, and the first render has no messages,
+  // so the empty→loaded difference can never cause a hydration mismatch.
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(BOOKMARKS_KEY);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const [pending, start] = useTransition();
   const listRef = useRef<HTMLDivElement>(null);
   /**
@@ -84,14 +96,6 @@ export function OperatorConsole({ isMock }: { isMock: boolean }) {
    */
   const streamingRef = useRef(false);
   const lastLocalUpdateRef = useRef(0);
-
-  // Load persisted bookmarks once on mount (client only).
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(BOOKMARKS_KEY);
-      if (raw) setBookmarks(new Set(JSON.parse(raw) as string[]));
-    } catch {}
-  }, []);
 
 function markLocalUpdate() {
   lastLocalUpdateRef.current = Date.now();
