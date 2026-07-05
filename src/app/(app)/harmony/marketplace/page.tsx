@@ -73,7 +73,14 @@ export default async function MarketplacePage() {
 
   return (
     <>
-      <PageHeader title={t("title")} description={t("subtitle")} />
+      <PageHeader title={t("title")} description={t("subtitle")}>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/harmony/marketplace/discover">{t("nav.discover")}</Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href="/harmony/marketplace/bundles">{t("nav.bundles")}</Link>
+        </Button>
+      </PageHeader>
 
       <div className="flex flex-col gap-8">
         {/* Category quick-nav */}
