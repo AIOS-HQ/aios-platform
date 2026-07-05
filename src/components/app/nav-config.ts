@@ -122,6 +122,7 @@ export const navSections: NavSection[] = [
     items: [
       { href: "/harmony", labelKey: "commandCenter", icon: "LayoutDashboard", exact: true },
       { href: "/harmony/oversight", labelKey: "oversight", icon: "Eye" },
+      { href: "/harmony/executive", labelKey: "executive", icon: "Gauge" },
       { href: "/harmony/workforce", labelKey: "workforce", icon: "Users" },
       { href: "/harmony/companies", labelKey: "companies", icon: "Building2" },
       { href: "/harmony/review", labelKey: "review", icon: "ListTodo" },
@@ -134,6 +135,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/integrations", labelKey: "integrations", icon: "Plug" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
+      { href: "/settings/branding", labelKey: "branding", icon: "Building2" },
     ],
   },
   {
