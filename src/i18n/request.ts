@@ -16,8 +16,9 @@ import { defaultLocale, isLocale, LOCALE_COOKIE } from "./config";
  * catalog for the Company Builder + deployment experience, the `pages` catalog —
  * FAQ, Help Center and onboarding — the `julius` Company Brain catalog, the
  * `integrations` Integration Center catalog, the `onboarding` Smart Onboarding
- * catalog, the `oversight` Harmony Oversight catalog, and the `ambassador`
- * Business Communications catalog), merged here so each surface can own its copy
+ * catalog, the `oversight` Harmony Oversight catalog, the `ambassador`
+ * Business Communications catalog, and the `org` Workforce Organization &
+ * Relationship Map catalog), merged here so each surface can own its copy
  * without bloating the base file.
  */
 export default getRequestConfig(async () => {
@@ -36,6 +37,7 @@ export default getRequestConfig(async () => {
   const onboarding = (await import(`../../messages/onboarding/${locale}.json`)).default;
   const oversight = (await import(`../../messages/oversight/${locale}.json`)).default;
   const ambassador = (await import(`../../messages/ambassador/${locale}.json`)).default;
+  const org = (await import(`../../messages/org/${locale}.json`)).default;
   const pageOnboarding = pages.onboarding ?? {};
   const guidedOnboarding = onboarding.onboarding ?? {};
 
@@ -57,6 +59,7 @@ export default getRequestConfig(async () => {
       },
       ...oversight,
       ...ambassador,
+      ...org,
     },
   };
 });
