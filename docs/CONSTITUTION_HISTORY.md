@@ -38,9 +38,26 @@ foundations**. Recorded in the company brain (Julius entry
 ### Constitutional principle reaffirmed
 **One Universal Capability Runtime specializes into each company via
 configuration (the Company Context Envelope) — never a per-company codebase**
-(Law 1 + Law 2). All five foundations are expressions of this principle. Secrets
+(Law 1 + Law 2). All foundations are expressions of this principle. Secrets
 never live in envelopes, marketplace artifacts, or portable bundles; connectors
 are config-only and re-consented per company.
+
+---
+
+## Ratification II — Marketplace Storefront + permanent readiness reporting (2026-07-05)
+
+6. **Marketplace Storefront** — `/harmony/marketplace`, the primary Marketplace
+   experience across all 12 categories, with full item-card anatomy and
+   install/update/rollback/deploy controls wired to the engine + persistence.
+   *(PR #348)*. Ratified as the sixth permanent foundation. Recorded in Julius
+   (entry `b6edfcda-08b9-4738-a6ee-7377cd2b752e`).
+
+### Permanent reporting amendment
+Every milestone report must now end with an **AIOS Launch Readiness Report**
+(overall readiness %, foundation completion, product + production readiness,
+launch blockers, recommended launch order, estimated completion, AIOS v1
+readiness score, executive launch recommendation) — maintained until AIOS v1.0
+is declared production-ready. Living tracker: `docs/AIOS_V1_READINESS.md`.
 
 ### Standing obligations for future work
 - These foundations are **permanent**: extend, do not regress. Any change must

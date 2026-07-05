@@ -14,8 +14,12 @@ provisioning · visible Founder UX previews. **Zero regressions.**
 
 ## 🏛️ Ratified foundations (permanent — 2026-07-05)
 See `docs/CONSTITUTION_HISTORY.md`. Extend, never regress:
-**Marketplace Engine · Marketplace Persistence · Portable Company · Enterprise
-Auto-Provisioning · Landing Experience.**
+**Marketplace Engine · Marketplace Persistence · Company Templates · Portable
+Company · Enterprise Auto-Provisioning · Landing Experience · Marketplace
+Storefront** (`/harmony/marketplace`, PR #348).
+
+Launch readiness is tracked in `docs/AIOS_V1_READINESS.md` and reported at the
+end of every milestone report.
 
 ---
 
@@ -30,10 +34,10 @@ Auto-Provisioning · Landing Experience.**
 - **AIOS Marketplace** — engine + 12 categories + 10 Company Templates; **persistence LIVE** (items/versions/ratings/installations + RLS); install/update/rollback/uninstall server actions wired.
 - **Portable Company** — export / import / backup / clone / deploy (secret-free bundle).
 - **Enterprise Auto-Provisioning** — `provisionCompanyFromTemplate` (template → configured company via the envelope + Julius seeding).
+- **Marketplace Storefront** — `/harmony/marketplace`, 12 categories, full item-card anatomy + install/update/rollback/deploy (PR #348, ratified).
 - **Multi-Company OS core.**
 
-### 🔵 In progress — Marketplace & Deployment Experience (held previews)
-- **Marketplace Storefront UI** — 12 categories; rich item cards (icon, name, description, workers, connectors, deployment time, rating, version, verification, install/update/rollback, dependencies, screenshots, preview, changelog).
+### 🔵 In progress — Deployment Experience & Company Builder (held previews)
 - **Company Deployment Experience** — visual "this company will provision…" + progress + ETA + success summary.
 - **Company Builder** — 5-step guided onboarding (Company → Industry → Tools → Departments → Deploy) calling Enterprise Auto-Provisioning.
 - **Marketplace content seeding** — 10 templates + departments/skills/packs as public items (service-role; needs platform publisher identity).
