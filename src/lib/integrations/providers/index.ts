@@ -7,6 +7,9 @@ import { registerLinearCapabilities } from "./linear";
 import { registerDiscordCapabilities } from "./discord";
 import { registerJiraCapabilities } from "./jira";
 import { registerGoogleDriveCapabilities } from "./google-drive";
+import { registerHubspotCapabilities } from "./hubspot";
+import { registerGmailCapabilities } from "./gmail";
+import { registerGoogleCalendarCapabilities } from "./google-calendar";
 
 /**
  * Provider bootstrap. Idempotently registers every provider's capability
@@ -26,4 +29,7 @@ export function ensureProvidersRegistered(): void {
   registerDiscordCapabilities();
   registerJiraCapabilities();
   registerGoogleDriveCapabilities();
+  registerHubspotCapabilities();
+  registerGmailCapabilities();
+  registerGoogleCalendarCapabilities();
 }
