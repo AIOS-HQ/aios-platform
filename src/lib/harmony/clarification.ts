@@ -12,6 +12,7 @@ import {
 import type { OperatorResult } from "@/lib/ai/types";
 import { juliusRemember, resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { createWorkItem } from "@/lib/workforce/work-queue";
+import { proposeSkillsFromClarifications } from "@/lib/skills/clarification-miner";
 
 /**
  * Harmony's adoption of the Universal Clarification Engine — the REFERENCE
@@ -127,6 +128,10 @@ export async function consumePendingHarmonyClarification(
     content: `Objective: ${objective}\nAnswers: ${JSON.stringify(facts)}`,
     refs: { clarificationId: resolved.id },
   }).catch(() => false);
+
+  // Self-Improving Skills (F3): mine recurring clarification patterns into
+  // company-private skills. Best-effort + non-blocking; never affects the reply.
+  void proposeSkillsFromClarifications({ userId, companyId }).catch(() => []);
 
   if (objective) {
     const item = await createWorkItem({
