@@ -45,6 +45,21 @@
       "failed": "Something went wrong. Try again."
     },
     "screenshotsPlaceholder": "Screenshots coming soon.",
-    "changelogInitial": "Initial release."
+    "changelogInitial": "Initial release.",
+    "worker": {
+      "back": "Back to Marketplace",
+      "viewDetails": "View details",
+      "mission": "Mission",
+      "responsibilities": "Responsibilities",
+      "skills": "Skills",
+      "connectors": "Connectors",
+      "departments": "Departments",
+      "health": "Health",
+      "changelog": "Change log",
+      "dependencies": "Dependencies",
+      "installedCompanies": "{count} companies installed",
+      "roadmap": "Future roadmap",
+      "notPublished": "Not yet published to the Marketplace."
+    }
   }
 }

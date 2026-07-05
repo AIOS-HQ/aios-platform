@@ -64,6 +64,10 @@ export default async function MarketplacePage() {
       changelog: it.versions
         .slice(0, 5)
         .map((v) => `v${v.version}${v.changelog ? ` — ${v.changelog}` : ` — ${t("changelogInitial")}`}`),
+      detailHref:
+        it.kind === "workforce" && it.slug.startsWith("worker-")
+          ? `/harmony/marketplace/workers/${it.slug.slice("worker-".length)}`
+          : undefined,
     };
   }
 

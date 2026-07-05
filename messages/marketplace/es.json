@@ -45,6 +45,21 @@
       "failed": "Algo salió mal. Inténtalo de nuevo."
     },
     "screenshotsPlaceholder": "Capturas próximamente.",
-    "changelogInitial": "Versión inicial."
+    "changelogInitial": "Versión inicial.",
+    "worker": {
+      "back": "Volver al Marketplace",
+      "viewDetails": "Ver detalles",
+      "mission": "Misión",
+      "responsibilities": "Responsabilidades",
+      "skills": "Habilidades",
+      "connectors": "Conectores",
+      "departments": "Departamentos",
+      "health": "Salud",
+      "changelog": "Registro de cambios",
+      "dependencies": "Dependencias",
+      "installedCompanies": "{count} empresas instaladas",
+      "roadmap": "Hoja de ruta futura",
+      "notPublished": "Aún no publicado en el Marketplace."
+    }
   }
 }

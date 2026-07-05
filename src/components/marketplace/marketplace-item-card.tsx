@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import Link from "next/link";
 import { Bot, Boxes, Building2, LayoutDashboard, Plug, Sparkles, Users, Workflow } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,8 @@ export interface DisplayItem {
   dashboards?: string[];
   monthlyCost?: string;
   companySize?: string;
+  /** When set, the card shows a "View details" link (e.g. AI Worker profile). */
+  detailHref?: string;
 }
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -198,6 +201,15 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
             </div>
           </div>
         </details>
+
+        {item.detailHref ? (
+          <Link
+            href={item.detailHref}
+            className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+          >
+            {t("worker.viewDetails")}
+          </Link>
+        ) : null}
 
         <div className="mt-auto pt-1">{action}</div>
       </CardContent>
