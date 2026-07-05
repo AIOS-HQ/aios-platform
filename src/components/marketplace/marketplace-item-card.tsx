@@ -28,6 +28,11 @@ export interface DisplayItem {
   deploymentMinutes: number;
   changelog: string[];
   objectives?: string[];
+  /** Two hex stops for a hero gradient banner (Company Templates). */
+  heroColors?: [string, string];
+  dashboards?: string[];
+  monthlyCost?: string;
+  companySize?: string;
 }
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -69,22 +74,42 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
   const Icon = ICONS[item.icon] ?? Sparkles;
 
   return (
-    <Card className="flex h-full flex-col">
-      <CardContent className="flex flex-1 flex-col gap-3 p-5">
-        <div className="flex items-start gap-3">
-          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary">
+    <Card className="flex h-full flex-col overflow-hidden">
+      {item.heroColors ? (
+        <div
+          className="relative flex h-24 items-center gap-3 px-4"
+          style={{ backgroundImage: `linear-gradient(135deg, ${item.heroColors[0]}, ${item.heroColors[1]})` }}
+        >
+          <span className="absolute right-3 top-3">
+            <Badge variant={VERIFICATION_VARIANT[item.verification]} className="text-[10px]">
+              {t(`verification.${item.verification}`)}
+            </Badge>
+          </span>
+          <span className="inline-flex size-10 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur">
             <Icon className="size-5" aria-hidden="true" />
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className="truncate text-base font-semibold">{item.name}</p>
-              <Badge variant={VERIFICATION_VARIANT[item.verification]} className="shrink-0 text-[10px]">
-                {t(`verification.${item.verification}`)}
-              </Badge>
-            </div>
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
-          </div>
+          <span className="text-lg font-semibold text-white drop-shadow-sm">{item.name}</span>
         </div>
+      ) : null}
+      <CardContent className="flex flex-1 flex-col gap-3 p-5">
+        {item.heroColors ? (
+          <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+        ) : (
+          <div className="flex items-start gap-3">
+            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary">
+              <Icon className="size-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-base font-semibold">{item.name}</p>
+                <Badge variant={VERIFICATION_VARIANT[item.verification]} className="shrink-0 text-[10px]">
+                  {t(`verification.${item.verification}`)}
+                </Badge>
+              </div>
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+            </div>
+          </div>
+        )}
 
         {/* Meta row: rating · version · deployment time */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -102,6 +127,16 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
           <span>
             {t("labels.deploymentTime")}: {t("labels.estMinutes", { n: item.deploymentMinutes })}
           </span>
+          {item.monthlyCost ? (
+            <span>
+              {t("labels.monthlyCost")}: <span className="font-medium text-foreground">{item.monthlyCost}</span>
+            </span>
+          ) : null}
+          {item.companySize ? (
+            <span>
+              {t("labels.companySize")}: <span className="font-medium text-foreground">{item.companySize}</span>
+            </span>
+          ) : null}
         </div>
 
         {/* Included workers + connectors */}
@@ -115,6 +150,12 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
           <div className="flex flex-col gap-1">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">{t("labels.connectors")}</span>
             <Chips items={item.connectors} />
+          </div>
+        ) : null}
+        {item.dashboards && item.dashboards.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">{t("labels.dashboards")}</span>
+            <Chips items={item.dashboards} />
           </div>
         ) : null}
 

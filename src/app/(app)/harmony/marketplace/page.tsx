@@ -9,6 +9,7 @@ import {
   averageRating,
   latestVersion,
   categoryForKind,
+  getTemplateVisuals,
   type MarketplaceItem,
   type MarketplaceItemKind,
 } from "@/lib/marketplace";
@@ -91,26 +92,33 @@ export default async function MarketplacePage() {
         {MARKETPLACE_CATEGORIES.map((cat) => {
           const templateItems =
             cat.kind === "company_template"
-              ? COMPANY_TEMPLATES.map((tpl) => ({
-                  display: {
-                    id: tpl.id,
-                    icon: "Building2",
-                    name: tpl.name,
-                    description: tpl.summary,
-                    version: tpl.version,
-                    ratingAvg: null,
-                    ratingCount: 0,
-                    verification: "verified" as const,
-                    workers: tpl.workforce.map((w) => w.role),
-                    connectors: tpl.connectors,
-                    dependencies: [],
-                    deploymentMinutes: Math.max(2, tpl.workforce.length),
-                    changelog: [`v${tpl.version} — ${t("changelogInitial")}`],
-                    objectives: tpl.objectives,
-                  } satisfies DisplayItem,
-                  isTemplate: true,
-                  slug: tpl.slug as string | null,
-                }))
+              ? COMPANY_TEMPLATES.map((tpl) => {
+                  const v = getTemplateVisuals(tpl.id);
+                  return {
+                    display: {
+                      id: tpl.id,
+                      icon: "Building2",
+                      name: tpl.name,
+                      description: tpl.summary,
+                      version: tpl.version,
+                      ratingAvg: null,
+                      ratingCount: 0,
+                      verification: "verified" as const,
+                      workers: tpl.workforce.map((w) => w.role),
+                      connectors: tpl.connectors,
+                      dependencies: [],
+                      deploymentMinutes: Math.max(2, tpl.workforce.length),
+                      changelog: [`v${tpl.version} — ${t("changelogInitial")}`],
+                      objectives: tpl.objectives,
+                      heroColors: v.heroColors,
+                      dashboards: v.dashboards,
+                      monthlyCost: v.estimatedMonthlyCost,
+                      companySize: v.estimatedCompanySize,
+                    } satisfies DisplayItem,
+                    isTemplate: true,
+                    slug: tpl.slug as string | null,
+                  };
+                })
               : [];
           const dbItems = (byKind[cat.kind] ?? []).map((it) => ({
             display: itemToDisplay(it),
