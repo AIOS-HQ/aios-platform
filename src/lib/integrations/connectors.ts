@@ -146,6 +146,7 @@ export const CONNECTORS: ConnectorDef[] = [
     initials: "YT",
     docsUrl: "https://developers.google.com/youtube",
     requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    authorizable: true,
     capabilities: [
       { id: "research_topic", mode: "read" },
       { id: "generate_script", mode: "write", risk: "routine" },
@@ -209,6 +210,7 @@ export const CONNECTORS: ConnectorDef[] = [
     initials: "GM",
     docsUrl: "https://developers.google.com/gmail/api",
     requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    authorizable: true,
     capabilities: [
       { id: "list_messages", mode: "read" },
       { id: "categorize_messages", mode: "read" },
@@ -227,6 +229,7 @@ export const CONNECTORS: ConnectorDef[] = [
     initials: "GC",
     docsUrl: "https://developers.google.com/calendar",
     requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    authorizable: true,
     capabilities: [
       { id: "list_events", mode: "read" },
       { id: "monitor_schedule", mode: "read" },

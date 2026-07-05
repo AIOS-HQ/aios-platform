@@ -1,40 +1,49 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ShieldCheck, AlertTriangle, CheckCircle2, Cpu } from "lucide-react";
+import { ShieldCheck, AlertTriangle, CheckCircle2, Cpu, Plug } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { listConnectorDefinitions } from "@/lib/integrations/registry";
 import { isDevConfigured, devConfigurationGaps } from "@/lib/integrations/registry-status";
 import { familyRequiredEnv } from "@/lib/integrations/oauth-families";
 import { getRedirectUri } from "@/lib/integrations/config";
-import { connectGateEnabled } from "@/lib/integrations/connect-gate";
+import { connectGateEnabled, connectAffordanceFor, connectHref, isConnectable } from "@/lib/integrations/connect-gate";
+import { getConnections } from "@/lib/integrations/connections";
 import { hasCapabilityHandler } from "@/lib/integrations/runtime/runtime";
 import { ensureProvidersRegistered } from "@/lib/integrations/providers";
 import { RuntimeSelfTest } from "@/components/integrations/runtime-self-test";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ConnectorGlyph } from "@/components/brand/brand-icons";
 
 export const metadata: Metadata = { title: "Developer Platform · AIOS" };
 
 /**
- * Developer Platform (Layer 1) — read-only connector readiness.
+ * Developer Platform (Layer 1) — connector readiness + connect.
  *
  * Admin-only. Surfaces, for EVERY connector, whether its developer
  * configuration is complete (dev_configured), the exact env vars + redirect URI
- * required, the remaining gaps, and — as of Group B.1 — how many of its
- * capabilities are wired to the Universal Capability Runtime. Presence checks
- * only; no secret values are read or shown.
+ * required, the remaining gaps, and how many of its capabilities are wired to
+ * the Universal Capability Runtime. Once a connector is Ready AND authorizable,
+ * its card renders an active Connect control that navigates to the ONE
+ * universal connect route (connectHref) — the same handler every surface uses.
+ * Presence checks only; no secret values are read or shown.
  */
 export default async function DeveloperPlatformPage() {
-  await requireUser();
+  const user = await requireUser();
   if (!(await currentUserIsAdmin())) notFound();
 
   // Register provider capability handlers so runtime wiring is observable here.
   ensureProvidersRegistered();
 
   const connectors = listConnectorDefinitions();
+  const connections = await getConnections(user.id);
+  const byProvider = new Map(connections.map((c) => [c.provider, c]));
+  const now = new Date().getTime();
+
   const rows = connectors.map((def) => ({
     def,
     ready: isDevConfigured(def),
@@ -169,26 +178,30 @@ export default async function DeveloperPlatformPage() {
               Ready ({ready.length})
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              {ready.map(({ def, redirectUri, runtimeWired, capabilityCount }) => (
-                <Card key={def.id}>
-                  <CardHeader className="flex-row items-center gap-3 space-y-0">
-                    <ConnectorGlyph id={def.id} initials={def.initials} />
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="truncate text-base">{def.name}</CardTitle>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {def.oauthFamily ? `family: ${def.oauthFamily}` : def.auth}
-                      </p>
-                    </div>
-                    {runtimeWired > 0 ? (
-                      <Badge variant="default" className="shrink-0">
-                        Runtime {runtimeWired}/{capabilityCount}
-                      </Badge>
-                    ) : (
-                      <Badge variant="default" className="shrink-0">Ready</Badge>
-                    )}
-                  </CardHeader>
-                  {(redirectUri || runtimeWired > 0) && (
-                    <CardContent className="space-y-1 text-xs">
+              {ready.map(({ def, redirectUri, runtimeWired, capabilityCount }) => {
+                const conn = byProvider.get(def.id);
+                const connected = conn?.status === "connected";
+                const expired = connected && conn?.expires_at ? new Date(conn.expires_at).getTime() < now : false;
+                const affordance = connectAffordanceFor(def.id, { connected, expired });
+                return (
+                  <Card key={def.id}>
+                    <CardHeader className="flex-row items-center gap-3 space-y-0">
+                      <ConnectorGlyph id={def.id} initials={def.initials} />
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="truncate text-base">{def.name}</CardTitle>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {def.oauthFamily ? `family: ${def.oauthFamily}` : def.auth}
+                        </p>
+                      </div>
+                      {runtimeWired > 0 ? (
+                        <Badge variant="default" className="shrink-0">
+                          Runtime {runtimeWired}/{capabilityCount}
+                        </Badge>
+                      ) : (
+                        <Badge variant="default" className="shrink-0">Ready</Badge>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-xs">
                       {runtimeWired > 0 && (
                         <p className="text-muted-foreground">
                           {runtimeWired} of {capabilityCount} capabilities wired to the runtime.
@@ -201,10 +214,34 @@ export default async function DeveloperPlatformPage() {
                           </code>
                         </p>
                       )}
+                      {/* Connect affordance — every Ready connector renders an active control. */}
+                      <div className="flex items-center gap-2 pt-1">
+                        {isConnectable(affordance) ? (
+                          <Button asChild size="sm" className="h-7 px-2 text-xs">
+                            <a href={connectHref(def.id)}>
+                              <Plug className="size-3.5" aria-hidden="true" />
+                              {affordance === "reauthorize" ? "Reconnect" : "Connect"}
+                            </a>
+                          </Button>
+                        ) : affordance === "connected" ? (
+                          <span className="inline-flex items-center gap-1 font-medium text-success">
+                            <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                            Connected
+                          </span>
+                        ) : (
+                          <Link
+                            href="/harmony/integrations"
+                            className="inline-flex items-center gap-1 font-medium text-primary transition-colors hover:text-primary/80"
+                          >
+                            <Plug className="size-3.5" aria-hidden="true" />
+                            Manage in Integration Center
+                          </Link>
+                        )}
+                      </div>
                     </CardContent>
-                  )}
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </section>
         )}
