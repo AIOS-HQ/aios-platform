@@ -60,6 +60,49 @@
       "installedCompanies": "{count} empresas instaladas",
       "roadmap": "Hoja de ruta futura",
       "notPublished": "Aún no publicado en el Marketplace."
+    },
+    "nav": {
+      "discover": "Descubrir",
+      "bundles": "Paquetes de un clic"
+    },
+    "discover": {
+      "title": "Descubrir",
+      "subtitle": "Busca en el marketplace en lenguaje natural, ve lo recomendado para tu empresa y explora colecciones seleccionadas.",
+      "back": "Volver al Marketplace",
+      "exploreBundles": "Paquetes de un clic",
+      "searchPlaceholder": "Prueba «búscame un equipo de crecimiento» o «paneles de finanzas»",
+      "search": "Buscar",
+      "allKinds": "Todos",
+      "resultsCount": "{count} resultados",
+      "noResults": "Sin coincidencias — prueba términos más amplios u otro filtro.",
+      "recommended": "Recomendado para ti",
+      "recommendedHint": "Adaptado al perfil de tu empresa.",
+      "kinds": {
+        "workforce": "Trabajadores",
+        "department": "Departamentos",
+        "skill": "Habilidades",
+        "connector": "Conectores",
+        "dashboard": "Paneles",
+        "workflow": "Flujos",
+        "company_template": "Empresas"
+      }
+    },
+    "bundles": {
+      "title": "Paquetes de un clic",
+      "subtitle": "Despliega una función de negocio completa con un solo clic — un departamento o empresa completa, preconfigurada.",
+      "back": "Volver al Marketplace",
+      "deploy": "Desplegar",
+      "setupTime": "~{n} min de configuración",
+      "workers": "Trabajadores",
+      "departments": "Departamentos",
+      "connectors": "Conectores",
+      "dashboards": "Paneles",
+      "category": {
+        "team": "Equipo",
+        "department": "Departamento",
+        "industry": "Industria",
+        "company": "Empresa"
+      }
     }
   }
 }

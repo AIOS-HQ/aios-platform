@@ -60,6 +60,49 @@
       "installedCompanies": "{count} companies installed",
       "roadmap": "Future roadmap",
       "notPublished": "Not yet published to the Marketplace."
+    },
+    "nav": {
+      "discover": "Discover",
+      "bundles": "One-click bundles"
+    },
+    "discover": {
+      "title": "Discover",
+      "subtitle": "Search the marketplace in plain language, see what's recommended for your company, and explore curated collections.",
+      "back": "Back to Marketplace",
+      "exploreBundles": "One-click bundles",
+      "searchPlaceholder": "Try “find me a growth team” or “finance dashboards”",
+      "search": "Search",
+      "allKinds": "All",
+      "resultsCount": "{count} results",
+      "noResults": "No matches — try broader words or a different filter.",
+      "recommended": "Recommended for you",
+      "recommendedHint": "Tailored to your company profile.",
+      "kinds": {
+        "workforce": "Workers",
+        "department": "Departments",
+        "skill": "Skills",
+        "connector": "Connectors",
+        "dashboard": "Dashboards",
+        "workflow": "Workflows",
+        "company_template": "Companies"
+      }
+    },
+    "bundles": {
+      "title": "One-Click Bundles",
+      "subtitle": "Deploy a complete business function in a single click — a full department or company, preconfigured.",
+      "back": "Back to Marketplace",
+      "deploy": "Deploy",
+      "setupTime": "~{n} min setup",
+      "workers": "Workers",
+      "departments": "Departments",
+      "connectors": "Connectors",
+      "dashboards": "Dashboards",
+      "category": {
+        "team": "Team",
+        "department": "Department",
+        "industry": "Industry",
+        "company": "Company"
+      }
     }
   }
 }
