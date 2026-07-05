@@ -190,7 +190,7 @@ export function buildOrgGraph(): OrgGraph {
 /** Validate the model: every referenced key resolves to a real worker (or founder). */
 export function validateRelationships(): { ok: boolean; errors: string[] } {
   const errors: string[] = [];
-  const workerKeys = new Set(AIOS_WORKFORCE.filter((a) => !isFounderOnlyAgent(a.key)).map((a) => a.key));
+  const workerKeys = new Set<string>(AIOS_WORKFORCE.filter((a) => !isFounderOnlyAgent(a.key)).map((a) => a.key));
   const validTarget = (k: string) => k === FOUNDER_NODE || workerKeys.has(k);
 
   for (const [key, rel] of Object.entries(WORKER_RELATIONSHIPS)) {

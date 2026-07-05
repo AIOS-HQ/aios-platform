@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
 import { PageHeader } from "@/components/shared/page-header";
@@ -111,16 +112,16 @@ export default async function WorkforceOrgPage({
 
         {/* Relationship-type filter */}
         <nav aria-label={t("legendTitle")} className="flex flex-wrap gap-2">
-          <a
+          <Link
             href="/harmony/workforce/org"
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
               selected === null ? "bg-foreground text-background" : "text-muted-foreground"
             }`}
           >
             {t("filterAll")}
-          </a>
+          </Link>
           {RELATION_TYPES.map((rt) => (
-            <a
+            <Link
               key={rt}
               href={`/harmony/workforce/org?rel=${rt}`}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
@@ -130,7 +131,7 @@ export default async function WorkforceOrgPage({
               <span className="inline-block size-2 rounded-full" style={{ backgroundColor: REL_COLORS[rt] }} />
               {t(`rel.${rt}`)}
               <span className="opacity-60">{counts.get(rt) ?? 0}</span>
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -246,12 +247,12 @@ export default async function WorkforceOrgPage({
                 <Card key={w.key}>
                   <CardContent className="flex flex-col gap-2.5 p-5">
                     <div className="flex items-center justify-between gap-2">
-                      <a
+                      <Link
                         href={`/harmony/workforce/${w.key}`}
                         className="text-base font-semibold underline-offset-2 hover:underline"
                       >
                         {w.name}
-                      </a>
+                      </Link>
                       <Badge variant="outline" className="text-[10px]">
                         {w.role}
                       </Badge>
