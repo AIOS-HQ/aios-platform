@@ -36,11 +36,12 @@ end of every milestone report.
 - **Enterprise Auto-Provisioning** — `provisionCompanyFromTemplate` (template → configured company via the envelope + Julius seeding).
 - **Marketplace Storefront** — `/harmony/marketplace`, 12 categories, full item-card anatomy + install/update/rollback/deploy (PR #348, ratified).
 - **Multi-Company OS core.**
+- **Company Builder + Deployment Experience** — `/harmony/build` (PR #350, ratified); **Marketplace in nav** (PR #351).
 
-### 🔵 In progress — Deployment Experience & Company Builder (held previews)
-- **Company Deployment Experience** — visual "this company will provision…" + progress + ETA + success summary.
-- **Company Builder** — 5-step guided onboarding (Company → Industry → Tools → Departments → Deploy) calling Enterprise Auto-Provisioning.
+### 🔵 Launch-First — Founder Beta (in progress)
 - **Marketplace content seeding** — 10 templates + departments/skills/packs as public items (service-role; needs platform publisher identity).
+- **Marketplace visual experience** — hero image, estimated cost, company size, dashboards, screenshots on template cards.
+- **Founder Beta hardening** — validate the full create→deploy→access→export journey end-to-end.
 
 ### 🟡 Continuing
 - **Provider clients (remaining):** Google Docs/Sheets/Meet, Microsoft Outlook/Teams/OneDrive, Salesforce, Dropbox, Box, Browserbase, Stagehand — inherit the runtime.

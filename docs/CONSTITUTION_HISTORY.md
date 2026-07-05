@@ -59,6 +59,24 @@ launch blockers, recommended launch order, estimated completion, AIOS v1
 readiness score, executive launch recommendation) — maintained until AIOS v1.0
 is declared production-ready. Living tracker: `docs/AIOS_V1_READINESS.md`.
 
+---
+
+## Ratification III — Company Builder + Deployment Experience; Launch-First phase (2026-07-05)
+
+7. **Company Builder** — the 5-step guided flow (Template → Industry → Tools →
+   Departments → Review & Deploy) that stands up a company by calling the
+   existing Enterprise Auto-Provisioning. *(PR #350)*
+8. **Deployment Experience** — the signature 13-subsystem provisioning reveal +
+   deployment summary. *(PR #350)*. Marketplace added to Harmony navigation
+   *(PR #351)*. Recorded in Julius (entry `96bd9429-9f6f-4e51-bcc4-ce53c416d6a8`).
+
+### Strategic amendment — Launch-First phase
+AIOS now prioritizes **Founder Beta** completion before optional features; every
+milestone must measurably increase Launch Readiness. The Launch Readiness Report
+additionally tracks **Founder Beta Readiness %**, **Production v1 Readiness %**,
+**estimated remaining milestones**, **top 5 launch blockers**, and the
+**recommended next milestone**.
+
 ### Standing obligations for future work
 - These foundations are **permanent**: extend, do not regress. Any change must
   preserve existing behavior (zero regressions) and pass the `validate` gate.

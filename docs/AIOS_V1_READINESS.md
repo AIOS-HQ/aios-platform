@@ -4,9 +4,15 @@ Updated after every milestone. Mirrors the **AIOS Launch Readiness Report**
 section now required at the end of every milestone report. Percentages are
 engineering estimates against the full AIOS v1 roadmap.
 
-_Last updated: 2026-07-05 (Marketplace Storefront ratified; Deployment Experience + Company Builder in preview)._
+_Last updated: 2026-07-05 (Company Builder + Deployment Experience ratified & live; Marketplace in nav; Launch-First phase)._
 
-## Overall launch readiness: ~68%
+## Overall launch readiness: ~72%
+## Founder Beta readiness: ~80% · Production v1 readiness: ~55%
+
+The Founder-Beta journey (create → choose template → connect tools → deploy →
+access Harmony/Julius/Ledger/Digital Twin/Workforce/Marketplace → export) is now
+functionally complete in code; remaining Founder-Beta gaps are seeded marketplace
+content, Multi-Company switching UI, and go-live hardening.
 
 ## Foundation completion
 | Foundation | Status |
@@ -23,7 +29,7 @@ _Last updated: 2026-07-05 (Marketplace Storefront ratified; Deployment Experienc
 | Marketplace (engine + persistence + storefront) | ✅ Complete (engine, 12 categories, persistence live, storefront ratified) |
 | Portable Company | ✅ Complete (export/import/backup/clone/deploy) |
 | Enterprise Provisioning | ✅ Complete (template → company) |
-| Founder Experience | 🟡 Command Center + HQ + exec dashboard + landing live; deployment/builder in preview |
+| Founder Experience | ✅ Command Center + HQ + exec dashboard + landing + Company Builder + Deployment Experience live; Marketplace in nav |
 | Executive Dashboard | ✅ Complete |
 | Workforce Directory | ✅ Complete |
 | Multi-Company OS | 🟡 Core (list/resolve) done; founder switching UI queued |
@@ -48,7 +54,7 @@ Marketplace 4 · Deployment 3.5
 Developer Preview → Private Alpha → Founder Beta → Customer Beta → Production v1.0.
 _Currently entering **Founder Beta** readiness for the Marketplace + deployment journey (behind held previews)._
 
-## AIOS v1 Readiness Score: 68 / 100
+## AIOS v1 Readiness Score: 72 / 100
 
 ## Executive launch recommendation
 Not yet production-ready. Blocking a confident world-class launch: Layer‑1 secrets/OAuth,
