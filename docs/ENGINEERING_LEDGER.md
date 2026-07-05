@@ -17,9 +17,11 @@ Founder ratified five capabilities as **permanent AIOS platform foundations**
 - **#344 — Landing redesign (Founder-approved, live).** `FeatureShowcase` features Marketplace, Portable Company, Autonomous Provisioning, Company Templates; new bilingual `marketing-features` catalog merged via `request.ts`.
 - **#345 — Marketplace persistence LIVE.** Migration `marketplace_persistence` (prod): items/versions/ratings/installations + RLS (owner-scoped + public-read for verified). `persistence.ts` + `actions.ts` wire approved `InstallPlan`s to owner-scoped writes; server-only, kept out of the pure barrel.
 - **#346 — Enterprise auto-provisioning.** `provisionCompanyFromTemplate` composes `upsertEnvelope` + `juliusRemember` to turn a template into a configured company.
+- **#347 — Foundations ratified (docs).** Constitution history + roadmap + ledger.
+- **#348 — Marketplace Storefront (Founder-approved, live).** `/harmony/marketplace`, 12 categories, full item-card anatomy + install/update/rollback/deploy; ratified as the sixth permanent foundation (Constitution Ratification II). Permanent **AIOS Launch Readiness Report** now required at the end of every milestone report (`docs/AIOS_V1_READINESS.md`).
 
 ### Held for Founder preview (visible UX)
-- Marketplace **storefront UI**, **Company Deployment Experience**, **Company Builder** (5-step onboarding), and the company-creation UI that calls the provisioner.
+- **Company Deployment Experience** + **Company Builder** (5-step onboarding, reusing `provisionCompanyFromTemplate`); nav link to `/harmony/marketplace`.
 
 ### Follow-ups (non-gated but sequenced)
 - Seed the 10 templates (+ departments/skills/packs) as public marketplace items via the service-role path (needs the platform publisher identity).
