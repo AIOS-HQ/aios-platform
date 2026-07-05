@@ -11,7 +11,8 @@ import {
  * Regression guard for the universal OAuth callback: it must NEVER throw / 500.
  * Every failure path — bad state, failed exchange, a token write that returns
  * false OR throws (e.g. a missing prod env / fail-closed encryption) — must map
- * to a typed error the route renders as ?error=<reason>.
+ * to a typed error the route renders as ?error=<reason>. A thrown error maps to
+ * "server" and carries the exception message as `detail`.
  */
 
 const token: TokenResultLike = { accessToken: "at", refreshToken: "rt", expiresIn: 3600, scope: "s" };
@@ -57,7 +58,7 @@ describe("resolveOAuthCallback", () => {
     expect(await resolveOAuthCallback(ctx(), io({ persist: async () => false }))).toEqual({ ok: false, error: "persist" });
   });
 
-  it("NEVER throws — a throwing token write maps to error=server and is logged", async () => {
+  it("NEVER throws — a throwing token write maps to error=server with the exception detail, and is logged", async () => {
     const onError = vi.fn();
     const res = await resolveOAuthCallback(
       ctx(),
@@ -68,13 +69,13 @@ describe("resolveOAuthCallback", () => {
         onError,
       }),
     );
-    expect(res).toEqual({ ok: false, error: "server" });
+    expect(res).toMatchObject({ ok: false, error: "server", detail: expect.stringContaining("Missing production-critical") });
     expect(onError).toHaveBeenCalledOnce();
   });
 
-  it("NEVER throws — a throwing exchange maps to error=server", async () => {
+  it("NEVER throws — a throwing exchange maps to error=server with detail", async () => {
     const res = await resolveOAuthCallback(ctx(), io({ exchange: async () => { throw new Error("boom"); } }));
-    expect(res).toEqual({ ok: false, error: "server" });
+    expect(res).toMatchObject({ ok: false, error: "server", detail: expect.stringContaining("boom") });
   });
 
   it("rejects bad CSRF state (provider mismatch, nonce mismatch, missing code/cookie)", async () => {

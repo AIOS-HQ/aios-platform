@@ -4,16 +4,19 @@
  * The universal `/api/integrations/[provider]/callback` route is a thin adapter
  * over this: it maps the outcome to a redirect. Extracting the logic here lets
  * us guarantee the invariant the hard way (a unit test): the callback NEVER
- * throws — every failure (bad state, failed code exchange, a throwing/failed
- * token write, or ANY unexpected error) resolves to a typed error outcome the
- * route turns into `?error=<reason>` instead of an HTTP 500.
+ * throws / 500s — every failure (bad state, failed code exchange, a throwing/
+ * failed token write, or ANY unexpected error) resolves to a typed error the
+ * route turns into `?error=<reason>` (with a short `detail` on `server`, so the
+ * exact exception is visible in the redirect URL without server-log access).
  *
  * No I/O here: the code-exchange and persistence are injected, so this is pure
  * and runs in Node tests without Next/Supabase.
  */
 
 export type CallbackError = "unknown" | "denied" | "state" | "exchange" | "persist" | "server";
-export type CallbackResult = { ok: true; userId: string } | { ok: false; error: CallbackError };
+export type CallbackResult =
+  | { ok: true; userId: string }
+  | { ok: false; error: CallbackError; detail?: string };
 
 export interface TokenResultLike {
   accessToken: string | null;
@@ -59,7 +62,8 @@ export function parseStateCookie(raw: string): { pid: string; uid: string; nonce
 
 /**
  * Resolve an OAuth callback to a typed outcome. Guarantees no throw escapes:
- * exchange + persist run inside a try/catch that maps any error to "server".
+ * exchange + persist run inside a try/catch that maps any error to "server"
+ * (with the exception message as `detail`).
  */
 export async function resolveOAuthCallback(ctx: CallbackContext, io: CallbackIO): Promise<CallbackResult> {
   if (!ctx.providerKnown) return { ok: false, error: "unknown" };
@@ -93,6 +97,7 @@ export async function resolveOAuthCallback(ctx: CallbackContext, io: CallbackIO)
     return { ok: true, userId: parsed.uid };
   } catch (err) {
     io.onError?.("callback", err);
-    return { ok: false, error: "server" };
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: "server", detail };
   }
 }

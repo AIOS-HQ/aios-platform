@@ -22,12 +22,10 @@ function base(): string {
  * authorization code, and persist the connection (tokens encrypted at rest).
  *
  * Exception-safe: the flow runs through `resolveOAuthCallback`, which maps ANY
- * failure — including a throwing token write (e.g. a missing production env var
- * surfaced by the admin client, or fail-closed token encryption) — to a typed
- * `?error=<reason>` redirect and logs the real cause, so the callback NEVER
- * returns an HTTP 500. `?error=server` means "check the server logs" (the
- * underlying error is logged there); `?error=persist` means the write returned
- * false (e.g. service-role client unavailable).
+ * failure to a typed `?error=<reason>` redirect and logs the real cause, so the
+ * callback NEVER returns HTTP 500. `?error=server` additionally carries a short
+ * `&detail=` with the exception message, so the exact cause is visible in the
+ * URL without needing server-log access.
  */
 export async function GET(
   req: Request,
@@ -35,8 +33,11 @@ export async function GET(
 ) {
   const { provider: pid } = await params;
   const b = base();
-  const fail = (reason: string) =>
-    NextResponse.redirect(`${b}/settings/integrations?error=${reason}&provider=${pid}`);
+  const fail = (reason: string, detail?: string) => {
+    const params = new URLSearchParams({ error: reason, provider: pid });
+    if (detail) params.set("detail", detail.slice(0, 300));
+    return NextResponse.redirect(`${b}/settings/integrations?${params.toString()}`);
+  };
 
   const def = getConnectorDefinition(pid);
   if (!def) return fail("unknown");
@@ -77,7 +78,7 @@ export async function GET(
     },
   );
 
-  if (!result.ok) return fail(result.error);
+  if (!result.ok) return fail(result.error, result.detail);
 
   const res = NextResponse.redirect(`${b}/settings/integrations?connected=${pid}`);
   res.cookies.delete(STATE_COOKIE);
