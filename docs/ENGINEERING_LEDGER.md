@@ -6,6 +6,26 @@ entries below) so institutional knowledge survives across sessions.
 
 ---
 
+## 2026-07-05 — Marketplace Intelligence Suite + Workforce Org Map (Launch-First)
+
+### Shipped to `main`
+- **#355 — AI Workforce Relationship Map + Org Graph (Founder-approved, live).** New static org model `src/lib/workforce/relationships.ts` (7 relationship types: reports-to, works-with, depends-on, provides-data-to, receives-data-from, can-train, can-replace) + `buildOrgGraph()` / `validateRelationships()`; new `/harmony/workforce/org` view (hierarchical org graph + filterable typed-edge map + full relationship matrix). Additive — the runtime A2A graph at `/harmony/workforce/graph` is untouched. New `org` i18n catalog (en/es) registered in `request.ts`.
+- **Marketplace Intelligence Suite (additive, pure, unit-tested — 26 assertions).** Four new engines under `src/lib/marketplace/`, exported from the barrel:
+  - `intelligence.ts` — personalized recommendations from a `CompanyProfileSignal`: recommended workers / departments / skills / connectors / dashboards / workflow-packs, **Companies Like Yours**, and **AI Recommended Bundles**.
+  - `discovery.ts` — natural-language search with intent-synonym expansion + faceted capability / connector / department / worker / industry search; `parseIntentKinds()` for UI facets.
+  - `collections.ts` — curated rows: Founder Favorites, AI Recommended, Trending, Highest Rated, Most Installed, Recently Updated, Staff Picks.
+  - `bundles.ts` — 9 one-click bundles (Executive Team; Finance / Marketing / Sales / Customer-Support Departments; Healthcare Practice; SaaS Startup; Law Firm; Restaurant) + a pure `planBundle()` installer plan + `validateBundles()`.
+
+### Token encryption — verified operational
+- `TOKEN_ENCRYPTION_KEY` verified detected in prod (`isTokenEncryptionEnabled()` → true; production-readiness reports `enabled`); `encryptToken` fail-closed in production. **Live DB check:** `integration_connections` = 4 rows, access_token encrypted 0 / plaintext 4 (refresh_token none). The 4 legacy plaintext tokens predate the key and require the one-time **`POST /api/admin/encrypt-tokens`** backfill, which is admin-session-authenticated — it must be triggered by the Founder (the autonomous runtime has no admin session and never handles the key).
+
+### 🧠 Julius engineering memory (kind: `decision` / `knowledge`)
+- **[knowledge] The workforce has TWO graphs.** `/harmony/workforce/graph` is the live A2A operational graph (runtime messages); `/harmony/workforce/org` is the static organizational relationship map (intended structure). Keep them separate — never regress one into the other.
+- **[decision] Full `tsc` harness before push, not just transpile.** `transpileModule` strips types without checking them; a `Set` inferred as `Set<AiosAgentKey>` then tested with `.has(string)` (TS2345) passed transpile + lint but failed `next build`. A stubbed `tsc --strict` harness (real `@types/react` + `next-intl`) reproduces build-time type errors locally. Type roster-derived Sets as `Set<string>` when membership is tested with arbitrary strings.
+- **[knowledge] One profile signal, many surfaces.** `CompanyProfileSignal` (industry / type / tags / connectors / departments / installed) drives Intelligence, feeds Collections' AI Recommended row, and shares Discovery's tokenization — one vocabulary across the whole suite.
+
+---
+
 ## 2026-07-05 — Platform foundations RATIFIED (permanent) + Marketplace/Portable/Provisioning live
 
 Founder ratified five capabilities as **permanent AIOS platform foundations**
@@ -21,6 +41,7 @@ Founder ratified five capabilities as **permanent AIOS platform foundations**
 - **#348 — Marketplace Storefront (Founder-approved, live).** `/harmony/marketplace`, 12 categories, full item-card anatomy + install/update/rollback/deploy; ratified (Constitution Ratification II). Permanent **AIOS Launch Readiness Report** now required.
 - **#350 — Company Builder + Deployment Experience (Founder-approved, live).** `/harmony/build` 5-step flow → `deployCompanyFromTemplate` (reuses `provisionCompanyFromTemplate` + additive connector/department overrides) → 13-subsystem deployment reveal + summary. Ratified (Constitution Ratification III); **Launch-First phase** begins.
 - **#351 — Marketplace navigation.** `/harmony/marketplace` in the founder sidebar; base `nav.marketplace` (en/es). Base i18n reconstructed from proven ground truth (zero regression).
+- **#354 — AI Worker profiles (marketplace).** `src/lib/workforce/marketplace.ts` `buildWorkerProfile` + `/harmony/marketplace/workers/[key]`.
 
 ### Held / follow-ups (Launch-First, sequenced for Founder Beta)
 - Seed public marketplace content (service-role; needs platform publisher identity); richer template visuals (hero, cost, size, dashboards); remaining providers; Multi-Company switching UI.
