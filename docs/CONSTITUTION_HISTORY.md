@@ -1,0 +1,49 @@
+# AIOS Constitution — Amendment & Ratification History
+
+The AIOS Constitution governs how the platform is built and operated. This file
+records **ratified milestones** — capabilities the Founder has approved as
+**permanent platform foundations**. Once ratified, a foundation may be extended
+but never regressed or removed without explicit Founder amendment (the
+zero-regression mandate).
+
+---
+
+## Ratification I — Platform Foundations (2026-07-05)
+
+The Founder ratified the following five capabilities as **permanent AIOS platform
+foundations**. Recorded in the company brain (Julius entry
+`44351089-2030-4cd7-9844-f942c133031d`, kind `decision`).
+
+1. **Marketplace Engine** — one universal `MarketplaceItem` model across 12
+   storefront categories; semver, verification, ratings, dependency resolution
+   (cycle/conflict/missing), and install/update/rollback/uninstall planning.
+   Pure + dependency-free (91 unit tests). *(PRs #342, #343)*
+2. **Marketplace Persistence** — `marketplace_items`, `marketplace_item_versions`,
+   `marketplace_item_ratings`, `company_installations` with RLS mirroring the
+   platform `auth.uid() = user_id` convention + a public-read exception for
+   verified public items; end users manage private items only (public publish +
+   verification is a privileged service-role path). Server actions wire approved
+   `InstallPlan`s to owner-scoped writes. *(PR #345)*
+3. **Portable Company** — `exportCompany` / `importCompany` / `backupCompany` /
+   `cloneCompany` / `prepareDeployment`: an entire company (envelope identity +
+   Julius memory + skills + Digital Twin + Ledger + marketplace-asset plan) as a
+   secret-free, deployable bundle. *(PRs #342, #343)*
+4. **Enterprise Auto-Provisioning** — `provisionCompanyFromTemplate`: a Company
+   Template becomes a configured company via the Company Context Envelope
+   (identity, departments, objectives, brand, config-only connectors, workforce)
+   + Julius knowledge seeding. *(PR #346)*
+5. **Landing Experience** — the marketing site features Marketplace, Portable
+   Company, Autonomous Provisioning, and Company Templates. *(PR #344)*
+
+### Constitutional principle reaffirmed
+**One Universal Capability Runtime specializes into each company via
+configuration (the Company Context Envelope) — never a per-company codebase**
+(Law 1 + Law 2). All five foundations are expressions of this principle. Secrets
+never live in envelopes, marketplace artifacts, or portable bundles; connectors
+are config-only and re-consented per company.
+
+### Standing obligations for future work
+- These foundations are **permanent**: extend, do not regress. Any change must
+  preserve existing behavior (zero regressions) and pass the `validate` gate.
+- Production-impacting schema, breaking architecture, security, Layer‑1
+  provisioning, and visible Founder UX remain **approval gates**.
