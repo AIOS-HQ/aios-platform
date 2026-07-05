@@ -29,6 +29,7 @@ import {
   harmonyClarifyExecution,
   consumePendingHarmonyClarification,
 } from "@/lib/harmony/clarification";
+import { buildEnvelopePromptContext } from "@/lib/harmony/envelope-context";
 import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
 import { masonOwnsEngineeringTask } from "@/lib/harmony/code/mason";
 import type { OperatorResult } from "@/lib/ai/types";
@@ -64,16 +65,19 @@ async function harmonySystemPrompt(base: string, userId: string, input?: string)
   try {
     const companyId = await resolvePrimaryCompanyId();
     if (companyId && (await currentUserIsAdmin())) {
+      // Foundation 2 (Law 5): reason from the Company Context Envelope.
+      const envCtx = await buildEnvelopePromptContext(companyId);
+      const baseWithEnv = envCtx ? `${base}\n\n${envCtx}` : base;
       if (input && isMajorExecutionSequence(input)) {
         const orchestration = await buildAutonomousExecutionOrchestration({
           userId,
           companyId,
           objective: input,
         });
-        return `${base}\n\n${orchestration.executiveWorkspace.promptContext}\n\n${orchestration.promptContext}`;
+        return `${baseWithEnv}\n\n${orchestration.executiveWorkspace.promptContext}\n\n${orchestration.promptContext}`;
       }
       const workspace = await buildExecutiveWorkspace(userId, companyId);
-      return `${base}\n\n${workspace.promptContext}`;
+      return `${baseWithEnv}\n\n${workspace.promptContext}`;
     }
   } catch (e) {
     console.error("[operator-actions] executive workspace context failed", e);
