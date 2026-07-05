@@ -12,6 +12,13 @@ provisioning · visible Founder UX previews. **Zero regressions.**
 
 ---
 
+## 🏛️ Ratified foundations (permanent — 2026-07-05)
+See `docs/CONSTITUTION_HISTORY.md`. Extend, never regress:
+**Marketplace Engine · Marketplace Persistence · Portable Company · Enterprise
+Auto-Provisioning · Landing Experience.**
+
+---
+
 ## Top-level milestones
 
 ### 🟢 Foundation (shipped / on `main`)
@@ -19,25 +26,24 @@ provisioning · visible Founder UX previews. **Zero regressions.**
 - **Provider clients (10):** GitHub, Slack, Notion, Linear, Discord, Jira, Google Drive, HubSpot, Gmail, Google Calendar.
 - **Company Context Envelope** — 30-section identity (config-only; no tokens).
 - **Julius** (company brain), **Ledger** (AI CFO), **Digital Twin** (derived operating model).
-- **Founder Experience** — Command Center, AI Workforce HQ, Executive/Explainability dashboard, uploads, branding, executive chat (rich markdown, code, tables, search, bookmarks).
+- **Founder Experience** — Command Center, AI Workforce HQ, Executive/Explainability dashboard, uploads, branding, executive chat; **landing experience LIVE**.
+- **AIOS Marketplace** — engine + 12 categories + 10 Company Templates; **persistence LIVE** (items/versions/ratings/installations + RLS); install/update/rollback/uninstall server actions wired.
+- **Portable Company** — export / import / backup / clone / deploy (secret-free bundle).
+- **Enterprise Auto-Provisioning** — `provisionCompanyFromTemplate` (template → configured company via the envelope + Julius seeding).
 - **Multi-Company OS core.**
 
-### 🔵 TOP PRIORITY — AIOS Marketplace
-One universal marketplace over the runtime; **12 storefront categories** on ONE item model.
-- **Shipped (engine + catalog, additive):** `src/lib/marketplace/` — 13 item kinds; the 12 categories (Company Templates, AI Departments, AI Workers, Skills, Connector Packs, Workflow Packs, Dashboard Packs, Industry Solutions, Branding Packs, Knowledge Packs, Founder Packs, Developer Tools); semver, verification, ratings, dependency resolution (cycle/conflict/missing), install/update/rollback/uninstall planning; company-private + public. **10 Company Templates** (`templates/`) that provision complete autonomous companies. 91 unit tests.
-- **Held (Founder gate — schema):** persistence tables + RLS + server actions (see `docs/marketplace/README.md`).
-- **Held (visible UX):** the Marketplace storefront + landing feature UI.
-
-### 🔵 TOP PRIORITY — Portable Company
-An entire autonomous company as a deployable package.
-- **Shipped (additive):** `src/lib/company/portable-company.ts` — `exportCompany` / `importCompany` / **`backupCompany`** / **`cloneCompany`** / **`prepareDeployment`** (+ `hashBundle`, `validateBundle`). Bundles the full identity (envelope) + Julius memory + skills + Digital Twin + Ledger + marketplace-asset plan. Secret-free; connectors re-consent.
-- **Held:** full-fidelity writers for envelope sections lacking an import path today; cross-instance transport orchestration.
+### 🔵 In progress — Marketplace & Deployment Experience (held previews)
+- **Marketplace Storefront UI** — 12 categories; rich item cards (icon, name, description, workers, connectors, deployment time, rating, version, verification, install/update/rollback, dependencies, screenshots, preview, changelog).
+- **Company Deployment Experience** — visual "this company will provision…" + progress + ETA + success summary.
+- **Company Builder** — 5-step guided onboarding (Company → Industry → Tools → Departments → Deploy) calling Enterprise Auto-Provisioning.
+- **Marketplace content seeding** — 10 templates + departments/skills/packs as public items (service-role; needs platform publisher identity).
 
 ### 🟡 Continuing
 - **Provider clients (remaining):** Google Docs/Sheets/Meet, Microsoft Outlook/Teams/OneDrive, Salesforce, Dropbox, Box, Browserbase, Stagehand — inherit the runtime.
-- **Landing page redesign** (Marketplace, Portable Company, Autonomous Provisioning, Company Templates) — **held preview** for Founder approval.
-- **Multi-Company OS** founder interface · **Enterprise OS** auto-provisioning.
-- **Digital Twin** (simulation/forecasting/risk/scenario/strategy), **Ledger** (investor reporting/accounting integrations/cash forecasting/variance/exec reports), **Julius** (decision history/best practices/semantic retrieval/relationship intelligence).
+- **Multi-Company OS** founder interface (operate multiple companies from one account).
+- **Digital Twin** — simulation, forecasting, operational + risk prediction, scenario analysis, strategic planning.
+- **Ledger** — investor reporting, accounting integrations, cash forecasting, budget variance, executive financial reporting.
+- **Julius** — decision history, institutional best practices, semantic retrieval, relationship intelligence.
 
 ---
 
