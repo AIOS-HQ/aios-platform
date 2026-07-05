@@ -248,7 +248,9 @@
     "workforce": "Equipo IA",
     "operations": "Operaciones",
     "review": "Revisión",
-    "autonomy": "Autonomía"
+    "autonomy": "Autonomía",
+    "executive": "Ejecutivo",
+    "branding": "Marca"
   },
   "os": {
     "commandCenter": {

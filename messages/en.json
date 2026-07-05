@@ -248,7 +248,9 @@
     "workforce": "Workforce",
     "operations": "Operations",
     "review": "Review",
-    "autonomy": "Autonomy"
+    "autonomy": "Autonomy",
+    "executive": "Executive",
+    "branding": "Branding"
   },
   "os": {
     "commandCenter": {
