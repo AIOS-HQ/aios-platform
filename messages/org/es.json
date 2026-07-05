@@ -1,0 +1,21 @@
+{
+  "org": {
+    "title": "Organización y mapa de relaciones del equipo",
+    "subtitle": "Cómo se organiza el equipo de IA de AIOS: líneas de reporte, colaboración, dependencias, flujo de datos y capacidad de entrenamiento/reemplazo. Esta es la organización prevista; el grafo de mensajes en vivo está en el grafo de Comunicación.",
+    "howToRead": "Filtra por tipo de relación para aislar una sola perspectiva. Las flechas muestran la dirección de cada relación. Haz clic en cualquier trabajador para abrir su perfil.",
+    "filterAll": "Todas las relaciones",
+    "legendTitle": "Tipos de relación",
+    "matrixTitle": "Matriz de relaciones",
+    "none": "Ninguna",
+    "founder": "Fundador",
+    "rel": {
+      "reports_to": "Reporta a",
+      "works_with": "Trabaja con",
+      "depends_on": "Depende de",
+      "provides_data_to": "Proporciona datos a",
+      "receives_data_from": "Recibe datos de",
+      "can_train": "Puede entrenar",
+      "can_replace": "Puede reemplazar"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "org": {
+    "title": "Workforce Organization & Relationship Map",
+    "subtitle": "How the AIOS workforce is organized — reporting lines, collaboration, dependencies, data flow, and training/replacement capability. This is the intended organization; the live message graph lives under the Communication graph.",
+    "howToRead": "Filter by relationship type to isolate a single lens. Arrows show the direction of each relationship. Click any worker to open its profile.",
+    "filterAll": "All relationships",
+    "legendTitle": "Relationship types",
+    "matrixTitle": "Relationship matrix",
+    "none": "None",
+    "founder": "Founder",
+    "rel": {
+      "reports_to": "Reports to",
+      "works_with": "Works with",
+      "depends_on": "Depends on",
+      "provides_data_to": "Provides data to",
+      "receives_data_from": "Receives data from",
+      "can_train": "Can train",
+      "can_replace": "Can replace"
+    }
+  }
+}
