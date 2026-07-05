@@ -2,14 +2,13 @@ import "server-only";
 
 import { registerGitHubCapabilities } from "./github";
 import { registerSlackCapabilities } from "./slack";
+import { registerNotionCapabilities } from "./notion";
+import { registerLinearCapabilities } from "./linear";
 
 /**
  * Provider bootstrap. Idempotently registers every provider's capability
- * handlers on the Universal Capability Runtime. Call before executing a
- * capability (or at the top of any surface that inspects handler wiring).
- *
- * Adding a provider = implement its handler module (mirroring ./github) and add
- * one registration call here. No other wiring is required.
+ * handlers on the Universal Capability Runtime. Adding a provider = one handler
+ * module (mirroring ./github) + one registration call here.
  */
 
 let done = false;
@@ -19,4 +18,6 @@ export function ensureProvidersRegistered(): void {
   done = true;
   registerGitHubCapabilities();
   registerSlackCapabilities();
+  registerNotionCapabilities();
+  registerLinearCapabilities();
 }
