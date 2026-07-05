@@ -1,0 +1,47 @@
+{
+  "marketplace": {
+    "title": "Marketplace",
+    "subtitle": "Install AI workers, departments, skills, connectors, and dashboards — or deploy an entire autonomous company.",
+    "browse": "Browse",
+    "itemsCount": "{count} items",
+    "empty": "No items here yet — seeding soon.",
+    "trust": "Every item is versioned, verified, rated, and dependency-aware — installable, updatable, and rollback-safe.",
+    "labels": {
+      "deploymentTime": "Deployment time",
+      "version": "Version",
+      "rating": "Rating",
+      "unrated": "New",
+      "workers": "AI workers",
+      "connectors": "Connectors",
+      "dependencies": "Dependencies",
+      "none": "None",
+      "changelog": "Change log",
+      "screenshots": "Screenshots",
+      "preview": "Preview",
+      "objectives": "Objectives",
+      "details": "Details",
+      "estMinutes": "~{n} min"
+    },
+    "verification": {
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "pending": "Pending review",
+      "rejected": "Rejected"
+    },
+    "actions": {
+      "install": "Install",
+      "update": "Update",
+      "rollback": "Rollback",
+      "uninstall": "Uninstall",
+      "deploy": "Deploy",
+      "working": "Working…",
+      "installed": "Installed",
+      "selectCompany": "Select a company first to install.",
+      "blocked": "Can't proceed",
+      "applied": "Done — applied to your company.",
+      "failed": "Something went wrong. Try again."
+    },
+    "screenshotsPlaceholder": "Screenshots coming soon.",
+    "changelogInitial": "Initial release."
+  }
+}

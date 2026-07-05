@@ -13,11 +13,12 @@ import { defaultLocale, isLocale, LOCALE_COOKIE } from "./config";
  * Messages are composed from the base catalog plus feature-scoped catalogs
  * (the marketing `landing` namespace, the `marketingFeatures` catalog for the
  * Marketplace / Portable Company / Provisioning / Templates landing sections,
- * the `pages` catalog — FAQ, Help Center and onboarding — the `julius` Company
- * Brain catalog, the `integrations` Integration Center catalog, the `onboarding`
- * Smart Onboarding catalog, the `oversight` Harmony Oversight catalog, and the
- * `ambassador` Business Communications catalog), merged here so each surface can
- * own its copy without bloating the base file.
+ * the `marketplace` Storefront catalog, the `pages` catalog — FAQ, Help Center
+ * and onboarding — the `julius` Company Brain catalog, the `integrations`
+ * Integration Center catalog, the `onboarding` Smart Onboarding catalog, the
+ * `oversight` Harmony Oversight catalog, and the `ambassador` Business
+ * Communications catalog), merged here so each surface can own its copy without
+ * bloating the base file.
  */
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
@@ -27,6 +28,7 @@ export default getRequestConfig(async () => {
   const base = (await import(`../../messages/${locale}.json`)).default;
   const landing = (await import(`../../messages/landing/${locale}.json`)).default;
   const marketingFeatures = (await import(`../../messages/marketing-features/${locale}.json`)).default;
+  const marketplace = (await import(`../../messages/marketplace/${locale}.json`)).default;
   const pages = (await import(`../../messages/pages/${locale}.json`)).default;
   const julius = (await import(`../../messages/julius/${locale}.json`)).default;
   const integrations = (await import(`../../messages/integrations/${locale}.json`)).default;
@@ -42,6 +44,7 @@ export default getRequestConfig(async () => {
       ...base,
       ...landing,
       ...marketingFeatures,
+      ...marketplace,
       ...pages,
       ...julius,
       ...integrations,
