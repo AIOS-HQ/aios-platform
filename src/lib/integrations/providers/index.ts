@@ -10,6 +10,9 @@ import { registerGoogleDriveCapabilities } from "./google-drive";
 import { registerHubspotCapabilities } from "./hubspot";
 import { registerGmailCapabilities } from "./gmail";
 import { registerGoogleCalendarCapabilities } from "./google-calendar";
+import { registerGoogleDocsCapabilities } from "./google-docs";
+import { registerGoogleSheetsCapabilities } from "./google-sheets";
+import { registerGoogleMeetCapabilities } from "./google-meet";
 
 /**
  * Provider bootstrap. Idempotently registers every provider's capability
@@ -32,4 +35,7 @@ export function ensureProvidersRegistered(): void {
   registerHubspotCapabilities();
   registerGmailCapabilities();
   registerGoogleCalendarCapabilities();
+  registerGoogleDocsCapabilities();
+  registerGoogleSheetsCapabilities();
+  registerGoogleMeetCapabilities();
 }
