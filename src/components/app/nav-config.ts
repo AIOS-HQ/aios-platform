@@ -1,6 +1,7 @@
 import {
   Activity,
   AlertTriangle,
+  Boxes,
   BrainCircuit,
   Building2,
   Clapperboard,
@@ -32,6 +33,7 @@ import {
 export const NAV_ICONS = {
   Activity,
   AlertTriangle,
+  Boxes,
   BrainCircuit,
   Building2,
   Clapperboard,
@@ -125,6 +127,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/executive", labelKey: "executive", icon: "Gauge" },
       { href: "/harmony/workforce", labelKey: "workforce", icon: "Users" },
       { href: "/harmony/companies", labelKey: "companies", icon: "Building2" },
+      { href: "/harmony/marketplace", labelKey: "marketplace", icon: "Boxes" },
       { href: "/harmony/review", labelKey: "review", icon: "ListTodo" },
       { href: "/harmony/autonomy", labelKey: "autonomy", icon: "Sparkles" },
       { href: "/harmony/approvals", labelKey: "approvals", icon: "ShieldCheck" },
