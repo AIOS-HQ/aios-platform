@@ -1,0 +1,57 @@
+{
+  "companyBuilder": {
+    "title": "Company Builder",
+    "subtitle": "Deploy a complete autonomous company in five guided steps.",
+    "steps": ["Template", "Industry", "Tools", "Departments", "Review & Deploy"],
+    "subsystems": [
+      "Harmony",
+      "Julius",
+      "Ledger",
+      "Digital Twin",
+      "Company Context",
+      "AI Workforce",
+      "Skills",
+      "Knowledge",
+      "Governance",
+      "Departments",
+      "Connector Configuration",
+      "Executive Dashboards",
+      "Marketplace Assets"
+    ],
+    "back": "Back",
+    "next": "Next",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "step1": { "title": "Choose a Company Template" },
+    "step2": {
+      "title": "Company & industry",
+      "nameLabel": "Company name",
+      "industryLabel": "Industry"
+    },
+    "step3": { "title": "Connect Tools", "hint": "Select the connectors to wire (config only — you'll re-consent credentials after deployment)." },
+    "step4": { "title": "Select AI Departments", "hint": "Choose the departments to activate for this company." },
+    "step5": {
+      "title": "Review & Deploy",
+      "company": "Company",
+      "template": "Template",
+      "willProvision": "This will provision a complete autonomous company",
+      "estTime": "~{n} min"
+    },
+    "deploy": {
+      "cta": "Deploy Company",
+      "deploying": "Deploying…",
+      "provisioningTitle": "Provisioning your company…",
+      "doneTitle": "{name} is live",
+      "summaryTitle": "Deployment summary",
+      "reconsentNote": "Connectors are wired as config — re-consent their credentials to activate live actions.",
+      "openCompany": "Open company",
+      "backToMarketplace": "Back to Marketplace"
+    },
+    "summary": {
+      "departments": "Departments",
+      "workers": "AI workers",
+      "objectives": "Objectives",
+      "connectors": "Connectors",
+      "knowledge": "Knowledge seeds"
+    }
+  }
+}

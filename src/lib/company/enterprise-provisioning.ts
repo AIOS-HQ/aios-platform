@@ -57,6 +57,10 @@ export async function provisionCompanyFromTemplate(args: {
   templateId: string;
   companyName?: string;
   autonomyLevel?: number;
+  /** Optional subset of the template's connectors to bind (Builder selection). */
+  connectors?: string[];
+  /** Optional subset of the template's departments to create (Builder selection). */
+  departments?: string[];
 }): Promise<ProvisionFromTemplateResult> {
   const { userId, companyId, templateId } = args;
 
@@ -76,7 +80,17 @@ export async function provisionCompanyFromTemplate(args: {
   const inst = instantiateTemplate(template, { companyName: args.companyName ?? template.name });
   const autonomyLevel = args.autonomyLevel ?? 2;
 
-  const departments: DepartmentDef[] = inst.departments.map((name, i) => ({
+  // Honor Builder selections when provided (subsets of the template's set).
+  const selectedDeptNames =
+    args.departments && args.departments.length > 0
+      ? inst.departments.filter((n) => args.departments!.includes(n))
+      : inst.departments;
+  const selectedConnectors =
+    args.connectors && args.connectors.length > 0
+      ? inst.connectors.filter((c) => args.connectors!.includes(c.provider))
+      : inst.connectors;
+
+  const departments: DepartmentDef[] = selectedDeptNames.map((name, i) => ({
     id: slugifyId("dept", name, i),
     name,
   }));
@@ -85,7 +99,7 @@ export async function provisionCompanyFromTemplate(args: {
     title: o.title,
     status: "active",
   }));
-  const connectors: ConnectorBinding[] = inst.connectors.map((c) => ({
+  const connectors: ConnectorBinding[] = selectedConnectors.map((c) => ({
     connectorId: c.provider,
     enabled: false, // config-only; re-consent credentials after provisioning
   }));

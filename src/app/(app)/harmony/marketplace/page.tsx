@@ -109,11 +109,13 @@ export default async function MarketplacePage() {
                     objectives: tpl.objectives,
                   } satisfies DisplayItem,
                   isTemplate: true,
+                  slug: tpl.slug as string | null,
                 }))
               : [];
           const dbItems = (byKind[cat.kind] ?? []).map((it) => ({
             display: itemToDisplay(it),
             isTemplate: false,
+            slug: null as string | null,
           }));
           const items = [...templateItems, ...dbItems];
 
@@ -133,14 +135,14 @@ export default async function MarketplacePage() {
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map(({ display, isTemplate }) => (
+                  {items.map(({ display, isTemplate, slug }) => (
                     <MarketplaceItemCard
                       key={display.id}
                       item={display}
                       action={
                         isTemplate ? (
                           <Button asChild size="sm" className="w-full">
-                            <Link href="/harmony/companies">{t("actions.deploy")}</Link>
+                            <Link href={`/harmony/build?template=${slug ?? ""}`}>{t("actions.deploy")}</Link>
                           </Button>
                         ) : (
                           <MarketplaceActions
