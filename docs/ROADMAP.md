@@ -16,39 +16,31 @@ provisioning · visible Founder UX previews. **Zero regressions.**
 
 ### 🟢 Foundation (shipped / on `main`)
 - **Universal Capability Runtime** — types, retry, capabilities, health, telemetry, governance `authorize` hook.
-- **Provider clients (10)** on the runtime: GitHub, Slack, Notion, Linear, Discord, Jira, Google Drive, HubSpot, Gmail, Google Calendar.
-- **Company Context Envelope** — 30-section company identity (config-only; no tokens).
-- **Julius** — company brain: knowledge graph + reasoning + projections.
-- **Ledger** — AI CFO: `FinancialSnapshot` (ARR/MRR/burn/runway/margin/LTV:CAC).
-- **Digital Twin** — derivable operating model (organization/direction/connectors/finances/risks/health/graph).
-- **Portable Workforce** — export/import a company's envelope + skills + Julius memory (secret-free).
-- **Founder Experience** — Command Center, AI Workforce HQ, Executive/Explainability dashboard, uploads, branding, **executive chat redesign** (rich markdown, code blocks, tables, search, bookmarks).
-- **Multi-Company OS core** — list/resolve companies for one founder.
+- **Provider clients (10):** GitHub, Slack, Notion, Linear, Discord, Jira, Google Drive, HubSpot, Gmail, Google Calendar.
+- **Company Context Envelope** — 30-section identity (config-only; no tokens).
+- **Julius** (company brain), **Ledger** (AI CFO), **Digital Twin** (derived operating model).
+- **Founder Experience** — Command Center, AI Workforce HQ, Executive/Explainability dashboard, uploads, branding, executive chat (rich markdown, code, tables, search, bookmarks).
+- **Multi-Company OS core.**
 
-### 🔵 NEW TOP PRIORITY — AIOS Marketplace
-One universal marketplace over the runtime. Nine catalogs — Workforce, Skills,
-Departments, Connectors, Workflows, Automations, Dashboards, Industry packs,
-Company Templates — sharing ONE item model.
-- **Shipped (engine, additive):** `src/lib/marketplace/` — versioning (semver), verification, ratings, dependencies (resolution + cycle/conflict/missing detection), install/update/rollback/uninstall **planning**, company-private + marketplace-public visibility.
+### 🔵 TOP PRIORITY — AIOS Marketplace
+One universal marketplace over the runtime; **12 storefront categories** on ONE item model.
+- **Shipped (engine + catalog, additive):** `src/lib/marketplace/` — 13 item kinds; the 12 categories (Company Templates, AI Departments, AI Workers, Skills, Connector Packs, Workflow Packs, Dashboard Packs, Industry Solutions, Branding Packs, Knowledge Packs, Founder Packs, Developer Tools); semver, verification, ratings, dependency resolution (cycle/conflict/missing), install/update/rollback/uninstall planning; company-private + public. **10 Company Templates** (`templates/`) that provision complete autonomous companies. 91 unit tests.
 - **Held (Founder gate — schema):** persistence tables + RLS + server actions (see `docs/marketplace/README.md`).
+- **Held (visible UX):** the Marketplace storefront + landing feature UI.
 
-### 🔵 NEW TOP PRIORITY — Portable Company
-Expand Portable Workforce into a whole **deployable company**.
-- **Shipped (additive):** `src/lib/company/portable-company.ts` — `exportCompany` / `importCompany` composing envelope (branding, governance, policies, founder settings, departments, objectives, projects, dashboards, reports, connectors-as-config) + Julius memory + skills + Digital Twin + Ledger snapshot + marketplace-asset provisioning plan. Secret-free; connectors re-consent in the target.
-- **Held:** full-fidelity writers for any sections lacking an import path today, and cross-instance transfer, land as their writers/migrations are approved.
+### 🔵 TOP PRIORITY — Portable Company
+An entire autonomous company as a deployable package.
+- **Shipped (additive):** `src/lib/company/portable-company.ts` — `exportCompany` / `importCompany` / **`backupCompany`** / **`cloneCompany`** / **`prepareDeployment`** (+ `hashBundle`, `validateBundle`). Bundles the full identity (envelope) + Julius memory + skills + Digital Twin + Ledger + marketplace-asset plan. Secret-free; connectors re-consent.
+- **Held:** full-fidelity writers for envelope sections lacking an import path today; cross-instance transport orchestration.
 
-### 🟡 In progress / continuing
-- **Provider clients (remaining):** Google Docs/Sheets/Meet, Microsoft Outlook/Teams/OneDrive, Salesforce, Dropbox, Box, Browserbase, Stagehand — all inherit the Universal Runtime.
-- **Multi-Company OS** — founder interface to operate multiple companies seamlessly.
-- **Enterprise OS** — customer onboarding auto-provisions Company Context + Harmony + Julius + Ledger + Digital Twin + Workforce + Connector platform + Departments + Executive dashboards + Marketplace assets + Governance + Memory + Skills.
-- **Digital Twin (expansion):** execution simulation, forecasting, operational + risk prediction, scenario analysis, strategic planning.
-- **Ledger (expansion):** investor reporting, accounting integrations, cash forecasting, budget variance, executive reports.
-- **Julius (expansion):** decision history, institutional best practices, semantic retrieval, relationship intelligence.
-- **Founder Experience (continuing):** WorkerAvatar attribution, streaming, attachment previews, summary cards (gated items held).
+### 🟡 Continuing
+- **Provider clients (remaining):** Google Docs/Sheets/Meet, Microsoft Outlook/Teams/OneDrive, Salesforce, Dropbox, Box, Browserbase, Stagehand — inherit the runtime.
+- **Landing page redesign** (Marketplace, Portable Company, Autonomous Provisioning, Company Templates) — **held preview** for Founder approval.
+- **Multi-Company OS** founder interface · **Enterprise OS** auto-provisioning.
+- **Digital Twin** (simulation/forecasting/risk/scenario/strategy), **Ledger** (investor reporting/accounting integrations/cash forecasting/variance/exec reports), **Julius** (decision history/best practices/semantic retrieval/relationship intelligence).
 
 ---
 
 ## Layer‑1 (Founder-handled) — blocks live external validation only
-`TOKEN_ENCRYPTION_KEY` in Vercel · provider OAuth apps (Google/Slack/HubSpot/…)
-· redirect URIs. All runtime/provider/marketplace/portability code builds and is
-CI-green without them.
+`TOKEN_ENCRYPTION_KEY` in Vercel · provider OAuth apps · redirect URIs. All
+runtime/provider/marketplace/portability code builds and is CI-green without them.

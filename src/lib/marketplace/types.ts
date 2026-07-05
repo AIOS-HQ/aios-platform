@@ -30,6 +30,10 @@ export type MarketplaceItemKind =
   | "automation" // an event/trigger-driven automation
   | "dashboard" // an executive/analytics dashboard template
   | "industry" // an industry pack (bundles tuned for a vertical)
+  | "branding_pack" // logo/palette/voice/theme assets
+  | "knowledge_pack" // curated knowledge/memory seeds
+  | "founder_pack" // founder-experience presets (dashboards + settings + playbooks)
+  | "developer_tool" // developer utilities/extensions on the runtime
   | "company_template"; // a full company blueprint
 
 export const MARKETPLACE_ITEM_KINDS: readonly MarketplaceItemKind[] = [
@@ -41,6 +45,10 @@ export const MARKETPLACE_ITEM_KINDS: readonly MarketplaceItemKind[] = [
   "automation",
   "dashboard",
   "industry",
+  "branding_pack",
+  "knowledge_pack",
+  "founder_pack",
+  "developer_tool",
   "company_template",
 ] as const;
 
