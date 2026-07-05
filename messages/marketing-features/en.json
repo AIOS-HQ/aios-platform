@@ -1,0 +1,84 @@
+{
+  "marketingFeatures": {
+    "marketplace": {
+      "eyebrow": "AIOS Marketplace",
+      "title": "Deploy a complete company from the Marketplace",
+      "subtitle": "Twelve catalogs on one Universal Runtime. Install workers, departments, skills, connectors, dashboards — or an entire autonomous company — in a click.",
+      "categories": [
+        { "icon": "Building2", "label": "Company Templates", "body": "Launch a whole autonomous company in one install." },
+        { "icon": "Users", "label": "AI Departments", "body": "Agents, objectives, and policies, preconfigured." },
+        { "icon": "Bot", "label": "AI Workers", "body": "Specialists that plug into any company." },
+        { "icon": "Sparkles", "label": "Skills", "body": "Reusable capabilities your workforce can run." },
+        { "icon": "Plug", "label": "Connector Packs", "body": "Provider connectors, ready to wire." },
+        { "icon": "Workflow", "label": "Workflow Packs", "body": "Orchestrated, multi-step workflows." },
+        { "icon": "LayoutDashboard", "label": "Dashboard Packs", "body": "Executive and operational dashboards." },
+        { "icon": "Boxes", "label": "Industry Solutions", "body": "Vertical bundles, tuned to your field." }
+      ],
+      "footnote": "Every item is versioned, verified, rated, and dependency-aware — installable, updatable, and rollback-safe. Company-private or marketplace-public.",
+      "cta": "Explore the Marketplace"
+    },
+    "portableCompany": {
+      "eyebrow": "Portable Company",
+      "title": "Your whole company, portable",
+      "subtitle": "Harmony, Julius, the Ledger, your Digital Twin, workforce, skills, memory, connectors, governance, branding, departments, dashboards, and reports — packaged as one deployable unit.",
+      "capabilities": [
+        { "icon": "Boxes", "title": "Export & Import", "body": "Serialize the whole company to a secret-free bundle and rehydrate it anywhere." },
+        { "icon": "ShieldCheck", "title": "Backup", "body": "Point-in-time snapshots with integrity checksums." },
+        { "icon": "GitBranch", "title": "Clone", "body": "Spin up a copy under a new company in one step." },
+        { "icon": "Network", "title": "Deploy", "body": "Stand the company up on another AIOS instance with minimal setup." }
+      ],
+      "flowTitle": "From one company to many",
+      "flow": [
+        { "step": "1", "title": "Export", "body": "Capture identity, brain, workforce, and config." },
+        { "step": "2", "title": "Verify", "body": "Checksum the bundle; confirm it carries no secrets." },
+        { "step": "3", "title": "Deploy", "body": "Import onto the target AIOS instance." },
+        { "step": "4", "title": "Re-consent", "body": "Reconnect connectors; derived views recompute." }
+      ]
+    },
+    "provisioning": {
+      "eyebrow": "Autonomous Company Provisioning",
+      "title": "Onboard once. Get a whole company.",
+      "subtitle": "Provisioning stands up an entire autonomous operation on the Universal Runtime — no manual wiring.",
+      "steps": [
+        { "step": "1", "title": "Choose a template", "body": "Pick a company blueprint, or start from scratch." },
+        { "step": "2", "title": "Provision the core", "body": "Company Context, Harmony, Julius, and the Ledger come online." },
+        { "step": "3", "title": "Staff the workforce", "body": "Departments and AI workers activate with objectives." },
+        { "step": "4", "title": "Go operational", "body": "Executive dashboards, governance, and connectors are ready." }
+      ],
+      "includesTitle": "Every provision includes",
+      "includes": [
+        "Company Context",
+        "Harmony",
+        "Julius",
+        "Ledger",
+        "Digital Twin",
+        "AI Workforce",
+        "Connector Platform",
+        "Departments",
+        "Executive Dashboards",
+        "Marketplace Assets",
+        "Governance",
+        "Memory",
+        "Skills"
+      ]
+    },
+    "templates": {
+      "eyebrow": "Company Templates",
+      "title": "Start as a fully-formed company",
+      "subtitle": "Ten launch blueprints, each provisioning a complete autonomous company tuned to its industry.",
+      "items": [
+        { "name": "SaaS Startup", "industry": "Software / SaaS", "tagline": "Reach product-market fit and scale ARR." },
+        { "name": "Aviation Claims", "industry": "Aviation / Claims", "tagline": "Optimize cycle time and compliance." },
+        { "name": "Law Firm", "industry": "Legal", "tagline": "Matter throughput and airtight compliance." },
+        { "name": "Accounting Firm", "industry": "Accounting", "tagline": "Accuracy and deadline discipline." },
+        { "name": "Real Estate", "industry": "Real Estate", "tagline": "Listing velocity and smooth transactions." },
+        { "name": "Healthcare Practice", "industry": "Healthcare", "tagline": "Patient throughput and HIPAA compliance." },
+        { "name": "Manufacturing", "industry": "Manufacturing", "tagline": "Equipment effectiveness and on-time delivery." },
+        { "name": "Restaurant Group", "industry": "Hospitality", "tagline": "Food cost, covers, and labor efficiency." },
+        { "name": "E-commerce", "industry": "Retail / DTC", "tagline": "Order value and healthy unit economics." },
+        { "name": "Startup Accelerator", "industry": "Venture", "tagline": "Cohort throughput and portfolio success." }
+      ],
+      "cta": "Browse Company Templates"
+    }
+  }
+}

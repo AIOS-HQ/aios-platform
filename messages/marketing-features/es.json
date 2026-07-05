@@ -1,0 +1,84 @@
+{
+  "marketingFeatures": {
+    "marketplace": {
+      "eyebrow": "Marketplace de AIOS",
+      "title": "Despliega una empresa completa desde el Marketplace",
+      "subtitle": "Doce catálogos sobre un único Runtime Universal. Instala trabajadores, departamentos, habilidades, conectores, paneles — o una empresa autónoma completa — con un clic.",
+      "categories": [
+        { "icon": "Building2", "label": "Plantillas de Empresa", "body": "Lanza una empresa autónoma completa en una instalación." },
+        { "icon": "Users", "label": "Departamentos IA", "body": "Agentes, objetivos y políticas, preconfigurados." },
+        { "icon": "Bot", "label": "Trabajadores IA", "body": "Especialistas que se integran en cualquier empresa." },
+        { "icon": "Sparkles", "label": "Habilidades", "body": "Capacidades reutilizables que tu equipo puede ejecutar." },
+        { "icon": "Plug", "label": "Packs de Conectores", "body": "Conectores de proveedores, listos para conectar." },
+        { "icon": "Workflow", "label": "Packs de Flujos", "body": "Flujos de trabajo orquestados de varios pasos." },
+        { "icon": "LayoutDashboard", "label": "Packs de Paneles", "body": "Paneles ejecutivos y operativos." },
+        { "icon": "Boxes", "label": "Soluciones por Industria", "body": "Paquetes verticales, adaptados a tu sector." }
+      ],
+      "footnote": "Cada elemento está versionado, verificado, valorado y consciente de dependencias — instalable, actualizable y con reversión segura. Privado de la empresa o público en el marketplace.",
+      "cta": "Explorar el Marketplace"
+    },
+    "portableCompany": {
+      "eyebrow": "Empresa Portátil",
+      "title": "Toda tu empresa, portátil",
+      "subtitle": "Harmony, Julius, el Ledger, tu Gemelo Digital, la fuerza laboral, habilidades, memoria, conectores, gobernanza, marca, departamentos, paneles e informes — empaquetados como una unidad desplegable.",
+      "capabilities": [
+        { "icon": "Boxes", "title": "Exportar e Importar", "body": "Serializa toda la empresa en un paquete sin secretos y rehidrátala donde quieras." },
+        { "icon": "ShieldCheck", "title": "Copia de seguridad", "body": "Instantáneas puntuales con sumas de verificación de integridad." },
+        { "icon": "GitBranch", "title": "Clonar", "body": "Crea una copia bajo una nueva empresa en un paso." },
+        { "icon": "Network", "title": "Desplegar", "body": "Levanta la empresa en otra instancia de AIOS con mínima configuración." }
+      ],
+      "flowTitle": "De una empresa a muchas",
+      "flow": [
+        { "step": "1", "title": "Exportar", "body": "Captura identidad, cerebro, fuerza laboral y configuración." },
+        { "step": "2", "title": "Verificar", "body": "Verifica el paquete; confirma que no lleva secretos." },
+        { "step": "3", "title": "Desplegar", "body": "Impórtalo en la instancia de AIOS destino." },
+        { "step": "4", "title": "Reconsentir", "body": "Reconecta los conectores; las vistas derivadas se recalculan." }
+      ]
+    },
+    "provisioning": {
+      "eyebrow": "Aprovisionamiento de Empresas Autónomas",
+      "title": "Regístrate una vez. Obtén una empresa completa.",
+      "subtitle": "El aprovisionamiento levanta una operación autónoma completa sobre el Runtime Universal — sin cableado manual.",
+      "steps": [
+        { "step": "1", "title": "Elige una plantilla", "body": "Elige un plano de empresa o empieza desde cero." },
+        { "step": "2", "title": "Aprovisiona el núcleo", "body": "Company Context, Harmony, Julius y el Ledger se activan." },
+        { "step": "3", "title": "Forma la fuerza laboral", "body": "Los departamentos y trabajadores IA se activan con objetivos." },
+        { "step": "4", "title": "Entra en operación", "body": "Paneles ejecutivos, gobernanza y conectores están listos." }
+      ],
+      "includesTitle": "Cada aprovisionamiento incluye",
+      "includes": [
+        "Company Context",
+        "Harmony",
+        "Julius",
+        "Ledger",
+        "Gemelo Digital",
+        "Fuerza Laboral IA",
+        "Plataforma de Conectores",
+        "Departamentos",
+        "Paneles Ejecutivos",
+        "Activos del Marketplace",
+        "Gobernanza",
+        "Memoria",
+        "Habilidades"
+      ]
+    },
+    "templates": {
+      "eyebrow": "Plantillas de Empresa",
+      "title": "Empieza como una empresa ya formada",
+      "subtitle": "Diez planos de lanzamiento, cada uno aprovisiona una empresa autónoma completa adaptada a su industria.",
+      "items": [
+        { "name": "Startup SaaS", "industry": "Software / SaaS", "tagline": "Alcanza el product-market fit y escala el ARR." },
+        { "name": "Reclamaciones Aéreas", "industry": "Aviación / Reclamaciones", "tagline": "Optimiza el tiempo de ciclo y el cumplimiento." },
+        { "name": "Bufete de Abogados", "industry": "Legal", "tagline": "Rendimiento de casos y cumplimiento sólido." },
+        { "name": "Firma Contable", "industry": "Contabilidad", "tagline": "Precisión y disciplina de plazos." },
+        { "name": "Inmobiliaria", "industry": "Bienes Raíces", "tagline": "Velocidad de listados y transacciones fluidas." },
+        { "name": "Consulta Médica", "industry": "Salud", "tagline": "Flujo de pacientes y cumplimiento HIPAA." },
+        { "name": "Manufactura", "industry": "Manufactura", "tagline": "Eficiencia de equipos y entregas a tiempo." },
+        { "name": "Grupo de Restaurantes", "industry": "Hostelería", "tagline": "Costo de alimentos, comensales y eficiencia laboral." },
+        { "name": "E-commerce", "industry": "Retail / DTC", "tagline": "Valor de pedido y economía unitaria sana." },
+        { "name": "Aceleradora de Startups", "industry": "Venture", "tagline": "Rendimiento de cohortes y éxito del portafolio." }
+      ],
+      "cta": "Ver Plantillas de Empresa"
+    }
+  }
+}
