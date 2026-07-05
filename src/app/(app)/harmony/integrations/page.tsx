@@ -9,7 +9,7 @@ import {
 } from "@/lib/integrations/connectors";
 import { listConnectorDefinitions } from "@/lib/integrations/registry";
 import { getConnections } from "@/lib/integrations/connections";
-import { connectAffordanceFor } from "@/lib/integrations/connect-gate";
+import { connectAffordanceFor, connectHref } from "@/lib/integrations/connect-gate";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -62,9 +62,10 @@ function countCaps(caps: ReadonlyArray<{ mode: "read" | "write" }>): {
  * every provider in the Connector Operating System surfaces here — the same
  * source the Developer Platform and the universal connect/callback pipeline use.
  * The Connect action is gated by the dev_configured invariant
- * (connectAffordanceFor): a provider wired for OAuth but not yet developer-
- * configured shows a "Finish setup" path to the Developer Platform instead of a
- * live Connect that would fail. Gated behind CONNECTOR_GATE_ENABLED.
+ * (connectAffordanceFor) and always points at the ONE universal connect route
+ * (connectHref): a provider wired for OAuth but not yet developer-configured
+ * shows a "Finish setup" path to the Developer Platform instead of a live
+ * Connect that would fail.
  *
  * Founder-gated: lives under /harmony and is not a customer prefix, so
  * isFounderHarmonyPath keeps it founder-only.
@@ -179,7 +180,7 @@ export default async function IntegrationsPage() {
                     >
                       {canConnect ? (
                         <a
-                          href={`/api/integrations/${c.id}/connect`}
+                          href={connectHref(c.id)}
                           aria-label={`${status === "expired" ? t("reauthorize") : t("connect")}: ${c.name}`}
                           className="block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
@@ -219,7 +220,7 @@ export default async function IntegrationsPage() {
                       {canConnect ? (
                         <div className="flex flex-wrap items-center gap-2 px-6 pb-4 text-xs text-muted-foreground">
                           <Button asChild size="sm" className="h-7 px-2 text-xs">
-                            <a href={`/api/integrations/${c.id}/connect`}>
+                            <a href={connectHref(c.id)}>
                               <Plug className="size-3.5" aria-hidden="true" />
                               {status === "expired" ? t("reauthorize") : t("connect")}
                             </a>

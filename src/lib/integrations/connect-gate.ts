@@ -18,6 +18,16 @@ export function connectGateEnabled(): boolean {
   return process.env.CONNECTOR_GATE_ENABLED !== "false";
 }
 
+/**
+ * The universal OAuth connect route for a connector — the SINGLE source of the
+ * connect URL used by every surface (Integration Center, Developer Platform).
+ * Keeping this in one place is what guarantees requirement #4: all Ready
+ * providers navigate to the same universal connect handler.
+ */
+export function connectHref(connectorId: string): string {
+  return `/api/integrations/${connectorId}/connect`;
+}
+
 export type ConnectAffordance =
   /** Dev-configured + not connected: offer a live Connect. */
   | "connect"
@@ -46,4 +56,9 @@ export function connectAffordanceFor(
   // The gate: never offer a live Connect until developer configuration is complete.
   if (connectGateEnabled() && !isDevConfigured(def)) return "finish_setup";
   return "connect";
+}
+
+/** True when a connector should render an active, clickable Connect/Reconnect control. */
+export function isConnectable(affordance: ConnectAffordance): boolean {
+  return affordance === "connect" || affordance === "reauthorize";
 }
