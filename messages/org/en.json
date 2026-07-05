@@ -16,6 +16,44 @@
       "receives_data_from": "Receives data from",
       "can_train": "Can train",
       "can_replace": "Can replace"
+    },
+    "view": {
+      "title": "Workforce Organization",
+      "subtitle": "The live operating picture of your AI workforce — reporting lines, capacity, active tasks, communication flow, timeline, and AI health.",
+      "back": "Back to Workforce",
+      "relationshipMap": "Relationship map",
+      "metrics": {
+        "workers": "AI workers",
+        "activeTasks": "Active tasks",
+        "pendingApprovals": "Pending approvals",
+        "overloaded": "Overloaded"
+      },
+      "orgChart": "Organization chart",
+      "orgChartHint": "Founder → Harmony → specialists, each with live capacity and health.",
+      "founder": "Founder",
+      "founderRole": "Owner",
+      "health": {
+        "healthy": "Healthy",
+        "busy": "Busy",
+        "overloaded": "Overloaded",
+        "attention": "Needs attention",
+        "idle": "Idle"
+      },
+      "load": "Load {load}/{capacity}",
+      "utilization": "{pct}%",
+      "tasks": "{n} active",
+      "approvals": "{n} approvals",
+      "blocked": "{n} blocked",
+      "objective": "Now: {title} ({progress}%)",
+      "noObjective": "No active objective",
+      "commFlow": "Communication flow",
+      "commFlowHint": "Where work is flowing between the workforce right now.",
+      "noComms": "No agent-to-agent messages yet.",
+      "messages": "{n} msgs",
+      "timeline": "Recent activity",
+      "timelineHint": "The latest delegations, approvals, and outcomes.",
+      "noTimeline": "No recent activity.",
+      "empty": "No workforce activity yet — deploy or delegate to see the organization come alive."
     }
   }
 }

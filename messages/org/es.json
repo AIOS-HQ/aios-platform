@@ -16,6 +16,44 @@
       "receives_data_from": "Recibe datos de",
       "can_train": "Puede entrenar",
       "can_replace": "Puede reemplazar"
+    },
+    "view": {
+      "title": "Organización del equipo",
+      "subtitle": "La imagen operativa en vivo de tu equipo de IA: líneas de reporte, capacidad, tareas activas, flujo de comunicación, cronología y salud de la IA.",
+      "back": "Volver al Equipo",
+      "relationshipMap": "Mapa de relaciones",
+      "metrics": {
+        "workers": "Trabajadores IA",
+        "activeTasks": "Tareas activas",
+        "pendingApprovals": "Aprobaciones pendientes",
+        "overloaded": "Sobrecargados"
+      },
+      "orgChart": "Organigrama",
+      "orgChartHint": "Fundador → Harmony → especialistas, cada uno con capacidad y salud en vivo.",
+      "founder": "Fundador",
+      "founderRole": "Propietario",
+      "health": {
+        "healthy": "Saludable",
+        "busy": "Ocupado",
+        "overloaded": "Sobrecargado",
+        "attention": "Requiere atención",
+        "idle": "Inactivo"
+      },
+      "load": "Carga {load}/{capacity}",
+      "utilization": "{pct}%",
+      "tasks": "{n} activas",
+      "approvals": "{n} aprobaciones",
+      "blocked": "{n} bloqueadas",
+      "objective": "Ahora: {title} ({progress}%)",
+      "noObjective": "Sin objetivo activo",
+      "commFlow": "Flujo de comunicación",
+      "commFlowHint": "Hacia dónde fluye el trabajo entre el equipo ahora mismo.",
+      "noComms": "Aún no hay mensajes entre agentes.",
+      "messages": "{n} mensajes",
+      "timeline": "Actividad reciente",
+      "timelineHint": "Las últimas delegaciones, aprobaciones y resultados.",
+      "noTimeline": "Sin actividad reciente.",
+      "empty": "Aún no hay actividad del equipo — despliega o delega para ver la organización cobrar vida."
     }
   }
 }
