@@ -172,3 +172,115 @@ export async function importCompany(
       "Re-consent connectors and provision marketplace assets in the target company.",
   };
 }
+
+// ── Backup · Clone · Deploy ─────────────────────────────────────────────────
+
+/** Deterministic FNV-1a checksum over a bundle's JSON (integrity, not secrecy). */
+export function hashBundle(bundle: PortableCompanyBundle): string {
+  const json = JSON.stringify(bundle);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < json.length; i++) {
+    h ^= json.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+export interface BackupPackage {
+  backupId: string;
+  label: string;
+  createdAt: string;
+  checksum: string;
+  bundle: PortableCompanyBundle;
+  retentionNote: string;
+}
+
+/** Point-in-time backup of a company: a bundle plus integrity + retention metadata. */
+export async function backupCompany(
+  userId: string,
+  companyId: string,
+  opts: { label?: string; marketplaceAssets?: MarketplaceAssetRef[] } = {},
+): Promise<BackupPackage> {
+  const bundle = await exportCompany(userId, companyId, { marketplaceAssets: opts.marketplaceAssets });
+  return {
+    backupId: `bkp_${companyId}_${Date.now().toString(36)}`,
+    label: opts.label ?? `Backup ${bundle.exportedAt}`,
+    createdAt: bundle.exportedAt,
+    checksum: hashBundle(bundle),
+    bundle,
+    retentionNote: "Config + knowledge only; no secrets. Store per your data-retention policy.",
+  };
+}
+
+export interface DeploymentManifest {
+  schemaVersion: number;
+  sourceCompanyId: string;
+  exportedAt: string;
+  checksum: string;
+  requiresConnectorReconsent: boolean;
+  marketplaceAssetCount: number;
+  targetInstanceHint: string | null;
+}
+
+export interface DeploymentPackage {
+  manifest: DeploymentManifest;
+  bundle: PortableCompanyBundle;
+  note: string;
+}
+
+/**
+ * Produce a portable deployment package for standing this company up on another
+ * AIOS instance: the full bundle + a manifest (checksum, connector re-consent +
+ * marketplace provisioning requirements). The target instance imports the
+ * bundle, re-consents connectors, and provisions marketplace assets.
+ */
+export async function prepareDeployment(
+  userId: string,
+  companyId: string,
+  opts: { targetInstanceHint?: string; marketplaceAssets?: MarketplaceAssetRef[] } = {},
+): Promise<DeploymentPackage> {
+  const bundle = await exportCompany(userId, companyId, { marketplaceAssets: opts.marketplaceAssets });
+  return {
+    manifest: {
+      schemaVersion: bundle.schemaVersion,
+      sourceCompanyId: bundle.sourceCompanyId,
+      exportedAt: bundle.exportedAt,
+      checksum: hashBundle(bundle),
+      requiresConnectorReconsent: (bundle.workforce.envelope?.connectors?.length ?? 0) > 0,
+      marketplaceAssetCount: bundle.marketplaceAssets.length,
+      targetInstanceHint: opts.targetInstanceHint ?? null,
+    },
+    bundle,
+    note: "Deploy: import the bundle on the target AIOS instance, re-consent connectors, then provision marketplace assets.",
+  };
+}
+
+export interface CloneResult {
+  ok: boolean;
+  sourceCompanyId: string;
+  targetCompanyId: string;
+  checksum: string;
+  import: PortableCompanyImportResult;
+}
+
+/**
+ * Clone a company into a NEW company_id on the SAME instance: export the source,
+ * then import under the target. Everything re-scopes to the target; connectors
+ * re-consent; marketplace assets are returned as a provisioning plan.
+ */
+export async function cloneCompany(
+  userId: string,
+  sourceCompanyId: string,
+  targetCompanyId: string,
+  opts: { marketplaceAssets?: MarketplaceAssetRef[] } = {},
+): Promise<CloneResult> {
+  const bundle = await exportCompany(userId, sourceCompanyId, { marketplaceAssets: opts.marketplaceAssets });
+  const imported = await importCompany(userId, targetCompanyId, bundle);
+  return {
+    ok: imported.ok,
+    sourceCompanyId,
+    targetCompanyId,
+    checksum: hashBundle(bundle),
+    import: imported,
+  };
+}

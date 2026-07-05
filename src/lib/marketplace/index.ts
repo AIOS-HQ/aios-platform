@@ -5,6 +5,8 @@
  * Persistence + server actions layer on top behind Founder-gated schema.
  */
 export * from "./types";
+export * from "./categories";
 export * from "./semver";
 export * from "./registry";
 export * from "./install";
+export * from "./templates";
