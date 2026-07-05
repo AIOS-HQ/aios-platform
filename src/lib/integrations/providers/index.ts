@@ -4,6 +4,9 @@ import { registerGitHubCapabilities } from "./github";
 import { registerSlackCapabilities } from "./slack";
 import { registerNotionCapabilities } from "./notion";
 import { registerLinearCapabilities } from "./linear";
+import { registerDiscordCapabilities } from "./discord";
+import { registerJiraCapabilities } from "./jira";
+import { registerGoogleDriveCapabilities } from "./google-drive";
 
 /**
  * Provider bootstrap. Idempotently registers every provider's capability
@@ -20,4 +23,7 @@ export function ensureProvidersRegistered(): void {
   registerSlackCapabilities();
   registerNotionCapabilities();
   registerLinearCapabilities();
+  registerDiscordCapabilities();
+  registerJiraCapabilities();
+  registerGoogleDriveCapabilities();
 }
