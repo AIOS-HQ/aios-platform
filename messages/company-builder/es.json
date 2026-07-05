@@ -1,0 +1,57 @@
+{
+  "companyBuilder": {
+    "title": "Constructor de Empresas",
+    "subtitle": "Despliega una empresa autónoma completa en cinco pasos guiados.",
+    "steps": ["Plantilla", "Industria", "Herramientas", "Departamentos", "Revisar y desplegar"],
+    "subsystems": [
+      "Harmony",
+      "Julius",
+      "Ledger",
+      "Gemelo Digital",
+      "Contexto de Empresa",
+      "Fuerza Laboral IA",
+      "Habilidades",
+      "Conocimiento",
+      "Gobernanza",
+      "Departamentos",
+      "Configuración de Conectores",
+      "Paneles Ejecutivos",
+      "Activos del Marketplace"
+    ],
+    "back": "Atrás",
+    "next": "Siguiente",
+    "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",
+    "step1": { "title": "Elige una Plantilla de Empresa" },
+    "step2": {
+      "title": "Empresa e industria",
+      "nameLabel": "Nombre de la empresa",
+      "industryLabel": "Industria"
+    },
+    "step3": { "title": "Conectar Herramientas", "hint": "Selecciona los conectores a configurar (solo configuración — reconsentirás las credenciales tras el despliegue)." },
+    "step4": { "title": "Seleccionar Departamentos IA", "hint": "Elige los departamentos a activar para esta empresa." },
+    "step5": {
+      "title": "Revisar y desplegar",
+      "company": "Empresa",
+      "template": "Plantilla",
+      "willProvision": "Esto aprovisionará una empresa autónoma completa",
+      "estTime": "~{n} min"
+    },
+    "deploy": {
+      "cta": "Desplegar Empresa",
+      "deploying": "Desplegando…",
+      "provisioningTitle": "Aprovisionando tu empresa…",
+      "doneTitle": "{name} está en marcha",
+      "summaryTitle": "Resumen del despliegue",
+      "reconsentNote": "Los conectores se configuran como config — reconsiente sus credenciales para activar acciones en vivo.",
+      "openCompany": "Abrir empresa",
+      "backToMarketplace": "Volver al Marketplace"
+    },
+    "summary": {
+      "departments": "Departamentos",
+      "workers": "Trabajadores IA",
+      "objectives": "Objetivos",
+      "connectors": "Conectores",
+      "knowledge": "Semillas de conocimiento"
+    }
+  }
+}
