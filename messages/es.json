@@ -1177,7 +1177,13 @@
       "goal": "Nuevo objetivo: leer 12 libros este año",
       "summarize": "Resume mis notas",
       "next": "¿Qué debería hacer ahora?"
-    }
+    },
+    "searchPlaceholder": "Buscar en esta conversación…",
+    "searchLabel": "Buscar conversación",
+    "bookmarksOnly": "Guardados",
+    "noMatches": "Ningún mensaje coincide con tu búsqueda.",
+    "bookmark": "Guardar",
+    "bookmarked": "Guardado"
   },
   "advisor": {
     "title": "Sugerencias de Harmony",
