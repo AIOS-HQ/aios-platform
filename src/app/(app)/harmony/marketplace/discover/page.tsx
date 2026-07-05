@@ -47,7 +47,7 @@ export default async function MarketplaceDiscoverPage({
   const query = (sp.q ?? "").trim();
   const kind = isFacet(sp.kind) ? sp.kind : null;
 
-  const { catalog, signal, installedIds } = await loadStorefrontContext(user.id, companyId);
+  const { catalog, signal, installedIds, installCounts } = await loadStorefrontContext(user.id, companyId);
 
   const action = (item: MarketplaceItem) => (
     <MarketplaceActions companyId={companyId} itemId={item.id} installed={installedIds.has(item.id)} />
@@ -81,7 +81,7 @@ export default async function MarketplaceDiscoverPage({
   for (const bucket of [rec.workers, rec.departments, rec.skills, rec.connectors, rec.dashboards, rec.workflowPacks]) {
     for (const it of bucket) if (!seen.has(it.id)) { seen.add(it.id); recommended.push(it); }
   }
-  const collections = query ? [] : buildCollections({ catalog, signal });
+  const collections = query ? [] : buildCollections({ catalog, signal, installCounts });
 
   return (
     <>

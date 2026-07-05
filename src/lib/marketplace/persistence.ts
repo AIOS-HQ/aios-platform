@@ -183,3 +183,23 @@ export async function loadInstallState(userId: string, companyId: string): Promi
   }
   return state;
 }
+
+/**
+ * Global install counts across ALL companies (itemId → distinct-company count),
+ * via the `marketplace_install_counts` SECURITY DEFINER RPC. That function is
+ * the single cross-tenant surface: it returns COUNTS ONLY (no PII, no who), and
+ * bypasses RLS solely to aggregate. Powers the Trending / Most Installed
+ * storefront collections. Degrades to {} if the function is absent.
+ */
+export async function loadGlobalInstallCounts(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("marketplace_install_counts");
+  if (error) {
+    console.error("[marketplace] loadGlobalInstallCounts", error.message);
+    return {};
+  }
+  const rows = (data as { item_id: string; install_count: number }[] | null) ?? [];
+  const counts: Record<string, number> = {};
+  for (const r of rows) counts[r.item_id] = Number(r.install_count);
+  return counts;
+}
