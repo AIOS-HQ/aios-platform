@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Check, CheckCircle2, Copy, Send, X } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  CheckCircle2,
+  Copy,
+  Search,
+  Send,
+  X,
+} from "lucide-react";
 import {
   confirmOperatorAction,
   loadOperatorMessages,
@@ -15,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { HarmonyAvatar } from "@/components/brand/harmony-logo";
 import { cn } from "@/lib/utils";
 import type { OperatorResult } from "@/lib/ai/types";
+import { HarmonyMarkdown } from "./markdown/harmony-markdown";
 
 type Msg = {
   id: string;
@@ -30,6 +40,8 @@ type Msg = {
 /** Distance (px) from the bottom within which we consider the user "following" live. */
 const BOTTOM_THRESHOLD = 80;
 const RECENT_LOCAL_UPDATE_MS = 10_000;
+/** Client-side, cross-session bookmarks for chat messages (no schema needed). */
+const BOOKMARKS_KEY = "aios:harmony:bookmarks:v1";
 /**
  * The canonical Harmony chat. One implementation, shared across founder,
  * personal, business, and enterprise experiences. Harmony — the AI Chief of
@@ -37,17 +49,38 @@ const RECENT_LOCAL_UPDATE_MS = 10_000;
  * every reply and while she thinks/streams (the avatar is Harmony's interaction
  * identity — never the brand wordmark inside a conversation).
  *
- * Free-form replies stream token-by-token over SSE (Streaming Harmony). Every
+ * Free-form replies stream token-by-token over SSE (Streaming Harmony) and are
+ * rendered as rich markdown (headings, emphasis, inline code, fenced code
+ * blocks with copy, GFM tables, lists, blockquotes, links). The renderer is
+ * tolerant of partial markdown, so a reply reads cleanly mid-stream. Every
  * structured turn — task/goal proposals (confirm-before-write), delegation,
  * summaries, suggestions — stays on the non-streaming `runOperator` path,
  * unchanged. Polling is paused during an active stream and any streaming
  * failure transparently falls back to `runOperator`, so the chat never regresses.
+ *
+ * The founder can search the open conversation and bookmark any reply; both are
+ * client-side (bookmarks persist in localStorage) so they add no backend surface.
  */
 export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const t = useTranslations("operator");
   const router = useRouter();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
+  const [query, setQuery] = useState("");
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
+  // Lazy initializer (not an effect) so persisted bookmarks are present on the
+  // first client render without a synchronous setState-in-effect. SSR-safe: on
+  // the server there is no localStorage, and the first render has no messages,
+  // so the empty→loaded difference can never cause a hydration mismatch.
+  const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(BOOKMARKS_KEY);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const [pending, start] = useTransition();
   const listRef = useRef<HTMLDivElement>(null);
   /**
@@ -82,6 +115,20 @@ function markLocalUpdate() {
     if (el) el.scrollTo({ top: el.scrollHeight });
   }
 
+  const filtering = query.trim() !== "" || bookmarkedOnly;
+
+  function toggleBookmark(id: string) {
+    setBookmarks((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      try {
+        localStorage.setItem(BOOKMARKS_KEY, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }
+
   // Background refresh: poll for messages, but DON'T disturb the user's scroll
   // position, and DON'T run while a reply is streaming (it would replace the
   // in-progress streamed message). We capture whether they were at the bottom
@@ -111,10 +158,10 @@ function markLocalUpdate() {
   }, [router]);
 
   // Auto-scroll ONLY when the user is following the live conversation (pinned to
-  // bottom). If they have scrolled up to review history, leave their view alone.
+  // bottom) AND not actively searching/filtering (which reflows the list).
   useEffect(() => {
-    if (atBottomRef.current) scrollToBottom();
-  }, [messages, pending]);
+    if (atBottomRef.current && !filtering) scrollToBottom();
+  }, [messages, pending, filtering]);
 
   const examples = [
     t("examples.task"),
@@ -122,6 +169,16 @@ function markLocalUpdate() {
     t("examples.summarize"),
     t("examples.next"),
   ];
+
+  // Visible messages after search + bookmark filtering.
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return messages.filter((m) => {
+      if (bookmarkedOnly && !bookmarks.has(m.id)) return false;
+      if (q && !m.text.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [messages, query, bookmarkedOnly, bookmarks]);
 
   function appendAssistant(r: OperatorResult) {
     markLocalUpdate();
@@ -304,6 +361,35 @@ function markLocalUpdate() {
         </div>
       )}
 
+      {messages.length > 0 && (
+        <div className="flex items-center gap-2 border-b p-2">
+          <div className="relative flex-1">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              aria-label={t("searchLabel")}
+              className="h-8 pl-8"
+            />
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={bookmarkedOnly ? "default" : "outline"}
+            onClick={() => setBookmarkedOnly((v) => !v)}
+            aria-pressed={bookmarkedOnly}
+            className="h-8 shrink-0"
+          >
+            <Bookmark className="size-3.5" aria-hidden="true" />
+            {t("bookmarksOnly")}
+          </Button>
+        </div>
+      )}
+
       <div
         ref={listRef}
         onScroll={handleScroll}
@@ -334,8 +420,12 @@ function markLocalUpdate() {
               ))}
             </div>
           </div>
+        ) : visible.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-sm text-muted-foreground">
+            <p>{t("noMatches")}</p>
+          </div>
         ) : (
-          messages.map((m) => (
+          visible.map((m) => (
             <div
               key={m.id}
               className={cn(
@@ -357,15 +447,23 @@ function markLocalUpdate() {
                     : "bg-muted",
                 )}
               >
-                <p className="whitespace-pre-wrap">
-                  {m.text}
-                  {m.streaming && (
-                    <span
-                      className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-current align-middle"
-                      aria-hidden="true"
+                {m.role === "assistant" ? (
+                  <>
+                    <HarmonyMarkdown
+                      content={m.text}
+                      copyLabel={t("copy")}
+                      copiedLabel={t("copied")}
                     />
-                  )}
-                </p>
+                    {m.streaming && (
+                      <span
+                        className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-current align-middle"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </>
+                ) : (
+                  <p className="whitespace-pre-wrap">{m.text}</p>
+                )}
 
                 {m.action && (
                   <span className="mt-1.5 flex items-center gap-1 text-xs opacity-80">
@@ -397,21 +495,42 @@ function markLocalUpdate() {
                 )}
 
                 {m.role === "assistant" && !m.proposed && !m.streaming && (
-                  <button
-                    type="button"
-                    onClick={() => copy(m.text)}
-                    className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    aria-label={t("copy")}
-                  >
-                    <Copy className="size-3" aria-hidden="true" />
-                    {t("copy")}
-                  </button>
+                  <div className="mt-1.5 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => copy(m.text)}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label={t("copy")}
+                    >
+                      <Copy className="size-3" aria-hidden="true" />
+                      {t("copy")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleBookmark(m.id)}
+                      aria-pressed={bookmarks.has(m.id)}
+                      aria-label={bookmarks.has(m.id) ? t("bookmarked") : t("bookmark")}
+                      className={cn(
+                        "inline-flex items-center gap-1 text-xs transition-colors",
+                        bookmarks.has(m.id)
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {bookmarks.has(m.id) ? (
+                        <BookmarkCheck className="size-3" aria-hidden="true" />
+                      ) : (
+                        <Bookmark className="size-3" aria-hidden="true" />
+                      )}
+                      {bookmarks.has(m.id) ? t("bookmarked") : t("bookmark")}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
           ))
         )}
-        {pending && !messages.some((m) => m.streaming) && (
+        {pending && !filtering && !messages.some((m) => m.streaming) && (
           <div className="flex items-start gap-2">
             <HarmonyAvatar className="mt-0.5 size-6 shrink-0" title="Harmony" />
             <div className="flex items-center gap-1.5 rounded-2xl bg-muted px-4 py-2 text-sm text-muted-foreground">

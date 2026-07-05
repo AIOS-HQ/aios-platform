@@ -1179,7 +1179,13 @@
       "goal": "New goal: read 12 books this year",
       "summarize": "Summarize my notes",
       "next": "What should I do next?"
-    }
+    },
+    "searchPlaceholder": "Search this conversation…",
+    "searchLabel": "Search conversation",
+    "bookmarksOnly": "Bookmarked",
+    "noMatches": "No messages match your search.",
+    "bookmark": "Bookmark",
+    "bookmarked": "Bookmarked"
   },
   "advisor": {
     "title": "Harmony's Suggestions",
