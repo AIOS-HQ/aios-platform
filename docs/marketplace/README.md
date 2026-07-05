@@ -6,57 +6,46 @@ verification, ratings, dependencies, the install lifecycle, and visibility are
 implemented once and inherited everywhere.
 
 ## Storefront categories (12)
-The flagship product categories (`MARKETPLACE_CATEGORIES` in `categories.ts`),
-each mapped to an engine `kind`:
+`company_template` · `department` · `workforce` · `skill` · `connector` ·
+`workflow` · `dashboard` · `industry` · `branding_pack` · `knowledge_pack` ·
+`founder_pack` · `developer_tool` — see `categories.ts` (`MARKETPLACE_CATEGORIES`).
 
-| Category | kind | What it deploys |
-|---|---|---|
-| Company Templates | `company_template` | A complete autonomous company in one install. |
-| AI Departments | `department` | Departments with agents, objectives, policies. |
-| AI Workers | `workforce` | Individual AI specialists on the runtime. |
-| Skills | `skill` | Reusable capabilities the workforce can run. |
-| Connector Packs | `connector` | Provider connectors (config-only). |
-| Workflow Packs | `workflow` | Multi-step orchestrated workflows. |
-| Dashboard Packs | `dashboard` | Executive/operational dashboards. |
-| Industry Solutions | `industry` | Vertical bundles. |
-| Branding Packs | `branding_pack` | Logo/palette/voice/theme assets. |
-| Knowledge Packs | `knowledge_pack` | Curated knowledge/memory seeds. |
-| Founder Packs | `founder_pack` | Founder-experience presets. |
-| Developer Tools | `developer_tool` | Runtime extensions/utilities. |
+## Engine (`src/lib/marketplace/`, pure — shipped)
+`types.ts` · `categories.ts` · `semver.ts` · `registry.ts` (ratings, visibility,
+verification policy, dependency resolution) · `install.ts` (install/update/
+rollback/uninstall planning) · `templates/` (10 Company Templates). 91 unit tests.
 
-## Engine (`src/lib/marketplace/`, additive — shipped)
-Pure, dependency-free, fully unit-tested (91 tests), runtime-agnostic:
+## Persistence — LIVE ✅ (Founder-approved, migration applied)
+Migration `marketplace_persistence` (prod, Postgres 17):
 
-| File | Responsibility |
+| Table | Purpose |
 |---|---|
-| `types.ts` | Item model (13 kinds), versions, verification, ratings, dependencies, visibility, install-state, plans. |
-| `categories.ts` | The 12 storefront categories + `categoryForKind` / `categoryBySlug`. |
-| `semver.ts` | `parseSemver` · `compareSemver` · `satisfies` · `maxSatisfying`. |
-| `registry.ts` | ratings · listing/visibility · verification policy · `resolveDependencies` (order + cycle/conflict/missing). |
-| `install.ts` | `planInstall` · `planUpdate` · `planRollback` · `planUninstall` — pure `InstallPlan`s. |
-| `templates/` | 10 Company Templates + `instantiateTemplate` (see below). |
+| `marketplace_items` | Listing: kind, slug, name, description, visibility, verification, tags, owner (`user_id`), optional `company_id`. |
+| `marketplace_item_versions` | Immutable versions: semver, changelog, checksum, `artifact_ref`, `dependencies` (jsonb), `min_runtime`, `yanked`. |
+| `marketplace_item_ratings` | 1–5 stars, one per user per item. |
+| `company_installations` | What a company has installed: item, `installed_version`, source, enabled (unique per company+item). |
 
-### Every item supports
-Versioning (semver, yank) · Verification (only `verified` public items installable) ·
-Ratings · Dependencies (resolved, cycle/conflict/missing-aware) ·
-Installation / Updates / Rollback / Uninstall · Company-private + Marketplace-public.
+### RLS (mirrors the platform `auth.uid() = user_id` convention)
+- **Read:** your own rows **OR** verified marketplace-public items (+ their versions/ratings).
+- **Write (items):** end users may create/manage **company-private, unverified** items only. Publishing **marketplace-public** and setting **verified** is a privileged **service-role** path (bypasses RLS) — so users cannot self-publish or self-verify.
+- **Installations:** strictly owner-scoped (`auth.uid() = user_id`).
 
-### Company Templates (`templates/`)
-Ten launch blueprints that each provision a complete autonomous company: SaaS
-Startup, Aviation Claims, Law Firm, Accounting Firm, Real Estate, Healthcare
-Practice, Manufacturing, Restaurant Group, E-commerce, Startup Accelerator. Each
-defines departments, an AI workforce (Harmony always coordinates), objectives,
-connectors (config-only), branding tone, and knowledge seeds. `instantiateTemplate`
-turns a template into a provisioning draft for a named company.
+### Server actions (`actions.ts` — wired to the engine)
+`installMarketplaceItem` · `updateMarketplaceItem` · `rollbackMarketplaceItem` ·
+`uninstallMarketplaceItem`. Each loads the RLS-scoped catalog + the company's
+installed-state (`persistence.ts`), asks the pure engine for a plan (dependencies
+resolved; cycles/conflicts detected; uninstall blocked on dependents), and only
+then writes owner-scoped `company_installations` rows (guarded by company
+ownership + RLS). A blocked plan is returned unapplied so the human sees why
+first. `server-only` / `"use server"` modules — never exported from the pure
+`index.ts` barrel, so no server code leaks into client bundles.
 
 ### Security
-Artifacts are **configuration + knowledge references only** — never secrets/tokens.
-Connector steps surface a re-consent reminder.
+Marketplace artifacts are **configuration + knowledge references only** — never
+secrets/tokens. Connector steps surface a re-consent reminder.
 
-## Persistence — HELD (Founder gate: production-impacting schema)
-The engine plans over in-memory catalogs + install-state, so it needs no schema
-to exist or be tested. Going live requires (proposed, NOT applied):
-`marketplace_items`, `marketplace_item_versions`, `marketplace_item_ratings`,
-`company_installations` + RLS (public readable; private/installations owner-scoped;
-verification transitions admin-only) + server actions that execute an approved
-`InstallPlan` transactionally and re-provision into the Company Context Envelope.
+## Held for Founder preview
+The visible **storefront UI** (browse categories, item detail with versions/
+ratings/dependencies, install/update/rollback plan view) — pending a held UX
+preview. Seeding the 10 Company Templates as public items is a follow-up
+service-role publish step (needs the platform publisher identity).
