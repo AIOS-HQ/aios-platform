@@ -36,6 +36,7 @@ import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { WaitlistForm } from "@/components/marketing/waitlist-form";
+import { FeatureShowcase } from "@/components/marketing/feature-showcase";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -428,6 +429,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* ── Marketplace · Portable Company · Provisioning · Company Templates ── */}
+        <FeatureShowcase />
 
         {/* ─────────────────────── Hubs ─────────────────────── */}
         {hubs.map((hub, i) => (
