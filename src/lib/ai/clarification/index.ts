@@ -6,13 +6,11 @@
  * required inputs are present; if not, raise structured questions, collect
  * answers, feed them to Julius, and resume. Workers never guess when
  * clarification is appropriate.
- *
- * Additive + inert: no worker calls this yet, and the default store is
- * in-memory (no migration). Adoption is incremental.
  */
 export * from "./types";
 export * from "./engine";
 export * from "./store";
+export * from "./supabase-store";
 
 import { assessSufficiency, createClarificationRequest } from "./engine";
 import { getClarificationStore } from "./store";
@@ -25,9 +23,8 @@ export type ClarificationOutcome =
 /**
  * The universal entry point. Assess sufficiency; if inputs are missing, persist
  * a pending clarification request and tell the worker to pause. The worker
- * resumes once answers are applied (see `applyAnswers`) — the same
- * resumable-work-item pattern the Execution Spine already uses, so no second
- * control flow is introduced.
+ * resumes once answers are applied — the same resumable-work-item pattern the
+ * Execution Spine already uses, so no second control flow is introduced.
  */
 export async function ensureSufficientOrAsk(args: {
   worker: string;
