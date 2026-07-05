@@ -3,7 +3,7 @@
  *
  * Pure selectors over an in-memory Catalog (+ optional install counts, favorite
  * / staff-pick id lists, and a company profile signal for AI Recommended). No
- * I/O. A server layer supplies install counts (from company_installations) and
+ * I/O. A server layer supplies install counts (from the global-counts RPC) and
  * the curated id lists; the storefront renders whatever non-empty rows come
  * back.
  */
@@ -21,7 +21,7 @@ export interface Collection {
 
 export interface CollectionInputs {
   catalog: Catalog;
-  /** itemId -> install count (from company_installations). */
+  /** itemId -> install count (global, from marketplace_install_counts RPC). */
   installCounts?: Record<string, number>;
   /** Founder-curated favorite item ids, in display order. */
   favoriteIds?: string[];
@@ -29,12 +29,13 @@ export interface CollectionInputs {
   staffPickIds?: string[];
   /** When present, powers the "AI Recommended" row. */
   signal?: CompanyProfileSignal;
-  /** Epoch ms "now" for trending recency (injectable for tests). */
+  /** Epoch ms "now" for trending/new recency (injectable for tests). */
   now?: number;
   limit?: number;
 }
 
 const RECENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const NEW_WINDOW_MS = 45 * 24 * 60 * 60 * 1000;
 
 function publicPool(catalog: Catalog): MarketplaceItem[] {
   return Object.values(catalog).filter(isPublicInstallable);
@@ -123,7 +124,7 @@ export function buildCollections(inputs: CollectionInputs): Collection[] {
     });
   }
 
-  // Most Installed — raw install volume.
+  // Most Installed — raw global install volume.
   const mostInstalled = [...pool]
     .filter((i) => (installCounts[i.id] ?? 0) > 0)
     .sort((a, b) => (installCounts[b.id] ?? 0) - (installCounts[a.id] ?? 0))
@@ -137,7 +138,22 @@ export function buildCollections(inputs: CollectionInputs): Collection[] {
     });
   }
 
-  // Recently Updated — freshest first.
+  // New Releases — most recently PUBLISHED (by createdAt), preferring the window.
+  const sortedByCreated = [...pool].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const inNewWindow = sortedByCreated.filter((i) => now - new Date(i.createdAt).getTime() <= NEW_WINDOW_MS);
+  const newReleases = (inNewWindow.length ? inNewWindow : sortedByCreated).slice(0, limit);
+  if (newReleases.length) {
+    collections.push({
+      slug: "new-releases",
+      label: "New Releases",
+      description: "Freshly published to the marketplace.",
+      items: newReleases,
+    });
+  }
+
+  // Recently Updated — freshest changes first (by updatedAt).
   const recentlyUpdated = [...pool]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, limit);
