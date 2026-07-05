@@ -18,6 +18,7 @@ import { buildDigitalTwin } from "@/lib/company/digital-twin";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { WorkerAvatar } from "@/components/workforce/worker-avatar";
 
 export const metadata: Metadata = { title: "AI Workforce Directory · AIOS" };
 
@@ -43,12 +44,7 @@ function WorkerCard({
   return (
     <Card className={hero ? "border-primary/30 bg-primary/5" : "transition hover:-translate-y-0.5 hover:border-primary/30"}>
       <CardHeader className="flex-row items-center gap-3 space-y-0">
-        <span
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 text-base font-bold text-primary-foreground"
-          aria-hidden="true"
-        >
-          {agent.name.charAt(0)}
-        </span>
+        <WorkerAvatar agentKey={agent.key} name={agent.name} size={hero ? "lg" : "md"} />
         <div className="min-w-0 flex-1">
           <CardTitle className="flex items-center gap-2 truncate text-base">
             {agent.name}
