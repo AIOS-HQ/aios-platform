@@ -79,6 +79,8 @@ export async function upsertConnection(row: ConnectionUpsert): Promise<boolean> 
         // Encrypt token columns at rest (no-op passthrough until the key is set).
         access_token: encryptToken(row.access_token),
         refresh_token: encryptToken(row.refresh_token),
+        // provider_id mirrors provider (kept for downstream consumers); the
+        // conflict target below is what actually dedupes the row.
         provider_id: row.provider,
         scope: row.scopes,
         external_account_id: row.external_account,
@@ -89,7 +91,13 @@ export async function upsertConnection(row: ConnectionUpsert): Promise<boolean> 
         connected_at: now,
         updated_at: now,
       },
-      { onConflict: "user_id,provider_id" },
+      // CRITICAL: the conflict target MUST match the table's unique constraint,
+      // which is UNIQUE (user_id, provider). Targeting (user_id, provider_id)
+      // raises Postgres 42P10 ("no unique constraint matching the ON CONFLICT
+      // specification"), which silently fails EVERY connection write (the OAuth
+      // callback then reports ?error=persist and no row is stored). Keep this in
+      // sync with the DB constraint.
+      { onConflict: "user_id,provider" },
     );
   if (error) {
     console.error("[integrations/connections] upsert", error.message);
