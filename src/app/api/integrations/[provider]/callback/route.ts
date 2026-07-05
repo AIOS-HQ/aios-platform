@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { getConnectorDefinition } from "@/lib/integrations/registry";
 import { exchangeCodeForToken } from "@/lib/integrations/config";
 import { upsertConnection } from "@/lib/integrations/connections";
+import { resolveOAuthCallback } from "@/lib/integrations/oauth-callback";
 
 export const runtime = "nodejs";
 
@@ -18,8 +19,15 @@ function base(): string {
  *
  * Resolves the provider from the unified connector registry, so every
  * OAuth-family connector inherits one callback: verify CSRF state, exchange the
- * authorization code, and persist the connection (tokens encrypted at rest by
- * the connections layer). No per-provider code.
+ * authorization code, and persist the connection (tokens encrypted at rest).
+ *
+ * Exception-safe: the flow runs through `resolveOAuthCallback`, which maps ANY
+ * failure — including a throwing token write (e.g. a missing production env var
+ * surfaced by the admin client, or fail-closed token encryption) — to a typed
+ * `?error=<reason>` redirect and logs the real cause, so the callback NEVER
+ * returns an HTTP 500. `?error=server` means "check the server logs" (the
+ * underlying error is logged there); `?error=persist` means the write returned
+ * false (e.g. service-role client unavailable).
  */
 export async function GET(
   req: Request,
@@ -34,34 +42,42 @@ export async function GET(
   if (!def) return fail("unknown");
 
   const url = new URL(req.url);
-  if (url.searchParams.get("error")) return fail("denied");
-
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-
   const cookieStore = await cookies();
   const raw = cookieStore.get(STATE_COOKIE)?.value ?? "";
-  const [cPid, cUid, cNonce] = raw.split(":");
 
-  if (!code || !state || !raw || cPid !== pid || cNonce !== state || !cUid) {
-    return fail("state");
-  }
+  const result = await resolveOAuthCallback(
+    {
+      providerKnown: true,
+      providerId: pid,
+      hasProviderError: Boolean(url.searchParams.get("error")),
+      code: url.searchParams.get("code"),
+      state: url.searchParams.get("state"),
+      cookieRaw: raw,
+    },
+    {
+      exchange: (code) => exchangeCodeForToken(def, code),
+      persist: (input) =>
+        upsertConnection({
+          user_id: input.userId,
+          provider: input.providerId,
+          status: "connected",
+          scopes: input.scope ?? (def.scopes ?? []).join(" "),
+          external_account: null,
+          access_token: input.accessToken,
+          refresh_token: input.refreshToken,
+          expires_at: input.expiresIn
+            ? new Date(Date.now() + input.expiresIn * 1000).toISOString()
+            : null,
+        }),
+      onError: (stage, err) =>
+        console.error(
+          `[integrations/callback] ${pid} ${stage} failed`,
+          err instanceof Error ? err.message : err,
+        ),
+    },
+  );
 
-  const token = await exchangeCodeForToken(def, code);
-  if (!token || !token.accessToken) return fail("exchange");
-
-  await upsertConnection({
-    user_id: cUid,
-    provider: pid,
-    status: "connected",
-    scopes: token.scope ?? (def.scopes ?? []).join(" "),
-    external_account: null,
-    access_token: token.accessToken,
-    refresh_token: token.refreshToken,
-    expires_at: token.expiresIn
-      ? new Date(Date.now() + token.expiresIn * 1000).toISOString()
-      : null,
-  });
+  if (!result.ok) return fail(result.error);
 
   const res = NextResponse.redirect(`${b}/settings/integrations?connected=${pid}`);
   res.cookies.delete(STATE_COOKIE);
