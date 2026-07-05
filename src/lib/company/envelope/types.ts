@@ -1,22 +1,18 @@
 /**
  * Company Context Envelope — the identity layer of every organization in AIOS
  * (Phase 2.1, Foundation 1). Every AI worker derives its behavior from this
- * object; nothing about a company is hardcoded. Mirrors public.company_context_envelope.
+ * object; nothing about a company is hardcoded. Mirrors
+ * public.company_context_envelope.
  *
- * Extensibility: the composite sections are jsonb-backed, so the envelope grows
- * (vision/mission/values live in brand; compliance in governance; workspace +
- * deployment config in founderPreferences) without a schema change. Richer
- * first-class contexts (financial/customer/product/operational, business KPIs,
- * human workforce) are a planned additive migration + type extension.
+ * Composite sections are jsonb-backed so the envelope evolves without breaking
+ * changes; `schemaVersion` guards forward-compatibility. This is the COMPLETE
+ * section set (identity → operational context).
  */
 
 export interface CompanyBrand {
   logo?: string;
   palette?: string[];
   voice?: string;
-  vision?: string;
-  mission?: string;
-  coreValues?: string[];
 }
 
 export interface CompanyObjective {
@@ -26,10 +22,40 @@ export interface CompanyObjective {
   status?: "active" | "paused" | "done";
 }
 
+export interface PriorityItem {
+  id: string;
+  title: string;
+  rank?: number;
+}
+
 export interface DepartmentDef {
   id: string;
   name: string;
   parentId?: string;
+}
+
+export interface OrgUnit {
+  id: string;
+  name: string;
+  kind?: "division" | "department" | "team";
+  parentId?: string;
+  leadUserId?: string;
+}
+
+export interface HumanWorkforceMember {
+  id: string;
+  name?: string;
+  role?: string;
+  departmentId?: string;
+  userId?: string;
+}
+
+export interface BusinessKpi {
+  id: string;
+  label: string;
+  value?: number | string;
+  unit?: string;
+  target?: number | string;
 }
 
 export interface WorkerActivation {
@@ -49,21 +75,43 @@ export interface ConnectorBinding {
 export interface CompanyContextEnvelope {
   companyId: string;
   schemaVersion: number;
+  // Identity
   companyName: string | null;
   industry: string | null;
+  vision: string | null;
+  mission: string | null;
+  coreValues: string[];
   brand: CompanyBrand;
-  objectives: CompanyObjective[];
+  // Structure
   departments: DepartmentDef[];
+  orgStructure: Record<string, unknown>;
+  // Direction
+  objectives: CompanyObjective[];
+  priorities: PriorityItem[];
+  // Governance
   policies: Record<string, unknown>;
   governance: Record<string, unknown>;
   permissions: unknown[];
+  compliance: Record<string, unknown>;
+  securityProfile: Record<string, unknown>;
+  operatingRules: unknown[];
+  // Workforce
   workforce: WorkerActivation[];
+  humanWorkforce: HumanWorkforceMember[];
+  // Capabilities & knowledge
   connectors: ConnectorBinding[];
   skills: unknown[];
   knowledgeRef: string | null;
+  // Founder + deployment
   founderPreferences: Record<string, unknown>;
-  securityProfile: Record<string, unknown>;
-  operatingRules: unknown[];
+  workspaceConfig: Record<string, unknown>;
+  deploymentConfig: Record<string, unknown>;
+  // Business context
+  businessKpis: BusinessKpi[];
+  financialContext: Record<string, unknown>;
+  customerContext: Record<string, unknown>;
+  productContext: Record<string, unknown>;
+  operationalContext: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -74,10 +122,15 @@ export interface WorkerContext {
   companyId: string;
   companyName: string | null;
   industry: string | null;
+  vision: string | null;
+  mission: string | null;
+  coreValues: string[];
   brand: CompanyBrand;
   objectives: CompanyObjective[];
+  priorities: PriorityItem[];
   policies: Record<string, unknown>;
   governance: Record<string, unknown>;
+  compliance: Record<string, unknown>;
   operatingRules: unknown[];
   connectors: ConnectorBinding[];
   enabled: boolean;

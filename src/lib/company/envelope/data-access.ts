@@ -2,11 +2,14 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type {
+  BusinessKpi,
   CompanyBrand,
   CompanyContextEnvelope,
   CompanyObjective,
   ConnectorBinding,
   DepartmentDef,
+  HumanWorkforceMember,
+  PriorityItem,
   WorkerActivation,
 } from "./types";
 
@@ -16,28 +19,45 @@ import type {
  */
 
 const COLUMNS =
-  "company_id,schema_version,company_name,industry,brand,objectives,departments," +
-  "policies,governance,permissions,workforce,connectors,skills,knowledge_ref," +
-  "founder_preferences,security_profile,operating_rules,created_at,updated_at";
+  "company_id,schema_version,company_name,industry,vision,mission,core_values,brand," +
+  "departments,org_structure,objectives,priorities,policies,governance,permissions," +
+  "compliance,security_profile,operating_rules,workforce,human_workforce,connectors," +
+  "skills,knowledge_ref,founder_preferences,workspace_config,deployment_config," +
+  "business_kpis,financial_context,customer_context,product_context,operational_context," +
+  "created_at,updated_at";
 
 interface EnvelopeRow {
   company_id: string;
   schema_version: number | null;
   company_name: string | null;
   industry: string | null;
+  vision: string | null;
+  mission: string | null;
+  core_values: string[] | null;
   brand: CompanyBrand | null;
-  objectives: CompanyObjective[] | null;
   departments: DepartmentDef[] | null;
+  org_structure: Record<string, unknown> | null;
+  objectives: CompanyObjective[] | null;
+  priorities: PriorityItem[] | null;
   policies: Record<string, unknown> | null;
   governance: Record<string, unknown> | null;
   permissions: unknown[] | null;
+  compliance: Record<string, unknown> | null;
+  security_profile: Record<string, unknown> | null;
+  operating_rules: unknown[] | null;
   workforce: WorkerActivation[] | null;
+  human_workforce: HumanWorkforceMember[] | null;
   connectors: ConnectorBinding[] | null;
   skills: unknown[] | null;
   knowledge_ref: string | null;
   founder_preferences: Record<string, unknown> | null;
-  security_profile: Record<string, unknown> | null;
-  operating_rules: unknown[] | null;
+  workspace_config: Record<string, unknown> | null;
+  deployment_config: Record<string, unknown> | null;
+  business_kpis: BusinessKpi[] | null;
+  financial_context: Record<string, unknown> | null;
+  customer_context: Record<string, unknown> | null;
+  product_context: Record<string, unknown> | null;
+  operational_context: Record<string, unknown> | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -48,19 +68,33 @@ function fromRow(row: EnvelopeRow): CompanyContextEnvelope {
     schemaVersion: row.schema_version ?? 1,
     companyName: row.company_name ?? null,
     industry: row.industry ?? null,
+    vision: row.vision ?? null,
+    mission: row.mission ?? null,
+    coreValues: row.core_values ?? [],
     brand: row.brand ?? {},
-    objectives: row.objectives ?? [],
     departments: row.departments ?? [],
+    orgStructure: row.org_structure ?? {},
+    objectives: row.objectives ?? [],
+    priorities: row.priorities ?? [],
     policies: row.policies ?? {},
     governance: row.governance ?? {},
     permissions: row.permissions ?? [],
+    compliance: row.compliance ?? {},
+    securityProfile: row.security_profile ?? {},
+    operatingRules: row.operating_rules ?? [],
     workforce: row.workforce ?? [],
+    humanWorkforce: row.human_workforce ?? [],
     connectors: row.connectors ?? [],
     skills: row.skills ?? [],
     knowledgeRef: row.knowledge_ref ?? null,
     founderPreferences: row.founder_preferences ?? {},
-    securityProfile: row.security_profile ?? {},
-    operatingRules: row.operating_rules ?? [],
+    workspaceConfig: row.workspace_config ?? {},
+    deploymentConfig: row.deployment_config ?? {},
+    businessKpis: row.business_kpis ?? [],
+    financialContext: row.financial_context ?? {},
+    customerContext: row.customer_context ?? {},
+    productContext: row.product_context ?? {},
+    operationalContext: row.operational_context ?? {},
     createdAt: row.created_at ?? undefined,
     updatedAt: row.updated_at ?? undefined,
   };
@@ -87,19 +121,33 @@ export interface EnvelopeUpsert {
   schemaVersion?: number;
   companyName?: string | null;
   industry?: string | null;
+  vision?: string | null;
+  mission?: string | null;
+  coreValues?: string[];
   brand?: CompanyBrand;
-  objectives?: CompanyObjective[];
   departments?: DepartmentDef[];
+  orgStructure?: Record<string, unknown>;
+  objectives?: CompanyObjective[];
+  priorities?: PriorityItem[];
   policies?: Record<string, unknown>;
   governance?: Record<string, unknown>;
   permissions?: unknown[];
+  compliance?: Record<string, unknown>;
+  securityProfile?: Record<string, unknown>;
+  operatingRules?: unknown[];
   workforce?: WorkerActivation[];
+  humanWorkforce?: HumanWorkforceMember[];
   connectors?: ConnectorBinding[];
   skills?: unknown[];
   knowledgeRef?: string | null;
   founderPreferences?: Record<string, unknown>;
-  securityProfile?: Record<string, unknown>;
-  operatingRules?: unknown[];
+  workspaceConfig?: Record<string, unknown>;
+  deploymentConfig?: Record<string, unknown>;
+  businessKpis?: BusinessKpi[];
+  financialContext?: Record<string, unknown>;
+  customerContext?: Record<string, unknown>;
+  productContext?: Record<string, unknown>;
+  operationalContext?: Record<string, unknown>;
 }
 
 export async function upsertEnvelope(input: EnvelopeUpsert): Promise<boolean> {
@@ -108,22 +156,39 @@ export async function upsertEnvelope(input: EnvelopeUpsert): Promise<boolean> {
     company_id: input.companyId,
     user_id: input.userId,
   };
-  if (input.schemaVersion !== undefined) row.schema_version = input.schemaVersion;
-  if (input.companyName !== undefined) row.company_name = input.companyName;
-  if (input.industry !== undefined) row.industry = input.industry;
-  if (input.brand !== undefined) row.brand = input.brand;
-  if (input.objectives !== undefined) row.objectives = input.objectives;
-  if (input.departments !== undefined) row.departments = input.departments;
-  if (input.policies !== undefined) row.policies = input.policies;
-  if (input.governance !== undefined) row.governance = input.governance;
-  if (input.permissions !== undefined) row.permissions = input.permissions;
-  if (input.workforce !== undefined) row.workforce = input.workforce;
-  if (input.connectors !== undefined) row.connectors = input.connectors;
-  if (input.skills !== undefined) row.skills = input.skills;
-  if (input.knowledgeRef !== undefined) row.knowledge_ref = input.knowledgeRef;
-  if (input.founderPreferences !== undefined) row.founder_preferences = input.founderPreferences;
-  if (input.securityProfile !== undefined) row.security_profile = input.securityProfile;
-  if (input.operatingRules !== undefined) row.operating_rules = input.operatingRules;
+  const set = (col: string, v: unknown) => {
+    if (v !== undefined) row[col] = v;
+  };
+  set("schema_version", input.schemaVersion);
+  set("company_name", input.companyName);
+  set("industry", input.industry);
+  set("vision", input.vision);
+  set("mission", input.mission);
+  set("core_values", input.coreValues);
+  set("brand", input.brand);
+  set("departments", input.departments);
+  set("org_structure", input.orgStructure);
+  set("objectives", input.objectives);
+  set("priorities", input.priorities);
+  set("policies", input.policies);
+  set("governance", input.governance);
+  set("permissions", input.permissions);
+  set("compliance", input.compliance);
+  set("security_profile", input.securityProfile);
+  set("operating_rules", input.operatingRules);
+  set("workforce", input.workforce);
+  set("human_workforce", input.humanWorkforce);
+  set("connectors", input.connectors);
+  set("skills", input.skills);
+  set("knowledge_ref", input.knowledgeRef);
+  set("founder_preferences", input.founderPreferences);
+  set("workspace_config", input.workspaceConfig);
+  set("deployment_config", input.deploymentConfig);
+  set("business_kpis", input.businessKpis);
+  set("financial_context", input.financialContext);
+  set("customer_context", input.customerContext);
+  set("product_context", input.productContext);
+  set("operational_context", input.operationalContext);
 
   const { error } = await supabase
     .from("company_context_envelope")
@@ -136,18 +201,32 @@ export async function upsertEnvelope(input: EnvelopeUpsert): Promise<boolean> {
 }
 
 export type EnvelopeSection =
+  | "vision"
+  | "mission"
+  | "core_values"
   | "brand"
-  | "objectives"
   | "departments"
+  | "org_structure"
+  | "objectives"
+  | "priorities"
   | "policies"
   | "governance"
   | "permissions"
+  | "compliance"
+  | "security_profile"
+  | "operating_rules"
   | "workforce"
+  | "human_workforce"
   | "connectors"
   | "skills"
   | "founder_preferences"
-  | "security_profile"
-  | "operating_rules";
+  | "workspace_config"
+  | "deployment_config"
+  | "business_kpis"
+  | "financial_context"
+  | "customer_context"
+  | "product_context"
+  | "operational_context";
 
 export async function updateEnvelopeSection(
   companyId: string,
