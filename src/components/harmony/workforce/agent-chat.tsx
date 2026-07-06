@@ -4,11 +4,11 @@ import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { sendAgentChatAction } from "@/lib/workforce/chat-actions";
-import { getAgentIcon } from "@/lib/workforce/agent-icons";
 import { idleState } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { FormMessage } from "@/components/shared/form-message";
+import { WorkerAvatar } from "@/components/workforce/worker-avatar";
 import { LIMITS } from "@/lib/limits";
 
 export interface ChatTurn {
@@ -20,6 +20,8 @@ export interface ChatTurn {
 /**
  * Founder ↔ agent chat. Server-rendered history + a composer that posts to the
  * advisory chat action; on success the page revalidates so the new turns appear.
+ * Agent turns are marked with the canonical WorkerAvatar so the worker's
+ * identity is consistent with the rest of the platform.
  */
 export function AgentChat({
   agent,
@@ -34,7 +36,6 @@ export function AgentChat({
   const [state, action] = useActionState(sendAgentChatAction, idleState);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const Icon = getAgentIcon(agent);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -59,11 +60,7 @@ export function AgentChat({
               </div>
             ) : (
               <div key={m.id} className="mr-auto flex max-w-[85%] items-start gap-2">
-                {Icon ? (
-                  <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md border bg-muted text-foreground">
-                    <Icon className="size-3.5" aria-hidden="true" />
-                  </span>
-                ) : null}
+                <WorkerAvatar agent={agent} size="xs" className="mt-0.5" title={agentName} />
                 <div className="whitespace-pre-wrap rounded-lg border bg-card px-3 py-2 text-sm">
                   {m.content}
                 </div>
