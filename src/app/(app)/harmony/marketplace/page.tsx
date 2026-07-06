@@ -81,8 +81,11 @@ export default async function MarketplacePage() {
         <Button asChild variant="outline" size="sm">
           <Link href="/harmony/marketplace/discover">{t("nav.discover")}</Link>
         </Button>
-        <Button asChild size="sm">
+        <Button asChild variant="outline" size="sm">
           <Link href="/harmony/marketplace/bundles">{t("nav.bundles")}</Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href="/harmony/marketplace/publish">Publish</Link>
         </Button>
       </PageHeader>
 
