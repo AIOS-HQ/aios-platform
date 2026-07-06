@@ -11,11 +11,11 @@ import type { VerificationStatus } from "@/lib/marketplace";
 /**
  * A single Marketplace item card — the full item anatomy: icon, name,
  * description, included AI workers + connectors, deployment time, rating,
- * version, verification, dependencies, and an expandable preview (objectives,
- * change log, reviews). The install/update/rollback (or deploy) control is
- * passed in as `action` so this stays a pure server component. Individual AI
- * worker items render their canonical colored WorkerAvatar; real (reviewable)
- * items expose the reviews panel.
+ * version, license, verification, dependencies, and an expandable preview
+ * (objectives, change log, reviews). The install/update/rollback (or deploy)
+ * control is passed in as `action` so this stays a pure server component.
+ * Individual AI worker items render their canonical colored WorkerAvatar; real
+ * (reviewable) items expose the reviews panel.
  */
 
 export interface DisplayItem {
@@ -42,6 +42,8 @@ export interface DisplayItem {
   detailHref?: string;
   /** Agent key for an individual AI worker item — renders its colored avatar. */
   workerKey?: string;
+  /** License identifier/label (e.g. "MIT", "Proprietary"); omitted when unset. */
+  license?: string;
   /** Written reviews (star + comment) for this item, most recent first. */
   reviews?: { stars: number; comment: string }[];
   /** True for real marketplace rows (not static templates) — enables reviews. */
@@ -128,7 +130,7 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
           </div>
         )}
 
-        {/* Meta row: rating · version · deployment time */}
+        {/* Meta row: rating · version · license · deployment time */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>
             {t("labels.rating")}:{" "}
@@ -139,6 +141,11 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
           {item.version ? (
             <span>
               {t("labels.version")} <span className="font-medium text-foreground">v{item.version}</span>
+            </span>
+          ) : null}
+          {item.license ? (
+            <span>
+              License: <span className="font-medium text-foreground">{item.license}</span>
             </span>
           ) : null}
           <span>

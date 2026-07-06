@@ -58,6 +58,7 @@ export default async function MarketplacePage() {
       ratingAvg: r.count ? r.average : null,
       ratingCount: r.count,
       verification: it.verification,
+      license: it.license,
       workers: [],
       connectors: [],
       dependencies: (ver?.dependencies ?? []).map((d) => d.itemId),
