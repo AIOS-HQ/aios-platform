@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { FormMessage } from "@/components/shared/form-message";
 import { WorkerAvatar } from "@/components/workforce/worker-avatar";
+import { ChatAttachButton } from "@/components/uploads/chat-attach-button";
 import { LIMITS } from "@/lib/limits";
 
 export interface ChatTurn {
@@ -21,7 +22,8 @@ export interface ChatTurn {
  * Founder ↔ agent chat. Server-rendered history + a composer that posts to the
  * advisory chat action; on success the page revalidates so the new turns appear.
  * Agent turns are marked with the canonical WorkerAvatar so the worker's
- * identity is consistent with the rest of the platform.
+ * identity is consistent with the rest of the platform. The "+" attaches a file
+ * or context, appended to the message so it travels with the turn.
  */
 export function AgentChat({
   agent,
@@ -36,6 +38,7 @@ export function AgentChat({
   const [state, action] = useActionState(sendAgentChatAction, idleState);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -73,13 +76,22 @@ export function AgentChat({
         <input type="hidden" name="agent" value={agent} />
         <FormMessage state={state} />
         <Textarea
+          ref={textareaRef}
           name="message"
           rows={2}
           maxLength={LIMITS.noteContent}
           placeholder={t("chatPlaceholder", { name: agentName })}
           required
         />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+          <ChatAttachButton
+            onAttach={(reference) => {
+              const ta = textareaRef.current;
+              if (!ta) return;
+              ta.value = ta.value ? `${ta.value}\n\n${reference}` : reference;
+              ta.focus();
+            }}
+          />
           <SubmitButton pendingLabel={t("chatSending")}>{t("chatSend")}</SubmitButton>
         </div>
       </form>

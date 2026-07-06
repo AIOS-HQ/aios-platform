@@ -40,17 +40,17 @@ export function HarmonyMark({
 /**
  * Harmony chat avatar — the canonical INTERACTION identity.
  *
- * A circular, high-contrast take on the Harmony mark, tuned for small sizes
- * (20–40px): a solid electric-blue → deep-navy disc, a subtle orbital ring (the
- * Harmony signature), and a crisp white "H" that reads instantly. Use this
- * anywhere Harmony is actively interacting with the user — beside every reply,
- * while thinking or streaming, throughout conversation history, on Ask Harmony
- * cards, and in Harmony-generated notifications. It is deliberately distinct
- * from {@link HarmonyMark} (the brand logo); never use the brand logo inside a
- * conversation.
+ * The colored Harmony worker avatar: an indigo→violet gradient squircle with a
+ * glossy edge and Harmony's domain glyph (orchestration / interlocking
+ * workflow), matching the platform-wide WorkerAvatar system so Harmony looks
+ * identical everywhere she interacts — beside every reply, while thinking or
+ * streaming, throughout conversation history, on Ask Harmony cards, and in
+ * Harmony-generated notifications. Deliberately distinct from {@link HarmonyMark}
+ * (the brand logo); never use the brand logo inside a conversation.
  *
- * Same API as HarmonyMark so it is a drop-in: size it via `className`
- * (e.g. `size-6`), pass a `title` for an accessible name when standalone.
+ * Same API as before so it is a drop-in: size it via `className` (e.g. `size-6`),
+ * pass a `title` for an accessible name when standalone. Rendered as a scalable
+ * SVG so it stays crisp from ~14px chat marks up to hero sizes.
  */
 export function HarmonyAvatar({
   className,
@@ -62,34 +62,46 @@ export function HarmonyAvatar({
   return (
     <svg
       viewBox="0 0 64 64"
-      className={cn("size-8", className)}
+      className={cn("size-8 shrink-0", className)}
       role={title ? "img" : "presentation"}
       aria-label={title}
       aria-hidden={title ? undefined : true}
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <linearGradient id="harmonyAvatarBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#3b82f6" />
-          <stop offset="1" stopColor="#1e3a8a" />
+        <linearGradient id="harmonyAvBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#6366f1" />
+          <stop offset="1" stopColor="#8b5cf6" />
         </linearGradient>
-        <radialGradient id="harmonyAvatarGloss" cx="32" cy="18" r="34" gradientUnits="userSpaceOnUse">
+        <linearGradient id="harmonyAvGloss" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#ffffff" stopOpacity="0.30" />
-          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
-        </radialGradient>
+          <stop offset="0.55" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
       </defs>
 
-      {/* high-contrast brand disc + soft top gloss for a premium finish */}
-      <circle cx="32" cy="32" r="32" fill="url(#harmonyAvatarBg)" />
-      <circle cx="32" cy="32" r="32" fill="url(#harmonyAvatarGloss)" />
+      {/* Gradient squircle tile + soft top gloss + crisp inset edge. */}
+      <rect x="0" y="0" width="64" height="64" rx="18" fill="url(#harmonyAvBg)" />
+      <rect x="0" y="0" width="64" height="64" rx="18" fill="url(#harmonyAvGloss)" />
+      <rect x="1" y="1" width="62" height="62" rx="17" fill="none" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1.5" />
 
-      {/* subtle orbital ring — kept light so the "H" stays dominant at small sizes */}
-      <circle cx="32" cy="32" r="22" fill="none" stroke="#bfdbfe" strokeWidth="2" opacity="0.55" />
-
-      {/* bold white "H" — instantly recognizable down to ~20px */}
-      <rect x="20" y="18" width="6.5" height="28" rx="3.25" fill="#ffffff" />
-      <rect x="37.5" y="18" width="6.5" height="28" rx="3.25" fill="#ffffff" />
-      <rect x="20" y="28.75" width="24" height="6.5" rx="3.25" fill="#ffffff" />
+      {/* Harmony domain glyph — orchestration / interlocking workflow. */}
+      <svg
+        x="15"
+        y="15"
+        width="34"
+        height="34"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#0f172a"
+        strokeOpacity="0.85"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect width="8" height="8" x="3" y="3" rx="2" />
+        <path d="M7 11v4a2 2 0 0 0 2 2h4" />
+        <rect width="8" height="8" x="13" y="13" rx="2" />
+      </svg>
     </svg>
   );
 }
