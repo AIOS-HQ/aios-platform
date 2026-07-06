@@ -11,6 +11,18 @@ import { Label } from "@/components/ui/label";
 import { MARKETPLACE_ITEM_KINDS } from "@/lib/marketplace/types";
 import { publishMarketplaceItem } from "@/lib/marketplace/publish-actions";
 
+/** Common license options offered at publish time. */
+const LICENSE_OPTIONS = [
+  "Proprietary",
+  "AIOS Standard",
+  "MIT",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "GPL-3.0",
+  "MPL-2.0",
+  "CC-BY-4.0",
+] as const;
+
 function humanize(k: string): string {
   return k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -26,8 +38,8 @@ function slugify(s: string): string {
 /**
  * Publish form — create a marketplace item + first version. Publishes to the
  * author's private company catalog as unverified (server-enforced by RLS); AIOS
- * verifies before public listing. Uses a native select for the type to stay
- * dependency-light.
+ * verifies before public listing. Uses native selects for type + license to
+ * stay dependency-light.
  */
 export function PublishForm({ companyId }: { companyId: string | null }) {
   const router = useRouter();
@@ -38,6 +50,7 @@ export function PublishForm({ companyId }: { companyId: string | null }) {
   const [slugTouched, setSlugTouched] = useState(false);
   const [description, setDescription] = useState("");
   const [version, setVersion] = useState("1.0.0");
+  const [license, setLicense] = useState<string>("Proprietary");
   const [changelog, setChangelog] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +67,7 @@ export function PublishForm({ companyId }: { companyId: string | null }) {
         slug: effectiveSlug,
         description,
         version,
+        license,
         changelog,
         companyId,
       });
@@ -120,6 +134,23 @@ export function PublishForm({ companyId }: { companyId: string | null }) {
           placeholder="revenue-ops-autopilot"
         />
         <p className="text-xs text-muted-foreground">Lowercase, hyphenated — auto-derived from the name.</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="mp-license">License</Label>
+        <select
+          id="mp-license"
+          value={license}
+          onChange={(e) => setLicense(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {LICENSE_OPTIONS.map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">How others may use this item. Licensing only — no pricing.</p>
       </div>
 
       <div className="flex flex-col gap-1.5">

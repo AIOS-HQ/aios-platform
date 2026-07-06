@@ -103,6 +103,10 @@ export interface MarketplaceItem {
   companyId?: string;
   visibility: Visibility;
   verification: VerificationStatus;
+  /** License identifier or label under which the item is offered (e.g. "MIT",
+   * "Apache-2.0", "Proprietary"). Optional for backwards compatibility with
+   * items published before licensing; absent means unspecified. */
+  license?: string;
   versions: ItemVersion[];
   ratings: Rating[];
   tags: string[];

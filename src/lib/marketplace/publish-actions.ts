@@ -24,6 +24,8 @@ export interface PublishInput {
   changelog?: string;
   companyId: string | null;
   tags?: string[];
+  /** License identifier/label (e.g. "MIT", "Proprietary"). Optional. */
+  license?: string;
 }
 
 export interface PublishResult {
@@ -50,6 +52,7 @@ export async function publishMarketplaceItem(input: PublishInput): Promise<Publi
   const slug = normalizeSlug(input.slug || input.name);
   const description = input.description.trim().slice(0, 2000);
   const version = (input.version || "1.0.0").trim();
+  const license = input.license?.trim().slice(0, 80) || null;
   const kind = (MARKETPLACE_ITEM_KINDS as readonly string[]).includes(input.kind)
     ? (input.kind as MarketplaceItemKind)
     : null;
@@ -72,6 +75,7 @@ export async function publishMarketplaceItem(input: PublishInput): Promise<Publi
       description,
       visibility: "company_private",
       verification: "unverified",
+      license,
       tags: input.tags ?? [],
     })
     .select("id")

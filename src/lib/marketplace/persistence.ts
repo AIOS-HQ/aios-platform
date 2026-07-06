@@ -35,6 +35,7 @@ interface ItemRow {
   description: string;
   visibility: Visibility;
   verification: VerificationStatus;
+  license: string | null;
   tags: string[] | null;
   created_at: string;
   updated_at: string;
@@ -97,6 +98,7 @@ function toItem(row: ItemRow, versions: ItemVersion[], ratings: Rating[]): Marke
     companyId: row.company_id ?? undefined,
     visibility: row.visibility,
     verification: row.verification,
+    license: row.license ?? undefined,
     versions,
     ratings,
     tags: row.tags ?? [],
