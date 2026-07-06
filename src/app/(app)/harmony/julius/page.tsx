@@ -11,6 +11,7 @@ import { AGENT_ICONS, JULIUS_ICON } from "@/lib/workforce/agent-icons";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { HarmonyReflectButton } from "@/components/harmony/harmony-reflect-button";
+import { JuliusSearch } from "./julius-search";
 import {
   Card,
   CardContent,
@@ -116,6 +117,9 @@ export default async function JuliusBrainPage() {
             <Badge variant="secondary">{t("entries", { n: entries.length })}</Badge>
           </CardContent>
         </Card>
+
+        {/* Semantic memory search — Julius Intelligence connected to Harmony. */}
+        <JuliusSearch />
 
         {/* Harmony's reflection — executive learning grounded in real execution. */}
         <Card>

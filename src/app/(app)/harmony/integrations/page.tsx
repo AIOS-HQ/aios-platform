@@ -1,263 +1,95 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { getLocale, getTranslations } from "next-intl/server";
-import { Plug, ShieldCheck, ArrowUpRight, ChevronDown, Wrench } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
-import {
-  CONNECTOR_CATEGORIES,
-  type ConnectorCategory,
-} from "@/lib/integrations/connectors";
-import { listConnectorDefinitions } from "@/lib/integrations/registry";
+import { getConnectorHealth } from "@/lib/integrations/connector-health";
 import { getConnections } from "@/lib/integrations/connections";
+import { listConnectorDefinitions } from "@/lib/integrations/registry";
 import { connectAffordanceFor, connectHref } from "@/lib/integrations/connect-gate";
-import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ConnectorGlyph } from "@/components/brand/brand-icons";
+import { IntegrationCenter, type ConnectorView } from "./integration-center";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("integrations");
-  return { title: t("title") };
-}
-
-type ConnStatus = "connected" | "expired" | "available" | "comingSoon";
-
-const STATUS_VARIANT: Record<ConnStatus, "default" | "secondary" | "outline" | "destructive"> = {
-  connected: "default",
-  expired: "destructive",
-  available: "secondary",
-  comingSoon: "outline",
-};
-
-/** Count read/write capabilities from a registry connector definition. */
-function countCaps(caps: ReadonlyArray<{ mode: "read" | "write" }>): {
-  read: number;
-  write: number;
-} {
-  let read = 0;
-  let write = 0;
-  for (const cap of caps) {
-    if (cap.mode === "write") write += 1;
-    else read += 1;
-  }
-  return { read, write };
-}
+export const metadata: Metadata = { title: "Integration Center" };
 
 /**
- * AIOS Integration Center — securely connect AIOS to external systems.
- *
- * This is the founder's connection layer. It is NOT a communications or content
- * tool: Communications operates customer conversations and Content publishes
- * marketing — both CONSUME the services connected here.
- *
- * Group A2: reads the UNIFIED CONNECTOR REGISTRY (listConnectorDefinitions) so
- * every provider in the Connector Operating System surfaces here — the same
- * source the Developer Platform and the universal connect/callback pipeline use.
- * The Connect action is gated by the dev_configured invariant
- * (connectAffordanceFor) and always points at the ONE universal connect route
- * (connectHref): a provider wired for OAuth but not yet developer-configured
- * shows a "Finish setup" path to the Developer Platform instead of a live
- * Connect that would fail.
- *
- * Founder-gated: lives under /harmony and is not a customer prefix, so
- * isFounderHarmonyPath keeps it founder-only.
+ * AIOS Integration Center — the founder's live operating view of every
+ * connector: health, security (token encryption), token expiry / auto-refresh,
+ * OAuth status, recommended actions, plus connect affordances for providers not
+ * yet connected. Read-only consumer of the EXISTING backend — connector health
+ * service (getConnectorHealth), the unified registry, connect-gate — with zero
+ * backend changes. Founder-gated via the /harmony layout.
  */
-export default async function IntegrationsPage() {
-  const t = await getTranslations("integrations");
-  const locale = await getLocale();
+
+const STATE_SCORE: Record<string, number> = {
+  healthy: 100,
+  expired_refreshable: 85,
+  plaintext_token: 65,
+  needs_reauth: 30,
+  setup_required: 0,
+  unknown: 50,
+};
+
+export default async function IntegrationCenterPage() {
   const user = await requireUser();
 
-  const connectors = listConnectorDefinitions();
-  const connections = await getConnections(user.id);
-  const byProvider = new Map(connections.map((c) => [c.provider, c]));
-  const now = new Date().getTime();
+  const [health, connections] = await Promise.all([
+    getConnectorHealth(user.id),
+    getConnections(user.id),
+  ]);
 
-  const connectedCount = connections.filter((c) => c.status === "connected").length;
+  const defs = listConnectorDefinitions();
+  const healthByProvider = new Map(health.map((h) => [h.provider, h]));
+  const connByProvider = new Map(connections.map((c) => [c.provider, c]));
 
-  const categories = CONNECTOR_CATEGORIES.filter((cat) =>
-    connectors.some((c) => c.category === cat),
-  );
+  const items: ConnectorView[] = defs.map((def) => {
+    const h = healthByProvider.get(def.id);
+    const conn = connByProvider.get(def.id);
+    const connected = (conn?.status ?? "") === "connected";
+    const isExpired = h?.isExpired ?? false;
 
-  function statusOf(id: string, authorizable: boolean | undefined): ConnStatus {
-    const conn = byProvider.get(id);
-    const connected = conn?.status === "connected";
-    if (connected) {
-      const expired = conn?.expires_at
-        ? new Date(conn.expires_at).getTime() < now
-        : false;
-      return expired ? "expired" : "connected";
-    }
-    return authorizable ? "available" : "comingSoon";
-  }
+    return {
+      id: def.id,
+      name: def.name,
+      category: def.category,
+      initials: def.initials,
+      auth: def.auth,
+      oauthFamily: def.oauthFamily ?? null,
+      docsUrl: def.docsUrl,
+      scopeCount: def.scopes?.length ?? 0,
+      authorizable: def.authorizable,
+      connected,
+      state: h?.state ?? null,
+      status: h?.status ?? (connected ? "connected" : "not_connected"),
+      tokenEncryption: h?.tokenEncryption ?? null,
+      hasRefreshToken: h?.hasRefreshToken ?? false,
+      refreshable: h?.refreshable ?? false,
+      expiresAt: h?.expiresAt ?? null,
+      isExpired,
+      lastRefresh: h?.lastRefresh ?? null,
+      connectedAt: h?.connectedAt ?? null,
+      recommendedAction: h?.recommendedAction ?? null,
+      healthScore: h ? (STATE_SCORE[h.state] ?? 50) : null,
+      affordance: connectAffordanceFor(def.id, { connected, expired: isExpired }),
+      connectHref: connectHref(def.id),
+    };
+  });
+
+  const connectedItems = items.filter((i) => i.connected);
+  const overallHealth = connectedItems.length
+    ? Math.round(
+        connectedItems.reduce((sum, i) => sum + (i.healthScore ?? 0), 0) / connectedItems.length,
+      )
+    : null;
 
   return (
     <>
-      <PageHeader title={t("title")} description={t("subtitle")} />
-
-      <div className="flex flex-col gap-6 lg:max-w-5xl">
-        {/* What Integrations is (and is not). */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex items-start gap-3 p-4">
-            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">{t("introTitle")}</p>
-              <p className="text-muted-foreground">{t("intro")}</p>
-              <p className="text-xs text-muted-foreground">
-                {t("connectedSummary", { n: connectedCount })}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {categories.map((category) => {
-          const items = connectors.filter((c) => c.category === category);
-          return (
-            <section key={category}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                {t(`category.${category}` as `category.${ConnectorCategory}`)}
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((c) => {
-                  const conn = byProvider.get(c.id);
-                  const status = statusOf(c.id, c.authorizable);
-                  const caps = countCaps(c.capabilities);
-                  const affordance = connectAffordanceFor(c.id, {
-                    connected: status === "connected",
-                    expired: status === "expired",
-                  });
-                  const canConnect = affordance === "connect" || affordance === "reauthorize";
-                  const finishSetup = affordance === "finish_setup";
-                  const cardContent = (
-                    <>
-                      <CardHeader className="flex-row items-center gap-3 space-y-0">
-                        <ConnectorGlyph id={c.id} initials={c.initials} />
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="truncate text-base">{c.name}</CardTitle>
-                          <CardDescription className="text-xs">
-                            {t(`auth.${c.auth}`)}
-                          </CardDescription>
-                        </div>
-                        {finishSetup ? (
-                          <Badge variant="outline" className="shrink-0">Setup required</Badge>
-                        ) : (
-                          <Badge variant={STATUS_VARIANT[status]} className="shrink-0">
-                            {t(`status.${status}`)}
-                          </Badge>
-                        )}
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-xs text-muted-foreground">
-                        {caps.read + caps.write > 0 ? (
-                          <p>{t("capabilities", { read: caps.read, write: caps.write })}</p>
-                        ) : (
-                          <p>{t("noCapabilitiesYet")}</p>
-                        )}
-
-                        {status === "connected" && conn?.connected_at ? (
-                          <p>{t("lastConnected", { date: formatDate(conn.connected_at, locale) })}</p>
-                        ) : null}
-                        {status === "expired" ? (
-                          <p className="text-destructive">{t("expiredHint")}</p>
-                        ) : null}
-                        {finishSetup ? (
-                          <p>Developer setup required before this connector can be authorized.</p>
-                        ) : null}
-                      </CardContent>
-                    </>
-                  );
-
-                  return (
-                    <Card
-                      key={c.id}
-                      className="group overflow-hidden transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-within:border-primary/40"
-                    >
-                      {canConnect ? (
-                        <a
-                          href={connectHref(c.id)}
-                          aria-label={`${status === "expired" ? t("reauthorize") : t("connect")}: ${c.name}`}
-                          className="block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          {cardContent}
-                        </a>
-                      ) : finishSetup ? (
-                        <div>{cardContent}</div>
-                      ) : (
-                        <details>
-                          <summary className="cursor-pointer list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
-                            {cardContent}
-                            <div className="flex items-center gap-1 px-6 pb-4 text-xs font-medium text-primary">
-                              {status === "connected" ? t("manage") : t("viewSetup")}
-                              <ChevronDown className="size-3.5 transition group-open:rotate-180" aria-hidden="true" />
-                            </div>
-                          </summary>
-                          <div className="border-t bg-muted/30 px-6 py-4 text-xs text-muted-foreground">
-                            <p className="font-medium text-foreground">
-                              {status === "connected" ? t("detailsTitle", { name: c.name }) : t("setupTitle", { name: c.name })}
-                            </p>
-                            <p className="mt-1">
-                              {status === "connected" ? t("detailsHint") : t("setupHint")}
-                            </p>
-                            <a
-                              href={c.docsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-3 inline-flex items-center gap-1 text-primary transition-colors hover:text-primary/80"
-                            >
-                              {t("docs")}
-                              <ArrowUpRight className="size-3" aria-hidden="true" />
-                            </a>
-                          </div>
-                        </details>
-                      )}
-
-                      {canConnect ? (
-                        <div className="flex flex-wrap items-center gap-2 px-6 pb-4 text-xs text-muted-foreground">
-                          <Button asChild size="sm" className="h-7 px-2 text-xs">
-                            <a href={connectHref(c.id)}>
-                              <Plug className="size-3.5" aria-hidden="true" />
-                              {status === "expired" ? t("reauthorize") : t("connect")}
-                            </a>
-                          </Button>
-                          <a
-                            href={c.docsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            {t("docs")}
-                            <ArrowUpRight className="size-3" aria-hidden="true" />
-                          </a>
-                        </div>
-                      ) : finishSetup ? (
-                        <div className="flex flex-wrap items-center gap-2 px-6 pb-4 text-xs text-muted-foreground">
-                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled>
-                            <Plug className="size-3.5" aria-hidden="true" />
-                            {t("connect")}
-                          </Button>
-                          <Link
-                            href="/harmony/developer"
-                            className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
-                          >
-                            <Wrench className="size-3" aria-hidden="true" />
-                            Finish setup in Developer Platform
-                          </Link>
-                        </div>
-                      ) : null}
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      <PageHeader
+        title="Integration Center"
+        description="Live health, security, and status for every AIOS connector — from one dashboard."
+      />
+      <IntegrationCenter
+        items={items}
+        overallHealth={overallHealth}
+        generatedAt={new Date().toISOString()}
+      />
     </>
   );
 }
