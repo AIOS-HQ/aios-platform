@@ -108,6 +108,11 @@ export type NavSection = {
  * instead — the Harmony workspace surfaces all of it. Briefing / Objectives /
  * Operations / Work Management are deliberately not listed (founder-reachable
  * routes consolidated into Harmony).
+ *
+ * The Marketplace is a shared destination: founders reach it from the Command
+ * Center group, and customers from the "aios" platform group — both link to the
+ * SAME /harmony/marketplace page (its presence in a non-founder section also
+ * makes the route reachable for customers via CUSTOMER_HARMONY_PREFIXES).
  */
 export const navSections: NavSection[] = [
   {
@@ -155,6 +160,7 @@ export const navSections: NavSection[] = [
     titleKey: "aios",
     audience: "customer",
     items: [
+      { href: "/harmony/marketplace", labelKey: "marketplace", icon: "Boxes" },
       { href: "/settings/memory", labelKey: "brain", icon: "BrainCircuit" },
       { href: "/settings/learning", labelKey: "learning", icon: "Lightbulb" },
       { href: "/settings/activity", labelKey: "activity", icon: "Activity" },
