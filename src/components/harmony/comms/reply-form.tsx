@@ -8,6 +8,7 @@ import { sendMessage } from "@/lib/harmony/comms/comms-actions";
 import { idleState } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ChatAttachButton } from "@/components/uploads/chat-attach-button";
 import { LIMITS } from "@/lib/limits";
 
 /** Compose + send an outbound reply (autonomy-gated server-side). */
@@ -42,7 +43,11 @@ export function ReplyForm({ conversationId }: { conversationId: string }) {
         placeholder={t("replyPlaceholder")}
         aria-label={t("reply")}
       />
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <ChatAttachButton
+          disabled={pending}
+          onAttach={(reference) => setValue((v) => (v ? `${v}\n\n${reference}` : reference))}
+        />
         <Button type="submit" disabled={pending || value.trim() === ""}>
           <Send className="size-4" aria-hidden="true" />
           {t("send")}

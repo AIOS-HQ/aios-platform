@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HarmonyAvatar } from "@/components/brand/harmony-logo";
+import { ChatAttachButton } from "@/components/uploads/chat-attach-button";
 import { cn } from "@/lib/utils";
 import type { OperatorResult } from "@/lib/ai/types";
 import { HarmonyMarkdown } from "./markdown/harmony-markdown";
@@ -60,6 +61,8 @@ const BOOKMARKS_KEY = "aios:harmony:bookmarks:v1";
  *
  * The founder can search the open conversation and bookmark any reply; both are
  * client-side (bookmarks persist in localStorage) so they add no backend surface.
+ * The "+" attaches a file or context, appended to the input so it travels with
+ * the turn.
  */
 export function OperatorConsole({ isMock }: { isMock: boolean }) {
   const t = useTranslations("operator");
@@ -552,6 +555,10 @@ function markLocalUpdate() {
         }}
         className="flex items-center gap-2 border-t p-3"
       >
+        <ChatAttachButton
+          disabled={pending}
+          onAttach={(reference) => setInput((v) => (v ? `${v}\n\n${reference}` : reference))}
+        />
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
