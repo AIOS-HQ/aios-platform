@@ -7,10 +7,10 @@ import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listJuliusEntries, type JuliusKind } from "@/lib/julius/service";
 import { buildHarmonyReflection } from "@/lib/harmony/reflection";
 import { JULIUS, WORKFORCE_SPECIALISTS, getAiosAgent } from "@/lib/workforce/registry";
-import { AGENT_ICONS, JULIUS_ICON } from "@/lib/workforce/agent-icons";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { HarmonyReflectButton } from "@/components/harmony/harmony-reflect-button";
+import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
 import { JuliusSearch } from "./julius-search";
 import {
   Card,
@@ -84,8 +84,6 @@ export default async function JuliusBrainPage() {
     contributions.set(e.agent, (contributions.get(e.agent) ?? 0) + 1);
   }
 
-  const JuliusIcon = JULIUS_ICON;
-
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")}>
@@ -107,9 +105,12 @@ export default async function JuliusBrainPage() {
         {/* Julius — the Company Brain, centered. */}
         <Card className="border-primary/40 bg-primary/5">
           <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-            <span className="inline-flex size-16 items-center justify-center rounded-2xl border border-primary/40 bg-primary/10 text-primary">
-              <JuliusIcon className="size-8" aria-hidden="true" />
-            </span>
+            <AgentGlyph
+              agent="julius"
+              size="xl"
+              className="border-primary/40 bg-primary/10 text-primary"
+              title={JULIUS.name}
+            />
             <div>
               <h2 className="text-lg font-semibold">{JULIUS.name}</h2>
               <p className="text-sm text-muted-foreground">{t("role")}</p>
@@ -221,7 +222,6 @@ export default async function JuliusBrainPage() {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {WORKFORCE_SPECIALISTS.map((a) => {
-                const Icon = AGENT_ICONS[a.key];
                 const n = contributions.get(a.key) ?? 0;
                 return (
                   <Link
@@ -229,9 +229,7 @@ export default async function JuliusBrainPage() {
                     href={`/harmony/workforce/${a.key}`}
                     className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
                   >
-                    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted text-foreground">
-                      <Icon className="size-4" aria-hidden="true" />
-                    </span>
+                    <AgentGlyph agent={a.key} size="sm" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{a.name}</p>
                       <p className="truncate text-xs text-muted-foreground">{a.role}</p>
