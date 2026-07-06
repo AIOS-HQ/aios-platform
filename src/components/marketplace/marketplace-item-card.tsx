@@ -4,14 +4,18 @@ import { Bot, Boxes, Building2, LayoutDashboard, Plug, Sparkles, Users, Workflow
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { WorkerAvatar } from "@/components/workforce/worker-avatar";
+import { MarketplaceReviews } from "./marketplace-reviews";
 import type { VerificationStatus } from "@/lib/marketplace";
 
 /**
  * A single Marketplace item card — the full item anatomy: icon, name,
  * description, included AI workers + connectors, deployment time, rating,
  * version, verification, dependencies, and an expandable preview (objectives,
- * change log, screenshots). The install/update/rollback (or deploy) control is
- * passed in as `action` so this stays a pure server component.
+ * change log, reviews). The install/update/rollback (or deploy) control is
+ * passed in as `action` so this stays a pure server component. Individual AI
+ * worker items render their canonical colored WorkerAvatar; real (reviewable)
+ * items expose the reviews panel.
  */
 
 export interface DisplayItem {
@@ -36,6 +40,12 @@ export interface DisplayItem {
   companySize?: string;
   /** When set, the card shows a "View details" link (e.g. AI Worker profile). */
   detailHref?: string;
+  /** Agent key for an individual AI worker item — renders its colored avatar. */
+  workerKey?: string;
+  /** Written reviews (star + comment) for this item, most recent first. */
+  reviews?: { stars: number; comment: string }[];
+  /** True for real marketplace rows (not static templates) — enables reviews. */
+  reviewable?: boolean;
 }
 
 const ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -99,9 +109,13 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
           <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
         ) : (
           <div className="flex items-start gap-3">
-            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary">
-              <Icon className="size-5" aria-hidden="true" />
-            </span>
+            {item.workerKey ? (
+              <WorkerAvatar agent={item.workerKey} size="md" title={item.name} />
+            ) : (
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary">
+                <Icon className="size-5" aria-hidden="true" />
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate text-base font-semibold">{item.name}</p>
@@ -167,7 +181,7 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
           {item.dependencies.length > 0 ? item.dependencies.join(", ") : t("labels.none")}
         </div>
 
-        {/* Expandable preview: objectives, change log, screenshots */}
+        {/* Expandable preview: objectives, change log, reviews */}
         <details className="group rounded-lg border bg-muted/30 [&>summary]:list-none">
           <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
             {t("labels.details")}
@@ -191,14 +205,9 @@ export async function MarketplaceItemCard({ item, action }: { item: DisplayItem;
                 ))}
               </ul>
             </div>
-            <div>
-              <p className="font-medium text-foreground/80">{t("labels.screenshots")}</p>
-              <div className="mt-1 flex gap-2">
-                <div className="h-14 w-24 rounded-md border border-dashed bg-background" />
-                <div className="h-14 w-24 rounded-md border border-dashed bg-background" />
-              </div>
-              <p className="mt-1">{t("screenshotsPlaceholder")}</p>
-            </div>
+            {item.reviewable ? (
+              <MarketplaceReviews itemId={item.id} initialReviews={item.reviews ?? []} />
+            ) : null}
           </div>
         </details>
 

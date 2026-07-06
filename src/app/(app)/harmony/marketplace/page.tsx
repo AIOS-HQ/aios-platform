@@ -48,6 +48,7 @@ export default async function MarketplacePage() {
     const r = averageRating(it);
     const lv = latestVersion(it);
     const ver = it.versions.find((v) => v.version === lv);
+    const isWorker = it.kind === "workforce" && it.slug.startsWith("worker-");
     return {
       id: it.id,
       icon: categoryForKind(it.kind)?.icon ?? "Sparkles",
@@ -64,10 +65,13 @@ export default async function MarketplacePage() {
       changelog: it.versions
         .slice(0, 5)
         .map((v) => `v${v.version}${v.changelog ? ` — ${v.changelog}` : ` — ${t("changelogInitial")}`}`),
-      detailHref:
-        it.kind === "workforce" && it.slug.startsWith("worker-")
-          ? `/harmony/marketplace/workers/${it.slug.slice("worker-".length)}`
-          : undefined,
+      detailHref: isWorker ? `/harmony/marketplace/workers/${it.slug.slice("worker-".length)}` : undefined,
+      workerKey: isWorker ? it.slug.slice("worker-".length) : undefined,
+      reviewable: true,
+      reviews: it.ratings
+        .filter((rt) => rt.comment && rt.comment.trim().length > 0)
+        .slice(0, 10)
+        .map((rt) => ({ stars: rt.stars, comment: rt.comment as string })),
     };
   }
 
