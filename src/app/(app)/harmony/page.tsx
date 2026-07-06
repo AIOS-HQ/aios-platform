@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import {
   Activity,
   ArrowRight,
+  Boxes,
   Building2,
   Plus,
   ShieldCheck,
@@ -159,6 +160,29 @@ export default async function CommandCenterPage() {
       />
 
       <CommandCenterRecommendations userId={user.id} companyId={companies[0]?.id ?? null} />
+
+      {/* Marketplace discovery — install AI workers, skills, workflows & templates. */}
+      <Card className="card-elevated border-primary/20 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border bg-primary/10 text-primary">
+              <Boxes className="size-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-base font-semibold">Marketplace</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Discover and install AI workers, skills, workflows, and company templates.
+              </p>
+            </div>
+          </div>
+          <Button asChild className="shrink-0">
+            <Link href="/harmony/marketplace">
+              Browse Marketplace
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 card-elevated">
