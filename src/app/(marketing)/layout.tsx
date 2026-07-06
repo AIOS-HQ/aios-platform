@@ -12,10 +12,9 @@ import { PublicFooter } from "@/components/marketing/public-footer";
  * public pages added under src/app/(marketing)/ automatically inherit this
  * chrome.
  *
- * TODO(codex): the existing landing (/) and /pricing live OUTSIDE this group,
- * so they don't yet render this navbar/footer. Either move them into
- * (marketing) to unify the chrome, or render <PublicNavbar/> + <PublicFooter/>
- * within them. See docs/PUBLIC_WEBSITE.md.
+ * Landing (/), pricing, FAQ, help, and legal pages render the same public
+ * chrome directly because they live outside this route group to preserve their
+ * existing route ownership.
  */
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (

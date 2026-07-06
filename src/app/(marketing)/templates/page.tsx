@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { COMPANY_TEMPLATES } from "@/lib/marketplace";
 import { MarketingHero, Section, CtaLink } from "@/components/marketing/sections";
 
-export const metadata: Metadata = { title: "Company Templates" };
+export const metadata: Metadata = {
+  title: "Company Templates · AIOS",
+  description:
+    "Browse AIOS company templates that provision workforce, departments, objectives, and connector configuration for launch-ready operations.",
+};
 
 /**
  * Public showcase of Company Templates. Sourced from the pure template catalog

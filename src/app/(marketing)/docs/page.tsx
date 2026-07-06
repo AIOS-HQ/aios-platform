@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { MarketingHero, Section, Card, CtaLink } from "@/components/marketing/sections";
 
-export const metadata: Metadata = { title: "Docs" };
+export const metadata: Metadata = {
+  title: "Docs · AIOS",
+  description:
+    "Read AIOS documentation topics for quickstart, company templates, the AI workforce, marketplace, connectors, autonomy, and approvals.",
+};
 
 /**
  * Docs placeholder. TODO(codex): replace with a real docs system (MDX or a docs

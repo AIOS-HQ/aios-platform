@@ -33,8 +33,8 @@ import {
   Zap,
 } from "lucide-react";
 import { HarmonyMark } from "@/components/brand/harmony-logo";
-import { SiteFooter } from "@/components/marketing/site-footer";
-import { SiteHeader } from "@/components/marketing/site-header";
+import { PublicFooter } from "@/components/marketing/public-footer";
+import { PublicNavbar } from "@/components/marketing/public-navbar";
 import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import { FeatureShowcase } from "@/components/marketing/feature-showcase";
 import { Button } from "@/components/ui/button";
@@ -241,7 +241,7 @@ export default function LandingPage() {
 
   return (
     <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
-      <SiteHeader />
+      <PublicNavbar />
 
       <main id="main-content">
         {/* ───────────────────────── Hero ───────────────────────── */}
@@ -730,7 +730,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }

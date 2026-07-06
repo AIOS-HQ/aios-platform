@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { MarketingHero, Section, Card, CtaLink } from "@/components/marketing/sections";
 
-export const metadata: Metadata = { title: "Features" };
+export const metadata: Metadata = {
+  title: "Features · AIOS",
+  description:
+    "Explore AIOS features for Harmony, the AI workforce, company templates, marketplace capabilities, approvals, and portable company operations.",
+};
 
 // TODO(codex): move copy into a `website` i18n namespace; add screenshots per feature.
 const FEATURES: { title: string; description: string }[] = [

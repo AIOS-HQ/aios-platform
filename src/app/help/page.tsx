@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowRight } from "lucide-react";
-import { SiteHeader } from "@/components/marketing/site-header";
-import { SiteFooter } from "@/components/marketing/site-footer";
+import { PublicFooter } from "@/components/marketing/public-footer";
+import { PublicNavbar } from "@/components/marketing/public-navbar";
 import {
   HelpCenterView,
   type HelpCategory,
@@ -25,7 +25,7 @@ export default function HelpPage() {
 
   return (
     <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
-      <SiteHeader />
+      <PublicNavbar />
 
       <main id="main-content">
         {/* Hero */}
@@ -82,7 +82,7 @@ export default function HelpPage() {
         </section>
       </main>
 
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }
