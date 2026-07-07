@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { MARKETPLACE_CATEGORIES } from "@/lib/marketplace";
 import { MarketingHero, Section, Card, CtaLink } from "@/components/marketing/sections";
 
-export const metadata: Metadata = { title: "Marketplace" };
+export const metadata: Metadata = {
+  title: "Marketplace · AIOS",
+  description:
+    "Explore the AIOS Marketplace for AI workers, departments, skills, connectors, dashboards, bundles, and company templates.",
+};
 
 /**
  * Public, marketing-facing view of the AIOS Marketplace. The live, installable

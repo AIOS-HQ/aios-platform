@@ -7,8 +7,7 @@ import { APP_NAME, APP_DESCRIPTION, AIOS_PRINCIPLES } from "@/lib/constants";
  * Server component. Columns link the public website + existing routes. Uses
  * AIOS design tokens so it matches the app.
  *
- * TODO(codex): i18n the labels; wire real Legal pages (Privacy, Terms) when they
- * exist; add social links + a newsletter capture if desired.
+ * TODO(codex): i18n the labels; add social links + a newsletter capture if desired.
  */
 
 const FOOTER_COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -73,9 +72,8 @@ export function PublicFooter() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-4 text-xs text-muted-foreground sm:flex-row">
           <span>© {year} {APP_NAME}. All rights reserved.</span>
           <span className="flex gap-4">
-            {/* TODO(codex): replace with real Privacy / Terms routes when available. */}
-            <Link href="/docs" className="transition-colors hover:text-foreground">Privacy</Link>
-            <Link href="/docs" className="transition-colors hover:text-foreground">Terms</Link>
+            <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">Terms</Link>
           </span>
         </div>
       </div>

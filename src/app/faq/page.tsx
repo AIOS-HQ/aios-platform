@@ -11,8 +11,8 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { SiteHeader } from "@/components/marketing/site-header";
-import { SiteFooter } from "@/components/marketing/site-footer";
+import { PublicFooter } from "@/components/marketing/public-footer";
+import { PublicNavbar } from "@/components/marketing/public-navbar";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -40,7 +40,7 @@ export default function FaqPage() {
 
   return (
     <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
-      <SiteHeader />
+      <PublicNavbar />
 
       <main id="main-content">
         {/* Hero */}
@@ -130,7 +130,7 @@ export default function FaqPage() {
         </section>
       </main>
 
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }

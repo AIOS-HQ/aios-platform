@@ -2,16 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Check } from "lucide-react";
-import { SiteHeader } from "@/components/marketing/site-header";
-import { SiteFooter } from "@/components/marketing/site-footer";
+import { PublicFooter } from "@/components/marketing/public-footer";
+import { PublicNavbar } from "@/components/marketing/public-navbar";
 import { Button } from "@/components/ui/button";
-import { CheckoutButton } from "@/components/billing/checkout-button";
-import { PLANS } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
-  title: "Pricing",
+  title: "Pricing · AIOS",
   description:
-    "Simple, scalable pricing for Harmony — Starter, Professional, Business, and Enterprise. Every paid plan includes a 14-day free trial.",
+    "Explore AIOS launch pricing options for individuals, professionals, teams, and enterprise operators. Billing and purchases are not enabled on the public website.",
 };
 
 type PlanCopy = {
@@ -22,6 +20,13 @@ type PlanCopy = {
   cta: string;
   features: string[];
 };
+
+const PUBLIC_PLANS = [
+  { id: "starter", popular: false, href: "/signup" },
+  { id: "professional", popular: true, href: "/signup" },
+  { id: "business", popular: false, href: "/signup" },
+  { id: "enterprise", popular: false, href: "/help" },
+] as const;
 
 export default async function PricingPage({
   searchParams,
@@ -34,7 +39,7 @@ export default async function PricingPage({
 
   return (
     <div className="harmony-marketing relative min-h-dvh bg-background text-foreground">
-      <SiteHeader />
+      <PublicNavbar />
 
       <main id="main-content">
         {/* Hero */}
@@ -68,7 +73,7 @@ export default async function PricingPage({
         {/* Plans */}
         <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid items-start gap-6 lg:grid-cols-4">
-            {PLANS.map((plan) => {
+            {PUBLIC_PLANS.map((plan) => {
               const c = t.raw(`plans.${plan.id}`) as PlanCopy;
               return (
                 <div
@@ -107,32 +112,32 @@ export default async function PricingPage({
                   </ul>
 
                   <div className="mt-8">
-                    {plan.selfServe ? (
-                      <CheckoutButton
-                        plan={plan.id}
-                        label={c.cta}
-                        errorLabel={t("ctaError")}
-                        variant={plan.popular ? "default" : "outline"}
-                        className={
-                          plan.popular
-                            ? ""
-                            : "border-white/20 bg-transparent text-foreground hover:bg-white/5"
-                        }
-                      />
-                    ) : (
-                      <Button
-                        asChild
-                        size="lg"
-                        variant="outline"
-                        className="w-full border-white/20 bg-transparent text-foreground hover:bg-white/5"
-                      >
-                        <Link href="/#waitlist">{c.cta}</Link>
-                      </Button>
-                    )}
+                    <Button
+                      asChild
+                      size="lg"
+                      variant={plan.popular ? "default" : "outline"}
+                      className={
+                        plan.popular
+                          ? "w-full"
+                          : "w-full border-white/20 bg-transparent text-foreground hover:bg-white/5"
+                      }
+                    >
+                      <Link href={plan.href}>
+                        {plan.id === "enterprise" ? c.cta : "Join the launch list"}
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+            <p className="text-sm font-medium text-foreground">Billing is not enabled on the public website.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Pricing is published for launch planning only. AIOS does not process public
+              purchases, Stripe checkout, payments, or entitlements from this page.
+            </p>
           </div>
 
           <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-muted-foreground">
@@ -141,7 +146,7 @@ export default async function PricingPage({
         </section>
       </main>
 
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }

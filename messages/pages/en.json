@@ -385,18 +385,18 @@
   "pricing": {
     "eyebrow": "Pricing",
     "title": "Plans that grow with you",
-    "subtitle": "Start with what you need today and unlock more of Harmony as you scale. Every paid plan includes a 14-day free trial.",
+    "subtitle": "Start with what you need today and plan how AIOS scales with you. Public billing is not enabled during launch preparation.",
     "badgePopular": "Most popular",
-    "trialNote": "14-day free trial on every paid plan. Cancel anytime.",
+    "trialNote": "Pricing is published for launch planning. Join the launch list to request access.",
     "hubsNote": "Personal Hub on every plan · Business Hub from Professional · Harmony Hub from Business.",
-    "ctaError": "Could not start checkout. Please try again.",
+    "ctaError": "Could not submit the request. Please try again.",
     "plans": {
       "starter": {
         "name": "Starter",
         "price": "$19",
         "priceSuffix": "/mo",
         "tagline": "For individuals getting organized.",
-        "cta": "Start free trial",
+        "cta": "Join the launch list",
         "features": [
           "Personal Hub: tasks, goals, notes, calendar",
           "Personal AI assistant",
@@ -409,7 +409,7 @@
         "price": "$49",
         "priceSuffix": "/mo",
         "tagline": "For professionals running life and work.",
-        "cta": "Start free trial",
+        "cta": "Join the launch list",
         "features": [
           "Everything in Starter",
           "Business Hub: operations, documents, approvals",
@@ -422,7 +422,7 @@
         "price": "$99",
         "priceSuffix": "/mo",
         "tagline": "For teams and growing companies.",
-        "cta": "Start free trial",
+        "cta": "Join the launch list",
         "features": [
           "Everything in Professional",
           "Harmony Hub: AI Chief of Staff",
@@ -446,7 +446,7 @@
     },
     "gate": {
       "title": "Upgrade to unlock this area",
-      "body": "Your current plan doesn't include this part of Harmony. Choose a plan below to continue."
+      "body": "Your current access does not include this part of Harmony. Review launch options below and request access."
     }
   },
   "billing": {

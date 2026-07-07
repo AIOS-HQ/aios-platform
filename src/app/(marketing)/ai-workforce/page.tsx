@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { AIOS_WORKFORCE, isFounderOnlyAgent, JULIUS } from "@/lib/workforce/registry";
 import { MarketingHero, Section, Card, CtaLink } from "@/components/marketing/sections";
 
-export const metadata: Metadata = { title: "AI Workforce" };
+export const metadata: Metadata = {
+  title: "AI Workforce · AIOS",
+  description:
+    "Meet the AIOS workforce coordinated by Harmony, including AI specialists for strategy, growth, finance, security, knowledge, and operations.",
+};
 
 /**
  * Public showcase of the AIOS workforce. Sourced from the workforce registry

@@ -385,18 +385,18 @@
   "pricing": {
     "eyebrow": "Precios",
     "title": "Planes que crecen contigo",
-    "subtitle": "Empieza con lo que necesitas hoy y desbloquea más de Harmony a medida que creces. Todos los planes de pago incluyen una prueba gratuita de 14 días.",
+    "subtitle": "Empieza con lo que necesitas hoy y planifica cómo AIOS escala contigo. La facturación pública no está habilitada durante la preparación del lanzamiento.",
     "badgePopular": "Más popular",
-    "trialNote": "Prueba gratuita de 14 días en cada plan de pago. Cancela cuando quieras.",
+    "trialNote": "Los precios se publican para planificación de lanzamiento. Únete a la lista de lanzamiento para solicitar acceso.",
     "hubsNote": "Hub Personal en todos los planes · Hub de Negocio desde Professional · Harmony Hub desde Business.",
-    "ctaError": "No se pudo iniciar el pago. Inténtalo de nuevo.",
+    "ctaError": "No se pudo enviar la solicitud. Inténtalo de nuevo.",
     "plans": {
       "starter": {
         "name": "Starter",
         "price": "$19",
         "priceSuffix": "/mes",
         "tagline": "Para personas que se organizan.",
-        "cta": "Iniciar prueba gratis",
+        "cta": "Unirse a la lista de lanzamiento",
         "features": [
           "Hub Personal: tareas, metas, notas, calendario",
           "Asistente personal de IA",
@@ -409,7 +409,7 @@
         "price": "$49",
         "priceSuffix": "/mes",
         "tagline": "Para profesionales que gestionan vida y trabajo.",
-        "cta": "Iniciar prueba gratis",
+        "cta": "Unirse a la lista de lanzamiento",
         "features": [
           "Todo lo de Starter",
           "Hub de Negocio: operaciones, documentos, aprobaciones",
@@ -422,7 +422,7 @@
         "price": "$99",
         "priceSuffix": "/mes",
         "tagline": "Para equipos y empresas en crecimiento.",
-        "cta": "Iniciar prueba gratis",
+        "cta": "Unirse a la lista de lanzamiento",
         "features": [
           "Todo lo de Professional",
           "Harmony Hub: Jefe de Gabinete de IA",
@@ -446,7 +446,7 @@
     },
     "gate": {
       "title": "Mejora tu plan para desbloquear esta sección",
-      "body": "Tu plan actual no incluye esta parte de Harmony. Elige un plan abajo para continuar."
+      "body": "Tu acceso actual no incluye esta parte de Harmony. Revisa las opciones de lanzamiento y solicita acceso."
     }
   },
   "billing": {
