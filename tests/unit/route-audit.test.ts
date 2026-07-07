@@ -36,6 +36,7 @@ describe("launch route audit", () => {
     "/harmony/tasks",
     "/harmony/goals",
     "/harmony/notes",
+    "/harmony/marketplace",
     "/settings/memory",
     "/settings/learning",
     "/settings/activity",
