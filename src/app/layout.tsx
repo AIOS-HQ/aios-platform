@@ -8,7 +8,7 @@ import { APP_DESCRIPTION, APP_FULL_NAME } from "@/lib/constants";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://aios-platform.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://aios-platform-omega.vercel.app"),
   title: { default: `${APP_FULL_NAME} — Intelligent Operating Systems`, template: `%s · ${APP_FULL_NAME}` },
   description: APP_DESCRIPTION,
   applicationName: APP_FULL_NAME,

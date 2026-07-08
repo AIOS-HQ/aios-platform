@@ -17,7 +17,7 @@ const PUBLIC_ROUTES = [
 ] as const;
 
 function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://aios-platform.com").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://aios-platform-omega.vercel.app").replace(/\/$/, "");
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
