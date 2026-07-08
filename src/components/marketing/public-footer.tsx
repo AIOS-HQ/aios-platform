@@ -6,8 +6,6 @@ import { APP_NAME, APP_DESCRIPTION, AIOS_PRINCIPLES } from "@/lib/constants";
  *
  * Server component. Columns link the public website + existing routes. Uses
  * AIOS design tokens so it matches the app.
- *
- * TODO(codex): i18n the labels; add social links + a newsletter capture if desired.
  */
 
 const FOOTER_COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -19,21 +17,23 @@ const FOOTER_COLUMNS: { title: string; links: { href: string; label: string }[] 
       { href: "/ai-workforce", label: "AI Workforce" },
       { href: "/templates", label: "Company Templates" },
       { href: "/pricing", label: "Pricing" },
+      { href: "/docs", label: "Docs" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { href: "/docs", label: "Docs" },
       { href: "/faq", label: "FAQ" },
       { href: "/help", label: "Help Center" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
     ],
   },
   {
     title: "Get started",
     links: [
       { href: "/login", label: "Log in" },
-      { href: "/signup", label: "Sign up" },
+      { href: "/signup", label: "Join Founder Beta" },
     ],
   },
 ];

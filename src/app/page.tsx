@@ -41,10 +41,10 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Harmony — The Autonomous Operating System for Life and Business",
+    absolute: "AIOS — Autonomous Operating Systems for Life and Business",
   },
   description:
-    "Harmony is the autonomous operating system that unifies your personal life and your business, then puts AI helpers to work — planning, coordinating, and executing under your command.",
+    "AIOS is the autonomous operating platform behind Harmony, Julius, the AI workforce, marketplace, company templates, integrations, and Founder Command Center.",
   keywords: [
     "Harmony",
     "AIOS",
@@ -56,17 +56,17 @@ export const metadata: Metadata = {
     "AI chief of staff",
   ],
   openGraph: {
-    title: "Harmony — The Autonomous Operating System for Life and Business",
+    title: "AIOS — Autonomous Operating Systems for Life and Business",
     description:
-      "Run your life. Run your business. Harmony handles the work — one operating system with a team of AI helpers, under your command.",
-    siteName: "Harmony",
+      "Run your life. Run your business. AIOS gives you Harmony, Julius, and a coordinated AI workforce under your command.",
+    siteName: "AIOS",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Harmony — The Autonomous Operating System",
-    description: "Run your life. Run your business. Harmony handles the work.",
+    title: "AIOS — Autonomous Operating Systems",
+    description: "Run your life. Run your business. AIOS coordinates the work.",
   },
 };
 

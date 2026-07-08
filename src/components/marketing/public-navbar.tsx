@@ -8,9 +8,6 @@ import { APP_NAME } from "@/lib/constants";
  * <details> disclosure. Links point at the public website pages plus the
  * existing auth routes (/login, /signup). Uses the AIOS design tokens
  * (background/foreground/primary/border) so it matches the app.
- *
- * TODO(codex): extract link labels into a `website` i18n namespace (en/es);
- * add an active-link state; consider a sticky CTA on scroll.
  */
 
 export const PUBLIC_NAV_LINKS: { href: string; label: string }[] = [
@@ -46,7 +43,7 @@ export function PublicNavbar() {
             Log in
           </Link>
           <Link href="/signup" className="rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
-            Get started
+            Join Founder Beta
           </Link>
         </div>
 
@@ -62,7 +59,7 @@ export function PublicNavbar() {
             <div className="my-1 h-px bg-border" />
             <Link href="/login" className="rounded-md px-3 py-2 text-sm font-medium">Log in</Link>
             <Link href="/signup" className="rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground">
-              Get started
+              Join Founder Beta
             </Link>
           </div>
         </details>

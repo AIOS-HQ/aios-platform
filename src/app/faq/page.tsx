@@ -16,9 +16,9 @@ import { PublicNavbar } from "@/components/marketing/public-navbar";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Frequently Asked Questions",
+  title: "Frequently Asked Questions · AIOS",
   description:
-    "Answers about Harmony — the product and its hubs, the AI helpers, your data and privacy, and how to get access.",
+    "Answers about AIOS Founder Beta, Harmony, Julius, AI workers, marketplace, templates, security, and public launch access.",
 };
 
 type FaqItem = { q: string; a: string };
