@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { COMPANY_TEMPLATES } from "@/lib/marketplace";
-import { MarketingHero, Section, CtaLink } from "@/components/marketing/sections";
+import { MarketingHero, Section, Card, CtaLink } from "@/components/marketing/sections";
 
 export const metadata: Metadata = {
   title: "Company Templates · AIOS",
@@ -8,24 +8,31 @@ export const metadata: Metadata = {
     "Browse AIOS company templates that provision workforce, departments, objectives, and connector configuration for launch-ready operations.",
 };
 
-/**
- * Public showcase of Company Templates. Sourced from the pure template catalog
- * so it matches the real blueprints. CTAs route to sign-up (the authed Company
- * Builder at /harmony/build provisions the selected template after login).
- * TODO(codex): deep-link each card to /signup?template=<slug> and carry the
- * selection into the builder post-auth; add template hero imagery.
- */
+const TEMPLATE_STEPS = [
+  { title: "Choose a blueprint", description: "Start from an existing company template rather than a blank workspace." },
+  { title: "Customize the operating model", description: "Adjust company name, departments, connectors, and autonomy level in the Company Builder." },
+  { title: "Deploy into AIOS", description: "The authenticated app creates the company, activates the workforce, and seeds operating context." },
+];
+
 export default function TemplatesPage() {
   return (
     <>
       <MarketingHero
         eyebrow="Company Templates"
-        title="Deploy a complete company in one click"
-        subtitle="Each template provisions a full autonomous company — departments, an AI workforce, objectives, and connector configuration — on the Universal Capability Runtime."
+        title="Start with a company blueprint"
+        subtitle="AIOS company templates turn a business model into a configured workspace with departments, objectives, workforce activation, and connector planning."
       >
-        <CtaLink href="/signup">Deploy a company</CtaLink>
+        <CtaLink href="/signup">Join Founder Beta</CtaLink>
         <CtaLink href="/marketplace" variant="outline">Back to marketplace</CtaLink>
       </MarketingHero>
+
+      <Section title="How template deployment works" subtitle="Templates stay aligned with the existing Company Builder and authenticated deployment flow.">
+        <div className="grid gap-5 md:grid-cols-3">
+          {TEMPLATE_STEPS.map((step) => (
+            <Card key={step.title} title={step.title}>{step.description}</Card>
+          ))}
+        </div>
+      </Section>
 
       <Section title={`${COMPANY_TEMPLATES.length} ready-to-deploy blueprints`} subtitle="Pick a starting point tuned to your industry, then customize the workforce and connectors.">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -42,7 +49,7 @@ export default function TemplatesPage() {
                 <span className="rounded-md bg-muted px-1.5 py-0.5">{tpl.connectors.length} connectors</span>
               </div>
               <div className="mt-5">
-                <CtaLink href="/signup">Deploy {tpl.name}</CtaLink>
+                <CtaLink href="/signup">Start from this template</CtaLink>
               </div>
             </div>
           ))}

@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Help Center",
+  title: "Help Center · AIOS",
   description:
-    "Guides and answers to get the most out of Harmony — across your Personal Hub, Business Hub, and the Harmony Hub.",
+    "Guides for AIOS Founder Beta, Harmony, Julius, marketplace, templates, integrations, security, and account access.",
 };
 
 type Contact = { title: string; body: string; button: string; href: string };

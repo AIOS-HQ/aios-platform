@@ -1,8 +1,8 @@
 {
   "faqPage": {
     "eyebrow": "FAQ",
-    "title": "Everything you need to know about Harmony",
-    "subtitle": "Answers about the product, the AI helpers, your data, and getting access. Can't find it here? Join the waitlist and ask us directly.",
+    "title": "Everything you need to know about AIOS",
+    "subtitle": "Answers about Founder Beta, Harmony, Julius, the AI workforce, marketplace, templates, integrations, security, and access.",
     "categories": [
       {
         "id": "getting-started",
@@ -10,20 +10,20 @@
         "title": "Getting started",
         "items": [
           {
-            "q": "What exactly is Harmony?",
-            "a": "Harmony is an autonomous operating system for your life and business. It unifies your tasks, calendar, documents, teams, and operations in one place, then puts AI helpers to work planning and completing the routine — with you approving what matters."
+            "q": "What exactly is AIOS?",
+            "a": "AIOS is an autonomous operating platform for building and running AI-assisted companies. Harmony is the AI Chief of Staff, Julius is the organizational brain, and the AI workforce, marketplace, templates, and integrations operate together under human approval."
           },
           {
-            "q": "How is Harmony different from other AI tools?",
-            "a": "Most AI tools assist: they draft, summarize, or answer. Harmony executes — it coordinates a team of specialized helpers to take real work all the way to done, across both your personal and business hubs."
+            "q": "How is AIOS different from other AI tools?",
+            "a": "Most AI tools assist: they draft, summarize, or answer. AIOS coordinates an operating system: company context, memory, workforce routing, approvals, marketplace capabilities, and governed execution."
           },
           {
-            "q": "Who is Harmony for?",
-            "a": "Founders, entrepreneurs, professionals, families, small businesses, and growing companies — anyone who runs a lot and wants leverage without adding more tools or overhead."
+            "q": "Who is AIOS for?",
+            "a": "AIOS Founder Beta is for founders and early operators who want to validate an AI-assisted operating model before a broader public beta."
           },
           {
             "q": "Do I need to be technical to use it?",
-            "a": "No. Harmony is designed for Apple-level simplicity. You describe what you want in plain language and approve the work; Harmony handles the mechanics."
+            "a": "No. You describe goals in plain language, review the workspace, and approve meaningful actions. AIOS handles routing and coordination behind the scenes."
           }
         ]
       },
@@ -33,20 +33,20 @@
         "title": "Product & hubs",
         "items": [
           {
-            "q": "What are the three hubs?",
-            "a": "The Personal Hub runs your life (tasks, goals, notes, calendar, assistant). The Business Hub runs your company (teams, operations, communications, documents, approvals, AI departments). The Harmony Hub is the intelligence layer that coordinates both."
+            "q": "What are the core product areas?",
+            "a": "The public launch focuses on Harmony, Julius, Company Builder, Templates, Marketplace, AI Workforce, Integrations, Settings, and the Founder Command Center."
           },
           {
-            "q": "Can I use only the Personal Hub or only the Business Hub?",
-            "a": "Yes. Start with whichever fits your needs today and add the other when you are ready — the Harmony Hub coordinates whatever you turn on."
+            "q": "Can I start from a template?",
+            "a": "Yes. Company Templates are designed to give you a starting operating model: departments, objectives, workforce activation, and connector planning."
           },
           {
             "q": "What is the Founder Command Center?",
-            "a": "A single screen to steer the whole operation: see what your AI helpers are doing, approve high-impact actions, and watch the metrics that move your life and business."
+            "a": "A single screen for founders to steer the operation: companies, objectives, approvals, activity, recommendations, workforce status, and launch signals."
           },
           {
             "q": "Does Harmony replace my team?",
-            "a": "No. Harmony amplifies your team by removing busywork and running the routine, so people stay focused on judgment, relationships, and decisions that need a human."
+            "a": "No. AIOS is designed to amplify operators and teams by routing routine work, preserving context, and keeping judgment-heavy decisions with humans."
           }
         ]
       },
@@ -56,16 +56,16 @@
         "title": "AI helpers & automation",
         "items": [
           {
-            "q": "What can the AI helpers actually do?",
-            "a": "They plan your day, triage and draft communications, prepare and run workflows, track operations, and complete approved tasks end to end — coordinated by an AI Chief of Staff."
+            "q": "What can the AI workforce actually do?",
+            "a": "The workforce can help route work, prepare recommendations, coordinate content and communications, monitor operations, preserve knowledge, and execute approved low-risk tasks depending on configuration."
           },
           {
             "q": "Am I always in control?",
-            "a": "Always. Harmony works through approvals, guardrails, and a complete audit trail. You decide how much autonomy to grant and can change it at any time."
+            "a": "Always. AIOS is built around approvals, guardrails, autonomy levels, and audit trails. You decide what can run automatically and what must wait for review."
           },
           {
-            "q": "How does autonomy increase over time?",
-            "a": "Harmony moves through levels you control — monitor, recommend, prepare, then execute low-risk work — earning more autonomy only as you build trust, never less oversight."
+            "q": "Is autonomy active by default?",
+            "a": "High-risk autonomy is not assumed. Founder Beta should begin with controlled settings, approvals, and explicit verification before expanding automation."
           }
         ]
       },
@@ -76,11 +76,11 @@
         "items": [
           {
             "q": "Who owns my data?",
-            "a": "You do. Data ownership is a core principle of Harmony, and you can export or remove your data."
+            "a": "You do. Data ownership is a core AIOS principle. Export, deletion, and retention practices should be verified for the account type before broader public rollout."
           },
           {
             "q": "How is my data protected?",
-            "a": "Harmony is built around privacy and security, with transparency into exactly what each helper can see and do."
+            "a": "AIOS uses owner-scoped data access patterns, Supabase RLS, token-at-rest encryption support, admin boundaries, CSP, and approval-oriented workflows. Production settings still need Founder verification."
           },
           {
             "q": "Can I see what the AI helpers did?",
@@ -95,30 +95,30 @@
         "items": [
           {
             "q": "How do I get access?",
-            "a": "Join the waitlist. We are onboarding founders and early teams in waves and will send your invite when your spot is ready."
+            "a": "Create an account or request Founder Beta access. AIOS is currently targeted at controlled Founder Beta onboarding rather than open public self-serve launch."
           },
           {
             "q": "What do founding members get?",
-            "a": "Priority onboarding, a direct line to the team, influence over the roadmap, and founding-member pricing locked in."
+            "a": "Priority onboarding, direct feedback loops, and influence over the product roadmap while the operating model is validated."
           },
           {
-            "q": "How much does Harmony cost?",
-            "a": "Pricing will be shared with early-access invites. Founding members lock in founding-member pricing."
+            "q": "Can I buy AIOS from the public pricing page?",
+            "a": "No. Public checkout, Stripe, payments, and entitlements are inactive. Pricing is shown for planning and Founder Beta positioning only."
           }
         ]
       }
     ],
     "cta": {
       "title": "Still have questions?",
-      "body": "Join the waitlist and ask us directly — we read every message.",
-      "button": "Join the waitlist",
-      "href": "/#waitlist"
+      "body": "Open the Help Center or request Founder Beta access if you need direct onboarding support.",
+      "button": "Open Help Center",
+      "href": "/help"
     }
   },
   "helpCenter": {
     "eyebrow": "Help Center",
-    "title": "How can we help?",
-    "subtitle": "Guides and answers to get the most out of Harmony — across your Personal Hub, Business Hub, and the Harmony Hub.",
+    "title": "AIOS Help Center",
+    "subtitle": "Practical guidance for Founder Beta, Harmony, Julius, company templates, marketplace capabilities, integrations, security, and account access.",
     "searchPlaceholder": "Search help articles",
     "noResults": "No articles match your search. Try a different term or browse the categories.",
     "resultsLabel": "results",
@@ -127,59 +127,59 @@
         "id": "getting-started",
         "icon": "Sparkles",
         "title": "Getting started",
-        "description": "Set up your account and find your way around Harmony.",
+        "description": "Set up your account and find your way around AIOS.",
         "articles": [
           {
             "title": "Create your account",
-            "body": "Sign up with your email, confirm your address, and choose whether to start with your Personal Hub, Business Hub, or both."
+            "body": "Sign up with your email, confirm your address, and start from Harmony or a company template."
           },
           {
-            "title": "Set up your first hub",
-            "body": "Pick a hub to begin, answer a few quick prompts, and Harmony tailors your workspace and first suggestions to you."
+            "title": "Set up your first company",
+            "body": "Use a template or the Company Builder to create a company workspace with departments, objectives, and workforce context."
           },
           {
             "title": "Find your way around",
-            "body": "Use the Harmony Hub as your home base — it surfaces what needs attention and links you straight to the right place."
+            "body": "Use Harmony as the front door into tasks, goals, memory, approvals, workforce, and company operations."
           }
         ]
       },
       {
         "id": "personal-hub",
         "icon": "Calendar",
-        "title": "Personal Hub",
-        "description": "Run your life: tasks, goals, notes, calendar, and your assistant.",
+        "title": "Harmony",
+        "description": "Use Harmony as your AI Chief of Staff.",
         "articles": [
           {
             "title": "Manage tasks and goals",
-            "body": "Capture tasks in plain language; Harmony prioritizes them and breaks goals into milestones it tracks for you."
+            "body": "Capture tasks and goals in plain language; Harmony helps prioritize and route the work."
           },
           {
-            "title": "Connect your calendar",
-            "body": "Link your calendar so Harmony can schedule, protect focus time, and resolve conflicts automatically."
+            "title": "Work with memory",
+            "body": "Add preferences and context so Harmony can respond with better awareness over time."
           },
           {
             "title": "Work with your AI assistant",
-            "body": "Ask your assistant to draft, book, remind, and handle small tasks — then approve its work in one tap."
+            "body": "Ask Harmony to prepare work, summarize context, create tasks, and route actions through approval where needed."
           }
         ]
       },
       {
         "id": "business-hub",
         "icon": "Building2",
-        "title": "Business Hub",
-        "description": "Run your company: teams, operations, communications, and approvals.",
+        "title": "Company operations",
+        "description": "Run the company through templates, objectives, departments, communications, and approvals.",
         "articles": [
           {
             "title": "Set up Operations",
-            "body": "Define how your work runs once, and Harmony keeps it on track without the chasing."
+            "body": "Define the company, objectives, departments, and operating model so Harmony has the context it needs."
           },
           {
-            "title": "AI Departments overview",
-            "body": "Turn on specialized AI departments — marketing, support, finance and more — that coordinate through the Harmony Hub."
+            "title": "AI Workforce overview",
+            "body": "Use named AI specialists for communications, knowledge, records, monitoring, strategy, security, growth, and engineering support."
           },
           {
             "title": "Approvals and autonomy",
-            "body": "Route meaningful actions for approval and set the autonomy level each department is allowed to operate at."
+            "body": "Route meaningful actions for approval and set autonomy levels carefully during Founder Beta."
           }
         ]
       },
@@ -187,15 +187,15 @@
         "id": "harmony-hub",
         "icon": "Brain",
         "title": "Harmony Hub",
-        "description": "Your AI Chief of Staff coordinating everything end to end.",
+        "description": "The chief-of-staff layer that coordinates the operating system.",
         "articles": [
           {
             "title": "Meet your AI Chief of Staff",
-            "body": "The Harmony Hub understands your priorities and drives them forward across your personal and business hubs."
+            "body": "Harmony understands company context and coordinates the AI workforce from one interface."
           },
           {
             "title": "Cross-hub coordination",
-            "body": "Harmony connects life and business so a personal constraint never collides with a work commitment."
+            "body": "Harmony connects goals, tasks, memory, approvals, integrations, and workforce signals."
           },
           {
             "title": "Review the audit trail",
@@ -207,7 +207,7 @@
         "id": "account-security",
         "icon": "ShieldCheck",
         "title": "Account & security",
-        "description": "Manage your profile, data, privacy, and billing.",
+        "description": "Manage your profile, data, privacy, security, and launch-stage access.",
         "articles": [
           {
             "title": "Account and profile",
@@ -218,17 +218,17 @@
             "body": "Your data is yours. Review what each helper can access, and export or delete your data at any time."
           },
           {
-            "title": "Billing and plans",
-            "body": "Manage your plan and payment details from Settings. Founding members keep founding-member pricing."
+            "title": "Launch-stage access",
+            "body": "Public checkout is inactive. Founder Beta access is handled through account setup and onboarding, not public purchase."
           }
         ]
       }
     ],
     "contact": {
       "title": "Need a hand from a human?",
-      "body": "Join the waitlist for early access, or reach out and our team will help.",
-      "button": "Join the waitlist",
-      "href": "/#waitlist"
+      "body": "Use Founder Beta onboarding if you are joining AIOS, or review the FAQ for launch-stage product details.",
+      "button": "Read the FAQ",
+      "href": "/faq"
     }
   },
   "onboarding": {
@@ -384,11 +384,11 @@
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "title": "Plans that grow with you",
-    "subtitle": "Start with what you need today and plan how AIOS scales with you. Public billing is not enabled during launch preparation.",
+    "title": "Founder Beta access plans",
+    "subtitle": "Review how AIOS is expected to scale. Public billing, checkout, payments, and entitlements are inactive during Founder Beta.",
     "badgePopular": "Most popular",
-    "trialNote": "Pricing is published for launch planning. Join the launch list to request access.",
-    "hubsNote": "Personal Hub on every plan · Business Hub from Professional · Harmony Hub from Business.",
+    "trialNote": "Pricing is planning copy for Founder Beta conversations. Create an account or contact AIOS for access.",
+    "hubsNote": "Founder Beta access is evaluated by workspace needs, integration readiness, and onboarding scope.",
     "ctaError": "Could not submit the request. Please try again.",
     "plans": {
       "starter": {
@@ -489,7 +489,7 @@
     "title": "Integrations",
     "subtitle": "Connect Harmony to the tools you already use.",
     "manage": "Manage integrations",
-    "note": "Connecting a provider requires it to be configured for your workspace. More integrations are on the way.",
+    "note": "Connecting a provider requires it to be configured for your workspace. Availability depends on the integrations enabled for your organization.",
     "categories": {
       "ai": "AI",
       "productivity": "Productivity",

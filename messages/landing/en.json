@@ -35,12 +35,12 @@
       "home": "Harmony home"
     },
     "hero": {
-      "badge": "The Autonomous Operating System",
-      "titleLead": "Run your life. Run your business.",
-      "titleHighlight": "Harmony handles the work.",
-      "subtitle": "One operating system for your whole life and your whole company. Harmony organizes the work, coordinates a team of AI helpers, and executes the routine — so you spend your time deciding, not doing.",
-      "primaryCta": "Get early access",
-      "secondaryCta": "See how it works",
+      "badge": "AIOS Founder Beta",
+      "titleLead": "Build and run an autonomous company.",
+      "titleHighlight": "Harmony coordinates the work.",
+      "subtitle": "AIOS is the platform for autonomous companies: Harmony is your AI Chief of Staff, Julius is the organizational brain, and the AI workforce, marketplace, templates, integrations, and Founder Command Center work together under your command.",
+      "primaryCta": "Join Founder Beta",
+      "secondaryCta": "Explore templates",
       "proof": "Built for people who run a lot — with you in command at every step.",
       "stats": [
         {
@@ -59,30 +59,30 @@
       "snapshot": {
         "os": "Harmony OS",
         "live": "Live",
-        "caption": "One intelligence, coordinating everything",
+        "caption": "One platform, one operating model",
         "cards": [
           {
             "icon": "Sparkles",
-            "name": "Personal Hub",
+            "name": "Harmony",
             "items": [
-              "Plan my day",
-              "Goal: launch Q3"
+              "Chief of Staff",
+              "Approvals ready"
             ]
           },
           {
             "icon": "Building2",
-            "name": "Business Hub",
+            "name": "Company Builder",
             "items": [
-              "3 approvals",
-              "Ops on track"
+              "Templates",
+              "Workforce"
             ]
           },
           {
             "icon": "Brain",
-            "name": "Harmony Hub",
+            "name": "Julius",
             "items": [
-              "8 helpers active",
-              "Orchestrating"
+              "Company brain",
+              "Shared memory"
             ]
           }
         ]
@@ -101,8 +101,8 @@
     },
     "customerIntelligence": {
       "label": "Customer intelligence",
-      "title": "Harmony keeps the important signals visible before they become busywork.",
-      "body": "The customer workspace is built around context: priorities, approvals, integrations, and next actions stay connected so Harmony can coordinate the work without making you hunt through tools.",
+      "title": "AIOS keeps the important signals visible before they become busywork.",
+      "body": "The workspace is built around context: priorities, approvals, integrations, memory, marketplace capabilities, and next actions stay connected so Harmony can coordinate work without forcing you to hunt through tools.",
       "signals": [
         {
           "icon": "ShieldCheck",
@@ -123,8 +123,8 @@
     },
     "problem": {
       "eyebrow": "The problem",
-      "title": "Your life and your business are scattered across a dozen tools",
-      "subtitle": "Tasks here, calendar there, docs somewhere else, a team in chat, and AI that answers questions but never actually does the work. Context is lost in the gaps — and you become the integration layer.",
+      "title": "Your company is scattered across tools, documents, chats, and decisions",
+      "subtitle": "Tasks here, docs somewhere else, approvals in chat, integrations in another system, and AI that answers questions but does not coordinate the company. Context is lost in the gaps — and the founder becomes the integration layer.",
       "pains": [
         {
           "icon": "Boxes",
@@ -150,8 +150,8 @@
     },
     "why": {
       "eyebrow": "Why Harmony",
-      "title": "Not another app. An operating system that runs the work.",
-      "subtitle": "Harmony unifies everything you manage into a single intelligent system, then progressively takes the routine off your plate — always under your control.",
+      "title": "Not another app. A platform that operates the company.",
+      "subtitle": "AIOS unifies the operating model, then lets Harmony coordinate the workforce and the routine — always under founder control.",
       "pillars": [
         {
           "icon": "LayoutDashboard",
@@ -452,8 +452,8 @@
       "seeAll": "See all FAQs",
       "items": [
         {
-          "q": "What exactly is Harmony?",
-          "a": "Harmony is an autonomous operating system for your life and business. It unifies your tasks, calendar, documents, teams, and operations in one place, then puts AI helpers to work planning and completing the routine — with you approving what matters."
+          "q": "What exactly is AIOS?",
+          "a": "AIOS is the platform for building and operating autonomous companies. Harmony is the command center, Julius is the business operator, and the AI workforce, marketplace, templates, integrations, and Founder Command Center work together inside one operating system."
         },
         {
           "q": "How is this different from other AI assistants?",
@@ -478,10 +478,10 @@
       ]
     },
     "earlyAccess": {
-      "eyebrow": "Early access",
-      "title": "Become a Harmony founding member",
-      "subtitle": "Join the first cohort and help shape the autonomous OS. Founding members get priority onboarding, direct access to the team, and a voice in the roadmap.",
-      "cta": "Claim founding access",
+      "eyebrow": "Founder Beta",
+      "title": "Join the AIOS Founder Beta",
+      "subtitle": "Join the first cohort and help shape the autonomous company platform. Founder Beta members get priority onboarding, direct access to the team, and a voice in the roadmap.",
+      "cta": "Request Founder Beta access",
       "perks": [
         "Priority onboarding and white-glove setup",
         "Direct line to the founding team",
@@ -491,8 +491,8 @@
     },
     "waitlist": {
       "eyebrow": "Join the waitlist",
-      "title": "Be first to run on Harmony",
-      "subtitle": "Add your email to reserve your spot. We are onboarding founders and early teams in waves — no spam, just your invite when it is ready.",
+      "title": "Be first to run on AIOS",
+      "subtitle": "Add your email to reserve your spot. We are onboarding founders and early teams in waves — no spam, just your invite when your workspace is ready.",
       "emailLabel": "Email address",
       "placeholder": "you@company.com",
       "cta": "Request access",
@@ -503,10 +503,10 @@
       "disclaimer": "By joining you agree to receive occasional updates about Harmony. Unsubscribe anytime."
     },
     "finalCta": {
-      "titleLead": "Run your life. Run your business.",
-      "titleHighlight": "Harmony handles the work.",
-      "subtitle": "Reserve your early-access invite and put your AI operating system to work.",
-      "cta": "Get early access"
+      "titleLead": "Build the company.",
+      "titleHighlight": "Let AIOS coordinate the work.",
+      "subtitle": "Reserve your Founder Beta invite and put the AIOS operating platform to work.",
+      "cta": "Request Founder Beta access"
     },
     "footer": {
       "tagline": "The Autonomous Operating System for Life and Business",
