@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { HarmonyLogo } from "@/components/brand/harmony-logo";
+import { AiosHarmonyLogo } from "@/components/brand/logo";
 
 type FooterLink = { label: string; href: string };
 type FooterData = {
@@ -20,7 +20,7 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
-            <HarmonyLogo />
+            <AiosHarmonyLogo />
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
               {footer.tagline}
             </p>

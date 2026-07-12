@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AiosHarmonyLogo } from "@/components/brand/logo";
 import { APP_NAME } from "@/lib/constants";
 
 /**
@@ -23,11 +24,8 @@ export function PublicNavbar() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3">
-        <Link href="/" className="flex items-center gap-2 font-semibold" aria-label={`${APP_NAME} home`}>
-          <span className="inline-flex size-7 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-            A
-          </span>
-          <span className="text-base tracking-tight">{APP_NAME}</span>
+        <Link href="/" className="inline-flex min-w-0 items-center" aria-label={`${APP_NAME} home`}>
+          <AiosHarmonyLogo />
         </Link>
 
         {/* Desktop nav */}
