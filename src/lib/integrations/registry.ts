@@ -178,8 +178,8 @@ const EXTRA: ConnectorDefinition[] = [
   }),
   extra("x", "X (Twitter)", "social", "oauth2", "X", "https://developer.x.com/en/docs/authentication/oauth-2-0", {
     oauthFamily: "x",
-    scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
-    capabilities: [cap("read_timeline", "read"), cap("draft_post", "write", "routine"), cap("publish_post", "write", "approval"), cap("delete_post", "write", "destructive")],
+    scopes: ["tweet.read", "tweet.write", "users.read", "media.write", "offline.access"],
+    capabilities: [cap("read_timeline", "read"), cap("textPost", "write", "approval"), cap("imagePost", "write", "approval"), cap("multiImagePost", "write", "approval"), cap("videoPost", "write", "approval")],
   }),
   extra("jira", "Jira", "productivity", "oauth2", "Ji", "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/", {
     oauthFamily: "atlassian",

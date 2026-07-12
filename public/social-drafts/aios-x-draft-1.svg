@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#0b1020"/>
+  <rect x="72" y="72" width="1056" height="1056" rx="36" fill="#f8fafc"/>
+  <text x="120" y="210" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#0b1020">AIOS</text>
+  <text x="120" y="355" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#111827">Harmony, Julius,</text>
+  <text x="120" y="445" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#111827">and the Intelligent</text>
+  <text x="120" y="535" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#111827">Workforce</text>
+  <text x="120" y="690" font-family="Arial, sans-serif" font-size="38" fill="#475569">One operating system for one founder.</text>
+  <circle cx="920" cy="880" r="120" fill="#0ea5e9"/>
+  <circle cx="805" cy="880" r="84" fill="#22c55e"/>
+  <circle cx="1015" cy="880" r="84" fill="#f97316"/>
+</svg>

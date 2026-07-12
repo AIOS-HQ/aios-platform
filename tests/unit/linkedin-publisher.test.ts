@@ -98,7 +98,7 @@ describe("LinkedIn publisher health", () => {
     expect(preflight.health.issues.map((i) => i.code)).toContain("organization_mismatch");
   });
 
-  it("reports a valid publisher and text-only capabilities", async () => {
+  it("reports a valid publisher and implemented publishing capabilities", async () => {
     process.env.LINKEDIN_CLIENT_ID = "signin-client";
     process.env.LINKEDIN_CLIENT_SECRET = "signin-secret";
     process.env.LINKEDIN_PUBLISHER_ACCESS_TOKEN = "publisher-token";
@@ -122,7 +122,7 @@ describe("LinkedIn publisher health", () => {
     });
     expect(health.capabilities).toEqual({
       textPost: true,
-      documentCarousel: false,
+      documentCarousel: true,
     });
   });
 

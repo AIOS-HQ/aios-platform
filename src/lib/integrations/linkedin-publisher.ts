@@ -35,7 +35,7 @@ export interface LinkedInPublisherHealth {
   apiVersion: string;
   capabilities: {
     textPost: true;
-    documentCarousel: false;
+    documentCarousel: boolean;
   };
   issues: LinkedInPublisherIssue[];
 }
@@ -116,7 +116,7 @@ function baseHealth(): LinkedInPublisherHealth {
     apiVersion: apiVersion(),
     capabilities: {
       textPost: true,
-      documentCarousel: false,
+      documentCarousel: true,
     },
     issues: [],
   };
