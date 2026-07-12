@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getConnectorDefinition } from "@/lib/integrations/registry";
 import { getValidAccessToken } from "@/lib/integrations/token-refresh";
+import { redactSecret } from "@/lib/integrations/secret-redaction";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,7 +81,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ provide
     }
     if (!res.ok) {
       return NextResponse.json(
-        { ok: false, step: "api", provider, status: res.status, error: bodyText.slice(0, 300) },
+        { ok: false, step: "api", provider, status: res.status, error: redactSecret(bodyText).slice(0, 300) },
         { status: 200 },
       );
     }
@@ -90,7 +91,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ provide
     );
   } catch (e) {
     return NextResponse.json(
-      { ok: false, step: "fetch", provider, error: e instanceof Error ? e.message : String(e) },
+      { ok: false, step: "fetch", provider, error: redactSecret(e) },
       { status: 200 },
     );
   }

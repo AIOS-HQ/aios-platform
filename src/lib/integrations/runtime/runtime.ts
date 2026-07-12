@@ -4,6 +4,7 @@ import { getConnectorDefinition } from "@/lib/integrations/registry";
 import { isDevConfigured } from "@/lib/integrations/registry-status";
 import { getValidAccessToken } from "@/lib/integrations/token-refresh";
 import { getConnections } from "@/lib/integrations/connections";
+import { redactSecret } from "@/lib/integrations/secret-redaction";
 import { getCapability, capabilityPermission } from "./capabilities";
 import { withRetry } from "./retry";
 import { getTelemetrySink } from "./telemetry";
@@ -147,7 +148,7 @@ export async function executeCapability<I = unknown, O = unknown>(
   );
 
   if (error) {
-    const message = error instanceof Error ? error.message : "Capability execution failed";
+    const message = error instanceof Error ? redactSecret(error) : "Capability execution failed";
     return finish("error", { attempts, error: { code: "execution_failed", message, retryable: false } });
   }
   return finish("success", { attempts, data: value });
