@@ -14,9 +14,13 @@ import type { IntegrationConnection } from "@/lib/integrations/connections";
 export type ConnectorStatus = "not_connected" | "ready" | "connected" | "expired";
 
 export function isConnectorConfigured(connector: ConnectorDef): boolean {
-  // Per-user API-key connectors need no platform secret — the user supplies
-  // their own key at connect time, so the platform is always "ready".
-  if (connector.auth === "api_key") return true;
+  if (connector.id === "vercel") {
+    return Boolean(process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN);
+  }
+  // API-key connectors without a credential model or required environment are
+  // framework-only. Do not mark them ready merely because they are cataloged.
+  if (connector.auth === "api_key" && connector.requiredEnv.length === 0) return false;
+  if (connector.auth === "api_key") return connector.requiredEnv.every((k) => Boolean(process.env[k]));
   if (connector.requiredEnv.length === 0) return false;
   return connector.requiredEnv.every((k) => Boolean(process.env[k]));
 }

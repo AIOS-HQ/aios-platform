@@ -23,6 +23,12 @@ LinkedIn, X, and YouTube publishing. YouTube publishing includes multi-channel s
 video/Short upload, thumbnails, visibility, scheduling, playlists, progress, recovery, and
 provider result persistence through the shared Social publishing governance pipeline.
 
+The AIOS Workforce is certified through `src/lib/workforce/certification.ts`, with
+`src/lib/workforce/registry.ts` remaining the named-agent source of truth. The certification
+layer exposes each agent's real runtime handlers, Julius access, connector dependencies,
+approval/autonomy boundaries, blockers, and unsupported capabilities to the Workforce UI and
+tests. Julius remains the company-scoped organizational brain, not an agent.
+
 ## Guiding principles (engineering implications)
 
 | Principle | How it shows up in code |

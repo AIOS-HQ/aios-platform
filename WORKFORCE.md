@@ -4,6 +4,7 @@ Version: 2.1
 Status: Active — founder-approved
 Owner: Alejandro Baez
 Code source of truth: `src/lib/workforce/registry.ts`
+Runtime certification source: `src/lib/workforce/certification.ts`
 Organizational brain: Julius (`src/lib/julius/`)
 
 ---
@@ -78,6 +79,11 @@ long-term continuity.
 | **Ledger** | Records & Compliance | read/write |
 
 (Full role/purpose/responsibilities are defined in `src/lib/workforce/registry.ts`.)
+
+Runtime readiness, connector dependencies, tools, handlers, autonomy boundaries,
+and unsupported capabilities are certified in `src/lib/workforce/certification.ts`
+and surfaced in the Harmony Workforce UI. A registered profile alone does not
+make an agent operational.
 
 ---
 

@@ -12,7 +12,20 @@ vi.mock("@/lib/integrations/connectors", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/integrations/connectors")>();
   return {
     ...actual,
-    getConnector: vi.fn((id: string) => ({ id, auth: id === "vercel" ? "api_key" : "oauth2", requiredEnv: [] })),
+    getConnector: vi.fn((id: string) => ({
+      id,
+      auth: id === "vercel" ? "api_key" : "oauth2",
+      requiredEnv: [],
+      capabilities:
+        id === "github"
+          ? [
+              { id: "create_branch", mode: "write" },
+              { id: "commit_file_to_branch", mode: "write" },
+              { id: "open_pull_request", mode: "write" },
+              { id: "create_issue", mode: "write" },
+            ]
+          : [{ id: "deployment_status", mode: "read" }],
+    })),
   };
 });
 

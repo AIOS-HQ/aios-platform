@@ -17,6 +17,7 @@ import {
   getAiosAgent,
   getHarmony,
 } from "@/lib/workforce/registry";
+import { certifyAiosWorkforce, type WorkforceCertificationStatus } from "@/lib/workforce/certification";
 import { getWorkforceSummary, emptyAgentSummary, type AgentSummary } from "@/lib/workforce/summary";
 import { resolvePrimaryCompanyId, getJuliusAwareness } from "@/lib/julius/wiring";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
@@ -53,6 +54,17 @@ const RISK_VARIANT: Record<string, "default" | "secondary" | "outline" | "destru
   destructive: "destructive",
   approval: "default",
   routine: "outline",
+};
+
+const CERT_VARIANT: Record<WorkforceCertificationStatus, "default" | "secondary" | "outline" | "destructive"> = {
+  production_ready: "default",
+  operational_with_approval: "secondary",
+  partial: "secondary",
+  advisory_only: "outline",
+  configuration_required: "outline",
+  blocked: "destructive",
+  metadata_only: "outline",
+  unsupported: "destructive",
 };
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
@@ -100,12 +112,13 @@ export default async function WorkforcePage() {
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [messages, awareness, summary] = await Promise.all([
+  const [messages, awareness, summary, certification] = await Promise.all([
     companyId ? listAgentMessages(user.id, companyId, { limit: 60 }) : Promise.resolve([]),
     companyId
       ? getJuliusAwareness(user.id, companyId)
       : Promise.resolve({ objectives: [], decisions: [], activities: [], knowledge: [], total: 0 }),
     getWorkforceSummary(user.id, companyId),
+    certifyAiosWorkforce({ userId: user.id }),
   ]);
 
   // Pending approvals per agent (inbound, awaiting the founder).
@@ -123,6 +136,7 @@ export default async function WorkforcePage() {
     return {
       agent,
       summary: sum,
+      certification: certification[agent.key],
       pendingApprovals: approvalsByAgent[agent.key] ?? 0,
       state: deriveState(agent.key, messages, sum, approvalsByAgent[agent.key] ?? 0),
     };
@@ -215,36 +229,31 @@ export default async function WorkforcePage() {
               <Badge className="shrink-0 sm:ml-auto">{t("coordinator")}</Badge>
             </CardContent>
           </Card>
+          <Card className="mb-4 border-primary/30 bg-muted/30">
+            <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+              <AgentGlyph
+                agent="julius"
+                size="lg"
+                className="border-primary/40 bg-primary/10 text-primary"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-semibold">Julius</p>
+                <p className="text-sm text-muted-foreground">{t("brainRole")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Julius is the AIOS organizational brain, not a workforce agent. Atlas stewards it.
+                </p>
+              </div>
+              <Badge variant="secondary" className="shrink-0">{t("brain")}</Badge>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/harmony/julius">{tJulius("openBrain")}</Link>
+              </Button>
+            </CardContent>
+          </Card>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
             {t("specialists")}
           </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Julius — the AIOS company brain, not a workforce agent. Clickable
-                destination: the Company Brain (org memory + the workforce around it). */}
-            <Link href="/harmony/julius" className="block">
-              <Card className="h-full border-primary/30 transition-colors hover:border-primary/50 hover:bg-primary/10">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3">
-                    <AgentGlyph
-                      agent="julius"
-                      size="lg"
-                      className="border-primary/40 bg-primary/10 text-primary"
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-semibold">Julius</p>
-                      <p className="truncate text-xs text-muted-foreground">{t("brainRole")}</p>
-                    </div>
-                    <Badge variant="secondary" className="ml-auto">{t("brain")}</Badge>
-                  </div>
-                  <p className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span>{t("juliusEntries", { n: awareness.total })}</span>
-                    <span className="font-medium text-primary">{tJulius("openBrain")} →</span>
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {specialistStates.map(({ agent: a, state: s, summary: sum, pendingApprovals: agentPendingApprovals }) => {
+            {specialistStates.map(({ agent: a, state: s, summary: sum, certification: cert, pendingApprovals: agentPendingApprovals }) => {
               return (
                 <Card key={a.key} className="h-full overflow-hidden">
                   <CardContent className="p-5">
@@ -261,6 +270,17 @@ export default async function WorkforcePage() {
                       <Badge variant={STATUS_VARIANT[s.status]} className="ml-auto shrink-0">
                         {t(`status.${s.status}`)}
                       </Badge>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      <Badge variant={CERT_VARIANT[cert.status]} className="text-[10px]">
+                        {cert.label}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        Julius: {cert.juliusAccess.replace("_", " ")}
+                      </Badge>
+                      {cert.founderOnly ? (
+                        <Badge variant="destructive" className="text-[10px]">Founder-only</Badge>
+                      ) : null}
                     </div>
                     <dl className="mt-3 space-y-1 text-xs">
                       <div className="flex gap-2">
@@ -305,6 +325,19 @@ export default async function WorkforcePage() {
                         >
                           {t("pendingApprovals", { n: agentPendingApprovals })}
                         </Badge>
+                      </div>
+                      <div className="mt-2 grid gap-1 text-[11px] text-muted-foreground">
+                        <p className="truncate">Tools: {cert.contract.availableTools.slice(0, 3).join(", ")}</p>
+                        <p className="truncate">
+                          Dependencies: {cert.dependencyReadiness.length > 0
+                            ? cert.dependencyReadiness.map((dep) => `${dep.provider} (${dep.status.replace(/_/g, " ")})`).join(", ")
+                            : "none"}
+                        </p>
+                        {cert.blockers.length > 0 ? (
+                          <p className="truncate text-amber-600 dark:text-amber-400">
+                            Blocker: {cert.blockers[0]}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">

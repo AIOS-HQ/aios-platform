@@ -44,9 +44,19 @@ export async function masonRuntimeHealth(userId: string) {
   const connected = new Set(connections.filter((item) => item.status === "connected").map((item) => item.provider));
   const github = getConnector("github");
   const vercel = getConnector("vercel");
+  const githubCapabilities = new Set((github?.capabilities ?? []).map((cap) => cap.id));
+  const vercelCapabilities = new Set((vercel?.capabilities ?? []).map((cap) => cap.id));
   return {
-    github: github ? connected.has("github") || isConnectorConfigured(github) : false,
-    vercel: vercel ? isConnectorConfigured(vercel) : false,
+    github: github
+      ? connected.has("github") &&
+        isConnectorConfigured(github) &&
+        ["create_branch", "commit_file_to_branch", "open_pull_request", "create_issue"].every((capability) =>
+          githubCapabilities.has(capability),
+        )
+      : false,
+    vercel: vercel
+      ? isConnectorConfigured(vercel) && ["deployment_status"].every((capability) => vercelCapabilities.has(capability))
+      : false,
     harmony: true,
   };
 }
