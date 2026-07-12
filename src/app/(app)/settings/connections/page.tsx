@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
+import { LinkedInPublisherCard } from "@/components/integrations/linkedin-publisher-card";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("connections");
@@ -49,6 +50,13 @@ export default async function ConnectionsPage() {
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       <div className="flex flex-col gap-8 lg:max-w-3xl">
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            LinkedIn Publishing
+          </h2>
+          <LinkedInPublisherCard />
+        </section>
+
         {CONNECTOR_CATEGORIES.map((cat) => {
           const items = CONNECTORS.filter((c) => c.category === cat);
           if (items.length === 0) return null;

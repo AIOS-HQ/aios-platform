@@ -159,24 +159,19 @@ export const CONNECTORS: ConnectorDef[] = [
   },
   {
     id: "linkedin",
-    name: "LinkedIn",
+    name: "LinkedIn Sign-In",
     category: "social",
     auth: "oauth2",
-    // OpenID Connect sign-in scopes (identity only). Publishing
-    // (w_member_social) requires a separately approved LinkedIn product; add it
-    // here once that product is granted. The dedicated /api/integrations/linkedin
-    // routes request exactly these scopes.
+    // OpenID Connect sign-in scopes (identity only). Publishing is handled by
+    // the separate AIOS Publisher app and must never use this connector token.
     scopes: ["openid", "profile", "email"],
     initials: "in",
     docsUrl: "https://learn.microsoft.com/linkedin",
     requiredEnv: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
     authorizable: true,
     capabilities: [
-      { id: "research_topic", mode: "read" },
-      { id: "draft_post", mode: "write", risk: "routine" },
-      { id: "generate_hashtags", mode: "write", risk: "routine" },
-      { id: "publish_post", mode: "write", risk: "approval" },
-      { id: "delete_post", mode: "write", risk: "destructive" },
+      { id: "read_profile", mode: "read" },
+      { id: "verify_identity", mode: "read" },
     ],
   },
   {

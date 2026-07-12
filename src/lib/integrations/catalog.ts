@@ -69,11 +69,11 @@ export const INTEGRATIONS: IntegrationProvider[] = [
   },
   {
     id: "linkedin",
-    name: "LinkedIn",
+    name: "LinkedIn Sign-In",
     category: "social",
     auth: "oauth2",
     oauthFamily: "linkedin",
-    scopes: ["openid", "profile", "email", "w_member_social"],
+    scopes: ["openid", "profile", "email"],
     initials: "in",
     docsUrl: "https://learn.microsoft.com/linkedin",
   },
