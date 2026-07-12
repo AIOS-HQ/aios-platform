@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
 import { LinkedInPublisherCard } from "@/components/integrations/linkedin-publisher-card";
+import { ConnectorGlyph } from "@/components/brand/brand-icons";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("connections");
@@ -83,9 +84,7 @@ export default async function ConnectionsPage() {
                     <Card key={c.id}>
                       <CardContent className="flex items-center justify-between gap-4 p-4">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border bg-muted text-sm font-bold">
-                            {c.initials}
-                          </span>
+                          <ConnectorGlyph id={c.id} initials={c.initials} className="size-11" />
                           <div className="min-w-0 space-y-0.5">
                             <p className="font-semibold">{c.name}</p>
                             <p className="text-xs text-muted-foreground">

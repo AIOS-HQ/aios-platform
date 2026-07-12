@@ -111,8 +111,9 @@ Loading states should use `PageHeaderSkeleton` from
 Onboarding headers must use `AiosHarmonyLogo` with inverse treatment on dark
 surfaces.
 
-Decorative or hero Harmony brand marks are allowed in onboarding rails and
-backgrounds, but they must use `HarmonyMark` from the shared brand module.
+Do not render a standalone `HarmonyMark`, `HarmonyLogo`, or local wordmark in
+the onboarding rail or background when the header already renders
+`AiosHarmonyLogo`. The lockup owns top-level onboarding branding.
 
 Do not create local onboarding-only logos or inline SVG marks.
 
@@ -121,8 +122,10 @@ Do not create local onboarding-only logos or inline SVG marks.
 Authentication headers must use `AiosHarmonyLogo` with inverse treatment on the
 dark auth surface.
 
-Decorative background marks in auth may use `HarmonyMark`. Auth forms and auth
-headers must not create their own AIOS/Harmony logo implementation.
+Do not render a standalone `HarmonyMark`, `HarmonyLogo`, or local wordmark in
+auth rails, forms, or backgrounds when the header already renders
+`AiosHarmonyLogo`. Auth forms and auth headers must not create their own
+AIOS/Harmony logo implementation.
 
 ## Spacing and Sizing Guidelines
 
@@ -179,6 +182,8 @@ Before committing branding changes, verify:
 
 - `rg -n "<HarmonyLogo|<Logo\\b|inline-flex size-7|>A<|bg-primary text-sm font-bold" src/app src/components -S`
   finds no ad hoc top-level branding;
+- `rg -n "AiosHarmonyLogo|HarmonyMark" src/components/auth src/app/onboarding -S`
+  shows the canonical lockup only, with no standalone Harmony brand mark beside it;
 - `rg -n "HarmonyAvatar" src/app src/components -S` shows only
   conversational or interaction contexts;
 - `npm run lint` passes;
