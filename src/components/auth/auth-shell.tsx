@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { HarmonyLogo, HarmonyMark } from "@/components/brand/harmony-logo";
+import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -143,7 +144,11 @@ export function AuthShell({
 
       <header className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label={t("homeAria")} className="inline-flex">
-          <HarmonyLogo markClassName="size-11 sm:size-12" className="text-white" />
+          <AiosHarmonyLogo
+            inverse
+            aiosMarkClassName="size-10 sm:size-11"
+            harmonyMarkClassName="size-10 sm:size-11"
+          />
         </Link>
         <div className="flex items-center gap-2">
           <LocaleSwitcher />

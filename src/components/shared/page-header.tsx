@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
+import { AiosHarmonyLogo } from "@/components/brand/logo";
 import { PageBack } from "@/components/shared/page-back";
 
 /** Standard page title block with route-aware Back/breadcrumbs, optional
- * description, and an action slot. PageBack auto-hides on top-level routes. */
+ * description, shared AIOS + Harmony branding, and an action slot. PageBack
+ * auto-hides on top-level routes. */
 export function PageHeader({
   title,
   description,
@@ -22,6 +24,13 @@ export function PageHeader({
       )}
     >
       <PageBack />
+      <div className="mb-4">
+        <AiosHarmonyLogo
+          compact
+          aiosMarkClassName="size-6"
+          harmonyMarkClassName="size-6"
+        />
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-1.5">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">

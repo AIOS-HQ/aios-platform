@@ -127,7 +127,7 @@ export function HarmonyLogo({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <HarmonyMark className={cn("size-7 sm:size-8", markClassName)} locale={locale} title="Harmony" />
       {showWordmark && (
-        <span className="text-base font-semibold sm:text-lg">Harmony</span>
+        <span className="text-base font-semibold leading-none sm:text-lg">Harmony</span>
       )}
     </span>
   );
