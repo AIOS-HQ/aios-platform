@@ -4,39 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTranslations } from "next-intl/server";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { getAdapter } from "@/lib/harmony/comms/adapters";
+import {
+  preflightLinkedInPublisher,
+  redactLinkedInDiagnostics,
+} from "@/lib/integrations/linkedin-publisher";
 import type { Channel, Conversation } from "@/types/database";
 
 type DeliveryStatus = "sent" | "failed";
-
-/**
- * Resolve the organization author URN (urn:li:organization:<id>).
- *
- * Tries the channel handle FIRST, then the env fallbacks — but a non-empty yet
- * non-organization handle (e.g. a Page display name or company URL) must NOT
- * shadow the env value, so we evaluate every candidate and return the first that
- * yields a valid org id. Accepts a bare URN, a bare numeric id, or an id embedded
- * in a LinkedIn company/organization URL.
- */
-function getLinkedInAuthor(channel: Channel): string | null {
-  const candidates = [
-    channel.handle,
-    process.env.LINKEDIN_ORGANIZATION_URN,
-    process.env.LINKEDIN_ORGANIZATION_ID,
-  ];
-
-  for (const candidate of candidates) {
-    const value = (candidate || "").trim();
-    if (!value) continue;
-    if (/^urn:li:organization:\d+$/.test(value)) return value;
-    if (/^\d+$/.test(value)) return `urn:li:organization:${value}`;
-    // e.g. "urn:li:organization:123", ".../company/123", "organization/123"
-    const match =
-      value.match(/organization[:/](\d+)/i) || value.match(/company\/(\d+)/i);
-    if (match) return `urn:li:organization:${match[1]}`;
-  }
-
-  return null;
-}
 
 /**
  * Publish to a LinkedIn organization (company) Page.
@@ -50,22 +24,22 @@ function getLinkedInAuthor(channel: Channel): string | null {
  *
  * So we authenticate the post with the AIOS Publisher app's organization access
  * token, supplied via env (LINKEDIN_PUBLISHER_ACCESS_TOKEN) — never the Harmony
- * sign-in connector token. The org to post as comes from the channel handle
- * (falling back to LINKEDIN_ORGANIZATION_URN/ID).
+ * sign-in connector token. The org to post as is the approved env organization;
+ * channel handles are allowed only when they match that approved organization.
  */
 async function publishLinkedInPost(
   channel: Channel,
   body: string,
 ): Promise<DeliveryStatus> {
-  const author = getLinkedInAuthor(channel);
+  const preflight = await preflightLinkedInPublisher(channel.handle);
+  const author = preflight.author;
 
-  if (!author) {
+  if (!preflight.ok || !author) {
     console.error(
-      "[comms/linkedin] publish ABORTED before request: could not resolve an " +
-        "organization URN from channel.handle (" +
-        (channel.handle ?? "null") +
-        ") or LINKEDIN_ORGANIZATION_URN / LINKEDIN_ORGANIZATION_ID — set one to " +
-        "urn:li:organization:<id> or the numeric id",
+      "[comms/linkedin] publish ABORTED before request",
+      `organization=${author ?? "unresolved"}`,
+      `apiVersion=${preflight.apiVersion}`,
+      `issues=${preflight.health.issues.map((i) => i.code).join(",") || "none"}`,
     );
     return "failed";
   }
@@ -85,7 +59,7 @@ async function publishLinkedInPost(
   // function logs even when LinkedIn later rejects it. If you do NOT see this
   // line after Approve & Send, the publish path was never reached.
   console.info(
-    `[comms/linkedin] publishing as ${author} (${body.length} chars) → POST https://api.linkedin.com/rest/posts`,
+    `[comms/linkedin] publishing as ${author} apiVersion=${preflight.apiVersion} (${body.length} chars) → POST https://api.linkedin.com/rest/posts`,
   );
 
   try {
@@ -94,7 +68,7 @@ async function publishLinkedInPost(
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "LinkedIn-Version": process.env.LINKEDIN_API_VERSION || "202604",
+        "LinkedIn-Version": preflight.apiVersion,
         "X-Restli-Protocol-Version": "2.0.0",
       },
       body: JSON.stringify({
@@ -119,7 +93,7 @@ async function publishLinkedInPost(
         response.status,
         response.headers.get("x-linkedin-error-code") || "",
         response.headers.get("x-li-uuid") || "",
-        detail.slice(0, 500),
+        redactLinkedInDiagnostics(detail).slice(0, 500),
       );
       return "failed";
     }
