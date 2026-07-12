@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  isNavItemActive,
   navSections,
   sectionsForAudience,
   isFounderHarmonyPath,
@@ -53,6 +54,7 @@ describe("launch route audit", () => {
       section.items.map((item) => item.href),
     );
     expect(founderRoutes).toContain("/settings/auditor");
+    expect(founderRoutes).toContain("/harmony/social");
     expect(founderRoutes.filter((href) => !routeExists(href))).toEqual([]);
   });
 
@@ -75,9 +77,36 @@ describe("launch route audit", () => {
     expect(navSections.length).toBeGreaterThan(0);
     expect(sectionsForAudience(true)).toEqual(sectionsForAudience(true));
     expect(sectionsForAudience(false)).toEqual(sectionsForAudience(false));
+    expect(sectionsForAudience(true).flatMap((section) => section.items.map((item) => item.href))).toContain(
+      "/harmony/social",
+    );
     expect(sectionsForAudience(false).flatMap((section) => section.items.map((item) => item.href))).toEqual(
       customerSidebarRoutes,
     );
+  });
+
+  it("surfaces Social once inside Harmony founder navigation", () => {
+    const allItems = navSections.flatMap((section) =>
+      section.items.map((item) => ({ section, item })),
+    );
+    const socialItems = allItems.filter(({ item }) => item.href === "/harmony/social");
+    expect(socialItems).toHaveLength(1);
+    expect(socialItems[0].section.audience).toBe("founder");
+    expect(socialItems[0].item.labelKey).toBe("social");
+    expect(sectionsForAudience(false).flatMap((section) => section.items.map((item) => item.href))).not.toContain(
+      "/harmony/social",
+    );
+    expect(allItems.map(({ item }) => item.labelKey)).not.toContain("harmonySocial");
+  });
+
+  it("keeps Social active for nested Harmony Social paths", () => {
+    const socialItem = sectionsForAudience(true)
+      .flatMap((section) => section.items)
+      .find((item) => item.href === "/harmony/social");
+    expect(socialItem).toBeDefined();
+    expect(isNavItemActive("/harmony/social", socialItem!)).toBe(true);
+    expect(isNavItemActive("/harmony/social/drafts", socialItem!)).toBe(true);
+    expect(isNavItemActive("/harmony/socialize", socialItem!)).toBe(false);
   });
 
   it("keeps every settings card route backed by an app route", () => {
@@ -97,6 +126,7 @@ describe("launch route audit", () => {
   it("keeps founder Harmony routes default-deny for subscribers", () => {
     expect(isFounderHarmonyPath("/harmony")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/code")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/social")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/workforce")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/mason")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/not-yet-known")).toBe(true);
@@ -110,5 +140,26 @@ describe("launch route audit", () => {
     expect(safeRedirectPath("//example.com")).toBe("/harmony");
     expect(safeRedirectPath("https://example.com")).toBe("/harmony");
     expect(safeRedirectPath(null)).toBe("/harmony");
+  });
+
+  it("keeps Social under the authenticated Harmony layout", () => {
+    expect(routeExists("/harmony/social")).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), "src/app/(app)/layout.tsx"))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), "src/app/(app)/harmony/layout.tsx"))).toBe(true);
+  });
+
+  it("keeps the Social page wired to test drafts, approval, and truthful YouTube status", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "src/app/(app)/harmony/social/page.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("prepareLinkedInTestDraft");
+    expect(source).toContain("prepareXTestDraft");
+    expect(source).toContain("approveSocialDraft");
+    expect(source).toContain("publishSocialDraft");
+    expect(source).toContain("Not publish-ready");
+    expect(source).toContain("upload: false");
+    expect(source).toContain("publish: false");
+    expect(source).not.toContain("Harmony Social Publishing");
   });
 });

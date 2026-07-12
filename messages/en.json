@@ -235,6 +235,7 @@
     "code": "Code Dept",
     "oversight": "Oversight",
     "content": "Content",
+    "social": "Social",
     "integrations": "Integrations",
     "auditor": "Auditor",
     "pendingCount": "{count} pending",
