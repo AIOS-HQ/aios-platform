@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/user";
@@ -49,25 +50,74 @@ type SocialAssetRow = {
   state: string;
 };
 
-function statusVariant(ok: boolean): "success" | "destructive" {
-  return ok ? "success" : "destructive";
+type HealthTone = "healthy" | "warning" | "danger";
+
+type CapabilityItem = {
+  label: string;
+  enabled: boolean;
+  detail?: string;
+};
+
+type ProviderCardModel = {
+  id: "linkedin" | "x" | "youtube";
+  name: string;
+  description: string;
+  tone: HealthTone;
+  status: string;
+  connection: string;
+  readiness: string;
+  identity: string;
+  checkedAt: string;
+  capabilities: CapabilityItem[];
+  limitations: string[];
+  founderActions: string[];
+  diagnostics: Array<{ label: string; value: ReactNode }>;
+  action?: ReactNode;
+};
+
+function badgeForTone(tone: HealthTone): "success" | "warning" | "destructive" {
+  if (tone === "healthy") return "success";
+  if (tone === "warning") return "warning";
+  return "destructive";
 }
 
-function capabilityBadge(enabled: boolean) {
-  return enabled ? (
-    <Badge variant="success">available</Badge>
-  ) : (
-    <Badge variant="outline">unavailable</Badge>
-  );
+function previewHref(storagePath?: string | null): string | null {
+  if (!storagePath?.startsWith("public:")) return null;
+  return `/${storagePath.slice("public:".length).replace(/^\/+/, "")}`;
 }
 
 function providerLabel(provider: string) {
   return provider === "x" ? "X" : "LinkedIn";
 }
 
-function previewHref(storagePath?: string | null): string | null {
-  if (!storagePath?.startsWith("public:")) return null;
-  return `/${storagePath.slice("public:".length).replace(/^\/+/, "")}`;
+function formatDateTime(value: string | null): string {
+  if (!value) return "Not reported";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not reported";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function listOrNone(items: string[]): string[] {
+  return items.length > 0 ? items : ["No outstanding Founder actions reported by the current health check."];
+}
+
+function safeScopes(scopes: string[]): string {
+  return scopes.length > 0 ? scopes.join(", ") : "Not reported";
+}
+
+function connectionLabel(input: { configured: boolean; connected: boolean; healthy: boolean }): {
+  tone: HealthTone;
+  label: string;
+} {
+  if (input.healthy) return { tone: "healthy", label: "Healthy" };
+  if (!input.configured) return { tone: "warning", label: "Configuration required" };
+  if (!input.connected) return { tone: "danger", label: "Disconnected" };
+  return { tone: "warning", label: "Needs attention" };
 }
 
 export default async function HarmonySocialPage() {
@@ -93,178 +143,279 @@ export default async function HarmonySocialPage() {
   const rows = (jobs ?? []) as SocialJobRow[];
   const assets = (mediaRows ?? []) as SocialAssetRow[];
   const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
-  const awaitingApproval = rows.filter((job) => job.state === "awaiting_approval");
-  const ready = rows.filter((job) => job.state === "approved" || job.state === "failed");
+
+  const pendingApprovals = rows.filter((job) => job.state === "awaiting_approval");
+  const approvedDrafts = rows.filter((job) => job.state === "approved");
+  const rejectedDrafts = rows.filter((job) => job.state === "cancelled" || job.state === "rejected");
   const published = rows.filter((job) => job.state === "published");
-  const inProgress = rows.filter((job) => ["draft", "preparing_media", "uploading", "publishing"].includes(job.state));
-  const blockers = [
-    ...linkedinHealth.issues.map((issue) => `LinkedIn: ${issue.message}`),
-    ...xHealth.blockers.map((blocker) => `X: ${blocker}`),
+  const failed = rows.filter((job) => job.state === "failed");
+  const activeDrafts = rows.filter((job) => ["draft", "preparing_media", "uploading", "publishing"].includes(job.state));
+  const scheduled: SocialJobRow[] = [];
+  const retryAvailable = failed;
+
+  const linkedinActions = listOrNone([
+    ...(linkedinHealth.publisherConfigured ? [] : ["Set the LinkedIn publisher token in production."]),
+    ...(linkedinHealth.organization.urn ? [] : ["Set LINKEDIN_ORGANIZATION_URN or LINKEDIN_ORGANIZATION_ID."]),
+    ...(linkedinHealth.signInConfigured ? [] : ["Configure LinkedIn Sign-In OAuth credentials for identity health."]),
+    ...(linkedinHealth.permissions.organizationPublish ? [] : ["Confirm Community Management API access and w_organization_social permission."]),
+    "Verify the production LinkedIn callback URL in the LinkedIn Developer Portal.",
+    ...linkedinHealth.issues.map((issue) => issue.message),
+  ]);
+
+  const xActions = listOrNone([
+    ...(xHealth.configured ? [] : ["Set the X OAuth client credentials."]),
+    ...(xHealth.connected ? [] : ["Connect the exact production X account in Harmony Integrations."]),
+    ...(xHealth.warnings.length > 0 ? xHealth.warnings : []),
+    ...xHealth.blockers,
+    "Verify the production X callback URL in the X Developer Portal.",
+    "Confirm X scopes: tweet.read, tweet.write, users.read, media.write, offline.access.",
+    "Confirm X API access tier and rate-limit budget for media publishing.",
+  ]);
+
+  const youtubeActions = listOrNone([
+    ...(youtubeHealth.configured ? [] : ["Set the Google OAuth client credentials."]),
+    ...(youtubeHealth.connected ? [] : ["Connect the Founder-owned YouTube channel in Harmony Integrations."]),
+    ...youtubeHealth.blockers,
+    ...youtubeHealth.warnings,
+    "Enable YouTube Data API v3 in Google Cloud.",
+    "Verify the production YouTube callback URL in Google Cloud.",
+    "Confirm OAuth consent and quota budget for channel discovery.",
+    "Keep upload scopes pending until YouTube publishing is implemented.",
+  ]);
+
+  const xConnection = connectionLabel(xHealth);
+  const youtubeConnection = connectionLabel(youtubeHealth);
+  const providerCards: ProviderCardModel[] = [
+    {
+      id: "linkedin",
+      name: "LinkedIn",
+      description: "Organization publisher",
+      tone: linkedinHealth.healthy ? "healthy" : "warning",
+      status: linkedinHealth.healthy ? "Healthy" : "Configuration required",
+      connection: linkedinHealth.publisherConfigured ? "Publisher token present" : "Publisher token missing",
+      readiness: linkedinHealth.healthy ? "Ready for Founder-approved publishing" : "Blocked until publisher setup is complete",
+      identity: linkedinHealth.organization.name ?? linkedinHealth.organization.urn ?? "Approved organization not configured",
+      checkedAt: "Evaluated on page load",
+      capabilities: [
+        { label: "Text post", enabled: linkedInPublishingAdapter.capabilities.textPost },
+        { label: "Document carousel", enabled: linkedInPublishingAdapter.capabilities.documentCarousel },
+        { label: "Image post", enabled: Boolean(linkedInPublishingAdapter.capabilities.imagePost), detail: "Not implemented" },
+        { label: "Video post", enabled: Boolean(linkedInPublishingAdapter.capabilities.videoPost), detail: "Not implemented" },
+      ],
+      limitations: [
+        "Publishes only to the configured approved organization.",
+        "Image and video publishing are unavailable.",
+        "Every external publish requires exact-content Founder approval.",
+      ],
+      founderActions: linkedinActions,
+      diagnostics: [
+        { label: "API version", value: linkedinHealth.apiVersion },
+        { label: "Publisher token", value: linkedinHealth.token.present ? "Present" : "Missing" },
+        { label: "Organization read", value: linkedinHealth.permissions.organizationRead ? "Verified" : "Not verified" },
+        { label: "Organization publish", value: linkedinHealth.permissions.organizationPublish ? "Verified" : "Not verified" },
+      ],
+      action: (
+        <form action={prepareLinkedInTestDraft}>
+          <Button type="submit" size="sm">Prepare LinkedIn test draft</Button>
+        </form>
+      ),
+    },
+    {
+      id: "x",
+      name: "X",
+      description: "Connected account publisher",
+      tone: xConnection.tone,
+      status: xConnection.label,
+      connection: xHealth.connected ? "Connected account" : "Not connected",
+      readiness: xHealth.healthy ? "Ready for Founder-approved publishing" : "Blocked until OAuth health passes",
+      identity: xHealth.identity ?? "Connect X and verify account",
+      checkedAt: formatDateTime(xHealth.checkedAt),
+      capabilities: [
+        { label: "Text post", enabled: xPublishingAdapter.capabilities.textPost },
+        { label: "Single image", enabled: xPublishingAdapter.capabilities.imagePost },
+        { label: "Multi-image", enabled: xPublishingAdapter.capabilities.multiImagePost },
+        { label: "Video post", enabled: xPublishingAdapter.capabilities.videoPost, detail: "Not implemented" },
+      ],
+      limitations: [
+        "Video publishing is unavailable.",
+        "Media publishing depends on the connected account scopes and X API limits.",
+        "Every external publish requires exact-content Founder approval.",
+      ],
+      founderActions: xActions,
+      diagnostics: [
+        { label: "Required scopes", value: safeScopes(xHealth.requiredScopes) },
+        { label: "Granted scopes", value: safeScopes(xHealth.grantedScopes) },
+        { label: "Token", value: xHealth.token.valid === false ? "Invalid or expired" : xHealth.token.present ? "Present" : "Missing" },
+        { label: "Refreshable", value: xHealth.token.refreshable ? "Yes" : "No" },
+      ],
+      action: (
+        <form action={prepareXTestDraft}>
+          <Button type="submit" size="sm">Prepare X test draft</Button>
+        </form>
+      ),
+    },
+    {
+      id: "youtube",
+      name: "YouTube",
+      description: "Read-only channel foundation",
+      tone: youtubeConnection.tone,
+      status: youtubeHealth.healthy ? "Read-only healthy" : youtubeConnection.label,
+      connection: youtubeHealth.connected ? "Connected for channel discovery" : "Not connected",
+      readiness: "Not publish-ready",
+      identity: youtubeHealth.identity ?? "Connect YouTube to verify channel identity",
+      checkedAt: formatDateTime(youtubeHealth.checkedAt),
+      capabilities: [
+        { label: "Channel discovery", enabled: Boolean(youtubeHealth.capabilities.list_channels || youtubeHealth.capabilities.read_channel) },
+        { label: "Video upload", enabled: false, detail: "Not implemented" },
+        { label: "Thumbnail upload", enabled: false, detail: "Not implemented" },
+        { label: "Publishing", enabled: false, detail: "Not implemented" },
+      ],
+      limitations: [
+        "Read-only mode: upload and publish scopes are intentionally pending.",
+        "No channel switching, scheduling, playlists, Shorts, analytics, or upload pipeline exists yet.",
+        "YouTube publishing must be implemented in a future milestone before approval and result persistence apply.",
+      ],
+      founderActions: youtubeActions,
+      diagnostics: [
+        { label: "Required scopes", value: safeScopes(youtubeHealth.requiredScopes) },
+        { label: "Granted scopes", value: safeScopes(youtubeHealth.grantedScopes) },
+        { label: "Token", value: youtubeHealth.token.valid === false ? "Invalid or expired" : youtubeHealth.token.present ? "Present" : "Missing" },
+        { label: "Upload scope", value: "Pending future milestone" },
+      ],
+    },
   ];
+
+  const healthCounts = {
+    healthy: providerCards.filter((provider) => provider.tone === "healthy").length,
+    warning: providerCards.filter((provider) => provider.tone === "warning").length,
+    danger: providerCards.filter((provider) => provider.tone === "danger").length,
+  };
+  const allFounderActions = providerCards.flatMap((provider) =>
+    provider.founderActions.map((action) => `${provider.name}: ${action}`),
+  );
 
   return (
     <>
       <PageHeader
         title="Social"
-        description="Prepare test posts for approved social providers from inside Harmony. External publishing remains Founder-approved and tied to exact caption and media."
+        description="Founder command center for social publishing readiness, approvals, drafts, history, and safe provider diagnostics."
       />
 
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Social overview</CardTitle>
-            <CardDescription>Canonical route: /harmony/social</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Awaiting approval" value={awaitingApproval.length} />
-            <StatTile label="Ready to publish" value={ready.length} />
+      <div className="space-y-6">
+        <section aria-labelledby="health-summary" className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="health-summary" className="text-lg font-semibold">
+                Provider health
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Unified readiness across connection, identity, scopes, and publisher preflight.
+              </p>
+            </div>
+            <Badge variant={healthCounts.danger > 0 ? "destructive" : healthCounts.warning > 0 ? "warning" : "success"}>
+              {healthCounts.healthy} healthy · {healthCounts.warning} configuration required · {healthCounts.danger} disconnected
+            </Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <StatTile label="Pending approvals" value={pendingApprovals.length} />
+            <StatTile label="Approved drafts" value={approvedDrafts.length} />
+            <StatTile label="Failed / retryable" value={retryAvailable.length} />
             <StatTile label="Published" value={published.length} />
-            <StatTile label="Blockers" value={blockers.length} />
-          </CardContent>
-        </Card>
-
-        <section aria-labelledby="provider-connections">
-          <h2 id="provider-connections" className="mb-3 text-lg font-semibold">
-            Provider connections
-          </h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>LinkedIn</CardTitle>
-                <CardDescription>AIOS organization publisher</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <Badge variant={statusVariant(linkedinHealth.healthy)}>
-                  {linkedinHealth.healthy ? "Healthy" : "Blocked"}
-                </Badge>
-                <p className="text-muted-foreground">
-                  Organization: {linkedinHealth.organization.name ?? linkedinHealth.organization.urn ?? "Not configured"}
-                </p>
-                <CapabilityList
-                  capabilities={{
-                    textPost: linkedInPublishingAdapter.capabilities.textPost,
-                    documentCarousel: linkedInPublishingAdapter.capabilities.documentCarousel,
-                    imagePost: linkedInPublishingAdapter.capabilities.imagePost,
-                    videoPost: linkedInPublishingAdapter.capabilities.videoPost,
-                  }}
-                />
-                <form action={prepareLinkedInTestDraft}>
-                  <Button type="submit" size="sm">Prepare LinkedIn test draft</Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>X</CardTitle>
-                <CardDescription>Connected account publisher</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <Badge variant={statusVariant(xHealth.healthy)}>
-                  {xHealth.healthy ? "Healthy" : "Blocked"}
-                </Badge>
-                <p className="text-muted-foreground">
-                  Account: {xHealth.identity ?? "Connect X and verify account"}
-                </p>
-                <CapabilityList
-                  capabilities={{
-                    textPost: xPublishingAdapter.capabilities.textPost,
-                    imagePost: xPublishingAdapter.capabilities.imagePost,
-                    multiImagePost: xPublishingAdapter.capabilities.multiImagePost,
-                    videoPost: xPublishingAdapter.capabilities.videoPost,
-                  }}
-                />
-                <form action={prepareXTestDraft}>
-                  <Button type="submit" size="sm">Prepare X test draft</Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>YouTube</CardTitle>
-                <CardDescription>Future multi-channel milestone</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <Badge variant="outline">Not publish-ready</Badge>
-                <p className="text-muted-foreground">
-                  Connection: {youtubeHealth.connected ? "connected for available read workflows" : "not connected"}
-                </p>
-                <CapabilityList
-                  capabilities={{
-                    channelRead: youtubeHealth.connected && youtubeHealth.token.valid !== false,
-                    upload: false,
-                    publish: false,
-                  }}
-                />
-                <p className="text-muted-foreground">
-                  Upload and publish are intentionally unavailable until the YouTube multi-channel milestone.
-                </p>
-              </CardContent>
-            </Card>
+            <StatTile label="Founder actions" value={allFounderActions.length} />
           </div>
         </section>
 
-        <section aria-labelledby="drafts">
-          <h2 id="drafts" className="mb-3 text-lg font-semibold">
-            Drafts and approvals
+        <section aria-labelledby="providers" className="space-y-3">
+          <h2 id="providers" className="text-lg font-semibold">
+            Provider operations
+          </h2>
+          <div className="grid gap-4 xl:grid-cols-3">
+            {providerCards.map((provider) => (
+              <ProviderOperationsCard key={provider.id} provider={provider} />
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="founder-actions" className="space-y-3">
+          <h2 id="founder-actions" className="text-lg font-semibold">
+            Outstanding Founder actions
           </h2>
           <Card>
-            <CardHeader>
-              <CardTitle>Awaiting Founder approval</CardTitle>
-              <CardDescription>Approval records the exact caption and media hash before publishing can run.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[...awaitingApproval, ...ready, ...inProgress].length === 0 ? (
-                <p className="text-sm text-muted-foreground">No social publishing drafts yet.</p>
+            <CardContent className="space-y-3 p-4 text-sm">
+              {allFounderActions.length === 0 ? (
+                <p className="text-muted-foreground">No outstanding manual setup actions reported.</p>
               ) : (
-                [...awaitingApproval, ...ready, ...inProgress].map((job) => (
-                  <SocialJobCard key={job.id} job={job} assetsById={assetsById} />
-                ))
+                <ul className="grid gap-2 md:grid-cols-2">
+                  {allFounderActions.map((action) => (
+                    <li key={action} className="rounded-md border bg-muted/30 px-3 py-2">
+                      {action}
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Published / recent activity</CardTitle>
-              <CardDescription>Provider result IDs and URLs are shown only after a real publish response.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {published.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No published social posts yet.</p>
-              ) : (
-                published.map((job) => <SocialJobCard key={job.id} job={job} assetsById={assetsById} readOnly />)
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Blockers</CardTitle>
-              <CardDescription>Publishing preflight must pass before external provider calls are made.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {blockers.length === 0 ? (
-                <p className="text-muted-foreground">No provider blockers reported.</p>
-              ) : (
-                <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
-                  {blockers.map((blocker) => (
-                    <li key={blocker}>{blocker}</li>
-                  ))}
-                </ul>
-              )}
-              <div className="rounded-lg border p-3">
-                <p className="font-medium">Scheduling and analytics</p>
-                <p className="mt-1 text-muted-foreground">
-                  Scheduled publishing and live social analytics are not implemented in this milestone.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <section aria-labelledby="publishing-work" className="space-y-3">
+          <h2 id="publishing-work" className="text-lg font-semibold">
+            Publishing work
+          </h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <JobSection
+              title="Pending approvals"
+              description="Drafts waiting for exact-content Founder approval."
+              jobs={pendingApprovals}
+              assetsById={assetsById}
+            />
+            <JobSection
+              title="Approved drafts"
+              description="Ready to publish. Failed jobs are retryable only while the approved hash still matches."
+              jobs={approvedDrafts}
+              assetsById={assetsById}
+            />
+            <JobSection
+              title="Rejected drafts"
+              description="No separate rejected state exists yet; cancelled jobs are shown here when present."
+              jobs={rejectedDrafts}
+              assetsById={assetsById}
+            />
+            <JobSection
+              title="Failed / retry available"
+              description="Retry remains gated by provider health and exact-content approval."
+              jobs={retryAvailable}
+              assetsById={assetsById}
+            />
+            <JobSection
+              title="Scheduled work"
+              description="Scheduled publishing is not implemented yet, so no scheduled provider work is fabricated."
+              jobs={scheduled}
+              assetsById={assetsById}
+              emptyText="Scheduled publishing is unavailable in this milestone."
+              readOnly
+            />
+            <JobSection
+              title="Published history"
+              description="Provider IDs and URLs appear only after real provider responses."
+              jobs={published}
+              assetsById={assetsById}
+              readOnly
+            />
+          </div>
+          {activeDrafts.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Drafts in progress</CardTitle>
+                <CardDescription>Jobs currently preparing media, uploading, or publishing.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {activeDrafts.map((job) => (
+                  <SocialJobCard key={job.id} job={job} assetsById={assetsById} />
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
       </div>
     </>
   );
@@ -273,22 +424,135 @@ export default async function HarmonySocialPage() {
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border p-3">
-      <p className="text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
 
-function CapabilityList({ capabilities }: { capabilities: Record<string, boolean> }) {
+function ProviderOperationsCard({ provider }: { provider: ProviderCardModel }) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle>{provider.name}</CardTitle>
+            <CardDescription>{provider.description}</CardDescription>
+          </div>
+          <Badge variant={badgeForTone(provider.tone)}>{provider.status}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <dl className="grid gap-2">
+          <DetailRow label="Connection" value={provider.connection} />
+          <DetailRow label="Publisher readiness" value={provider.readiness} />
+          <DetailRow label="Identity" value={provider.identity} />
+          <DetailRow label="Last health check" value={provider.checkedAt} />
+        </dl>
+
+        <div>
+          <p className="mb-2 font-medium">Capabilities</p>
+          <CapabilityList capabilities={provider.capabilities} />
+        </div>
+
+        <div>
+          <p className="mb-2 font-medium">Current limitations</p>
+          <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+            {provider.limitations.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className="mb-2 font-medium">Founder actions</p>
+          <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+            {provider.founderActions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className="mb-2 font-medium">Safe diagnostics</p>
+          <dl className="grid gap-2">
+            {provider.diagnostics.map((item) => (
+              <DetailRow key={item.label} label={item.label} value={item.value} />
+            ))}
+          </dl>
+        </div>
+
+        {provider.action ? <div className="pt-1">{provider.action}</div> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </div>
+  );
+}
+
+function CapabilityList({ capabilities }: { capabilities: CapabilityItem[] }) {
   return (
     <dl className="grid gap-2">
-      {Object.entries(capabilities).map(([name, enabled]) => (
-        <div key={name} className="flex items-center justify-between gap-3">
-          <dt>{name}</dt>
-          <dd>{capabilityBadge(enabled)}</dd>
+      {capabilities.map((capability) => (
+        <div key={capability.label} className="flex items-center justify-between gap-3">
+          <dt>
+            <span>{capability.label}</span>
+            {capability.detail ? <span className="ml-2 text-xs text-muted-foreground">{capability.detail}</span> : null}
+          </dt>
+          <dd>
+            {capability.enabled ? (
+              <Badge variant="success">available</Badge>
+            ) : (
+              <Badge variant="outline">unavailable</Badge>
+            )}
+          </dd>
         </div>
       ))}
     </dl>
+  );
+}
+
+function JobSection({
+  title,
+  description,
+  jobs,
+  assetsById,
+  emptyText = "No jobs in this group.",
+  readOnly = false,
+}: {
+  title: string;
+  description: string;
+  jobs: SocialJobRow[];
+  assetsById: Map<string, SocialAssetRow>;
+  emptyText?: string;
+  readOnly?: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <Badge variant="secondary" className="tabular-nums">{jobs.length}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {jobs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{emptyText}</p>
+        ) : (
+          jobs.map((job) => <SocialJobCard key={job.id} job={job} assetsById={assetsById} readOnly={readOnly} />)
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -344,7 +608,7 @@ function SocialJobCard({
               <input type="hidden" name="job_id" value={job.id} />
               <input type="hidden" name="provider" value={job.provider} />
               <Button type="submit" size="sm" disabled={job.state !== "approved" && job.state !== "failed"}>
-                Publish
+                {job.state === "failed" ? "Retry publish" : "Publish"}
               </Button>
             </form>
           </div>
