@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { NAV_ICONS, type NavItem } from "./nav-config";
+import { isNavItemActive, NAV_ICONS, type NavItem } from "./nav-config";
 import { cn } from "@/lib/utils";
 
 export function NavLink({
@@ -18,9 +18,7 @@ export function NavLink({
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const active = item.exact
-    ? pathname === item.href
-    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = isNavItemActive(pathname, item);
   // Resolve the icon key → component here (client side), so the Server Sidebar
   // never passes a function across the Server/Client boundary.
   const Icon = NAV_ICONS[item.icon];

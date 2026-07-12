@@ -17,6 +17,11 @@ Products live in their own route groups and feature folders but reuse Core's com
 data clients, i18n, and conventions. This keeps the codebase modular without premature
 microservice complexity.
 
+Harmony Social is a native Harmony module at `/harmony/social`. It uses the existing Harmony
+layout and navigation, keeps external publishing Founder-approved, and currently supports the
+LinkedIn and X test publishing providers. YouTube multi-channel publishing remains a separate
+upcoming milestone.
+
 ## Guiding principles (engineering implications)
 
 | Principle | How it shows up in code |
@@ -97,6 +102,6 @@ never breaks the build.
 
 ## What is intentionally NOT here (yet)
 
-Opera, marketplace, mobile apps, billing, CRM, social integrations, team management, enterprise
+Opera, mobile apps, billing, CRM, team management, enterprise
 features, and an AI agent marketplace are **out of scope** for this build and must not be added
 until their dedicated phases.

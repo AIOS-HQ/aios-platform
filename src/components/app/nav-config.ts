@@ -14,6 +14,7 @@ import {
   ListChecks,
   ListTodo,
   MessageSquare,
+  Share2,
   Plug,
   Settings,
   ShieldCheck,
@@ -46,6 +47,7 @@ export const NAV_ICONS = {
   ListChecks,
   ListTodo,
   MessageSquare,
+  Share2,
   Plug,
   Settings,
   ShieldCheck,
@@ -140,6 +142,7 @@ export const navSections: NavSection[] = [
       { href: "/harmony/activity", labelKey: "activity", icon: "Activity" },
       { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
       { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
+      { href: "/harmony/social", labelKey: "social", icon: "Share2" },
       { href: "/harmony/integrations", labelKey: "integrations", icon: "Plug" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
@@ -191,6 +194,12 @@ export function sectionsForAudience(isFounder: boolean): NavSection[] {
     if (audience === "all") return true;
     return isFounder ? audience === "founder" : audience === "customer";
   });
+}
+
+export function isNavItemActive(pathname: string, item: NavItem): boolean {
+  return item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 /**
