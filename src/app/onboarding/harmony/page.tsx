@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Brain, Sparkles } from "lucide-react";
 import { AiosHarmonyLogo } from "@/components/brand/logo";
-import { HarmonyMark } from "@/components/brand/harmony-logo";
 import {
   OnboardingFlow,
   type OnboardingFlowData,
@@ -33,10 +32,6 @@ export default function HarmonyOnboardingPage() {
         className="pointer-events-none absolute left-1/2 top-[-14rem] h-[42rem] w-[60rem] -translate-x-1/2 rounded-full bg-sky-500/18 blur-[150px]"
         aria-hidden="true"
       />
-      <HarmonyMark
-        className="pointer-events-none absolute left-1/2 top-1/2 size-[24rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.09] blur-[0.2px] sm:size-[32rem]"
-      />
-
       <header className="relative z-10 px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
           <Link href="/" aria-label={ui.home} className="inline-flex">
@@ -59,8 +54,7 @@ export default function HarmonyOnboardingPage() {
         <div className="mx-auto grid min-h-[calc(100dvh-6rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(25rem,34rem)] lg:gap-8">
           <aside className="hidden lg:block">
             <div className="auth-executive-rail max-w-xl p-6">
-              <HarmonyMark className="size-20" title="Harmony" />
-              <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/80">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/80">
                 {flow.eyebrow}
               </p>
               <h1 className="mt-4 max-w-xl text-5xl font-semibold leading-[1.02] tracking-tight text-white">

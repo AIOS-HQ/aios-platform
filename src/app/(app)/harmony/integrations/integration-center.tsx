@@ -10,6 +10,7 @@ import {
   Clock,
   ExternalLink,
   KeyRound,
+  ListChecks,
   Plug,
   RefreshCw,
   Search,
@@ -22,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { ConnectorGlyph } from "@/components/brand/brand-icons";
 
 /**
  * Serializable connector view-model produced by the Integration Center server
@@ -39,6 +41,11 @@ export interface ConnectorView {
   scopeCount: number;
   authorizable: boolean;
   connected: boolean;
+  configured: boolean;
+  identity: string | null;
+  checkedAt: string | null;
+  requiredScopes: string[];
+  grantedScopes: string[];
   state: string | null;
   status: string;
   tokenEncryption: string | null;
@@ -52,6 +59,18 @@ export interface ConnectorView {
   healthScore: number | null;
   affordance: string;
   connectHref: string;
+  classification: string;
+  classificationLabel: string;
+  classificationDescription: string;
+  implementedCapabilities: string[];
+  unavailableCapabilities: string[];
+  founderActions: string[];
+  diagnostics: string[];
+  selfTestAvailable: boolean;
+  implementedReadCount: number;
+  implementedWriteCount: number;
+  declaredReadCount: number;
+  declaredWriteCount: number;
 }
 
 type StateKey =
@@ -127,6 +146,16 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 
 const ATTENTION_STATES = new Set(["needs_reauth", "plaintext_token"]);
 
+const CLASSIFICATION_BADGE: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  production_ready: "default",
+  partial: "secondary",
+  read_only: "secondary",
+  configuration_required: "outline",
+  reauthorization_required: "destructive",
+  framework_only: "outline",
+  unsupported: "outline",
+};
+
 export function IntegrationCenter({
   items,
   overallHealth,
@@ -154,7 +183,7 @@ export function IntegrationCenter({
       connected: connected.length,
       healthy: connected.filter((i) => i.state === "healthy").length,
       attention: connected.filter((i) => ATTENTION_STATES.has(i.state ?? "")).length,
-      encrypted: connected.filter((i) => i.tokenEncryption === "encrypted").length,
+      productionReady: items.filter((i) => i.classification === "production_ready").length,
     };
   }, [items]);
 
@@ -208,8 +237,8 @@ export function IntegrationCenter({
         />
         <SummaryStat
           icon={<ShieldCheck className="size-4 text-emerald-500" />}
-          label="Encrypted tokens"
-          value={counts.encrypted}
+          label="Production-ready"
+          value={counts.productionReady}
         />
       </div>
 
@@ -304,14 +333,6 @@ function SummaryStat({ icon, label, value }: { icon: ReactNode; label: string; v
   );
 }
 
-function Monogram({ initials }: { initials: string }) {
-  return (
-    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border bg-muted text-sm font-semibold text-foreground">
-      {initials}
-    </span>
-  );
-}
-
 function DetailRow({
   icon,
   label,
@@ -332,6 +353,26 @@ function DetailRow({
   );
 }
 
+function CapabilityList({ values, empty }: { values: string[]; empty: string }) {
+  if (values.length === 0) {
+    return <p className="text-xs text-muted-foreground">{empty}</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {values.slice(0, 8).map((value) => (
+        <Badge key={value} variant="outline" className="text-[11px] font-normal">
+          {value}
+        </Badge>
+      ))}
+      {values.length > 8 ? (
+        <Badge variant="outline" className="text-[11px] font-normal">
+          +{values.length - 8} more
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
+
 function ConnectorCard({
   c,
   open,
@@ -345,12 +386,20 @@ function ConnectorCard({
   const encrypted = c.tokenEncryption === "encrypted";
   const canConnect = c.affordance === "connect" || c.affordance === "reauthorize";
   const finishSetup = c.affordance === "finish_setup";
+  const classificationBadge = CLASSIFICATION_BADGE[c.classification] ?? "outline";
+  const hasDetails =
+    c.connected ||
+    c.founderActions.length > 0 ||
+    c.diagnostics.length > 0 ||
+    c.implementedCapabilities.length > 0 ||
+    c.unavailableCapabilities.length > 0 ||
+    c.requiredScopes.length > 0;
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="flex items-start gap-3">
-          <Monogram initials={c.initials} />
+          <ConnectorGlyph id={c.id} initials={c.initials} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h3 className="truncate text-sm font-semibold">{c.name}</h3>
@@ -358,23 +407,31 @@ function ConnectorCard({
             <p className="truncate text-xs capitalize text-muted-foreground">
               {c.category.replace(/_/g, " ")} · {c.auth === "oauth2" ? "OAuth 2.0" : c.auth.replace(/_/g, " ")}
             </p>
+            {c.identity ? (
+              <p className="mt-1 truncate text-xs text-muted-foreground">Identity: {c.identity}</p>
+            ) : null}
           </div>
-          {c.connected ? (
-            <span className="flex items-center gap-1.5">
-              <span className={cn("size-2 rounded-full", meta.dot)} aria-hidden="true" />
-              <Badge variant={meta.badge} className="shrink-0">
-                {meta.label}
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {c.connected ? (
+              <span className="flex items-center gap-1.5">
+                <span className={cn("size-2 rounded-full", meta.dot)} aria-hidden="true" />
+                <Badge variant={meta.badge} className="shrink-0">
+                  {meta.label}
+                </Badge>
+              </span>
+            ) : finishSetup ? (
+              <Badge variant="outline" className="shrink-0">
+                Setup required
               </Badge>
-            </span>
-          ) : finishSetup ? (
-            <Badge variant="outline" className="shrink-0">
-              Setup required
+            ) : (
+              <Badge variant="secondary" className="shrink-0">
+                {c.authorizable ? "Available" : "Coming soon"}
+              </Badge>
+            )}
+            <Badge variant={classificationBadge} className="shrink-0">
+              {c.classificationLabel}
             </Badge>
-          ) : (
-            <Badge variant="secondary" className="shrink-0">
-              {c.authorizable ? "Available" : "Coming soon"}
-            </Badge>
-          )}
+          </div>
         </div>
 
         {/* Health score bar for connected connectors */}
@@ -409,6 +466,19 @@ function ConnectorCard({
           </div>
         ) : null}
 
+        <div className="grid gap-2 rounded-md bg-muted/35 p-2 text-xs">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <ListChecks className="size-3.5" />
+              {c.implementedReadCount + c.implementedWriteCount}/
+              {c.declaredReadCount + c.declaredWriteCount} capabilities implemented
+            </span>
+            <span>{c.configured ? "Developer config present" : "Developer config pending"}</span>
+            {c.selfTestAvailable ? <span>Self-test available</span> : null}
+          </div>
+          <p className="text-muted-foreground">{c.classificationDescription}</p>
+        </div>
+
         {/* Recommended action */}
         {c.connected && c.recommendedAction && c.state !== "healthy" ? (
           <div className="flex items-start gap-2 rounded-md bg-muted/50 p-2 text-xs">
@@ -427,7 +497,15 @@ function ConnectorCard({
               </a>
             </Button>
           ) : null}
-          {c.connected ? (
+          {c.selfTestAvailable && c.connected ? (
+            <Button asChild variant="outline" size="sm" className="h-7">
+              <a href={`/api/admin/integrations/${c.id}/selftest`}>
+                <Activity className="size-3.5" />
+                Self-test
+              </a>
+            </Button>
+          ) : null}
+          {hasDetails ? (
             <Button variant="ghost" size="sm" className="h-7" onClick={onToggle} aria-expanded={open}>
               Details
               <ChevronDown className={cn("size-3.5 transition", open && "rotate-180")} />
@@ -445,17 +523,22 @@ function ConnectorCard({
         </div>
 
         {/* Expandable detail — all real fields + connection timeline */}
-        {open && c.connected ? (
+        {open && hasDetails ? (
           <div className="mt-1 border-t pt-2">
             <DetailRow icon={<Activity className="size-3.5" />} label="Status">
               <span className="capitalize">{c.status.replace(/_/g, " ")}</span>
             </DetailRow>
+            <DetailRow icon={<Plug className="size-3.5" />} label="Identity">
+              {c.identity ?? "Not verified"}
+            </DetailRow>
             <DetailRow icon={<KeyRound className="size-3.5" />} label="Token encryption">
-              {c.tokenEncryption === "encrypted"
-                ? "AES-256-GCM (enc:v1)"
-                : c.tokenEncryption === "plaintext"
-                  ? "Plaintext (backfill pending)"
-                  : "No token stored"}
+              {c.connected
+                ? c.tokenEncryption === "encrypted"
+                  ? "AES-256-GCM (enc:v1)"
+                  : c.tokenEncryption === "plaintext"
+                    ? "Plaintext (backfill pending)"
+                    : "No token stored"
+                : "No token stored"}
             </DetailRow>
             <DetailRow icon={<RefreshCw className="size-3.5" />} label="Auto-refresh">
               {c.refreshable ? "Enabled" : c.hasRefreshToken ? "Refresh token present" : "Not supported"}
@@ -472,6 +555,50 @@ function ConnectorCard({
             <DetailRow icon={<ShieldCheck className="size-3.5" />} label="OAuth">
               {c.oauthFamily ? `${c.oauthFamily} · ${c.scopeCount} scope(s)` : "—"}
             </DetailRow>
+            <DetailRow icon={<Clock className="size-3.5" />} label="Last health check">
+              {fmtDateTime(c.checkedAt)}
+            </DetailRow>
+            <div className="mt-3 grid gap-3">
+              <div>
+                <p className="mb-1.5 text-xs font-medium">Implemented capabilities</p>
+                <CapabilityList values={c.implementedCapabilities} empty="No runtime capability is currently implemented." />
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-medium">Unavailable capabilities</p>
+                <CapabilityList values={c.unavailableCapabilities} empty="No unavailable declared capabilities." />
+              </div>
+              {c.founderActions.length > 0 ? (
+                <div>
+                  <p className="mb-1 text-xs font-medium">Founder actions</p>
+                  <ul className="grid gap-1 text-xs text-muted-foreground">
+                    {c.founderActions.map((action) => (
+                      <li key={action}>- {action}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {c.diagnostics.length > 0 ? (
+                <div>
+                  <p className="mb-1 text-xs font-medium">Safe diagnostics</p>
+                  <ul className="grid gap-1 text-xs text-muted-foreground">
+                    {c.diagnostics.map((diagnostic) => (
+                      <li key={diagnostic}>- {diagnostic}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {c.requiredScopes.length > 0 ? (
+                <div>
+                  <p className="mb-1 text-xs font-medium">Scopes</p>
+                  <p className="break-words text-xs text-muted-foreground">
+                    Required: {c.requiredScopes.join(", ")}
+                  </p>
+                  <p className="break-words text-xs text-muted-foreground">
+                    Granted: {c.grantedScopes.length > 0 ? c.grantedScopes.join(", ") : "Not connected"}
+                  </p>
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </CardContent>

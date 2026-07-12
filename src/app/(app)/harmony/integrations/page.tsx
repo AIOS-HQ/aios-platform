@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth/user";
-import { getConnectorHealth } from "@/lib/integrations/connector-health";
+import { getConnectorHealth, getProviderHealth } from "@/lib/integrations/connector-health";
 import { getConnections } from "@/lib/integrations/connections";
 import { listConnectorDefinitions } from "@/lib/integrations/registry";
 import { connectAffordanceFor, connectHref } from "@/lib/integrations/connect-gate";
+import { assessIntegrationReadiness } from "@/lib/integrations/readiness";
 import { PageHeader } from "@/components/shared/page-header";
 import { IntegrationCenter, type ConnectorView } from "./integration-center";
 
@@ -30,20 +31,26 @@ const STATE_SCORE: Record<string, number> = {
 export default async function IntegrationCenterPage() {
   const user = await requireUser();
 
-  const [health, connections] = await Promise.all([
+  const defs = listConnectorDefinitions();
+  const [health, normalizedHealth, connections] = await Promise.all([
     getConnectorHealth(user.id),
+    Promise.all(defs.map((def) => getProviderHealth(user.id, def.id))),
     getConnections(user.id),
   ]);
 
-  const defs = listConnectorDefinitions();
   const healthByProvider = new Map(health.map((h) => [h.provider, h]));
+  const normalizedByProvider = new Map(normalizedHealth.map((h) => [h.provider, h]));
   const connByProvider = new Map(connections.map((c) => [c.provider, c]));
 
   const items: ConnectorView[] = defs.map((def) => {
     const h = healthByProvider.get(def.id);
+    const normalized = normalizedByProvider.get(def.id);
     const conn = connByProvider.get(def.id);
     const connected = (conn?.status ?? "") === "connected";
     const isExpired = h?.isExpired ?? false;
+    const readiness = normalized
+      ? assessIntegrationReadiness(def, normalized)
+      : null;
 
     return {
       id: def.id,
@@ -56,6 +63,11 @@ export default async function IntegrationCenterPage() {
       scopeCount: def.scopes?.length ?? 0,
       authorizable: def.authorizable,
       connected,
+      configured: normalized?.configured ?? false,
+      identity: normalized?.identity ?? conn?.external_account ?? null,
+      checkedAt: normalized?.checkedAt ?? null,
+      requiredScopes: normalized?.requiredScopes ?? def.scopes ?? [],
+      grantedScopes: normalized?.grantedScopes ?? [],
       state: h?.state ?? null,
       status: h?.status ?? (connected ? "connected" : "not_connected"),
       tokenEncryption: h?.tokenEncryption ?? null,
@@ -69,6 +81,18 @@ export default async function IntegrationCenterPage() {
       healthScore: h ? (STATE_SCORE[h.state] ?? 50) : null,
       affordance: connectAffordanceFor(def.id, { connected, expired: isExpired }),
       connectHref: connectHref(def.id),
+      classification: readiness?.classification ?? "unsupported",
+      classificationLabel: readiness?.classificationLabel ?? "Unsupported",
+      classificationDescription: readiness?.classificationDescription ?? "No usable implementation exists.",
+      implementedCapabilities: readiness?.implementedCapabilities ?? [],
+      unavailableCapabilities: readiness?.unavailableCapabilities ?? [],
+      founderActions: readiness?.founderActions ?? [],
+      diagnostics: readiness?.diagnostics ?? [],
+      selfTestAvailable: readiness?.selfTestAvailable ?? false,
+      implementedReadCount: readiness?.implementedReadCount ?? 0,
+      implementedWriteCount: readiness?.implementedWriteCount ?? 0,
+      declaredReadCount: readiness?.declaredReadCount ?? 0,
+      declaredWriteCount: readiness?.declaredWriteCount ?? 0,
     };
   });
 
