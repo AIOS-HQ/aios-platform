@@ -13,10 +13,16 @@ import {
   approveSocialDraft,
   prepareLinkedInTestDraft,
   prepareXTestDraft,
+  prepareYouTubeDraft,
   publishSocialDraft,
 } from "@/lib/social-publishing/actions";
 import { linkedInPublishingAdapter } from "@/lib/social-publishing/adapters/linkedin";
 import { xPublishingAdapter } from "@/lib/social-publishing/adapters/x";
+import { listYouTubeChannels, listYouTubePlaylists, youTubePublishingAdapter } from "@/lib/social-publishing/adapters/youtube";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 export const metadata: Metadata = {
   title: "Social",
@@ -24,11 +30,20 @@ export const metadata: Metadata = {
 
 type SocialJobRow = {
   id: string;
-  provider: "linkedin" | "x";
+  provider: "linkedin" | "x" | "youtube";
   content_type: string;
   title: string;
   caption: string;
   target_identity: string;
+  youtube_channel_id: string | null;
+  youtube_channel_title: string | null;
+  youtube_visibility: string | null;
+  youtube_tags: string[];
+  youtube_playlist_id: string | null;
+  youtube_playlist_title: string | null;
+  scheduled_at: string | null;
+  upload_progress: number | null;
+  processing_status: string | null;
   state: string;
   media_asset_ids: string[];
   approved_content_hash: string | null;
@@ -40,14 +55,29 @@ type SocialJobRow = {
 
 type SocialAssetRow = {
   id: string;
-  provider: "linkedin" | "x";
+  provider: "linkedin" | "x" | "youtube";
   kind: string;
   mime_type: string;
   file_name: string;
   storage_path: string | null;
   page_count: number | null;
+  duration_seconds: number | null;
+  width: number | null;
+  height: number | null;
   alt_text: string | null;
   state: string;
+};
+
+type YouTubeChannelOption = {
+  id: string;
+  title: string;
+  customUrl: string | null;
+};
+
+type YouTubePlaylistOption = {
+  id: string;
+  title: string;
+  channelId: string | null;
 };
 
 type HealthTone = "healthy" | "warning" | "danger";
@@ -87,7 +117,9 @@ function previewHref(storagePath?: string | null): string | null {
 }
 
 function providerLabel(provider: string) {
-  return provider === "x" ? "X" : "LinkedIn";
+  if (provider === "x") return "X";
+  if (provider === "youtube") return "YouTube";
+  return "LinkedIn";
 }
 
 function formatDateTime(value: string | null): string {
@@ -123,21 +155,31 @@ function connectionLabel(input: { configured: boolean; connected: boolean; healt
 export default async function HarmonySocialPage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const [{ data: jobs }, { data: mediaRows }, linkedinHealth, xHealth, youtubeHealth] = await Promise.all([
+  const [
+    { data: jobs },
+    { data: mediaRows },
+    linkedinHealth,
+    xHealth,
+    youtubeHealth,
+    youtubeChannels,
+    youtubePlaylists,
+  ] = await Promise.all([
     supabase
       .from("social_publish_jobs")
       .select("*")
       .eq("user_id", user.id)
-      .in("provider", ["linkedin", "x"])
+      .in("provider", ["linkedin", "x", "youtube"])
       .order("created_at", { ascending: false }),
     supabase
       .from("social_media_assets")
       .select("*")
       .eq("user_id", user.id)
-      .in("provider", ["linkedin", "x"]),
+      .in("provider", ["linkedin", "x", "youtube"]),
     getLinkedInPublisherHealth(),
     getProviderHealth(user.id, "x"),
     getProviderHealth(user.id, "youtube"),
+    listYouTubeChannels(user.id).catch(() => [] as YouTubeChannelOption[]),
+    listYouTubePlaylists(user.id).catch(() => [] as YouTubePlaylistOption[]),
   ]);
 
   const rows = (jobs ?? []) as SocialJobRow[];
@@ -150,7 +192,7 @@ export default async function HarmonySocialPage() {
   const published = rows.filter((job) => job.state === "published");
   const failed = rows.filter((job) => job.state === "failed");
   const activeDrafts = rows.filter((job) => ["draft", "preparing_media", "uploading", "publishing"].includes(job.state));
-  const scheduled: SocialJobRow[] = [];
+  const scheduled = rows.filter((job) => job.provider === "youtube" && job.scheduled_at && job.state !== "published");
   const retryAvailable = failed;
 
   const linkedinActions = listOrNone([
@@ -174,13 +216,14 @@ export default async function HarmonySocialPage() {
 
   const youtubeActions = listOrNone([
     ...(youtubeHealth.configured ? [] : ["Set the Google OAuth client credentials."]),
-    ...(youtubeHealth.connected ? [] : ["Connect the Founder-owned YouTube channel in Harmony Integrations."]),
+    ...(youtubeHealth.connected ? [] : ["Connect the Founder-owned YouTube account in Harmony Integrations."]),
+    ...(youtubeChannels.length > 0 ? [] : ["Reconnect or verify YouTube so Harmony can discover at least one owned channel."]),
     ...youtubeHealth.blockers,
     ...youtubeHealth.warnings,
     "Enable YouTube Data API v3 in Google Cloud.",
     "Verify the production YouTube callback URL in Google Cloud.",
-    "Confirm OAuth consent and quota budget for channel discovery.",
-    "Keep upload scopes pending until YouTube publishing is implemented.",
+    "Confirm OAuth consent verification for YouTube upload and account-management scopes.",
+    "Confirm quota budget for resumable uploads, thumbnail uploads, playlist writes, and processing polling.",
   ]);
 
   const xConnection = connectionLabel(xHealth);
@@ -257,31 +300,39 @@ export default async function HarmonySocialPage() {
     {
       id: "youtube",
       name: "YouTube",
-      description: "Read-only channel foundation",
+      description: "Multi-channel video publisher",
       tone: youtubeConnection.tone,
-      status: youtubeHealth.healthy ? "Read-only healthy" : youtubeConnection.label,
-      connection: youtubeHealth.connected ? "Connected for channel discovery" : "Not connected",
-      readiness: "Not publish-ready",
-      identity: youtubeHealth.identity ?? "Connect YouTube to verify channel identity",
+      status: youtubeHealth.healthy ? "Publish-ready" : youtubeConnection.label,
+      connection: youtubeHealth.connected ? "Connected account" : "Not connected",
+      readiness: youtubeHealth.healthy ? "Ready for Founder-approved video publishing" : "Blocked until OAuth, scopes, and channel discovery pass",
+      identity: youtubeChannels.length > 0
+        ? youtubeChannels.map((channel) => channel.title).join(", ")
+        : youtubeHealth.identity ?? "Connect YouTube to verify channel identity",
       checkedAt: formatDateTime(youtubeHealth.checkedAt),
       capabilities: [
         { label: "Channel discovery", enabled: Boolean(youtubeHealth.capabilities.list_channels || youtubeHealth.capabilities.read_channel) },
-        { label: "Video upload", enabled: false, detail: "Not implemented" },
-        { label: "Thumbnail upload", enabled: false, detail: "Not implemented" },
-        { label: "Publishing", enabled: false, detail: "Not implemented" },
+        { label: "Channel switching", enabled: youTubePublishingAdapter.capabilities.channelSwitching },
+        { label: "Playlist selection", enabled: youTubePublishingAdapter.capabilities.playlistSelection },
+        { label: "Video upload", enabled: youTubePublishingAdapter.capabilities.videoUpload },
+        { label: "Thumbnail upload", enabled: youTubePublishingAdapter.capabilities.thumbnailUpload },
+        { label: "Scheduled publishing", enabled: youTubePublishingAdapter.capabilities.scheduledPublishing },
+        { label: "Shorts publishing", enabled: youTubePublishingAdapter.capabilities.shortsPublishing },
       ],
       limitations: [
-        "Read-only mode: upload and publish scopes are intentionally pending.",
-        "No channel switching, scheduling, playlists, Shorts, analytics, or upload pipeline exists yet.",
-        "YouTube publishing must be implemented in a future milestone before approval and result persistence apply.",
+        "Every upload requires exact-content Founder approval before any YouTube write call.",
+        "Live analytics, comments, Creator Studio sync, and livestream workflows are not implemented.",
+        "YouTube quota and OAuth verification remain external Google Cloud controls.",
       ],
       founderActions: youtubeActions,
       diagnostics: [
         { label: "Required scopes", value: safeScopes(youtubeHealth.requiredScopes) },
         { label: "Granted scopes", value: safeScopes(youtubeHealth.grantedScopes) },
         { label: "Token", value: youtubeHealth.token.valid === false ? "Invalid or expired" : youtubeHealth.token.present ? "Present" : "Missing" },
-        { label: "Upload scope", value: "Pending future milestone" },
+        { label: "Channels", value: youtubeChannels.length },
+        { label: "Playlists", value: youtubePlaylists.length },
+        { label: "Upload scope", value: youtubeHealth.grantedScopes.includes("https://www.googleapis.com/auth/youtube.upload") ? "Granted" : "Missing" },
       ],
+      action: <YouTubeDraftForm channels={youtubeChannels} playlists={youtubePlaylists} disabled={!youtubeHealth.healthy || youtubeChannels.length === 0} />,
     },
   ];
 
@@ -388,11 +439,10 @@ export default async function HarmonySocialPage() {
             />
             <JobSection
               title="Scheduled work"
-              description="Scheduled publishing is not implemented yet, so no scheduled provider work is fabricated."
+              description="YouTube jobs with a scheduled publish time. Publishing sends the approved schedule to YouTube."
               jobs={scheduled}
               assetsById={assetsById}
-              emptyText="Scheduled publishing is unavailable in this milestone."
-              readOnly
+              emptyText="No scheduled YouTube publishing jobs."
             />
             <JobSection
               title="Published history"
@@ -488,6 +538,125 @@ function ProviderOperationsCard({ provider }: { provider: ProviderCardModel }) {
   );
 }
 
+function YouTubeDraftForm({
+  channels,
+  playlists,
+  disabled,
+}: {
+  channels: YouTubeChannelOption[];
+  playlists: YouTubePlaylistOption[];
+  disabled: boolean;
+}) {
+  return (
+    <form action={prepareYouTubeDraft} className="space-y-3 rounded-md border bg-muted/20 p-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-content-type">Format</Label>
+          <select
+            id="youtube-content-type"
+            name="content_type"
+            disabled={disabled}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="youtube_video">Video</option>
+            <option value="youtube_short">Short</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-channel">Channel</Label>
+          <select
+            id="youtube-channel"
+            name="youtube_channel_id"
+            disabled={disabled}
+            required
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Select channel</option>
+            {channels.map((channel) => (
+              <option key={channel.id} value={channel.id}>
+                {channel.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="youtube-title">Title</Label>
+        <Input id="youtube-title" name="title" disabled={disabled} required maxLength={100} />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="youtube-description">Description</Label>
+        <Textarea id="youtube-description" name="description" disabled={disabled} required rows={4} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-visibility">Visibility</Label>
+          <select
+            id="youtube-visibility"
+            name="youtube_visibility"
+            disabled={disabled}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="private">Private</option>
+            <option value="unlisted">Unlisted</option>
+            <option value="public">Public</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-scheduled-at">Scheduled publish time</Label>
+          <Input id="youtube-scheduled-at" name="scheduled_at" type="datetime-local" disabled={disabled} />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="youtube-playlist">Playlist</Label>
+        <select
+          id="youtube-playlist"
+          name="youtube_playlist_id"
+          disabled={disabled}
+          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">No playlist</option>
+          {playlists.map((playlist) => (
+            <option key={playlist.id} value={playlist.id}>
+              {playlist.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="youtube-tags">Tags</Label>
+        <Input id="youtube-tags" name="youtube_tags" disabled={disabled} placeholder="comma-separated" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1.5 sm:col-span-3">
+          <Label htmlFor="youtube-video">Video file</Label>
+          <Input id="youtube-video" name="video" type="file" accept="video/mp4,video/quicktime,video/webm" disabled={disabled} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-duration">Duration seconds</Label>
+          <Input id="youtube-duration" name="duration_seconds" type="number" min="1" disabled={disabled} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-width">Width</Label>
+          <Input id="youtube-width" name="video_width" type="number" min="1" disabled={disabled} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="youtube-height">Height</Label>
+          <Input id="youtube-height" name="video_height" type="number" min="1" disabled={disabled} />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="youtube-thumbnail">Thumbnail file</Label>
+        <Input id="youtube-thumbnail" name="thumbnail" type="file" accept="image/jpeg,image/png" disabled={disabled} />
+      </div>
+      <Button type="submit" size="sm" disabled={disabled}>
+        Prepare YouTube draft
+      </Button>
+    </form>
+  );
+}
+
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3">
@@ -578,6 +747,25 @@ function SocialJobCard({
             {job.approved_content_hash ? <Badge variant="success">exact content approved</Badge> : null}
           </div>
           <p className="text-sm text-muted-foreground">Target identity: {job.target_identity}</p>
+          {job.provider === "youtube" ? (
+            <div className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+              <p>Channel: {job.youtube_channel_title ?? job.youtube_channel_id ?? job.target_identity}</p>
+              <p>Visibility: {job.youtube_visibility ?? "Not set"}</p>
+              <p>Playlist: {job.youtube_playlist_title ?? job.youtube_playlist_id ?? "None"}</p>
+              <p>Scheduled: {formatDateTime(job.scheduled_at)}</p>
+              <p>Processing: {job.processing_status ?? "Not started"}</p>
+              <p>Tags: {(job.youtube_tags ?? []).length > 0 ? job.youtube_tags.join(", ") : "None"}</p>
+            </div>
+          ) : null}
+          {job.provider === "youtube" && job.upload_progress != null ? (
+            <div className="max-w-md space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Upload progress</span>
+                <span>{job.upload_progress}%</span>
+              </div>
+              <Progress value={job.upload_progress} className="h-1.5" />
+            </div>
+          ) : null}
           <p className="max-w-3xl text-sm">{job.caption}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {media.length === 0 ? (
@@ -627,6 +815,8 @@ function MediaPreview({ asset }: { asset: SocialAssetRow }) {
       <p className="text-muted-foreground">
         {asset.kind} | {asset.mime_type} | {asset.state}
         {asset.page_count ? ` | ${asset.page_count} pages` : ""}
+        {asset.duration_seconds ? ` | ${asset.duration_seconds}s` : ""}
+        {asset.width && asset.height ? ` | ${asset.width}x${asset.height}` : ""}
       </p>
       {asset.alt_text ? <p className="mt-1 text-muted-foreground">{asset.alt_text}</p> : null}
       {href ? (

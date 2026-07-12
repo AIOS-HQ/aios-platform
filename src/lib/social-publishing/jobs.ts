@@ -10,8 +10,14 @@ import type { ProviderAdapter, SocialMediaAsset, SocialPublishJob } from "./type
 export function contentHash(input: {
   provider: string;
   contentType: string;
+  title?: string;
   caption: string;
   targetIdentity: string;
+  youtubeChannelId?: string | null;
+  youtubeVisibility?: string | null;
+  youtubeTags?: string[];
+  youtubePlaylistId?: string | null;
+  scheduledAt?: string | null;
   media: Pick<SocialMediaAsset, "id" | "checksumSha256" | "altText">[];
 }): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
@@ -45,6 +51,15 @@ export function mapJob(row: Record<string, unknown>): SocialPublishJob {
     title: String(row.title),
     caption: String(row.caption),
     targetIdentity: String(row.target_identity),
+    youtubeChannelId: (row.youtube_channel_id as string | null) ?? null,
+    youtubeChannelTitle: (row.youtube_channel_title as string | null) ?? null,
+    youtubeVisibility: (row.youtube_visibility as SocialPublishJob["youtubeVisibility"]) ?? null,
+    youtubeTags: Array.isArray(row.youtube_tags) ? (row.youtube_tags as string[]) : [],
+    youtubePlaylistId: (row.youtube_playlist_id as string | null) ?? null,
+    youtubePlaylistTitle: (row.youtube_playlist_title as string | null) ?? null,
+    scheduledAt: (row.scheduled_at as string | null) ?? null,
+    uploadProgress: row.upload_progress == null ? null : Number(row.upload_progress),
+    processingStatus: (row.processing_status as SocialPublishJob["processingStatus"]) ?? null,
     state: row.state as SocialPublishJob["state"],
     mediaAssetIds: Array.isArray(row.media_asset_ids) ? (row.media_asset_ids as string[]) : [],
     idempotencyKey: String(row.idempotency_key),
@@ -69,6 +84,9 @@ export function mapMedia(row: Record<string, unknown>): SocialMediaAsset {
     checksumSha256: String(row.checksum_sha256),
     altText: (row.alt_text as string | null) ?? null,
     pageCount: (row.page_count as number | null) ?? null,
+    width: (row.width as number | null) ?? null,
+    height: (row.height as number | null) ?? null,
+    durationSeconds: row.duration_seconds == null ? null : Number(row.duration_seconds),
     state: row.state as SocialMediaAsset["state"],
     providerAssetId: (row.provider_asset_id as string | null) ?? null,
     storagePath: (row.storage_path as string | null) ?? null,
@@ -98,6 +116,29 @@ export async function approveSocialPublishJob(userId: string, jobId: string): Pr
     .eq("user_id", userId)
     .eq("id", jobId);
   return !error;
+}
+
+export async function updateYouTubeUploadProgress(input: {
+  userId: string;
+  jobId: string;
+  state?: SocialPublishJob["state"];
+  progress: number;
+  processingStatus: NonNullable<SocialPublishJob["processingStatus"]>;
+  diagnostics?: Record<string, unknown>;
+}): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  await admin
+    .from("social_publish_jobs")
+    .update({
+      ...(input.state ? { state: input.state } : {}),
+      upload_progress: Math.max(0, Math.min(100, Math.round(input.progress))),
+      processing_status: input.processingStatus,
+      diagnostics: redactDiagnostics(input.diagnostics ?? {}),
+    })
+    .eq("user_id", input.userId)
+    .eq("id", input.jobId)
+    .eq("provider", "youtube");
 }
 
 export async function publishApprovedJob(input: {
@@ -137,7 +178,11 @@ export async function publishApprovedJob(input: {
 
     const { data: claimed, error: claimError } = await admin
       .from("social_publish_jobs")
-      .update({ state: "publishing", attempts: job.attempts + 1, last_error: null })
+      .update({
+        state: job.provider === "youtube" ? "uploading" : "publishing",
+        attempts: job.attempts + 1,
+        last_error: null,
+      })
       .eq("user_id", input.userId)
       .eq("id", job.id)
       .eq("provider", job.provider)
@@ -169,6 +214,12 @@ export async function publishApprovedJob(input: {
         provider_post_id: result.providerPostId,
         provider_post_url: result.providerPostUrl,
         provider_asset_id: result.providerAssetId ?? null,
+        upload_progress: job.provider === "youtube" ? 100 : job.uploadProgress,
+        processing_status: job.provider === "youtube"
+          ? job.scheduledAt
+            ? "scheduled"
+            : "processed"
+          : job.processingStatus,
         published_at: new Date().toISOString(),
         diagnostics: redactDiagnostics(result.diagnostics ?? {}),
       })
@@ -187,7 +238,12 @@ export async function publishApprovedJob(input: {
     const message = redactSecret(error);
     await admin
       .from("social_publish_jobs")
-      .update({ state: "failed", last_error: message, diagnostics: { error: message } })
+      .update({
+        state: "failed",
+        last_error: message,
+        processing_status: job.provider === "youtube" ? "failed" : job.processingStatus,
+        diagnostics: { error: message },
+      })
       .eq("user_id", input.userId)
       .eq("id", job.id);
     return { ok: false, error: message };

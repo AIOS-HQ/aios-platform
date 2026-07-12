@@ -55,8 +55,8 @@ X OAuth account only after Founder approval of the exact caption and media set.
 | Errors are surfaced | PASS | Adapter and job errors are redacted, saved to `last_error`, and shown in Harmony Social. |
 | Secrets are redacted | PASS | Error and diagnostics paths use shared secret redaction and never return OAuth token values. |
 | No mocked success state in production path | PASS | Tests mock fetch; runtime adapter performs real X API calls. |
-| Unsupported capabilities stay disabled | PASS | X video publishing remains false; YouTube publishing remains unavailable. |
-| LinkedIn and YouTube untouched | PASS | This milestone does not change LinkedIn or YouTube implementation. |
+| Unsupported capabilities stay disabled | PASS | X video publishing remains false. YouTube publishing is now covered by its own production certification. |
+| LinkedIn and YouTube scoped separately | PASS | This milestone did not change LinkedIn; YouTube production work is documented in its own certification. |
 
 ## Founder Actions Before Live Publish
 

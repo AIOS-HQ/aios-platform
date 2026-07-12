@@ -26,4 +26,16 @@ export function registerYouTubeCapabilities(): void {
       path: `/channels?part=id,snippet,statistics&id=${encodeURIComponent(input.channelId)}`,
     });
   });
+
+  registerCapabilityHandler("youtube", "list_playlists", async ({ accessToken }) =>
+    googleFetch(YOUTUBE_API, requireToken(accessToken), {
+      path: "/playlists?part=id,snippet&mine=true&maxResults=50",
+    }));
+
+  registerCapabilityHandler<{ videoId: string }, unknown>("youtube", "poll_processing_status", async ({ accessToken, input }) => {
+    if (!input.videoId) throw new Error("YouTube videoId is required.");
+    return googleFetch(YOUTUBE_API, requireToken(accessToken), {
+      path: `/videos?part=processingDetails,status&id=${encodeURIComponent(input.videoId)}`,
+    });
+  });
 }

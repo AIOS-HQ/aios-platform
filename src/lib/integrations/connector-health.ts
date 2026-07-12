@@ -176,7 +176,13 @@ export async function getProviderHealth(
     warnings.push("Capabilities are listed in the registry but no runtime handlers are registered.");
   }
   const missingScopes = (def.scopes ?? []).filter((scope) => grantedScopes.length > 0 && !grantedScopes.includes(scope));
+  const youtubeMissingScopes = provider === "youtube"
+    ? (def.scopes ?? []).filter((scope) => !grantedScopes.includes(scope))
+    : [];
   if (missingScopes.length > 0) warnings.push(`Granted scopes do not include: ${missingScopes.join(", ")}.`);
+  if (youtubeMissingScopes.length > 0) {
+    blockers.push(`Reconnect YouTube with required upload scopes: ${youtubeMissingScopes.join(", ")}.`);
+  }
 
   return {
     provider,

@@ -5,7 +5,11 @@ import type { SocialMediaAsset, SocialProvider } from "./types";
 
 const LINKEDIN_PDF_MAX_BYTES = 100 * 1024 * 1024;
 const X_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const YOUTUBE_VIDEO_MAX_BYTES = 256 * 1024 * 1024 * 1024;
+const YOUTUBE_THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
+const YOUTUBE_SHORT_MAX_SECONDS = 180;
 export const X_MAX_IMAGES = 4;
+export const YOUTUBE_MAX_TAGS = 30;
 
 export interface MediaInput {
   provider: SocialProvider;
@@ -14,6 +18,9 @@ export interface MediaInput {
   byteSize: number;
   bytes?: Uint8Array;
   pageCount?: number | null;
+  width?: number | null;
+  height?: number | null;
+  durationSeconds?: number | null;
   altText?: string | null;
 }
 
@@ -44,6 +51,22 @@ export function validateMedia(input: MediaInput): MediaValidationResult {
     if (input.byteSize > X_IMAGE_MAX_BYTES) blockers.push("X image exceeds the 5MB limit.");
   }
 
+  if (input.provider === "youtube") {
+    if (input.mimeType.startsWith("video/")) {
+      if (!["video/mp4", "video/quicktime", "video/webm"].includes(input.mimeType)) {
+        blockers.push("YouTube video uploads require MP4, MOV, or WEBM media.");
+      }
+      if (input.byteSize > YOUTUBE_VIDEO_MAX_BYTES) blockers.push("YouTube video exceeds the 256GB platform limit.");
+    } else if (input.mimeType.startsWith("image/")) {
+      if (!["image/jpeg", "image/png"].includes(input.mimeType)) {
+        blockers.push("YouTube thumbnails require JPEG or PNG media.");
+      }
+      if (input.byteSize > YOUTUBE_THUMBNAIL_MAX_BYTES) blockers.push("YouTube thumbnail exceeds the 2MB limit.");
+    } else {
+      blockers.push("YouTube media must be a supported video or thumbnail image.");
+    }
+  }
+
   if (input.byteSize <= 0) blockers.push("Media appears empty or corrupted.");
   return { ok: blockers.length === 0, checksumSha256, blockers };
 }
@@ -70,5 +93,35 @@ export function validateMediaSet(provider: SocialProvider, media: SocialMediaAss
     if (media.some((asset) => !["image/png", "image/jpeg", "image/webp"].includes(asset.mimeType))) {
       throw new Error("X media set contains an unsupported image type.");
     }
+  }
+  if (provider === "youtube") {
+    const videos = media.filter((asset) => asset.kind === "video");
+    const thumbnails = media.filter((asset) => asset.kind === "thumbnail");
+    if (videos.length !== 1) throw new Error("YouTube publishing requires exactly one video asset.");
+    if (thumbnails.length > 1) throw new Error("YouTube publishing supports at most one thumbnail asset.");
+    const video = videos[0];
+    if (!["video/mp4", "video/quicktime", "video/webm"].includes(video.mimeType)) {
+      throw new Error("YouTube video asset must be MP4, MOV, or WEBM.");
+    }
+    if (video.byteSize > YOUTUBE_VIDEO_MAX_BYTES) throw new Error("YouTube video exceeds the 256GB platform limit.");
+    for (const thumbnail of thumbnails) {
+      if (!["image/jpeg", "image/png"].includes(thumbnail.mimeType)) {
+        throw new Error("YouTube thumbnail asset must be JPEG or PNG.");
+      }
+      if (thumbnail.byteSize > YOUTUBE_THUMBNAIL_MAX_BYTES) {
+        throw new Error("YouTube thumbnail exceeds the 2MB limit.");
+      }
+    }
+  }
+}
+
+export function validateYouTubeShort(media: SocialMediaAsset[]): void {
+  const video = media.find((asset) => asset.kind === "video");
+  if (!video) throw new Error("YouTube Shorts publishing requires a video asset.");
+  if (video.durationSeconds != null && video.durationSeconds > YOUTUBE_SHORT_MAX_SECONDS) {
+    throw new Error("YouTube Shorts must be 180 seconds or less.");
+  }
+  if (video.width != null && video.height != null && video.width > video.height) {
+    throw new Error("YouTube Shorts should use a vertical or square aspect ratio.");
   }
 }

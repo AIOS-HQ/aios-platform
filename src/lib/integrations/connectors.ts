@@ -142,7 +142,11 @@ export const CONNECTORS: ConnectorDef[] = [
     category: "social",
     auth: "oauth2",
     oauthFamily: "google",
-    scopes: ["https://www.googleapis.com/auth/youtube.readonly"],
+    scopes: [
+      "https://www.googleapis.com/auth/youtube.readonly",
+      "https://www.googleapis.com/auth/youtube.upload",
+      "https://www.googleapis.com/auth/youtube.force-ssl",
+    ],
     initials: "YT",
     docsUrl: "https://developers.google.com/youtube",
     requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
@@ -150,6 +154,14 @@ export const CONNECTORS: ConnectorDef[] = [
     capabilities: [
       { id: "list_channels", mode: "read" },
       { id: "read_channel", mode: "read" },
+      { id: "list_playlists", mode: "read" },
+      { id: "upload_video", mode: "write", risk: "approval" },
+      { id: "upload_short", mode: "write", risk: "approval" },
+      { id: "upload_thumbnail", mode: "write", risk: "approval" },
+      { id: "edit_metadata", mode: "write", risk: "approval" },
+      { id: "schedule_publish", mode: "write", risk: "approval" },
+      { id: "add_to_playlist", mode: "write", risk: "approval" },
+      { id: "poll_processing_status", mode: "read" },
     ],
   },
   {
