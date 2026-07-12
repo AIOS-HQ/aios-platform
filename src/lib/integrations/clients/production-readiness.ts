@@ -142,6 +142,7 @@ const OPTIONAL_INTEGRATION_ENV = [
   "GOOGLE_OAUTH_CLIENT_SECRET",
   "LINKEDIN_CLIENT_ID",
   "LINKEDIN_CLIENT_SECRET",
+  "LINKEDIN_PUBLISHER_ACCESS_TOKEN",
   "TIKTOK_CLIENT_KEY",
   "TIKTOK_CLIENT_SECRET",
 ] as const;
@@ -158,6 +159,13 @@ function googleOAuthPresent(): boolean {
   return (
     (present("GOOGLE_CLIENT_ID") && present("GOOGLE_CLIENT_SECRET")) ||
     (present("GOOGLE_OAUTH_CLIENT_ID") && present("GOOGLE_OAUTH_CLIENT_SECRET"))
+  );
+}
+
+function linkedInPublisherPresent(): boolean {
+  return (
+    present("LINKEDIN_PUBLISHER_ACCESS_TOKEN") &&
+    (present("LINKEDIN_ORGANIZATION_URN") || present("LINKEDIN_ORGANIZATION_ID"))
   );
 }
 
@@ -391,6 +399,14 @@ async function integrationsSection(userId: string): Promise<ReadinessSection> {
       ok: googleOAuthPresent(),
       severity: "warning",
       detail: googleOAuthPresent() ? "Google email provider configured" : "Google OAuth env missing",
+    },
+    {
+      id: "integration_linkedin_publisher",
+      ok: linkedInPublisherPresent(),
+      severity: "warning",
+      detail: linkedInPublisherPresent()
+        ? "LinkedIn publisher token and approved organization configured"
+        : "missing LINKEDIN_PUBLISHER_ACCESS_TOKEN and LINKEDIN_ORGANIZATION_URN or LINKEDIN_ORGANIZATION_ID",
     },
     {
       id: "integration_other",

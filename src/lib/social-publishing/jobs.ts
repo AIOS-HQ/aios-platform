@@ -120,6 +120,9 @@ export async function publishApprovedJob(input: {
   if (job.providerPostId && job.providerPostUrl) return { ok: true, url: job.providerPostUrl };
 
   try {
+    if (input.adapter.provider !== job.provider) {
+      throw new Error("Provider adapter does not match the approved publishing job.");
+    }
     assertApprovedExactContent(job);
     const health = await input.adapter.verifyAccount(input.userId, job.targetIdentity);
     if (!health.ok) throw new Error(health.blockers.join(" ") || "Provider account health check failed.");
@@ -132,12 +135,31 @@ export async function publishApprovedJob(input: {
     const media = ((mediaRows ?? []) as Record<string, unknown>[]).map(mapMedia);
     validateMediaSet(job.provider, media);
 
-    await admin
+    const { data: claimed, error: claimError } = await admin
       .from("social_publish_jobs")
       .update({ state: "publishing", attempts: job.attempts + 1, last_error: null })
       .eq("user_id", input.userId)
       .eq("id", job.id)
-      .is("provider_post_id", null);
+      .eq("provider", job.provider)
+      .in("state", ["approved", "failed"])
+      .is("provider_post_id", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) throw claimError;
+    if (!claimed) {
+      const { data: latestRow } = await admin
+        .from("social_publish_jobs")
+        .select("*")
+        .eq("user_id", input.userId)
+        .eq("id", job.id)
+        .maybeSingle();
+      const latest = latestRow ? mapJob(latestRow as Record<string, unknown>) : null;
+      if (latest?.providerPostId && latest.providerPostUrl) {
+        return { ok: true, url: latest.providerPostUrl };
+      }
+      return { ok: false, error: "Publishing is already in progress or no longer publishable." };
+    }
 
     const result = await input.adapter.publish(input.userId, job, media);
     await admin
