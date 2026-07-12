@@ -407,6 +407,14 @@ async function integrationsSection(userId: string): Promise<ReadinessSection> {
       detail: googleOAuthPresent() ? "Google email provider configured" : "Google OAuth env missing",
     },
     {
+      id: "integration_youtube_foundation",
+      ok: googleOAuthPresent(),
+      severity: "warning",
+      detail: googleOAuthPresent()
+        ? "Google OAuth configured for YouTube read-only channel discovery; upload/publish scopes are not enabled"
+        : "missing Google OAuth env for YouTube channel discovery",
+    },
+    {
       id: "integration_linkedin_publisher",
       ok: linkedInPublisherPresent(),
       severity: "warning",

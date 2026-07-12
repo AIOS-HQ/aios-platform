@@ -23,6 +23,8 @@ describe("normalized connector health", () => {
     adminState.row = null;
     delete process.env.GITHUB_OAUTH_CLIENT_ID;
     delete process.env.GITHUB_OAUTH_CLIENT_SECRET;
+    delete process.env.GOOGLE_OAUTH_CLIENT_ID;
+    delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
   });
 
   it("reports missing developer configuration without exposing secrets", async () => {
@@ -84,6 +86,38 @@ describe("normalized connector health", () => {
     expect(health.identity).toBe("AIOS-HQ");
     expect(health.capabilityDetails.some((cap) => cap.implemented)).toBe(true);
     expect(JSON.stringify(health)).not.toContain("token-value");
+  });
+
+  it("reports YouTube as a read-only channel foundation without publish capability claims", async () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = "client-id";
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = "client-secret";
+    adminState.row = {
+      provider: "youtube",
+      status: "connected",
+      access_token: "enc:v1:youtube-token-value",
+      refresh_token: "enc:v1:youtube-refresh-value",
+      expires_at: "2999-01-01T00:00:00.000Z",
+      connected_at: "2026-01-01T00:00:00.000Z",
+      scopes: "https://www.googleapis.com/auth/youtube.readonly",
+      external_account: "UC_founder_channel",
+    };
+
+    const { getProviderHealth } = await import("@/lib/integrations/connector-health");
+    const health = await getProviderHealth("user-1", "youtube");
+
+    expect(health.configured).toBe(true);
+    expect(health.connected).toBe(true);
+    expect(health.healthy).toBe(true);
+    expect(health.requiredScopes).toEqual(["https://www.googleapis.com/auth/youtube.readonly"]);
+    expect(health.capabilities).toMatchObject({
+      list_channels: true,
+      read_channel: true,
+    });
+    expect(health.capabilities).not.toHaveProperty("publish_video");
+    expect(health.capabilities).not.toHaveProperty("upload_short");
+    expect(health.capabilities).not.toHaveProperty("delete_video");
+    expect(JSON.stringify(health)).not.toContain("youtube-token-value");
+    expect(JSON.stringify(health)).not.toContain("youtube-refresh-value");
   });
 });
 

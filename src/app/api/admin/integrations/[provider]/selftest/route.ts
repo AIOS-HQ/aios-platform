@@ -33,9 +33,13 @@ const PROBES: Record<string, SelfTestProbe> = {
     account: (j) => (j as { emailAddress?: string })?.emailAddress ?? null,
   },
   youtube: {
-    url: "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
+    url: "https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true&maxResults=50",
     label: "YouTube channels.list(mine)",
-    account: (j) => (j as { items?: { snippet?: { title?: string } }[] })?.items?.[0]?.snippet?.title ?? null,
+    account: (j) => {
+      const channel = (j as { items?: { id?: string; snippet?: { title?: string } }[] })?.items?.[0];
+      if (!channel?.id && !channel?.snippet?.title) return null;
+      return [channel.snippet?.title, channel.id].filter(Boolean).join(" · ");
+    },
   },
   google_calendar: {
     url: "https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1",
