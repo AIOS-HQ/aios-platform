@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#f8fafc"/>
+  <rect x="80" y="80" width="1040" height="1040" rx="36" fill="#0f172a"/>
+  <text x="130" y="210" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#93c5fd">Harmony</text>
+  <text x="130" y="370" font-family="Arial, sans-serif" font-size="76" font-weight="700" fill="#ffffff">AI Chief</text>
+  <text x="130" y="460" font-family="Arial, sans-serif" font-size="76" font-weight="700" fill="#ffffff">of Staff</text>
+  <text x="130" y="620" font-family="Arial, sans-serif" font-size="38" fill="#cbd5e1">Plans, coordinates, and keeps execution moving.</text>
+  <rect x="130" y="780" width="280" height="170" rx="20" fill="#1d4ed8"/>
+  <rect x="460" y="780" width="280" height="170" rx="20" fill="#0891b2"/>
+  <rect x="790" y="780" width="280" height="170" rx="20" fill="#16a34a"/>
+</svg>

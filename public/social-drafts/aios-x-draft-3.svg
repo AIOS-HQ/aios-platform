@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#111827"/>
+  <rect x="88" y="88" width="1024" height="1024" rx="36" fill="#fff7ed"/>
+  <text x="140" y="220" font-family="Arial, sans-serif" font-size="40" font-weight="700" fill="#c2410c">Julius</text>
+  <text x="140" y="380" font-family="Arial, sans-serif" font-size="74" font-weight="700" fill="#111827">Organizational</text>
+  <text x="140" y="470" font-family="Arial, sans-serif" font-size="74" font-weight="700" fill="#111827">Intelligence</text>
+  <text x="140" y="625" font-family="Arial, sans-serif" font-size="38" fill="#475569">Turns company memory into decisions and context.</text>
+  <path d="M210 850 C360 710 520 990 670 850 S940 760 1010 900" fill="none" stroke="#f97316" stroke-width="34" stroke-linecap="round"/>
+</svg>

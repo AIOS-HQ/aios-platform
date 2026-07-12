@@ -135,7 +135,7 @@ export function LinkedInPublisherCard() {
           <div>
             <p className="text-xs font-medium text-muted-foreground">Capabilities</p>
             <p className="mt-1">Text post: {health?.capabilities.textPost ? "available" : "unavailable"}</p>
-            <p>Document carousel: unavailable</p>
+            <p>Document carousel: {health?.capabilities.documentCarousel ? "available" : "unavailable"}</p>
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground">API version</p>
