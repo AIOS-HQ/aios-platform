@@ -250,7 +250,7 @@ export function isAiosAgentName(name: string): boolean {
  */
 export const AGENT_CONNECTORS: Partial<Record<AiosAgentKey, string[]>> = {
   mason: ["github", "vercel"],
-  catalyst: ["linkedin"],
+  catalyst: ["linkedin", "x", "youtube"],
   ambassador: ["whatsapp", "gmail", "outlook", "messenger", "instagram", "linkedin", "slack"],
 };
 

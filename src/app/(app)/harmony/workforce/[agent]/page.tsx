@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
 import { getAiosAgent } from "@/lib/workforce/registry";
+import { certifyWorkforceAgent, type WorkforceCertificationStatus } from "@/lib/workforce/certification";
 import { getAgentPersona } from "@/lib/workforce/agent-personas";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listAgentMessages } from "@/lib/harmony/agents/a2a";
@@ -32,6 +33,17 @@ import { AgentGlyph } from "@/components/harmony/workforce/agent-glyph";
 import { ExecutiveSection, MetricTile } from "@/components/shared/executive";
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
+
+const CERT_VARIANT: Record<WorkforceCertificationStatus, "default" | "secondary" | "outline" | "destructive"> = {
+  production_ready: "default",
+  operational_with_approval: "secondary",
+  partial: "secondary",
+  advisory_only: "outline",
+  configuration_required: "outline",
+  blocked: "destructive",
+  metadata_only: "outline",
+  unsupported: "destructive",
+};
 
 export async function generateMetadata({
   params,
@@ -65,6 +77,7 @@ export default async function AgentProfilePage({
     listRecommendations(user.id, { companyId, agent, status: "open" }),
     listWorkItems(user.id, { companyId, agent }),
   ]);
+  const certification = await certifyWorkforceAgent(def, { userId: user.id });
   const summary = (await getWorkforceSummary(user.id, companyId))[agent] ?? emptyAgentSummary();
 
   const queuedWork = work.filter((w) => w.status === "proposed" || w.status === "approved").length;
@@ -146,6 +159,7 @@ export default async function AgentProfilePage({
               <div className="flex items-center gap-2">
                 <span className="text-lg font-semibold">{def.name}</span>
                 <Badge variant={STATUS_VARIANT[status]}>{t(`status.${status}`)}</Badge>
+                <Badge variant={CERT_VARIANT[certification.status]}>{certification.label}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">{def.purpose}</p>
               <div className="flex flex-wrap gap-1 pt-1">
@@ -160,9 +174,57 @@ export default async function AgentProfilePage({
                   {t("pendingApprovals", { n: pendingApprovals })}
                 </Badge>
               </div>
+              <div className="grid gap-1 pt-2 text-xs text-muted-foreground sm:grid-cols-2">
+                <p>Julius access: {certification.juliusAccess.replace("_", " ")}</p>
+                <p>Execution: {certification.contract.executionCapability.replace("_", " ")}</p>
+                <p>Delegation: {certification.contract.delegationCapability.replace("_", " ")}</p>
+                <p>Autonomy: {certification.contract.autonomyPolicy}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        <ExecutiveSection title="Production certification">
+          <Card>
+            <CardContent className="grid gap-4 p-5 lg:grid-cols-3">
+              <div>
+                <p className="text-sm font-semibold">Runtime handlers</p>
+                <ul className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                  {certification.contract.runtimeHandlers.map((handler) => (
+                    <li key={handler}>- {handler}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Connector readiness</p>
+                <ul className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                  {certification.dependencyReadiness.length === 0 ? (
+                    <li>- No external connector dependency.</li>
+                  ) : certification.dependencyReadiness.map((dep) => (
+                    <li key={dep.provider}>
+                      - {dep.provider}: {dep.status.replace(/_/g, " ")}
+                      {dep.missingCapabilities.length > 0 ? `; missing ${dep.missingCapabilities.join(", ")}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Boundaries</p>
+                <ul className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                  <li>- {certification.contract.approvalPolicy}</li>
+                  {certification.contract.unsupportedCapabilities.slice(0, 4).map((capability) => (
+                    <li key={capability}>- Unsupported: {capability}</li>
+                  ))}
+                </ul>
+              </div>
+              {certification.blockers.length > 0 ? (
+                <div className="rounded-md border border-amber-300/40 bg-amber-100/40 p-3 text-xs text-amber-900 dark:bg-amber-950/20 dark:text-amber-200 lg:col-span-3">
+                  {certification.blockers[0]}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </ExecutiveSection>
 
         {/* Ambassador's Business Communications profile (renders for Ambassador only). */}
         <AmbassadorCommsCard agentKey={agent} userId={user.id} />
