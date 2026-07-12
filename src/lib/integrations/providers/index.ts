@@ -13,6 +13,7 @@ import { registerGoogleCalendarCapabilities } from "./google-calendar";
 import { registerGoogleDocsCapabilities } from "./google-docs";
 import { registerGoogleSheetsCapabilities } from "./google-sheets";
 import { registerGoogleMeetCapabilities } from "./google-meet";
+import { registerYouTubeCapabilities } from "./youtube";
 
 /**
  * Provider bootstrap. Idempotently registers every provider's capability
@@ -38,4 +39,5 @@ export function ensureProvidersRegistered(): void {
   registerGoogleDocsCapabilities();
   registerGoogleSheetsCapabilities();
   registerGoogleMeetCapabilities();
+  registerYouTubeCapabilities();
 }

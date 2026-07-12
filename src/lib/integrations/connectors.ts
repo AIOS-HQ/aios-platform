@@ -148,13 +148,8 @@ export const CONNECTORS: ConnectorDef[] = [
     requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
     authorizable: true,
     capabilities: [
-      { id: "research_topic", mode: "read" },
-      { id: "generate_script", mode: "write", risk: "routine" },
-      { id: "generate_metadata", mode: "write", risk: "routine" },
-      { id: "generate_thumbnail", mode: "write", risk: "routine" },
-      { id: "publish_video", mode: "write", risk: "approval" },
-      { id: "upload_short", mode: "write", risk: "approval" },
-      { id: "delete_video", mode: "write", risk: "destructive" },
+      { id: "list_channels", mode: "read" },
+      { id: "read_channel", mode: "read" },
     ],
   },
   {
