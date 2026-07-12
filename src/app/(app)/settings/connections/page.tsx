@@ -8,6 +8,7 @@ import {
   countCapabilities,
 } from "@/lib/integrations/connectors";
 import { getConnectorStatus } from "@/lib/integrations/connector-config";
+import { getProviderHealth } from "@/lib/integrations/connector-health";
 import { getConnections } from "@/lib/integrations/connections";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +45,10 @@ export default async function ConnectionsPage() {
   const user = await requireUser();
   const connections = await getConnections(user.id);
   const byProvider = new Map(connections.map((c) => [c.provider, c]));
+  const healthEntries = await Promise.all(
+    CONNECTORS.map(async (connector) => [connector.id, await getProviderHealth(user.id, connector.id)] as const),
+  );
+  const healthByProvider = new Map(healthEntries);
 
   return (
     <>
@@ -68,8 +73,12 @@ export default async function ConnectionsPage() {
               <div className="flex flex-col gap-3">
                 {items.map((c) => {
                   const connection = byProvider.get(c.id);
+                  const health = healthByProvider.get(c.id);
                   const status = getConnectorStatus(c, connection);
                   const caps = countCapabilities(c);
+                  const implementedCount = health
+                    ? Object.values(health.capabilities).filter(Boolean).length
+                    : 0;
                   return (
                     <Card key={c.id}>
                       <CardContent className="flex items-center justify-between gap-4 p-4">
@@ -97,6 +106,14 @@ export default async function ConnectionsPage() {
                                 {t("connectedLabel", {
                                   date: formatDate(connection.connected_at, locale),
                                 })}
+                              </p>
+                            ) : null}
+                            {health ? (
+                              <p className="text-xs text-muted-foreground">
+                                {health.healthy
+                                  ? "Health verified"
+                                  : health.blockers[0] ?? health.warnings[0] ?? "Health check needs attention"}
+                                {implementedCount > 0 ? ` · ${implementedCount} implemented` : ""}
                               </p>
                             ) : null}
                           </div>
