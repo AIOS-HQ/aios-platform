@@ -63,7 +63,11 @@ export const INTEGRATIONS: IntegrationProvider[] = [
     category: "social",
     auth: "oauth2",
     oauthFamily: "google",
-    scopes: ["https://www.googleapis.com/auth/youtube.readonly"],
+    scopes: [
+      "https://www.googleapis.com/auth/youtube.readonly",
+      "https://www.googleapis.com/auth/youtube.upload",
+      "https://www.googleapis.com/auth/youtube.force-ssl",
+    ],
     initials: "YT",
     docsUrl: "https://developers.google.com/youtube",
   },

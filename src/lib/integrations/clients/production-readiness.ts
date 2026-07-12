@@ -411,8 +411,8 @@ async function integrationsSection(userId: string): Promise<ReadinessSection> {
       ok: googleOAuthPresent(),
       severity: "warning",
       detail: googleOAuthPresent()
-        ? "Google OAuth configured for YouTube read-only channel discovery; upload/publish scopes are not enabled"
-        : "missing Google OAuth env for YouTube channel discovery",
+        ? "Google OAuth configured for YouTube channel discovery and production publishing scopes"
+        : "missing Google OAuth env for YouTube production publishing",
     },
     {
       id: "integration_linkedin_publisher",

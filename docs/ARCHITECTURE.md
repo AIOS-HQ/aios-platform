@@ -18,9 +18,10 @@ data clients, i18n, and conventions. This keeps the codebase modular without pre
 microservice complexity.
 
 Harmony Social is a native Harmony module at `/harmony/social`. It uses the existing Harmony
-layout and navigation, keeps external publishing Founder-approved, and currently supports the
-LinkedIn and X test publishing providers. YouTube multi-channel publishing remains a separate
-upcoming milestone.
+layout and navigation, keeps external publishing Founder-approved, and supports production
+LinkedIn, X, and YouTube publishing. YouTube publishing includes multi-channel selection,
+video/Short upload, thumbnails, visibility, scheduling, playlists, progress, recovery, and
+provider result persistence through the shared Social publishing governance pipeline.
 
 ## Guiding principles (engineering implications)
 

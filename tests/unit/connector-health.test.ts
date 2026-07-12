@@ -88,7 +88,47 @@ describe("normalized connector health", () => {
     expect(JSON.stringify(health)).not.toContain("token-value");
   });
 
-  it("reports YouTube as a read-only channel foundation without publish capability claims", async () => {
+  it("reports YouTube production publishing health without exposing tokens", async () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = "client-id";
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = "client-secret";
+    adminState.row = {
+      provider: "youtube",
+      status: "connected",
+      access_token: "enc:v1:youtube-token-value",
+      refresh_token: "enc:v1:youtube-refresh-value",
+      expires_at: "2999-01-01T00:00:00.000Z",
+      connected_at: "2026-01-01T00:00:00.000Z",
+      scopes: "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.force-ssl",
+      external_account: "UC_founder_channel",
+    };
+
+    const { getProviderHealth } = await import("@/lib/integrations/connector-health");
+    const health = await getProviderHealth("user-1", "youtube");
+
+    expect(health.configured).toBe(true);
+    expect(health.connected).toBe(true);
+    expect(health.healthy).toBe(true);
+    expect(health.requiredScopes).toEqual([
+      "https://www.googleapis.com/auth/youtube.readonly",
+      "https://www.googleapis.com/auth/youtube.upload",
+      "https://www.googleapis.com/auth/youtube.force-ssl",
+    ]);
+    expect(health.capabilities).toMatchObject({
+      list_channels: true,
+      read_channel: true,
+      list_playlists: true,
+      poll_processing_status: true,
+    });
+    expect(health.capabilities).toHaveProperty("upload_video", false);
+    expect(health.capabilities).toHaveProperty("upload_short", false);
+    expect(health.capabilities).toHaveProperty("upload_thumbnail", false);
+    expect(health.capabilities).toHaveProperty("schedule_publish", false);
+    expect(health.capabilities).not.toHaveProperty("delete_video");
+    expect(JSON.stringify(health)).not.toContain("youtube-token-value");
+    expect(JSON.stringify(health)).not.toContain("youtube-refresh-value");
+  });
+
+  it("blocks YouTube readiness when legacy read-only scopes are still connected", async () => {
     process.env.GOOGLE_OAUTH_CLIENT_ID = "client-id";
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = "client-secret";
     adminState.row = {
@@ -105,19 +145,9 @@ describe("normalized connector health", () => {
     const { getProviderHealth } = await import("@/lib/integrations/connector-health");
     const health = await getProviderHealth("user-1", "youtube");
 
-    expect(health.configured).toBe(true);
-    expect(health.connected).toBe(true);
-    expect(health.healthy).toBe(true);
-    expect(health.requiredScopes).toEqual(["https://www.googleapis.com/auth/youtube.readonly"]);
-    expect(health.capabilities).toMatchObject({
-      list_channels: true,
-      read_channel: true,
-    });
-    expect(health.capabilities).not.toHaveProperty("publish_video");
-    expect(health.capabilities).not.toHaveProperty("upload_short");
-    expect(health.capabilities).not.toHaveProperty("delete_video");
-    expect(JSON.stringify(health)).not.toContain("youtube-token-value");
-    expect(JSON.stringify(health)).not.toContain("youtube-refresh-value");
+    expect(health.healthy).toBe(false);
+    expect(health.blockers.join(" ")).toContain("youtube.upload");
+    expect(health.blockers.join(" ")).toContain("youtube.force-ssl");
   });
 });
 

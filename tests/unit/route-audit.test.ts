@@ -155,9 +155,9 @@ describe("launch route audit", () => {
     );
     expect(source).toContain("prepareLinkedInTestDraft");
     expect(source).toContain("prepareXTestDraft");
+    expect(source).toContain("prepareYouTubeDraft");
     expect(source).toContain("approveSocialDraft");
     expect(source).toContain("publishSocialDraft");
-    expect(source).toContain("Not publish-ready");
     expect(source).toContain("Provider health");
     expect(source).toContain("Provider operations");
     expect(source).toContain("Outstanding Founder actions");
@@ -168,10 +168,14 @@ describe("launch route audit", () => {
     expect(source).toContain("Scheduled work");
     expect(source).toContain("Published history");
     expect(source).toContain("Safe diagnostics");
+    expect(source).toContain("Channel switching");
+    expect(source).toContain("Playlist selection");
     expect(source).toContain("Video upload");
-    expect(source).toContain("Publishing");
-    expect(source).toContain("Read-only mode");
-    expect(source).toContain("Keep upload scopes pending until YouTube publishing is implemented.");
+    expect(source).toContain("Thumbnail upload");
+    expect(source).toContain("Scheduled publishing");
+    expect(source).toContain("Shorts publishing");
+    expect(source).toContain("Prepare YouTube draft");
+    expect(source).toContain("Scheduled publish time");
     expect(source).toContain("Retry publish");
     expect(source).not.toContain("access_token");
     expect(source).not.toContain("refresh_token");

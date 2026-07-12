@@ -1,4 +1,4 @@
-export type SocialProvider = "linkedin" | "x";
+export type SocialProvider = "linkedin" | "x" | "youtube";
 
 export type PublishState =
   | "draft"
@@ -20,8 +20,10 @@ export type MediaState =
   | "ready"
   | "failed";
 
-export type SocialContentType = "text" | "image" | "multi_image" | "pdf_carousel";
-export type SocialMediaKind = "pdf" | "image";
+export type SocialContentType = "text" | "image" | "multi_image" | "pdf_carousel" | "youtube_video" | "youtube_short";
+export type SocialMediaKind = "pdf" | "image" | "video" | "thumbnail";
+export type YouTubeVisibility = "private" | "unlisted" | "public";
+export type YouTubeProcessingStatus = "queued" | "uploading" | "uploaded" | "processing" | "processed" | "scheduled" | "failed";
 
 export interface SocialMediaAsset {
   id: string;
@@ -33,6 +35,9 @@ export interface SocialMediaAsset {
   checksumSha256: string;
   altText?: string | null;
   pageCount?: number | null;
+  width?: number | null;
+  height?: number | null;
+  durationSeconds?: number | null;
   state: MediaState;
   providerAssetId?: string | null;
   storagePath?: string | null;
@@ -45,6 +50,15 @@ export interface SocialPublishJob {
   title: string;
   caption: string;
   targetIdentity: string;
+  youtubeChannelId?: string | null;
+  youtubeChannelTitle?: string | null;
+  youtubeVisibility?: YouTubeVisibility | null;
+  youtubeTags?: string[];
+  youtubePlaylistId?: string | null;
+  youtubePlaylistTitle?: string | null;
+  scheduledAt?: string | null;
+  uploadProgress?: number | null;
+  processingStatus?: YouTubeProcessingStatus | null;
   state: PublishState;
   mediaAssetIds: string[];
   idempotencyKey: string;
