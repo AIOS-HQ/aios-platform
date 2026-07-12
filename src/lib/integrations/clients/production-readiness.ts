@@ -143,6 +143,8 @@ const OPTIONAL_INTEGRATION_ENV = [
   "LINKEDIN_CLIENT_ID",
   "LINKEDIN_CLIENT_SECRET",
   "LINKEDIN_PUBLISHER_ACCESS_TOKEN",
+  "X_OAUTH_CLIENT_ID",
+  "X_OAUTH_CLIENT_SECRET",
   "TIKTOK_CLIENT_KEY",
   "TIKTOK_CLIENT_SECRET",
 ] as const;
@@ -167,6 +169,10 @@ function linkedInPublisherPresent(): boolean {
     present("LINKEDIN_PUBLISHER_ACCESS_TOKEN") &&
     (present("LINKEDIN_ORGANIZATION_URN") || present("LINKEDIN_ORGANIZATION_ID"))
   );
+}
+
+function xOAuthPresent(): boolean {
+  return present("X_OAUTH_CLIENT_ID") && present("X_OAUTH_CLIENT_SECRET");
 }
 
 function summarizeMissing(missing: readonly string[]): string {
@@ -407,6 +413,12 @@ async function integrationsSection(userId: string): Promise<ReadinessSection> {
       detail: linkedInPublisherPresent()
         ? "LinkedIn publisher token and approved organization configured"
         : "missing LINKEDIN_PUBLISHER_ACCESS_TOKEN and LINKEDIN_ORGANIZATION_URN or LINKEDIN_ORGANIZATION_ID",
+    },
+    {
+      id: "integration_x_publisher",
+      ok: xOAuthPresent(),
+      severity: "warning",
+      detail: xOAuthPresent() ? "X OAuth publisher configured" : "missing X_OAUTH_CLIENT_ID and X_OAUTH_CLIENT_SECRET",
     },
     {
       id: "integration_other",

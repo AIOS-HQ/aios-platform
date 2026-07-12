@@ -5,6 +5,14 @@ import type { SocialMediaAsset, SocialPublishJob } from "@/lib/social-publishing
 
 const env = vi.hoisted(() => ({
   token: "publisher-token",
+  xAccessToken: "x-token",
+  xHealth: {
+    healthy: true,
+    identity: "aios",
+    grantedScopes: ["tweet.write", "users.read", "media.write"],
+    blockers: [] as string[],
+  },
+  xMediaIds: 0,
 }));
 
 vi.mock("@/lib/social-publishing/storage", () => ({
@@ -12,16 +20,11 @@ vi.mock("@/lib/social-publishing/storage", () => ({
 }));
 
 vi.mock("@/lib/integrations/token-refresh", () => ({
-  getValidAccessToken: async () => "x-token",
+  getValidAccessToken: async () => env.xAccessToken,
 }));
 
 vi.mock("@/lib/integrations/connector-health", () => ({
-  getProviderHealth: async () => ({
-    healthy: true,
-    identity: "aios",
-    grantedScopes: ["tweet.write", "users.read", "media.write"],
-    blockers: [],
-  }),
+  getProviderHealth: async () => env.xHealth,
 }));
 
 function media(over: Partial<SocialMediaAsset> = {}): SocialMediaAsset {
@@ -116,10 +119,23 @@ describe("LinkedIn PDF carousel adapter", () => {
 });
 
 describe("X multi-image adapter", () => {
+  beforeEach(() => {
+    env.xAccessToken = "x-token";
+    env.xMediaIds = 0;
+    env.xHealth = {
+      healthy: true,
+      identity: "aios",
+      grantedScopes: ["tweet.write", "users.read", "media.write"],
+      blockers: [],
+    };
+  });
+
   it("uploads every image and creates one post", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
       if (url.includes("/users/me")) return Response.json({ data: { id: "42", username: "aios" } });
-      if (url.includes("/media/upload")) return Response.json({ data: { id: `media-${Math.random()}` } });
+      if (url.includes("/media/upload")) return Response.json({ data: { id: `media-${++env.xMediaIds}` } });
       if (url.includes("/2/tweets")) return Response.json({ data: { id: "tweet-1" } });
       return new Response("{}", { status: 404 });
     }));
@@ -128,6 +144,49 @@ describe("X multi-image adapter", () => {
     const result = await xPublishingAdapter.publish("user-1", job({ provider: "x", contentType: "multi_image", targetIdentity: "aios" }), assets);
     expect(result.providerPostId).toBe("tweet-1");
     expect(result.providerPostUrl).toContain("tweet-1");
+    expect(result.providerAssetId).toBe("media-1,media-2,media-3,media-4");
+    const tweetCall = calls.find((call) => call.url.includes("/2/tweets"));
+    expect(tweetCall?.init?.body).toBe(JSON.stringify({ text: "Caption", media: { media_ids: ["media-1", "media-2", "media-3", "media-4"] } }));
     expect(JSON.stringify(result)).not.toContain("x-token");
+  });
+
+  it("creates text-only X posts without a fake media object", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes("/2/tweets")) {
+        expect(init?.body).toBe(JSON.stringify({ text: "Caption", media: undefined }));
+        return Response.json({ data: { id: "tweet-text-1" } });
+      }
+      return new Response("{}", { status: 404 });
+    }));
+    const { xPublishingAdapter } = await import("@/lib/social-publishing/adapters/x");
+    const result = await xPublishingAdapter.publish("user-1", job({ provider: "x", contentType: "text", targetIdentity: "aios", mediaAssetIds: [] }), []);
+    expect(result.providerPostId).toBe("tweet-text-1");
+    expect(result.diagnostics).toEqual({ mediaCount: 0 });
+  });
+
+  it("blocks publish when the connected X account does not match the approved target", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.includes("/users/me")) return Response.json({ data: { id: "42", username: "wrong-account" } });
+      return new Response("{}", { status: 404 });
+    }));
+    const { xPublishingAdapter } = await import("@/lib/social-publishing/adapters/x");
+    const health = await xPublishingAdapter.verifyAccount("user-1", "aios");
+    expect(health.ok).toBe(false);
+    expect(health.blockers).toContain("Connected X account does not match the approved publishing target.");
+  });
+
+  it("blocks publish when required X write scopes are missing", async () => {
+    env.xHealth = {
+      healthy: true,
+      identity: "aios",
+      grantedScopes: ["users.read"],
+      blockers: [],
+    };
+    const { xPublishingAdapter } = await import("@/lib/social-publishing/adapters/x");
+    const health = await xPublishingAdapter.verifyAccount("user-1", "aios");
+    expect(health.ok).toBe(false);
+    expect(health.blockers.join(" ")).toContain("Missing X scopes");
+    expect(health.blockers.join(" ")).toContain("tweet.write");
+    expect(health.blockers.join(" ")).toContain("media.write");
   });
 });
