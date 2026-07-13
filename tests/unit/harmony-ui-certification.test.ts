@@ -39,6 +39,18 @@ describe("Harmony production UI certification", () => {
     }
   });
 
+  it("locks Harmony blue as the canonical product accent token", () => {
+    const globals = source("src/app/globals.css");
+    expect(globals).toContain("--harmony-blue");
+    expect(globals).toContain("--primary: var(--harmony-blue)");
+    expect(globals).toContain("--ring: var(--harmony-blue)");
+
+    const branding = source("BRANDING.md");
+    expect(branding).toContain("Harmony blue is the canonical accent color");
+    expect(branding).toContain("The official Harmony logo is immutable");
+    expect(branding).toContain("Marketplace, Company Builder, Workforce, Founder Command Center");
+  });
+
   it("keeps authenticated page headers free of duplicate Harmony branding", () => {
     const guarded = [
       "src/components/shared/page-header.tsx",

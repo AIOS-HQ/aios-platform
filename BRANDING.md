@@ -42,6 +42,38 @@ Public marketing chrome must use AIOS:
 import { Logo } from "@/components/brand/logo";
 ```
 
+## Canonical Harmony Design System
+
+Harmony blue is the canonical accent color for AIOS product UI. The source of
+truth is `--harmony-blue` in `src/app/globals.css`; `--primary` and `--ring`
+must derive from it. New features must use the existing semantic tokens
+(`primary`, `accent`, `muted`, `canvas`, `card`, `sidebar`, `border`, `ring`)
+instead of hardcoding one-off blues or inventing local palettes.
+
+The official Harmony logo is immutable. Do not alter
+`public/branding/harmony-official-mark.svg`, trace it into a new SVG, recolor
+it, redraw it, crop it, or replace it with a generated mark.
+
+The current authenticated product UI is the design system baseline for the rest
+of AIOS:
+
+- card radius: use the shared radius tokens from `src/app/globals.css`;
+- spacing: follow existing sidebar, page header, section, card, form, and button
+  spacing;
+- typography: use the established title, section header, label, body, metric,
+  and muted text hierarchy;
+- buttons: use shared button variants from `src/components/ui/button.tsx`;
+- navigation: use `src/components/app/nav-config.ts`, `Sidebar`, `MobileNav`,
+  and `NavLink`;
+- surfaces: use the three-level elevation model already in the authenticated
+  shell: application background, content canvas, and cards.
+
+Marketplace, Company Builder, Workforce, Founder Command Center, Integrations,
+Deployments, and all future authenticated modules must conform to this system.
+They must not introduce new card shapes, local navigation systems, custom
+button styles, decorative brand marks, or unrelated accent palettes unless the
+Founder explicitly approves a design-system change.
+
 ## Official Components
 
 - `LogoMark`: AIOS public glyph.
@@ -168,6 +200,8 @@ Before committing branding changes, verify:
 
 - rendered authenticated chrome contains exactly one
   `data-harmony-product-mark="true"` element per product lockup;
+- `src/app/globals.css` defines `--harmony-blue` and derives `--primary` and
+  `--ring` from it;
 - public marketing chrome imports `Logo`, not `AiosHarmonyLogo`;
 - authenticated app chrome imports `AiosHarmonyLogo`, not public-only `Logo`;
 - shared page headers and loading states do not import product marks;
