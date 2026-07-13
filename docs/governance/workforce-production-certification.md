@@ -10,6 +10,7 @@ This document certifies the current AIOS workforce implementation. It is not a f
 | --- | --- | --- |
 | Registry/source of truth | `src/lib/workforce/registry.ts`, `WORKFORCE.md` | Canonical AIOS agents are Harmony, Auditor, Mason, Catalyst, Ambassador, Atlas, Pulse, Horizon, Aegis, Ledger. Julius is not an agent. |
 | Runtime certification | `src/lib/workforce/certification.ts` | Each agent exposes role, Julius access, skills, tools, connector dependencies, runtime handlers, execution capability, autonomy policy, approval policy, blockers, and unsupported capabilities. |
+| Event Mesh transport | `src/lib/event-mesh/*`, `event_mesh_*` tables | Portable outbox/inbox delivery sits beneath A2A/workforce records. PostgreSQL remains authoritative; NATS JetStream is optional and replaceable. |
 | Harmony delegation | `src/lib/harmony/agents/a2a.ts`, `src/lib/workforce/work-queue.ts` | Harmony can delegate tasks, attach Julius/skills/org context, create work items, request approval, receive responses, and record outcomes. |
 | A2A messages | `agent_messages`, `sendAgentMessage`, `delegateTask`, `respondToTask` | Known-agent validation, company scope, parent threading, status transitions, approval risk mapping, activity emission, Julius outcome recording, and skill learning are implemented. |
 | Work queue | `agent_work_queue`, `createWorkItem`, `setWorkItemStatus` | Work items are advisory by default, company-scoped, skill/context enriched, auditable, and can learn skills on completion. |

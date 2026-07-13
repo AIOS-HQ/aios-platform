@@ -1,0 +1,35 @@
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-sd", "/data/jetstream", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - aios-nats-jetstream:/data/jetstream
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8222/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  event-mesh-worker:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["npm", "run", "worker:event-mesh"]
+    depends_on:
+      nats:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      AIOS_EVENT_MESH_PROVIDER: nats
+      AIOS_EVENT_MESH_NATS_URL: nats://nats:4222
+      AIOS_EVENT_MESH_WORKER_ID: docker-compose-worker
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  aios-nats-jetstream:
