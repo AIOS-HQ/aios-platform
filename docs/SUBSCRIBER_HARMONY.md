@@ -3,13 +3,28 @@
 Subscriber Harmony is the authenticated customer product inside AIOS. It is not
 the public marketing website and it is not Founder OS.
 
+Canonical product boundaries are defined in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
+
 ## Product Surfaces
 
 | Surface | Audience | Purpose |
 | --- | --- | --- |
 | Public AIOS website | Visitors, prospects, investors, partners | Explain AIOS, Harmony, Julius, workforce, integrations, security, portability, pricing, and product value. |
-| Subscriber Harmony | Authenticated customers/subscribers | Private Personal Operating System powered by Harmony. |
-| Founder OS | Founder/admin | Operate AIOS, public website, Subscriber Harmony, workforce, integrations, releases, security, approvals, and business operations. |
+| Subscriber Harmony | Authenticated customers/subscribers | Personal and business operating system powered by Harmony. |
+| Founder OS | Founder/admin | Operate AIOS, public website, Subscriber Harmony, Marketplace, workforce, integrations, releases, security, approvals, managed services, and business operations. |
+| Customer-deployed company websites and applications | Customers and their audiences | Future productized outputs created and maintained by AIOS for customer companies. |
+
+## Product Modes
+
+Subscriber Harmony supports both:
+
+- **Personal Harmony**: personal productivity, tasks, goals, notes, memory,
+  learning, approvals, personal integrations, and the operator/chat workspace.
+- **Business Harmony**: company creation/import, active company context,
+  AI-operated departments, workforce deployment, Marketplace installs,
+  integrations, approvals, dashboards, Portable Company, and multi-company
+  operations.
 
 ## Subscriber Routes
 
@@ -18,6 +33,8 @@ the public marketing website and it is not Founder OS.
 | `/harmony/operator` | Harmony operator/chat workspace. | Owner-scoped. |
 | `/harmony/personal` | Personal dashboard. | Reads only signed-in user's tasks, goals, notes. |
 | `/harmony/onboarding` | Guided setup. | Current completion state is not durably tracked. |
+| `/harmony/build` | Company Builder and deployment experience. | Company-aware provisioning path; must not fork a new codebase per company. |
+| `/harmony/marketplace` | Marketplace browsing for templates, workers, bundles, and capabilities. | Installs/deployments require account, company context, entitlement, connector readiness, and approval gates. |
 | `/harmony/tasks` | Personal task workflow. | RLS owner-scoped. |
 | `/harmony/goals` | Personal goals. | RLS owner-scoped. |
 | `/harmony/notes` | Private notes. | Founder dashboards never show note content. |

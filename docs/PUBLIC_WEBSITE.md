@@ -5,6 +5,11 @@ platform. Public routes must stay truthful to current product capabilities:
 Harmony is the operating interface, Julius is the organizational brain, and the
 AIOS workforce operates under approval and connector-readiness boundaries.
 
+The canonical product architecture is
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
+This document scopes the public AIOS website only; it is not Subscriber Harmony,
+Founder OS, or a customer-deployed company website.
+
 ## Public Information Architecture
 
 Primary public navigation:
@@ -20,6 +25,13 @@ Primary public navigation:
 - Docs: `/docs`
 - Login: `/login`
 - Get Started: `/signup` or `/#waitlist` on the landing page
+
+The next public Website milestone will determine launch depth for the full
+public IA: Home, Features, Harmony, Julius, AI Workforce, Marketplace, Company
+Templates, Solutions, Industries, Portable Company, Managed Services,
+Integrations, Pricing, Documentation, Developers, Security, Trust Center,
+Status, Roadmap, About, Contact, Support, Legal, Login, and Signup. Roadmap or
+resource pages must be labeled truthfully if launch content is not complete.
 
 Protected application routes remain excluded from public navigation. `/harmony`,
 `/settings`, and `/api` remain protected or non-public.

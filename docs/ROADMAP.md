@@ -5,6 +5,12 @@ AI Workforce) on ONE Universal Capability Runtime, specialized per company by a
 Company Context Envelope — multi-company, portable, self-improving, and
 marketplace-extensible.
 
+The canonical product architecture is
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
+Roadmap items must preserve its four product surfaces: Public AIOS Website,
+Subscriber Harmony, Founder OS, and future customer-deployed company websites
+and applications.
+
 Governance is permanent. Autonomous execution proceeds continuously and only
 stops for the gates: Founder approval · production-impacting schema changes ·
 breaking architectural decisions · security concerns · required Layer‑1

@@ -1,7 +1,12 @@
 # AIOS Core
 
-AIOS Core is the shared foundation that powers Harmony (and, later, Opera). This document covers
-the Sprint 1 deliverables: authentication, profiles, roles, settings, and the protected app shell.
+AIOS Core is the shared foundation that powers the canonical product surfaces
+defined in [`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md):
+Public AIOS Website, Subscriber Harmony, Founder OS, and the future
+customer-deployed company website/application layer. Subscriber Harmony contains
+both personal and business/company operating modes rather than requiring a
+separate product codebase. This document covers the Sprint 1 deliverables:
+authentication, profiles, roles, settings, and the protected app shell.
 
 ## Authentication
 

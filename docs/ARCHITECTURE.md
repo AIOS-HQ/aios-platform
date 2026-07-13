@@ -1,29 +1,35 @@
 # AIOS Architecture
 
 This document describes how the AIOS Platform is structured and the decisions behind it.
+The canonical product model is
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
 For the launch-specific v1 blueprint, see
 [`docs/architecture/aios-v1-architecture-blueprint.md`](architecture/aios-v1-architecture-blueprint.md).
 
 ## Overview
 
 AIOS is a **shared-platform architecture**. A single Next.js application contains
-three distinct product experiences:
+the first three surfaces of the canonical four-surface model:
 
 - **Public AIOS website** — unauthenticated acquisition and education routes for
   visitors, prospects, investors, and partners.
-- **Subscriber Harmony** — the authenticated customer Personal Operating System
-  for onboarding, chat/operator work, tasks, goals, notes, memory, learning,
-  personal integrations, approvals, and settings.
+- **Subscriber Harmony** — the authenticated customer operating system for
+  personal productivity and business/company operations: onboarding, company
+  creation/import, chat/operator work, tasks, goals, notes, memory, learning,
+  AI workforce deployment, integrations, approvals, Marketplace, and settings.
 - **Founder OS** — Founder/admin-only operations for AIOS, Subscriber Harmony,
-  the public website, workforce, integrations, approvals, releases, diagnostics,
-  and governance.
+  the public website, Marketplace, workforce, integrations, approvals, releases,
+  diagnostics, managed services, and governance.
+- **Customer-deployed company websites and applications** are the future fourth
+  product surface. They are AIOS-created outputs for customer companies, not the
+  AIOS public website and not Subscriber Harmony.
 
 Those experiences reuse **AIOS Core**: identity/auth, user profiles, roles,
-settings, UI system, localization, theming, and the Supabase data layer. Opera
-remains the Business Operating System future phase and is not part of this
-build. Products live in route groups and feature folders but reuse Core's
-components, data clients, i18n, and conventions. This keeps the codebase modular
-without premature microservice complexity.
+settings, UI system, localization, theming, and the Supabase data layer.
+Business Harmony/company operations now live inside Subscriber Harmony rather
+than a separate Opera codebase. Products live in route groups and feature
+folders but reuse Core's components, data clients, i18n, and conventions. This
+keeps the codebase modular without premature microservice complexity.
 
 Harmony Social is a native Harmony module at `/harmony/social`. It uses the existing Harmony
 layout and navigation, keeps external publishing Founder-approved, and supports production
@@ -55,7 +61,7 @@ Pub/Sub, or any cloud-specific messaging SDK.
 | Principle | How it shows up in code |
 | --- | --- |
 | Human in control | No destructive automation. AI suggests; the user confirms. |
-| Trust before automation | The Life Operator defaults to a transparent mock; real AI is opt-in via env. |
+| Trust before automation | Harmony operator flows default to transparent, governed behavior; real external AI/provider execution is opt-in via env and readiness. |
 | Global first | All strings come from `messages/*`. No hardcoded copy. |
 | Accessibility first | Semantic HTML, focus management, labels, contrast, reduced-motion. |
 | Users own their data | Row Level Security scopes every row to its owner; export/delete are first-class goals. |
@@ -82,7 +88,7 @@ src/
     auth/             # auth actions + user/session helpers
     data/             # typed data-access functions per table
     harmony/          # Harmony server actions + domain logic
-    ai/               # Life Operator provider abstraction (mock/openai/anthropic)
+    ai/               # AI provider abstraction (mock/openai/anthropic)
   types/              # shared TypeScript types (database row types)
 messages/             # en.json, es.json
 supabase/             # config.toml + migrations
@@ -137,6 +143,9 @@ never breaks the build.
 
 ## What is intentionally NOT here (yet)
 
-Opera, mobile apps, billing, CRM, team management, enterprise
-features, and an AI agent marketplace are **out of scope** for this build and must not be added
-until their dedicated phases.
+Full Marketplace commerce, third-party seller economics, advanced enterprise
+tenancy, mobile apps, customer-generated websites/applications, and advanced
+cross-cloud deployment orchestration remain dedicated future phases. Marketplace
+engine/persistence/storefront foundations, Company Templates, Company Builder,
+Portable Company, and enterprise provisioning are first-class AIOS capabilities
+and must not be described as absent.

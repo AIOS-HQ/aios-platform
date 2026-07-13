@@ -10,14 +10,18 @@ inside one Next.js application and one Supabase-backed data plane so product,
 workflow, localization, governance, and diagnostics share the same source of
 truth.
 
+The canonical product model is
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](../product/AIOS_PRODUCT_ARCHITECTURE.md).
+
 ## Product surfaces
 
 | Surface | Audience | Purpose | Primary routes |
 | --- | --- | --- | --- |
 | Public AIOS website | Visitors, prospects, investors, partners | Explain AIOS, Harmony, Julius, workforce, integrations, security, portability, pricing, and product value. | `/`, `/features`, `/ai-workforce`, `/templates`, `/marketplace`, `/pricing`, `/docs`, `/faq`, `/help` |
 | Authentication | Visitors/subscribers/founder | Signup, login, password reset, executive feed, locale/theme controls. | `/signup`, `/login`, `/reset-password`, `/update-password` |
-| Subscriber Harmony | Subscribers | Unified customer workspace for onboarding, tasks, goals, notes, memory, and Harmony chat. | `/harmony/operator`, `/harmony/onboarding`, `/harmony/tasks`, `/harmony/goals`, `/harmony/notes`, `/settings` |
-| Founder OS | Founder/admin | Operating system for AIOS execution, governance, approvals, workforce, diagnostics, public website operations, Subscriber Harmony operations, and code visibility. | `/harmony`, `/harmony/briefing`, `/harmony/operations`, `/harmony/customer-experience`, `/harmony/website`, `/harmony/approvals`, `/harmony/workforce`, `/harmony/autonomy`, `/settings/diagnostics` |
+| Subscriber Harmony | Subscribers | Customer operating system for personal productivity and business/company operations: onboarding, company creation/import, tasks, goals, notes, memory, Harmony chat, Marketplace, AI workforce deployment, and approvals. | `/harmony/operator`, `/harmony/onboarding`, `/harmony/build`, `/harmony/marketplace`, `/harmony/tasks`, `/harmony/goals`, `/harmony/notes`, `/settings` |
+| Founder OS | Founder/admin | Operating system for AIOS execution, governance, approvals, workforce, diagnostics, public website operations, Subscriber Harmony operations, Marketplace operations, managed services, and code visibility. | `/harmony`, `/harmony/briefing`, `/harmony/operations`, `/harmony/customer-experience`, `/harmony/website`, `/harmony/approvals`, `/harmony/workforce`, `/harmony/autonomy`, `/settings/diagnostics` |
+| Customer-deployed company websites and applications | Customers and their audiences | Future productized outputs created and maintained by AIOS for customer companies. | Future layer |
 
 ## Core architecture
 
@@ -29,8 +33,8 @@ truth.
   locale and no URL locale prefix.
 - **Tailwind CSS v4 + shadcn-style primitives** own UI consistency.
 - **Harmony** is the customer-facing AI Chief of Staff. Customers interact with
-  Harmony, while specialist agents and founder-only systems stay behind the
-  operating boundary.
+  Harmony in personal and business/company contexts, while specialist agents and
+  founder-only systems stay behind the operating boundary.
 - **Founder OS** is admin-gated and exposes workforce, approvals, operations,
   content, code, diagnostics, Subscriber Harmony operations, public website
   operations, and launch monitoring.
@@ -91,11 +95,13 @@ truth.
 Included in v1:
 
 - Harmony public landing, auth, onboarding, personal workspace, founder command
-  center, workforce, approvals, operations, diagnostics, localization, and
-  production readiness checks.
+  center, Company Builder foundations, Marketplace foundations, workforce,
+  approvals, operations, diagnostics, localization, and production readiness
+  checks.
 
 Deferred after launch:
 
-- Native mobile apps, marketplace, full Opera Business OS, enterprise tenant
-  administration, multi-product app marketplace, and any duplicate analytics or
-  workflow systems that bypass the existing Harmony/Founder OS architecture.
+- Native mobile apps, Marketplace commerce/revenue sharing, third-party seller
+  economics, advanced enterprise tenant administration, customer-generated
+  websites/applications, and any duplicate analytics or workflow systems that
+  bypass the existing Harmony/Founder OS architecture.

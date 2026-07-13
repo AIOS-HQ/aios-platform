@@ -5,6 +5,14 @@ the SAME `MarketplaceItem` shape distinguished by `kind`, so versioning,
 verification, ratings, dependencies, the install lifecycle, and visibility are
 implemented once and inherited everywhere.
 
+The canonical Marketplace product model lives in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](../product/AIOS_PRODUCT_ARCHITECTURE.md).
+Marketplace, Company Templates, Company Builder, AI workforce deployment,
+capability installation, and company provisioning are first-class AIOS product
+capabilities. Third-party sellers, commerce/revenue sharing, deep public
+storefront content, and advanced entitlement UX remain separate product
+completion milestones.
+
 ## Storefront categories (12)
 `company_template` · `department` · `workforce` · `skill` · `connector` ·
 `workflow` · `dashboard` · `industry` · `branding_pack` · `knowledge_pack` ·

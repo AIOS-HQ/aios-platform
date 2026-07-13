@@ -4,6 +4,12 @@ Updated after every milestone. Mirrors the **AIOS Launch Readiness Report**
 section now required at the end of every milestone report. Percentages are
 engineering estimates against the full AIOS v1 roadmap.
 
+Canonical product boundaries are defined in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
+Marketplace foundations are first-class AIOS capabilities; remaining Marketplace
+work is product completion, content depth, commerce/entitlements, seller
+economics, and production acceptance rather than proving the concept exists.
+
 _Last updated: 2026-07-05 (Workforce Org/Relationship Map live; Marketplace Intelligence Suite — Intelligence/Discovery/Collections/Bundles — shipped; token encryption verified operational)._
 
 ## Overall launch readiness: ~79%
