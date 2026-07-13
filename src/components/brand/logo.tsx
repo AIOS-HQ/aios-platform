@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 
-/** The AIOS glyph: a rounded badge with an intelligent "core" ring + node. */
+/** The public AIOS platform glyph. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg
@@ -35,7 +35,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** Full lockup: glyph + wordmark. */
+/** Full public AIOS lockup: glyph + wordmark. */
 export function Logo({
   className,
   showWordmark = true,
@@ -56,11 +56,11 @@ export function Logo({
 }
 
 /**
- * Official AIOS + Harmony lockup for shared chrome.
+ * Official Harmony lockup for the authenticated operating system.
  *
- * AIOS is the platform brand; Harmony is the active product surface. The
- * authenticated product uses exactly one visual mark: the AIOS platform mark,
- * with AIOS/Harmony text beside it.
+ * The public marketing website remains AIOS-branded. Authenticated product
+ * chrome uses the Founder-approved Harmony mark stored at
+ * /public/branding/harmony-official-mark.svg and exactly one product identity.
  */
 export function AiosHarmonyLogo({
   className,
@@ -72,7 +72,7 @@ export function AiosHarmonyLogo({
   compact?: boolean;
   inverse?: boolean;
   aiosMarkClassName?: string;
-  /** @deprecated The one-mark rule keeps this prop for compatibility only. */
+  /** @deprecated Retained for call-site compatibility only. */
   harmonyMarkClassName?: string;
 }) {
   return (
@@ -82,17 +82,26 @@ export function AiosHarmonyLogo({
         inverse && "text-white",
         className,
       )}
+      data-harmony-product-lockup="true"
     >
-      <span className="inline-flex shrink-0 items-center" data-aios-product-mark="true">
-        <LogoMark className={cn("size-8", aiosMarkClassName)} />
-      </span>
+      <img
+        src="/branding/harmony-official-mark.svg"
+        alt="Harmony"
+        className={cn("size-9 shrink-0 rounded-xl object-contain", aiosMarkClassName)}
+        data-aios-product-mark="true"
+      />
       {!compact && (
         <span className="flex min-w-0 flex-col justify-center gap-0.5">
           <span className="truncate text-sm font-semibold tracking-tight sm:text-base">
-            AIOS
-          </span>
-          <span className={cn("truncate text-xs font-medium text-muted-foreground", inverse && "text-slate-300")}>
             Harmony
+          </span>
+          <span
+            className={cn(
+              "truncate text-xs font-medium text-muted-foreground",
+              inverse && "text-slate-300",
+            )}
+          >
+            AIOS operating system
           </span>
         </span>
       )}
