@@ -1,71 +1,73 @@
-# AIOS Public Website — Foundation (for Codex continuation)
+# AIOS Public Website Certification
 
-This is the **architectural foundation** for the public-facing AIOS marketing
-website. Hyperagent built the structure; **Codex finishes polish, copy, extra
-pages, and refinements.** It is intentionally additive and does **not** touch
-`/harmony`, the `(app)` Command Center, the `(auth)` routes, or any schema.
+This is the authoritative public website route and content matrix for the AIOS
+platform. Public routes must stay truthful to current product capabilities:
+Harmony is the operating interface, Julius is the organizational brain, and the
+AIOS workforce operates under approval and connector-readiness boundaries.
 
-## What exists now
+## Public Information Architecture
 
-**Route group:** `src/app/(marketing)/` — a Next.js route group (no URL prefix)
-with a shared layout that renders the public navbar + footer around every page
-in the group. It nests inside the root `app/layout.tsx`, so it never affects the
-Command Center (which has its own sidebar layout in `(app)`).
+Primary public navigation:
 
-**Shared components:** `src/components/marketing/`
-- `public-navbar.tsx` — responsive, **no client JS** (mobile menu uses a native
-  `<details>` disclosure). `PUBLIC_NAV_LINKS` is the single source of nav links.
-- `public-footer.tsx` — columns + AIOS principles + copyright.
-- `sections.tsx` — `MarketingHero`, `Section`, `Card`, `CtaLink` primitives
-  (AIOS design tokens: `bg-background`, `text-foreground`, `text-muted-foreground`,
-  `primary`, `border`, `rounded-2xl`, Tailwind v4 `bg-linear-to-b`).
+- Home: `/`
+- Features: `/features`
+- AI Workforce: `/ai-workforce`
+- How It Works: `/#automation`
+- Integrations: `/#integrations`
+- Company Templates: `/templates`
+- Marketplace: `/marketplace`
+- Pricing: `/pricing`
+- Docs: `/docs`
+- Login: `/login`
+- Get Started: `/signup` or `/#waitlist` on the landing page
 
-**Pages built (new, no collisions):**
-| Route | File | Content source |
-|---|---|---|
-| `/features` | `(marketing)/features/page.tsx` | Curated feature list (static copy) |
-| `/marketplace` | `(marketing)/marketplace/page.tsx` | `MARKETPLACE_CATEGORIES` (live, pure) |
-| `/ai-workforce` | `(marketing)/ai-workforce/page.tsx` | `AIOS_WORKFORCE` + `JULIUS` (live registry) |
-| `/templates` | `(marketing)/templates/page.tsx` | `COMPANY_TEMPLATES` (live, pure) |
-| `/docs` | `(marketing)/docs/page.tsx` | Placeholder → FAQ/Help + planned topics |
+Protected application routes remain excluded from public navigation. `/harmony`,
+`/settings`, and `/api` remain protected or non-public.
 
-**Pages reused (already existed — linked, NOT recreated):**
-- `/` Home → existing root `src/app/page.tsx` (the landing).
-- `/pricing` → existing `src/app/pricing/`.
-- `/login`, `/signup` → existing `src/app/(auth)/`.
-- `/faq`, `/help` → existing public pages.
+## Route Matrix
 
-CTAs route to **existing** flows: `Get started` → `/signup`, `Log in` →
-`/login`, deploy/browse → `/signup` (the authed Company Builder at
-`/harmony/build` provisions after login).
+| Route | Purpose | Public/protected | Status | CTA source | Metadata | Mobile | EN/ES |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | Investor/customer landing page for AIOS, Harmony, Julius, workforce, integrations, approvals, portability, and early access. | Public | Complete | Waitlist, pricing, docs, login | Page metadata + OG/X card | Responsive | EN/ES via `messages/landing/*` |
+| `/#automation` | How AIOS moves from request to governed work. | Public anchor | Complete | Landing nav, public nav | Inherited from `/` | Responsive | EN/ES |
+| `/#integrations` | Truthful integration overview without claiming framework-only providers are production-ready. | Public anchor | Complete | Landing nav, public nav | Inherited from `/` | Responsive | EN/ES |
+| `/features` | Product capability overview. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/ai-workforce` | AIOS workforce overview from the canonical registry, with Julius described as the brain, not an agent. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/templates` | Company template catalogue backed by current template data. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/marketplace` | Public marketplace categories and readiness. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/docs` | Public documentation index for getting started, Harmony, workforce, approvals, integrations, security, and portability. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/pricing` | Founder Beta pricing and billing entry point. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/faq` | Public FAQ. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/help` | Public help center. | Public | Complete | Public nav/footer | Static metadata | Responsive | English static copy |
+| `/privacy` | Public privacy terms. | Public | Complete | Footer, sitemap | Static metadata | Responsive | English static copy |
+| `/terms` | Public legal terms. | Public | Complete | Footer, sitemap | Static metadata | Responsive | English static copy |
+| `/login` | Auth entry. | Public auth | Complete | Nav/footer | Auth metadata | Responsive | App auth copy |
+| `/signup` | Founder/customer account creation. | Public auth | Complete | Nav/footer | Auth metadata | Responsive | App auth copy |
 
-## Guardrails honored
-- `/harmony` and all existing app routes are **unchanged**.
-- **No schema changes**, no secrets, no new env.
-- Data pulled from **pure, client-safe** modules only (registry, templates,
-  categories, constants) — no DB reads on these public pages.
-- Responsive at `sm`/`md`/`lg`.
+## Claim Boundaries
 
-## TODO(codex) — continuation checklist
-1. **Unify chrome for Home + Pricing.** They live outside `(marketing)`. Either
-   move `src/app/page.tsx` and `src/app/pricing/` into `(marketing)/` (URLs stay
-   the same) so they inherit the navbar/footer, or render `<PublicNavbar/>` +
-   `<PublicFooter/>` inside them. Verify the existing landing's own header
-   doesn't double up.
-2. **i18n.** Extract all inline copy into a `website` per-namespace catalog
-   (`messages/website/{en,es}.json`) registered in `src/i18n/request.ts`, mirroring
-   the `org`/`marketplace` catalogs. Keep en/es at parity.
-3. **Deep-link templates → builder.** `/signup?template=<slug>` (or `next=`)
-   and carry the selection into `/harmony/build` after auth.
-4. **Real docs.** Replace the `/docs` placeholder with MDX or a docs route tree.
-5. **Polish.** Hero imagery/screenshots, feature icons (use confirmed lucide
-   icons only), testimonials/logos, an active-link state in the navbar, SEO
-   metadata + per-page `opengraph-image`, and a sitemap entry for the new routes.
-6. **Legal.** Real Privacy / Terms routes (footer currently points them at `/docs`).
-7. **Nav dropdowns.** Consider grouping Product links under a dropdown as the
-   nav grows.
+- The website must not claim unlimited or ungated autonomy.
+- Social publishing is real for LinkedIn, X, and YouTube only through Harmony
+  Social governance and provider readiness.
+- Framework-only integrations remain described as setup/configuration work, not
+  production execution.
+- No fake customer counts, revenue, testimonials, partner logos, or live
+  analytics are used.
+- AirBid is not presented as part of the AIOS workforce or brand.
 
-## Verification done before this PR
-- `tsc --strict` (harness) + ESLint flat config: clean.
-- No route collisions (new paths only; existing routes untouched).
-- Held for Founder review (visible UX).
+## SEO and Indexing
+
+- `src/app/sitemap.ts` lists public routes only.
+- `src/app/robots.ts` allows public routes and disallows `/harmony`,
+  `/settings`, and `/api`.
+- Protected authenticated routes stay out of public navigation and sitemap.
+- Default site URL should be set with `NEXT_PUBLIC_SITE_URL` in production so
+  canonical sitemap/robots URLs use the production domain.
+
+## Acceptance Checks
+
+- Desktop and mobile public nav expose the same main public destinations.
+- Every public nav/footer link resolves to an existing route or landing anchor.
+- Public pages do not require authentication.
+- Public copy distinguishes current implemented capabilities from future setup.
+- The canonical one-mark `AiosHarmonyLogo` is used for public chrome.

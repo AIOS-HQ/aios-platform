@@ -67,6 +67,10 @@ export type NavItem = {
   icon: NavIconKey;
   /** Match the active state exactly (no prefix match). */
   exact?: boolean;
+  /** Optional audience override for nested items. */
+  audience?: NavAudience;
+  /** Child items rendered under this item in the same navigation source. */
+  children?: NavItem[];
 };
 
 /**
@@ -121,7 +125,14 @@ export const navSections: NavSection[] = [
     titleKey: "primary",
     audience: "all",
     items: [
-      { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
+      {
+        href: "/harmony/operator",
+        labelKey: "operator",
+        icon: "Sparkles",
+        children: [
+          { href: "/harmony/social", labelKey: "social", icon: "Share2", audience: "founder" },
+        ],
+      },
       { href: "/harmony/personal", labelKey: "dashboard", icon: "LayoutDashboard" },
     ],
   },
@@ -142,7 +153,6 @@ export const navSections: NavSection[] = [
       { href: "/harmony/activity", labelKey: "activity", icon: "Activity" },
       { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
       { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
-      { href: "/harmony/social", labelKey: "social", icon: "Share2" },
       { href: "/harmony/integrations", labelKey: "integrations", icon: "Plug" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
@@ -189,17 +199,38 @@ export const navSections: NavSection[] = [
  * Founder OS). Sections with no explicit audience default to "all".
  */
 export function sectionsForAudience(isFounder: boolean): NavSection[] {
-  return navSections.filter((s) => {
+  return navSections.map((section) => ({
+    ...section,
+    items: section.items
+      .filter((item) => itemVisibleForAudience(item, isFounder))
+      .map((item) => ({
+        ...item,
+        children: item.children?.filter((child) => itemVisibleForAudience(child, isFounder)),
+      })),
+  })).filter((s) => {
     const audience = s.audience ?? "all";
     if (audience === "all") return true;
     return isFounder ? audience === "founder" : audience === "customer";
-  });
+  }).filter((section) => section.items.length > 0);
 }
 
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
-  return item.exact
+  const selfActive = item.exact
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return selfActive || Boolean(item.children?.some((child) => isNavItemActive(pathname, child)));
+}
+
+function itemVisibleForAudience(item: NavItem, isFounder: boolean): boolean {
+  const audience = item.audience ?? "all";
+  if (audience === "all") return true;
+  return isFounder ? audience === "founder" : audience === "customer";
+}
+
+export function flattenNavItems(sections: NavSection[]): NavItem[] {
+  return sections.flatMap((section) =>
+    section.items.flatMap((item) => [item, ...(item.children ?? [])]),
+  );
 }
 
 /**
@@ -216,9 +247,8 @@ const LEGACY_CUSTOMER_REDIRECTS = ["/harmony/advisor", "/harmony/brain"];
  * NOT listed here is treated as founder-only.
  */
 export const CUSTOMER_HARMONY_PREFIXES: string[] = [
-  ...navSections
-    .filter((s) => (s.audience ?? "all") !== "founder")
-    .flatMap((s) => s.items.map((i) => i.href))
+  ...flattenNavItems(sectionsForAudience(false))
+    .map((i) => i.href)
     .filter((href) => href.startsWith("/harmony/")),
   ...LEGACY_CUSTOMER_REDIRECTS,
 ];

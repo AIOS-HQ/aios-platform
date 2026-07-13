@@ -9,7 +9,7 @@ This document certifies the current AIOS workforce implementation. It is not a f
 | Layer | Source | Certification |
 | --- | --- | --- |
 | Registry/source of truth | `src/lib/workforce/registry.ts`, `WORKFORCE.md` | Canonical AIOS agents are Harmony, Auditor, Mason, Catalyst, Ambassador, Atlas, Pulse, Horizon, Aegis, Ledger. Julius is not an agent. |
-| Runtime certification | `src/lib/workforce/certification.ts` | Each agent exposes role, Julius access, skills, tools, connector dependencies, runtime handlers, execution capability, autonomy policy, approval policy, blockers, and unsupported capabilities. |
+| Runtime certification | `src/lib/workforce/certification.ts` | Each agent exposes role, Julius access, skills, tools, connector dependencies, runtime handlers, execution capability, autonomy policy, approval policy, actionable blockers, and intentional capability boundaries. |
 | Event Mesh transport | `src/lib/event-mesh/*`, `event_mesh_*` tables | Portable outbox/inbox delivery sits beneath A2A/workforce records. PostgreSQL remains authoritative; NATS JetStream is optional and replaceable. |
 | Harmony delegation | `src/lib/harmony/agents/a2a.ts`, `src/lib/workforce/work-queue.ts` | Harmony can delegate tasks, attach Julius/skills/org context, create work items, request approval, receive responses, and record outcomes. |
 | A2A messages | `agent_messages`, `sendAgentMessage`, `delegateTask`, `respondToTask` | Known-agent validation, company scope, parent threading, status transitions, approval risk mapping, activity emission, Julius outcome recording, and skill learning are implemented. |
@@ -20,7 +20,7 @@ This document certifies the current AIOS workforce implementation. It is not a f
 | Company Skills | `src/lib/company-skills/*` | Delegation/work outcomes consult, record, and learn reusable skills via Julius entries. |
 | Connector execution | `src/lib/integrations/connector-runtime.ts`, PR #399 readiness | Workforce dependencies now consume truthful connector readiness and provider capability blockers. |
 | Activity/audit | `emitActivity`, `agent_actions`, `activity_events`, autonomy audit | Major workforce actions produce activity/audit records where current runtime paths execute. |
-| UI/readiness | `/harmony/workforce`, `/harmony/workforce/[agent]` | UI surfaces certification status, Julius access, Founder-only Mason status, tools, dependencies, blockers, and unsupported capabilities. |
+| UI/readiness | `/harmony/workforce`, `/harmony/workforce/[agent]` | UI surfaces certification status, Julius access, Founder-only Mason status, tools, dependencies, actionable blockers, and intentional capability boundaries without treating excluded future capabilities as production failures. |
 
 ## Canonical Workforce
 
@@ -30,7 +30,7 @@ This document certifies the current AIOS workforce implementation. It is not a f
 | Auditor | Internal Auditor & System Inspector | read/write | Production ready for read-only audits and governance sweep; remediation is queued and approval-gated. |
 | Mason | Founder Native Chief Software Engineer | read/write | Operational with approval when GitHub is connected/configured and Vercel token is configured. Founder-only; no direct production edit, unapproved merge, repo deletion, or secret mutation. |
 | Catalyst | Content & Growth | read/write | Operational with approval for planning/drafting through Harmony Social. LinkedIn, X, and YouTube publishing remain Founder-approved and provider-readiness dependent. |
-| Ambassador | Business Communications & Relations | read/write | Partial/guided runtime. Native web chat and deterministic risk classification exist; framework-only Meta channels remain blocked. |
+| Ambassador | Business Communications & Relations | read/write | Partial/guided runtime. Native web chat and deterministic risk classification exist; framework-only Meta channels remain capability boundaries until their connectors become executable. |
 | Atlas | Knowledge Intelligence | steward | Production ready for Julius stewardship, Company Skills curation, and knowledge preservation. |
 | Pulse | System Monitoring | read/write | Advisory/partial. Reads available health/audit sources; does not fabricate real-time monitoring. |
 | Horizon | Strategy & Planning | read/write | Advisory. Creates evidence-backed plans and delegated work, not external execution. |
@@ -57,7 +57,7 @@ Certified behavior:
 - Runtime refuses missing execution evidence.
 - Runtime health now requires the specific GitHub capabilities and a real Vercel token configuration; Vercel is no longer healthy from metadata alone.
 
-Remaining live blockers:
+Remaining live configuration actions:
 
 - GitHub OAuth must be configured and connected with usable token.
 - Vercel requires `VERCEL_TOKEN` or `VERCEL_API_TOKEN`.
@@ -82,9 +82,9 @@ Remaining live blockers:
 
 Workforce certification evaluates declared connector dependencies against actual provider registration, configuration, connection, and capability availability. Dependencies do not imply execution.
 
-- Mason: GitHub and Vercel are required. Missing GitHub connection/env or Vercel token blocks operational readiness.
+- Mason: GitHub and Vercel are required. Missing GitHub connection/env or Vercel token is shown as configuration required rather than an unsupported capability.
 - Catalyst: LinkedIn, X, and YouTube are coordinated through Harmony Social and remain approval-gated.
-- Ambassador: Gmail and Slack have partial real read capabilities; WhatsApp, Messenger, and Instagram remain framework-only for execution.
+- Ambassador: Gmail and Slack have partial real read capabilities; WhatsApp, Messenger, and Instagram remain framework-only execution boundaries.
 - Pulse: Vercel/Supabase monitoring is truthful and degraded when credentials/handlers are absent.
 
 ## Database and Migration Findings

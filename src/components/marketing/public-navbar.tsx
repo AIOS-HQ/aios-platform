@@ -13,9 +13,11 @@ import { APP_NAME } from "@/lib/constants";
 
 export const PUBLIC_NAV_LINKS: { href: string; label: string }[] = [
   { href: "/features", label: "Features" },
-  { href: "/marketplace", label: "Marketplace" },
   { href: "/ai-workforce", label: "AI Workforce" },
+  { href: "/#automation", label: "How It Works" },
+  { href: "/#integrations", label: "Integrations" },
   { href: "/templates", label: "Company Templates" },
+  { href: "/marketplace", label: "Marketplace" },
   { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
 ];

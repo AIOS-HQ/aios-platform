@@ -5,9 +5,11 @@ import { requireUser } from "@/lib/auth/user";
 import { createClient } from "@/lib/supabase/server";
 import {
   createUploadUrl,
+  deleteUpload,
   getDownloadUrl,
   type UploadCategory,
 } from "@/lib/uploads/storage";
+import { validateUploadInput } from "@/lib/uploads/validation";
 
 /**
  * Founder Experience (P6) — upload server actions. Issue an owner-scoped signed
@@ -19,14 +21,23 @@ import {
 export interface UploadTicket {
   path: string;
   token: string;
+  error?: string;
 }
 
 export async function requestUploadTicket(
   category: UploadCategory,
   filename: string,
+  mimeType?: string | null,
+  byteSize?: number | null,
 ): Promise<UploadTicket | null> {
   const user = await requireUser();
-  const target = await createUploadUrl(user.id, category, filename);
+  const validation = validateUploadInput({ category, filename, mimeType, byteSize });
+  if (!validation.ok) return { path: "", token: "", error: validation.message };
+
+  const target = await createUploadUrl(user.id, category, filename, {
+    mimeType,
+    byteSize,
+  });
   if (!target) return null;
   return { path: target.path, token: target.token };
 }
@@ -34,6 +45,40 @@ export async function requestUploadTicket(
 export async function resolveUploadUrl(path: string): Promise<string | null> {
   await requireUser();
   return getDownloadUrl(path, 3600);
+}
+
+export async function removeProfilePhoto(): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { data: profile, error: readError } = await supabase
+    .from("profiles")
+    .select("profile_photo_path")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (readError) {
+    console.error("[branding-upload] removeProfilePhoto read", readError.message);
+    return { ok: false, error: "Could not load the current profile photo." };
+  }
+
+  const path = profile?.profile_photo_path as string | null | undefined;
+  if (path && path.startsWith(`${user.id}/profile/`)) {
+    await deleteUpload(path);
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      { id: user.id, email: user.email, profile_photo_path: null },
+      { onConflict: "id" },
+    );
+  if (error) {
+    console.error("[branding-upload] removeProfilePhoto", error.message);
+    return { ok: false, error: "Could not remove the profile photo." };
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/settings/branding");
+  return { ok: true };
 }
 
 export async function completeUpload(

@@ -34,7 +34,7 @@ export default async function BrandingPage() {
             <UploadButton
               category="profile"
               label="Profile photo"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               initialPreview={profilePhotoUrl}
             />
           </CardContent>

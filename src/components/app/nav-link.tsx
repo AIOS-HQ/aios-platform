@@ -10,15 +10,20 @@ export function NavLink({
   item,
   badge,
   onNavigate,
+  depth = 0,
 }: {
   item: NavItem;
   /** Optional count shown as a pill on the right (e.g. pending approvals). */
   badge?: number;
   onNavigate?: () => void;
+  depth?: number;
 }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   const active = isNavItemActive(pathname, item);
+  const current = item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
   // Resolve the icon key → component here (client side), so the Server Sidebar
   // never passes a function across the Server/Client boundary.
   const Icon = NAV_ICONS[item.icon];
@@ -28,18 +33,26 @@ export function NavLink({
     <Link
       href={item.href}
       onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
+      aria-current={current ? "page" : undefined}
       className={cn(
         "flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
-        active
+        depth > 0 && "ml-7 min-h-8 py-1.5 text-[0.82rem]",
+        active && depth === 0
           ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/30"
-          : "text-sidebar-foreground/78 hover:bg-background/65 hover:text-sidebar-foreground",
+          : active
+            ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/25"
+            : "text-sidebar-foreground/78 hover:bg-background/65 hover:text-sidebar-foreground",
       )}
     >
       <Icon
         className={cn(
           "size-4 shrink-0",
-          active ? "text-primary-foreground" : "text-sidebar-foreground/58",
+          depth > 0 && "size-3.5",
+          active && depth === 0
+            ? "text-primary-foreground"
+            : active
+              ? "text-primary"
+              : "text-sidebar-foreground/58",
         )}
         aria-hidden="true"
       />

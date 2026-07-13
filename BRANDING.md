@@ -34,6 +34,13 @@ examples, or feature components.
 `AiosHarmonyLogo` is the canonical top-level lockup for the product experience:
 AIOS is the platform, Harmony is the active product surface.
 
+One-mark rule: `AiosHarmonyLogo` must render exactly one visual logo mark. The
+authenticated app sidebar, mobile drawer, auth shell, onboarding headers, and
+public nav/footer may show text for both `AIOS` and `Harmony`, but must not show
+an AIOS icon tile beside a second Harmony icon tile. `HarmonyMark` and
+`HarmonyLogo` are reserved for deliberate Harmony-only brand moments outside
+ordinary app chrome.
+
 Use `AiosHarmonyLogo` in:
 
 - authenticated app sidebar and mobile navigation;
@@ -188,6 +195,8 @@ Before committing branding changes, verify:
   shows the canonical lockup only, with no standalone Harmony brand mark beside it;
 - `rg -n "AiosHarmonyLogo|HarmonyMark|HarmonyLogo" src/components/shared/page-header.tsx src/components/shared/loaders.tsx -S`
   returns no matches;
+- rendered `AiosHarmonyLogo` output contains exactly one
+  `data-aios-product-mark="true"` element;
 - `rg -n "HarmonyAvatar" src/app src/components -S` shows only
   conversational or interaction contexts;
 - `npm run lint` passes;

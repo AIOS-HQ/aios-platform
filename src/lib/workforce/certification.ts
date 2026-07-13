@@ -74,6 +74,7 @@ export interface WorkforceAgentCertification {
   label: string;
   health: "healthy" | "degraded" | "blocked";
   blockers: string[];
+  capabilityBoundaries: string[];
   dependencyReadiness: WorkforceDependencyReadiness[];
 }
 
@@ -336,14 +337,12 @@ export async function certifyWorkforceAgent(
   const dependencyReadiness = await Promise.all(
     contract.connectorDependencies.map((dependency) => evaluateDependency(opts.userId ?? null, dependency)),
   );
-  const dependencyBlockers = dependencyReadiness.flatMap((dep) =>
+  const dependencyBlockers = dependencyReadiness.filter((dep) => dep.required).flatMap((dep) =>
     dep.blockers.map((blocker) => `${dep.provider}: ${blocker}`),
   );
   const status = baseStatusFor(agent, dependencyReadiness);
-  const blockers = [
-    ...dependencyBlockers,
-    ...contract.unsupportedCapabilities.map((capability) => `Unsupported: ${capability}.`),
-  ];
+  const blockers = dependencyBlockers;
+  const capabilityBoundaries = contract.unsupportedCapabilities.map((capability) => `${capability}.`);
 
   return {
     agent,
@@ -354,6 +353,7 @@ export async function certifyWorkforceAgent(
     label: WORKFORCE_STATUS_LABELS[status],
     health: status === "blocked" ? "blocked" : dependencyBlockers.length > 0 ? "degraded" : "healthy",
     blockers,
+    capabilityBoundaries,
     dependencyReadiness,
   };
 }

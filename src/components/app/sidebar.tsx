@@ -39,7 +39,17 @@ export async function Sidebar({
               </p>
             )}
             {section.items.map((item) => (
-              <NavLink key={item.href} item={item} badge={badges?.[item.href]} />
+              <div key={item.href} className="space-y-1">
+                <NavLink item={item} badge={badges?.[item.href]} />
+                {item.children?.map((child) => (
+                  <NavLink
+                    key={child.href}
+                    item={child}
+                    badge={badges?.[child.href]}
+                    depth={1}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         ))}

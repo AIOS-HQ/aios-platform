@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
-import { HarmonyMark } from "./harmony-logo";
 
 /** The AIOS glyph: a rounded badge with an intelligent "core" ring + node. */
 export function LogoMark({ className }: { className?: string }) {
@@ -57,23 +56,23 @@ export function Logo({
 }
 
 /**
- * Official AIOS + Harmony lockup for shared chrome and page headers.
+ * Official AIOS + Harmony lockup for shared chrome.
  *
- * AIOS is the platform brand; Harmony is the active product surface. Use this
- * component anywhere top-level app, marketing, or auth branding is rendered so
- * mark sizing, baseline alignment, and text treatment stay consistent.
+ * AIOS is the platform brand; Harmony is the active product surface. The
+ * authenticated product uses exactly one visual mark: the AIOS platform mark,
+ * with AIOS/Harmony text beside it.
  */
 export function AiosHarmonyLogo({
   className,
   compact = false,
   inverse = false,
   aiosMarkClassName,
-  harmonyMarkClassName,
 }: {
   className?: string;
   compact?: boolean;
   inverse?: boolean;
   aiosMarkClassName?: string;
+  /** @deprecated The one-mark rule keeps this prop for compatibility only. */
   harmonyMarkClassName?: string;
 }) {
   return (
@@ -84,16 +83,8 @@ export function AiosHarmonyLogo({
         className,
       )}
     >
-      <span className="inline-flex shrink-0 items-center -space-x-1.5">
+      <span className="inline-flex shrink-0 items-center" data-aios-product-mark="true">
         <LogoMark className={cn("size-8", aiosMarkClassName)} />
-        <HarmonyMark
-          className={cn(
-            "size-8 rounded-[22%] ring-2 ring-background",
-            inverse && "ring-[#050814]",
-            harmonyMarkClassName,
-          )}
-          title="Harmony"
-        />
       </span>
       {!compact && (
         <span className="flex min-w-0 flex-col justify-center gap-0.5">

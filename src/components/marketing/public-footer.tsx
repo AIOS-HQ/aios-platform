@@ -14,9 +14,11 @@ const FOOTER_COLUMNS: { title: string; links: { href: string; label: string }[] 
     title: "Product",
     links: [
       { href: "/features", label: "Features" },
-      { href: "/marketplace", label: "Marketplace" },
       { href: "/ai-workforce", label: "AI Workforce" },
+      { href: "/#automation", label: "How It Works" },
+      { href: "/#integrations", label: "Integrations" },
       { href: "/templates", label: "Company Templates" },
+      { href: "/marketplace", label: "Marketplace" },
       { href: "/pricing", label: "Pricing" },
       { href: "/docs", label: "Docs" },
     ],
