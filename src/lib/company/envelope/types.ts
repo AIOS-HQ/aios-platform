@@ -11,6 +11,7 @@
 
 export interface CompanyBrand {
   logo?: string;
+  banner?: string;
   palette?: string[];
   voice?: string;
 }

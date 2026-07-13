@@ -88,7 +88,7 @@ describe("launch route audit", () => {
     );
   });
 
-  it("surfaces Social once under the Harmony primary item", () => {
+  it("surfaces Social once under the Harmony operational primary item", () => {
     const allItems = sectionsForAudience(true).flatMap((section) =>
       flattenNavItems([section]).map((item) => ({ section, item })),
     );
@@ -96,7 +96,12 @@ describe("launch route audit", () => {
     const harmony = primary?.items.find((item) => item.labelKey === "operator");
     const socialItems = allItems.filter(({ item }) => item.href === "/harmony/social");
     expect(socialItems).toHaveLength(1);
-    expect(harmony?.children?.map((item) => item.href)).toEqual(["/harmony/social"]);
+    expect(harmony?.children?.map((item) => item.href)).toEqual([
+      "/harmony/advisor",
+      "/harmony/comms",
+      "/harmony/content",
+      "/harmony/social",
+    ]);
     expect(socialItems[0].section.titleKey).toBe("primary");
     expect(socialItems[0].item.labelKey).toBe("social");
     expect(flattenNavItems(sectionsForAudience(false)).map((item) => item.href)).not.toContain(

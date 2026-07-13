@@ -134,6 +134,9 @@ export const navSections: NavSection[] = [
         labelKey: "operator",
         icon: "Sparkles",
         children: [
+          { href: "/harmony/advisor", labelKey: "advisor", icon: "Lightbulb", audience: "founder" },
+          { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare", audience: "founder" },
+          { href: "/harmony/content", labelKey: "content", icon: "Clapperboard", audience: "founder" },
           { href: "/harmony/social", labelKey: "social", icon: "Share2", audience: "founder" },
         ],
       },
@@ -155,8 +158,6 @@ export const navSections: NavSection[] = [
       { href: "/harmony/approvals", labelKey: "approvals", icon: "ShieldCheck" },
       { href: "/settings/auditor", labelKey: "auditor", icon: "Gauge" },
       { href: "/harmony/activity", labelKey: "activity", icon: "Activity" },
-      { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
-      { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
       { href: "/harmony/integrations", labelKey: "integrations", icon: "Plug" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },

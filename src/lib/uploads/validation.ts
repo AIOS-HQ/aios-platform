@@ -1,4 +1,5 @@
 export const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const BRAND_ASSET_MAX_BYTES = 10 * 1024 * 1024;
 
 const PROFILE_PHOTO_MIME_TYPES = new Set([
   "image/jpeg",
@@ -37,6 +38,19 @@ export function validateUploadInput(input: {
     }
     if (typeof input.byteSize === "number" && input.byteSize > PROFILE_PHOTO_MAX_BYTES) {
       return { ok: false, message: "Profile photos must be 5 MB or smaller." };
+    }
+  }
+
+  if (input.category === "company-logo" || input.category === "company-banner") {
+    const ext = extensionFor(input.filename);
+    if (!IMAGE_EXTENSIONS.has(ext)) {
+      return { ok: false, message: "Branding images must be JPG, PNG, WEBP, or GIF images." };
+    }
+    if (input.mimeType && !PROFILE_PHOTO_MIME_TYPES.has(input.mimeType)) {
+      return { ok: false, message: "Branding images must be JPG, PNG, WEBP, or GIF images." };
+    }
+    if (typeof input.byteSize === "number" && input.byteSize > BRAND_ASSET_MAX_BYTES) {
+      return { ok: false, message: "Branding images must be 10 MB or smaller." };
     }
   }
 

@@ -12,13 +12,13 @@ export type IntegrationClassification =
   | "unsupported";
 
 export const INTEGRATION_CLASSIFICATION_LABELS: Record<IntegrationClassification, string> = {
-  production_ready: "Production-ready",
-  partial: "Partially implemented",
-  read_only: "Read-only",
-  configuration_required: "Configuration required",
-  reauthorization_required: "Reauthorization required",
-  framework_only: "Framework only",
-  unsupported: "Unsupported",
+  production_ready: "Connected",
+  partial: "Configured",
+  read_only: "Configured",
+  configuration_required: "Requires Credentials",
+  reauthorization_required: "Needs Authorization",
+  framework_only: "Not installed",
+  unsupported: "Not installed",
 };
 
 export const INTEGRATION_CLASSIFICATION_DESCRIPTIONS: Record<IntegrationClassification, string> = {
@@ -27,8 +27,8 @@ export const INTEGRATION_CLASSIFICATION_DESCRIPTIONS: Record<IntegrationClassifi
   read_only: "Real read or identity capability exists; write behavior is unavailable here.",
   configuration_required: "Code exists, but credentials, scopes, connection, or external setup is missing.",
   reauthorization_required: "Stored credentials are expired, invalid, insufficiently scoped, or legacy.",
-  framework_only: "Catalog metadata or OAuth scaffolding exists without meaningful runtime capability.",
-  unsupported: "No usable implementation exists and execution is disabled.",
+  framework_only: "This provider is not installed in the current production catalogue.",
+  unsupported: "This provider is not installed in the current production catalogue.",
 };
 
 const SOCIAL_RUNTIME_CAPABILITIES: Record<string, Set<string>> = {

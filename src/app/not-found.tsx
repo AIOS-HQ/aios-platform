@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
@@ -11,7 +11,7 @@ export default function NotFound() {
       id="main-content"
       className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 text-center"
     >
-      <AiosHarmonyLogo />
+      <Logo />
       <div className="space-y-2">
         <p className="text-6xl font-bold tracking-tight text-primary">404</p>
         <h1 className="text-2xl font-semibold">{t("title")}</h1>

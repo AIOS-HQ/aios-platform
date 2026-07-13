@@ -3,7 +3,7 @@ import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { AiosHarmonyLogo, Logo } from "@/components/brand/logo";
 import { flattenNavItems, sectionsForAudience } from "@/components/app/nav-config";
 
 const ROOT = process.cwd();
@@ -13,12 +13,30 @@ function source(rel: string): string {
 }
 
 describe("Harmony production UI certification", () => {
-  it("renders the canonical AIOS + Harmony lockup with exactly one visual mark", () => {
+  it("renders the authenticated Harmony lockup with exactly one official mark", () => {
     const html = renderToStaticMarkup(createElement(AiosHarmonyLogo));
-    expect(html.match(/data-aios-product-mark="true"/g)).toHaveLength(1);
-    expect(html).toContain("AIOS");
+    expect(html.match(/data-harmony-product-mark="true"/g)).toHaveLength(1);
+    expect(html).toContain("/branding/harmony-official-mark.svg");
     expect(html).toContain("Harmony");
-    expect(html).not.toContain("Harmony logo");
+    expect(html).not.toContain("AIOS operating system");
+  });
+
+  it("keeps public marketing chrome AIOS-branded instead of Harmony-branded", () => {
+    const html = renderToStaticMarkup(createElement(Logo));
+    expect(html).toContain("AIOS");
+    expect(html).not.toContain("/branding/harmony-official-mark.svg");
+
+    for (const rel of [
+      "src/components/marketing/public-navbar.tsx",
+      "src/components/marketing/public-footer.tsx",
+      "src/components/marketing/site-header.tsx",
+      "src/components/marketing/site-footer.tsx",
+      "src/app/not-found.tsx",
+    ]) {
+      const text = source(rel);
+      expect(text).toContain("Logo");
+      expect(text).not.toContain("AiosHarmonyLogo");
+    }
   });
 
   it("keeps authenticated page headers free of duplicate Harmony branding", () => {
@@ -42,8 +60,15 @@ describe("Harmony production UI certification", () => {
     expect(command).toBeDefined();
 
     const harmony = primary!.items.find((item) => item.labelKey === "operator");
-    expect(harmony?.children?.map((item) => item.labelKey)).toEqual(["social"]);
+    expect(harmony?.children?.map((item) => item.labelKey)).toEqual([
+      "advisor",
+      "comms",
+      "content",
+      "social",
+    ]);
     expect(command!.items.map((item) => item.labelKey)).not.toContain("social");
+    expect(command!.items.map((item) => item.labelKey)).not.toContain("comms");
+    expect(command!.items.map((item) => item.labelKey)).not.toContain("content");
 
     const hrefs = flattenNavItems(sectionsForAudience(true)).map((item) => item.href);
     expect(hrefs.filter((href) => href === "/harmony/social")).toHaveLength(1);
@@ -56,6 +81,9 @@ describe("Harmony production UI certification", () => {
     expect(source("src/types/database.ts")).toContain("profile_photo_path: string | null");
     expect(source("src/app/(app)/settings/branding/upload-action.ts")).toContain("profile_photo_path: path");
     expect(source("src/app/(app)/settings/branding/upload-action.ts")).toContain("removeProfilePhoto");
+    expect(source("src/app/(app)/settings/branding/upload-action.ts")).toContain("saveCompanyBranding");
+    expect(source("src/components/uploads/company-branding-form.tsx")).toContain("Save Branding");
+    expect(source("src/lib/company/envelope/types.ts")).toContain("banner?: string");
     expect(source("src/lib/uploads/validation.ts")).toContain("PROFILE_PHOTO_MAX_BYTES");
     expect(source("src/app/(app)/layout.tsx")).toContain("profilePhotoUrl");
     expect(source("src/components/app/user-menu.tsx")).toContain("AvatarImage");

@@ -55,12 +55,26 @@ export function Logo({
   );
 }
 
+/** The official Founder-approved Harmony mark for authenticated product chrome. */
+export function HarmonyOfficialMark({ className }: { className?: string }) {
+  return (
+    <img
+      src="/branding/harmony-official-mark.svg"
+      alt="Harmony"
+      className={cn("size-9 shrink-0 rounded-xl object-contain", className)}
+      data-harmony-product-mark="true"
+    />
+  );
+}
+
 /**
  * Official Harmony lockup for the authenticated operating system.
  *
  * The public marketing website remains AIOS-branded. Authenticated product
  * chrome uses the Founder-approved Harmony mark stored at
  * /public/branding/harmony-official-mark.svg and exactly one product identity.
+ *
+ * The export name is retained for compatibility with existing imports.
  */
 export function AiosHarmonyLogo({
   className,
@@ -84,12 +98,7 @@ export function AiosHarmonyLogo({
       )}
       data-harmony-product-lockup="true"
     >
-      <img
-        src="/branding/harmony-official-mark.svg"
-        alt="Harmony"
-        className={cn("size-9 shrink-0 rounded-xl object-contain", aiosMarkClassName)}
-        data-aios-product-mark="true"
-      />
+      <HarmonyOfficialMark className={aiosMarkClassName} />
       {!compact && (
         <span className="flex min-w-0 flex-col justify-center gap-0.5">
           <span className="truncate text-sm font-semibold tracking-tight sm:text-base">
@@ -101,7 +110,7 @@ export function AiosHarmonyLogo({
               inverse && "text-slate-300",
             )}
           >
-            AIOS operating system
+            Company operating system
           </span>
         </span>
       )}

@@ -82,7 +82,7 @@ Approved fallback logos remain only for custom/non-brand surfaces: Webhooks and 
 
 ## Branding Certification
 
-The canonical app chrome uses `AiosHarmonyLogo`. Auth and onboarding screens no longer render standalone `HarmonyMark` elements beside that lockup. `HarmonyAvatar` remains preserved for chat, operator, Ask Harmony, awareness, and guided interaction surfaces.
+The canonical authenticated app chrome uses `AiosHarmonyLogo`, which now renders the single official Harmony mark from `public/branding/harmony-official-mark.svg`. Public marketing chrome uses the AIOS `Logo`. Auth and onboarding screens no longer render standalone `HarmonyMark` elements beside the authenticated lockup. `HarmonyAvatar` remains preserved for chat, operator, Ask Harmony, awareness, and guided interaction surfaces.
 
 ## Migration Status
 

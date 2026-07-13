@@ -105,4 +105,5 @@ feedback, and releases. They are not public marketing pages.
 - Every public nav/footer link resolves to an existing route or landing anchor.
 - Public pages do not require authentication.
 - Public copy distinguishes current implemented capabilities from future setup.
-- The canonical one-mark `AiosHarmonyLogo` is used for public chrome.
+- Public chrome uses the AIOS `Logo`. Authenticated Harmony chrome uses the
+  official Harmony mark at `public/branding/harmony-official-mark.svg`.

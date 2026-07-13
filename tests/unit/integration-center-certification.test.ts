@@ -163,7 +163,7 @@ describe("Integration Center certification", () => {
     expect(settingsConnections).toContain("ConnectorGlyph");
   });
 
-  it("prevents duplicate Harmony brand marks beside the canonical AIOS + Harmony lockup", () => {
+  it("prevents duplicate Harmony brand marks beside the authenticated Harmony lockup", () => {
     const guarded = [
       "src/components/auth/auth-shell.tsx",
       "src/app/onboarding/founder/page.tsx",
@@ -173,6 +173,7 @@ describe("Integration Center certification", () => {
     for (const rel of guarded) {
       const text = source(rel);
       expect(text).toContain("AiosHarmonyLogo");
+      expect(text).not.toContain("LogoMark");
       expect(text).not.toContain("HarmonyMark");
     }
   });

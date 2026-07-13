@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/user";
+import { getCompany } from "@/lib/data/os/companies";
+import { getEnvelope, upsertEnvelope } from "@/lib/company/envelope/data-access";
 import { createClient } from "@/lib/supabase/server";
 import {
   createUploadUrl,
@@ -90,6 +92,12 @@ export async function completeUpload(
 
   if (category === "profile") {
     const supabase = await createClient();
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("profile_photo_path")
+      .eq("id", user.id)
+      .maybeSingle();
+    const previousPath = (existing?.profile_photo_path as string | null | undefined) ?? null;
     const { error } = await supabase
       .from("profiles")
       .upsert(
@@ -100,9 +108,68 @@ export async function completeUpload(
       console.error("[branding-upload] completeUpload profile", error.message);
       return null;
     }
+    if (previousPath && previousPath !== path && previousPath.startsWith(`${user.id}/profile/`)) {
+      await deleteUpload(previousPath);
+    }
     revalidatePath("/", "layout");
     revalidatePath("/settings/branding");
   }
 
   return getDownloadUrl(path, 3600);
+}
+
+function validateOwnerBrandPath(
+  userId: string,
+  path: string | null,
+  category: "company-logo" | "company-banner",
+): boolean {
+  return path === null || path.startsWith(`${userId}/${category}/`);
+}
+
+export async function saveCompanyBranding(input: {
+  companyId: string;
+  logoPath: string | null;
+  bannerPath: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  if (
+    !validateOwnerBrandPath(user.id, input.logoPath, "company-logo") ||
+    !validateOwnerBrandPath(user.id, input.bannerPath, "company-banner")
+  ) {
+    return { ok: false, error: "Branding asset path is not allowed." };
+  }
+
+  const company = await getCompany(input.companyId);
+  if (!company || company.user_id !== user.id) {
+    return { ok: false, error: "Company was not found for this account." };
+  }
+
+  const envelope = await getEnvelope(company.id);
+  const previousLogo = envelope?.brand.logo ?? null;
+  const previousBanner = envelope?.brand.banner ?? null;
+  const brand = { ...(envelope?.brand ?? {}) };
+  if (input.logoPath) brand.logo = input.logoPath;
+  else delete brand.logo;
+  if (input.bannerPath) brand.banner = input.bannerPath;
+  else delete brand.banner;
+
+  const ok = await upsertEnvelope({
+    companyId: company.id,
+    userId: user.id,
+    companyName: envelope?.companyName ?? company.name,
+    brand,
+  });
+  if (!ok) return { ok: false, error: "Could not save company branding." };
+
+  if (previousLogo && previousLogo !== input.logoPath && previousLogo.startsWith(`${user.id}/company-logo/`)) {
+    await deleteUpload(previousLogo);
+  }
+  if (previousBanner && previousBanner !== input.bannerPath && previousBanner.startsWith(`${user.id}/company-banner/`)) {
+    await deleteUpload(previousBanner);
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/settings/branding");
+  revalidatePath("/harmony/companies");
+  return { ok: true };
 }
