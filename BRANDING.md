@@ -1,9 +1,9 @@
 # AIOS Branding System
 
 This document defines the official branding system for AIOS and Harmony in this
-repository. Product chrome, page headers, authentication, onboarding, and public
-marketing surfaces must use the shared components below instead of recreating
-logos locally.
+repository. Product chrome, authentication, onboarding, and public marketing
+surfaces must use the shared components below instead of recreating logos
+locally.
 
 ## Official Components
 
@@ -40,7 +40,6 @@ Use `AiosHarmonyLogo` in:
 - public marketing navigation and footer;
 - authentication headers;
 - onboarding headers;
-- shared page headers;
 - error and not-found brand surfaces.
 
 `HarmonyLogo` remains available for Harmony-only brand contexts, but new
@@ -99,12 +98,16 @@ wordmarks, or separate AIOS and Harmony logos side by side.
 Application pages must use the shared `PageHeader` component from
 `src/components/shared/page-header.tsx`.
 
-`PageHeader` owns compact AIOS + Harmony branding for app and settings pages.
-Individual pages should not add their own top-of-page logo unless the page has a
-specific hero or product illustration need.
+`PageHeader` must not render AIOS or Harmony marks inside the authenticated app
+shell. The app sidebar and mobile drawer own the single canonical app chrome
+lockup; page headers provide breadcrumbs, titles, descriptions, and actions
+only. Individual pages should not add their own top-of-page logo unless the page
+has a specific hero or product illustration need outside the authenticated app
+chrome.
 
 Loading states should use `PageHeaderSkeleton` from
-`src/components/shared/loaders.tsx`, which mirrors the compact brand structure.
+`src/components/shared/loaders.tsx`, which mirrors the title and description
+structure without adding brand marks.
 
 ## Onboarding Branding
 
@@ -132,7 +135,6 @@ AIOS/Harmony logo implementation.
 - Default shared lockup marks: `size-8`.
 - Large dark header lockup marks: `size-10 sm:size-11`.
 - Landing header lockup marks: `size-9`.
-- Compact page-header marks: `size-6`.
 - Use `min-w-0`, truncation, and fixed mark sizes in constrained nav surfaces.
 - Use `inline-flex items-center` for brand links so mark baselines align.
 - Keep text labels in the shared lockup; do not rebuild wordmark text locally.
@@ -151,13 +153,13 @@ These components must import `AiosHarmonyLogo` from
 - `src/components/marketing/site-header.tsx`
 - `src/components/marketing/site-footer.tsx`
 - `src/components/auth/auth-shell.tsx`
-- `src/components/shared/page-header.tsx`
 - `src/app/not-found.tsx`
 - `src/app/onboarding/founder/page.tsx`
 - `src/app/onboarding/harmony/page.tsx`
 
-New layouts, shells, navbars, footers, and page-header abstractions must follow
-the same rule.
+New layouts, shells, navbars, and footers must follow the same rule. New
+page-header abstractions must follow the Page Header Branding rule above and
+avoid authenticated app brand marks.
 
 ## Components That Must Never Create Their Own Logo
 
@@ -184,6 +186,8 @@ Before committing branding changes, verify:
   finds no ad hoc top-level branding;
 - `rg -n "AiosHarmonyLogo|HarmonyMark" src/components/auth src/app/onboarding -S`
   shows the canonical lockup only, with no standalone Harmony brand mark beside it;
+- `rg -n "AiosHarmonyLogo|HarmonyMark|HarmonyLogo" src/components/shared/page-header.tsx src/components/shared/loaders.tsx -S`
+  returns no matches;
 - `rg -n "HarmonyAvatar" src/app src/components -S` shows only
   conversational or interaction contexts;
 - `npm run lint` passes;

@@ -5,13 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function PageHeaderSkeleton() {
   return (
     <div
-      className="mb-7 rounded-xl border bg-card/70 px-5 py-4 shadow-soft sm:px-6"
+      className="mb-8 rounded-xl border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-6"
       aria-hidden="true"
     >
-      <div className="mb-4 flex items-center -space-x-1.5">
-        <Skeleton className="size-6 rounded-lg" />
-        <Skeleton className="size-6 rounded-lg" />
-      </div>
       <div className="space-y-3">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-full max-w-xl" />

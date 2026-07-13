@@ -45,22 +45,22 @@ export function MobileNav({
           <Menu className="size-5" aria-hidden="true" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="left-0 top-0 flex h-dvh max-w-[17rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r p-0 sm:rounded-none">
+      <DialogContent className="left-0 top-0 flex h-dvh max-w-[17rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r border-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:rounded-none">
         <DialogTitle className="sr-only">{t("menu")}</DialogTitle>
-        <div className="flex h-16 items-center px-4">
+        <div className="flex h-16 items-center border-b border-sidebar-border/70 px-4">
           <AiosHarmonyLogo />
         </div>
         <nav
-          className="flex flex-1 flex-col gap-4 overflow-y-auto p-3"
+          className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4"
           aria-label={t("mobile")}
         >
           {sections.map((section, i) => (
             <div
               key={section.titleKey ?? `section-${i}`}
-              className="flex flex-col gap-1"
+              className="flex flex-col gap-1.5"
             >
               {section.titleKey && (
-                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                <p className="px-3 pb-1 text-[0.68rem] font-bold uppercase tracking-[0.13em] text-sidebar-foreground/65">
                   {t(`sections.${section.titleKey}`)}
                 </p>
               )}
@@ -75,7 +75,7 @@ export function MobileNav({
             </div>
           ))}
         </nav>
-        <div className="border-t p-3">
+        <div className="border-t border-sidebar-border/70 p-3">
           <LocaleSwitcher />
         </div>
       </DialogContent>

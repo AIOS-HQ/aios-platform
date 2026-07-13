@@ -5,7 +5,7 @@ import { Plus, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import type { UploadCategory } from "@/lib/uploads/storage";
-import { requestUploadTicket, resolveUploadUrl } from "@/app/(app)/settings/branding/upload-action";
+import { completeUpload, requestUploadTicket } from "@/app/(app)/settings/branding/upload-action";
 
 /**
  * UploadButton (P6) — "+" attachment/upload control with drag-and-drop,
@@ -22,14 +22,16 @@ export function UploadButton({
   category,
   label,
   accept = "image/*,application/pdf",
+  initialPreview = null,
 }: {
   category: UploadCategory;
   label: string;
   accept?: string;
+  initialPreview?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>("idle");
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialPreview);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -51,7 +53,7 @@ export function UploadButton({
         setStatus("error");
         return;
       }
-      const url = await resolveUploadUrl(ticket.path);
+      const url = await completeUpload(category, ticket.path);
       setPreview(url);
       setStatus("done");
     } catch {

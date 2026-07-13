@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/actions";
 
@@ -19,10 +19,12 @@ export function UserMenu({
   name,
   email,
   initials,
+  imageUrl,
 }: {
   name: string;
   email: string;
   initials: string;
+  imageUrl?: string | null;
 }) {
   const t = useTranslations("nav");
 
@@ -31,6 +33,7 @@ export function UserMenu({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-9 gap-2 px-1.5" aria-label={t("account")}>
           <Avatar className="size-7">
+            {imageUrl ? <AvatarImage src={imageUrl} alt="" /> : null}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <span className="hidden max-w-[10rem] truncate text-sm font-medium sm:inline">
@@ -40,9 +43,17 @@ export function UserMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="flex flex-col gap-0.5">
-          <span className="truncate">{name}</span>
-          <span className="truncate text-xs font-normal text-muted-foreground">
-            {email}
+          <span className="flex min-w-0 items-center gap-3">
+            <Avatar className="size-9">
+              {imageUrl ? <AvatarImage src={imageUrl} alt="" /> : null}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <span className="min-w-0">
+              <span className="block truncate">{name}</span>
+              <span className="block truncate text-xs font-normal text-muted-foreground">
+                {email}
+              </span>
+            </span>
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
