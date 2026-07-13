@@ -10,6 +10,7 @@ export function AppShell({
   name,
   email,
   initials,
+  profilePhotoUrl,
   companies,
   isFounder = false,
   pendingApprovals = 0,
@@ -22,6 +23,7 @@ export function AppShell({
   name: string;
   email: string;
   initials: string;
+  profilePhotoUrl?: string | null;
   companies: { id: string; name: string; slug: string }[];
   /** Founder/admin: unlocks the Founder OS nav + company switcher. */
   isFounder?: boolean;
@@ -59,10 +61,10 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex min-h-dvh bg-background text-foreground">
       <Sidebar badges={navBadges} isFounder={isFounder} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/80 bg-canvas/90 px-4 backdrop-blur sm:px-6">
           <MobileNav badges={navBadges} isFounder={isFounder} />
           {isFounder && <CompanySwitcher companies={companies} />}
           <div className="flex-1" />
@@ -70,10 +72,17 @@ export function AppShell({
             <LocaleSwitcher />
           </div>
           <ThemeToggle />
-          <UserMenu name={name} email={email} initials={initials} />
+          <UserMenu
+            name={name}
+            email={email}
+            initials={initials}
+            imageUrl={profilePhotoUrl}
+          />
         </header>
-        <main id="main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <main id="main-content" className="flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
+          <div className="mx-auto min-h-[calc(100dvh-7rem)] w-full max-w-6xl rounded-2xl border border-canvas-border bg-canvas p-4 shadow-[var(--shadow-canvas)] sm:p-6 lg:p-7">
+            {children}
+          </div>
         </main>
       </div>
     </div>

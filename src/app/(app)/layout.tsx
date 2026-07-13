@@ -11,6 +11,7 @@ import { countWorkItems } from "@/lib/data/os/work-items";
 import { countUnresolvedOps } from "@/lib/observability/ops";
 import { AppShell } from "@/components/app/app-shell";
 import { getInitials } from "@/lib/utils";
+import { getDownloadUrl } from "@/lib/uploads/storage";
 
 // Authenticated routes read cookies/session — always render dynamically.
 export const dynamic = "force-dynamic";
@@ -47,12 +48,16 @@ export default async function AppLayout({
     profile?.full_name?.trim() || user.email?.split("@")[0] || "User";
   const email = user.email ?? "";
   const initials = getInitials(profile?.full_name?.trim() || email);
+  const profilePhotoUrl = profile?.profile_photo_path
+    ? await getDownloadUrl(profile.profile_photo_path, 3600)
+    : null;
 
   return (
     <AppShell
       name={name}
       email={email}
       initials={initials}
+      profilePhotoUrl={profilePhotoUrl}
       isFounder={isFounder}
       companies={companies.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
       pendingApprovals={pendingApprovals}

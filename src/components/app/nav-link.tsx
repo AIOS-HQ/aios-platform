@@ -30,13 +30,19 @@ export function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        "flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
         active
-          ? "bg-primary/15 text-primary shadow-sm ring-1 ring-inset ring-primary/20"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-inset ring-primary/30"
+          : "text-sidebar-foreground/78 hover:bg-background/65 hover:text-sidebar-foreground",
       )}
     >
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
+      <Icon
+        className={cn(
+          "size-4 shrink-0",
+          active ? "text-primary-foreground" : "text-sidebar-foreground/58",
+        )}
+        aria-hidden="true"
+      />
       <span className="flex-1 truncate">{t(item.labelKey)}</span>
       {showBadge && (
         <span

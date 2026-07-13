@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
 import { PageBack } from "@/components/shared/page-back";
 
 /** Standard page title block with route-aware Back/breadcrumbs, optional
- * description, shared AIOS + Harmony branding, and an action slot. PageBack
- * auto-hides on top-level routes. */
+ * description, and an action slot. The app shell owns product branding, so page
+ * headers stay focused on location and task context. PageBack auto-hides on
+ * top-level routes. */
 export function PageHeader({
   title,
   description,
@@ -19,25 +19,18 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "mb-7 rounded-xl border bg-card/70 px-5 py-4 shadow-soft backdrop-blur sm:px-6",
+        "mb-8 rounded-xl border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-6",
         className,
       )}
     >
       <PageBack />
-      <div className="mb-4">
-        <AiosHarmonyLogo
-          compact
-          aiosMarkClassName="size-6"
-          harmonyMarkClassName="size-6"
-        />
-      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {title}
           </h1>
           {description && (
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground/95">
               {description}
             </p>
           )}
