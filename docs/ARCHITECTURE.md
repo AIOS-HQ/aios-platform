@@ -6,22 +6,37 @@ For the launch-specific v1 blueprint, see
 
 ## Overview
 
-AIOS is a **shared-platform architecture**. A single Next.js application contains:
+AIOS is a **shared-platform architecture**. A single Next.js application contains
+three distinct product experiences:
 
-- **AIOS Core** — shared foundation: identity/auth, user profiles, roles, settings, UI system,
-  localization, theming, and the Supabase data layer.
-- **Harmony** — the Personal Operating System, built on top of AIOS Core.
-- **Opera** — the Business Operating System _(future phase, not in this build)._
+- **Public AIOS website** — unauthenticated acquisition and education routes for
+  visitors, prospects, investors, and partners.
+- **Subscriber Harmony** — the authenticated customer Personal Operating System
+  for onboarding, chat/operator work, tasks, goals, notes, memory, learning,
+  personal integrations, approvals, and settings.
+- **Founder OS** — Founder/admin-only operations for AIOS, Subscriber Harmony,
+  the public website, workforce, integrations, approvals, releases, diagnostics,
+  and governance.
 
-Products live in their own route groups and feature folders but reuse Core's components,
-data clients, i18n, and conventions. This keeps the codebase modular without premature
-microservice complexity.
+Those experiences reuse **AIOS Core**: identity/auth, user profiles, roles,
+settings, UI system, localization, theming, and the Supabase data layer. Opera
+remains the Business Operating System future phase and is not part of this
+build. Products live in route groups and feature folders but reuse Core's
+components, data clients, i18n, and conventions. This keeps the codebase modular
+without premature microservice complexity.
 
 Harmony Social is a native Harmony module at `/harmony/social`. It uses the existing Harmony
 layout and navigation, keeps external publishing Founder-approved, and supports production
 LinkedIn, X, and YouTube publishing. YouTube publishing includes multi-channel selection,
 video/Short upload, thumbnails, visibility, scheduling, playlists, progress, recovery, and
 provider result persistence through the shared Social publishing governance pipeline.
+
+Founder-only Subscriber Harmony operations live under `/harmony/customer-experience`.
+They provide aggregate customer-product KPIs, route/readiness matrices, a safe synthetic
+preview, reliability checks, feedback setup, release visibility, and specialist routing
+without exposing private customer content. Public website operations live under
+`/harmony/website` and track public routes, content, SEO, performance, reliability,
+feedback, releases, and analytics configuration without fabricating visitor metrics.
 
 The AIOS Workforce is certified through `src/lib/workforce/certification.ts`, with
 `src/lib/workforce/registry.ts` remaining the named-agent source of truth. The certification
@@ -54,7 +69,7 @@ src/
     (app)/            # protected, authenticated shell (Harmony + settings)
     auth/             # auth route handlers (callback, sign-out)
     layout.tsx        # root layout: theme, i18n provider, skip link, toaster
-    page.tsx          # marketing landing
+    page.tsx          # public AIOS marketing landing
   components/
     ui/               # shadcn/ui-style primitives (button, card, dialog, …)
     brand/            # logo + brand lockups
@@ -84,6 +99,13 @@ docs/                 # documentation
   also guards protected routes.
 - **Security** is enforced at the database level with Row Level Security (RLS) — even if a query
   is wrong, a user can never read another user's rows.
+- **Founder aggregate dashboards** use service-role server code only for counts,
+  readiness, and metadata. They do not return customer prompts, notes, goals,
+  memory content, email/message bodies, or connector secrets.
+- **WhatsApp Business** uses the official Meta Cloud API boundary only. Webhooks
+  are signature-verified, inbound events are deduplicated, contact identifiers are
+  hashed in broad operational records, and outbound message capabilities remain
+  governed by approval, service-window, opt-out, and credential readiness checks.
 
 ## Localization
 

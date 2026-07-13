@@ -54,6 +54,10 @@ describe("launch route audit", () => {
     const founderRoutes = flattenNavItems(sectionsForAudience(true)).map((item) => item.href);
     expect(founderRoutes).toContain("/settings/auditor");
     expect(founderRoutes).toContain("/harmony/social");
+    expect(founderRoutes).toContain("/harmony/customer-experience");
+    expect(founderRoutes).toContain("/harmony/customer-experience/preview");
+    expect(founderRoutes).toContain("/harmony/website");
+    expect(founderRoutes).toContain("/harmony/website/analytics");
     expect(founderRoutes.filter((href) => !routeExists(href))).toEqual([]);
   });
 
@@ -67,6 +71,8 @@ describe("launch route audit", () => {
     expect(subscriberRoutes).not.toContain("/settings/mason");
     expect(subscriberRoutes).not.toContain("/harmony/workforce");
     expect(subscriberRoutes).not.toContain("/harmony/oversight");
+    expect(subscriberRoutes).not.toContain("/harmony/customer-experience");
+    expect(subscriberRoutes).not.toContain("/harmony/website");
     expect(subscriberRoutes.filter((href) => !routeExists(href))).toEqual([]);
   });
 
@@ -126,6 +132,8 @@ describe("launch route audit", () => {
     expect(isFounderHarmonyPath("/harmony")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/code")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/social")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/customer-experience")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/website")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/workforce")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/mason")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/not-yet-known")).toBe(true);

@@ -84,7 +84,7 @@ Workforce certification evaluates declared connector dependencies against actual
 
 - Mason: GitHub and Vercel are required. Missing GitHub connection/env or Vercel token is shown as configuration required rather than an unsupported capability.
 - Catalyst: LinkedIn, X, and YouTube are coordinated through Harmony Social and remain approval-gated.
-- Ambassador: Gmail and Slack have partial real read capabilities; WhatsApp, Messenger, and Instagram remain framework-only execution boundaries.
+- Ambassador: Gmail and Slack have partial real read capabilities. WhatsApp Business has an official Meta Cloud API runtime foundation for verified webhooks, inbound metadata, templates, and governed outbound handlers, but remains configuration-required until Meta credentials, WABA/phone access, webhook subscription, templates, consent, and live acceptance are complete. Messenger and Instagram remain framework-only execution boundaries.
 - Pulse: Vercel/Supabase monitoring is truthful and degraded when credentials/handlers are absent.
 
 ## Database and Migration Findings

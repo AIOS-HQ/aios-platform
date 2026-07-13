@@ -24,6 +24,11 @@ Primary public navigation:
 Protected application routes remain excluded from public navigation. `/harmony`,
 `/settings`, and `/api` remain protected or non-public.
 
+Founder Website Operations are separate from the public website and live at
+`/harmony/website`. Those routes are protected Founder OS surfaces for public
+route status, analytics configuration, content, SEO, performance, reliability,
+feedback, and releases. They are not public marketing pages.
+
 ## Route Matrix
 
 | Route | Purpose | Public/protected | Status | CTA source | Metadata | Mobile | EN/ES |
@@ -44,6 +49,21 @@ Protected application routes remain excluded from public navigation. `/harmony`,
 | `/login` | Auth entry. | Public auth | Complete | Nav/footer | Auth metadata | Responsive | App auth copy |
 | `/signup` | Founder/customer account creation. | Public auth | Complete | Nav/footer | Auth metadata | Responsive | App auth copy |
 
+## Founder Website Operations Matrix
+
+| Route | Purpose | Public/protected | Status | Data source |
+| --- | --- | --- | --- | --- |
+| `/harmony/website` | Founder overview of public website readiness. | Founder-only | Complete | Static route matrix plus safe configuration checks |
+| `/harmony/website/analytics` | Analytics provider setup and conversion measurement readiness. | Founder-only | Configuration-gated | `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_VERCEL_ANALYTICS_ID` |
+| `/harmony/website/visitors` | Visitor data readiness. | Founder-only | Configuration-gated | Analytics provider when configured |
+| `/harmony/website/conversions` | CTA, signup, and pricing conversion readiness. | Founder-only | Partial | Waitlist/sign-up data where tracked; no fake conversion rates |
+| `/harmony/website/content` | Content and route ownership. | Founder-only | Complete | Public route matrix |
+| `/harmony/website/seo` | SEO and metadata readiness. | Founder-only | Complete | Sitemap, robots, metadata, public routes |
+| `/harmony/website/performance` | Performance instrumentation readiness. | Founder-only | Configuration-gated | Build output and analytics where configured |
+| `/harmony/website/reliability` | Public route reliability readiness. | Founder-only | Partial | Route matrix, ops events where available |
+| `/harmony/website/feedback` | Public feedback/contact readiness. | Founder-only | Configuration-gated | Contact/support provider setup |
+| `/harmony/website/releases` | Public website release visibility. | Founder-only | Complete | Release notes and deployment links where configured |
+
 ## Claim Boundaries
 
 - The website must not claim unlimited or ungated autonomy.
@@ -51,6 +71,9 @@ Protected application routes remain excluded from public navigation. `/harmony`,
   Social governance and provider readiness.
 - Framework-only integrations remain described as setup/configuration work, not
   production execution.
+- Public website analytics and conversion metrics are not fabricated. When an
+  analytics provider is not configured, Founder OS displays configuration
+  required with setup actions.
 - No fake customer counts, revenue, testimonials, partner logos, or live
   analytics are used.
 - AirBid is not presented as part of the AIOS workforce or brand.

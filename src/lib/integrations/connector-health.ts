@@ -154,7 +154,11 @@ export async function getProviderHealth(
   const expired = row?.expires_at ? new Date(row.expires_at).getTime() < Date.now() : false;
   const family = def.oauthFamily;
   const refreshable = Boolean(row?.refresh_token && family && resolveOAuthFamily(family)?.refreshSupported);
-  const tokenValid = def.auth === "oauth2" ? tokenPresent && (!expired || refreshable) : tokenPresent || def.auth === "webhook";
+  const tokenValid = def.auth === "oauth2"
+    ? tokenPresent && (!expired || refreshable)
+    : def.auth === "api_key"
+      ? configured
+      : tokenPresent || def.auth === "webhook";
   const grantedScopes = splitScopes(row?.scopes);
 
   ensureProvidersRegistered();

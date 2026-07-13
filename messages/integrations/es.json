@@ -26,7 +26,8 @@
       "connected": "Conectado",
       "expired": "Reautorizar",
       "available": "Listo para conectar",
-      "comingSoon": "Requiere configuracion"
+      "setupRequired": "Requiere configuracion",
+      "roadmap": "Hoja de ruta"
     },
     "capabilities": "{read} lectura / {write} escritura",
     "noCapabilitiesYet": "Las capacidades se activan al conectar.",

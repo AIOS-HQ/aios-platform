@@ -1,6 +1,7 @@
 import {
   Activity,
   AlertTriangle,
+  BarChart3,
   Boxes,
   BrainCircuit,
   Building2,
@@ -9,6 +10,7 @@ import {
   CreditCard,
   Eye,
   Gauge,
+  Globe2,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
@@ -34,6 +36,7 @@ import {
 export const NAV_ICONS = {
   Activity,
   AlertTriangle,
+  BarChart3,
   Boxes,
   BrainCircuit,
   Building2,
@@ -42,6 +45,7 @@ export const NAV_ICONS = {
   CreditCard,
   Eye,
   Gauge,
+  Globe2,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
@@ -157,6 +161,47 @@ export const navSections: NavSection[] = [
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
       { href: "/settings/branding", labelKey: "branding", icon: "Building2" },
+    ],
+  },
+  {
+    titleKey: "customerExperience",
+    audience: "founder",
+    items: [
+      {
+        href: "/harmony/customer-experience",
+        labelKey: "subscriberHarmony",
+        icon: "Users",
+        children: [
+          { href: "/harmony/customer-experience/preview", labelKey: "livePreview", icon: "Eye" },
+          { href: "/harmony/customer-experience/journey", labelKey: "userJourney", icon: "ListChecks" },
+          { href: "/harmony/customer-experience/analytics", labelKey: "usageKpis", icon: "BarChart3" },
+          { href: "/harmony/customer-experience/reliability", labelKey: "reliability", icon: "Activity" },
+          { href: "/harmony/customer-experience/feedback", labelKey: "feedback", icon: "MessageSquare" },
+          { href: "/harmony/customer-experience/releases", labelKey: "releases", icon: "Code2" },
+        ],
+      },
+    ],
+  },
+  {
+    titleKey: "website",
+    audience: "founder",
+    items: [
+      {
+        href: "/harmony/website",
+        labelKey: "websiteOperations",
+        icon: "Globe2",
+        children: [
+          { href: "/harmony/website/analytics", labelKey: "analytics", icon: "BarChart3" },
+          { href: "/harmony/website/visitors", labelKey: "visitors", icon: "Users" },
+          { href: "/harmony/website/conversions", labelKey: "conversions", icon: "Target" },
+          { href: "/harmony/website/content", labelKey: "content", icon: "Clapperboard" },
+          { href: "/harmony/website/seo", labelKey: "seo", icon: "Gauge" },
+          { href: "/harmony/website/performance", labelKey: "performance", icon: "Activity" },
+          { href: "/harmony/website/reliability", labelKey: "reliability", icon: "ShieldCheck" },
+          { href: "/harmony/website/feedback", labelKey: "feedback", icon: "MessageSquare" },
+          { href: "/harmony/website/releases", labelKey: "releases", icon: "Code2" },
+        ],
+      },
     ],
   },
   {

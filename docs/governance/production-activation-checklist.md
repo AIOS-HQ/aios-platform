@@ -27,6 +27,7 @@ Confirm these migrations are present:
 - `20260712010000_youtube_production_publishing.sql`
 - `20260713000000_event_mesh.sql`
 - `20260713010000_profile_photo_path.sql`
+- `20260713020000_whatsapp_business_foundation.sql`
 
 Post-apply SQL checks:
 
@@ -38,7 +39,8 @@ where version in (
   '20260712000000',
   '20260712010000',
   '20260713000000',
-  '20260713010000'
+  '20260713010000',
+  '20260713020000'
 )
 order by version;
 
@@ -100,3 +102,48 @@ AIOS_EVENT_MESH_WORKFORCE_EXECUTION=false
 Stop any worker processes. Existing synchronous A2A, approvals, Julius,
 Company Skills, connector runtime, Social publishing, and Mason behavior remain
 authoritative.
+
+## WhatsApp Business
+
+Expected setup uses only the official Meta WhatsApp Cloud API:
+
+- Meta developer app with WhatsApp product enabled;
+- WhatsApp Business Account ID;
+- approved phone-number ID;
+- long-lived system/user token with the required WhatsApp permissions;
+- webhook callback URL:
+  `https://<production-domain>/api/integrations/whatsapp/webhook`;
+- webhook verify token stored as `WHATSAPP_VERIFY_TOKEN`;
+- app secret stored as `WHATSAPP_APP_SECRET`;
+- approved message templates and documented consent/opt-out process.
+
+Environment variables:
+
+```bash
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_BUSINESS_ACCOUNT_ID=
+WHATSAPP_VERIFY_TOKEN=
+WHATSAPP_APP_SECRET=
+WHATSAPP_GRAPH_VERSION=v20.0
+```
+
+Post-apply SQL checks:
+
+```sql
+select table_name
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in ('whatsapp_webhook_events', 'whatsapp_outbound_messages')
+order by table_name;
+
+select policyname, cmd
+from pg_policies
+where schemaname = 'public'
+  and tablename in ('whatsapp_webhook_events', 'whatsapp_outbound_messages')
+order by tablename, policyname;
+```
+
+Live activation remains blocked until the Founder supplies the Meta app, WABA,
+phone number, templates, token, webhook configuration, and consent policy. Do
+not send a live test message without explicit Founder selection and confirmation.

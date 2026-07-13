@@ -156,6 +156,14 @@ const CLASSIFICATION_BADGE: Record<string, "default" | "secondary" | "outline" |
   unsupported: "outline",
 };
 
+function catalogBadge(c: ConnectorView): string {
+  if (c.authorizable) return "Available";
+  if (c.classification === "configuration_required") return "Setup required";
+  if (c.classification === "framework_only") return "Roadmap";
+  if (c.classification === "unsupported") return "Unsupported";
+  return c.classificationLabel;
+}
+
 export function IntegrationCenter({
   items,
   overallHealth,
@@ -425,7 +433,7 @@ function ConnectorCard({
               </Badge>
             ) : (
               <Badge variant="secondary" className="shrink-0">
-                {c.authorizable ? "Available" : "Coming soon"}
+                {catalogBadge(c)}
               </Badge>
             )}
             <Badge variant={classificationBadge} className="shrink-0">
