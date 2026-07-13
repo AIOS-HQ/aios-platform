@@ -6,6 +6,7 @@ import {
   resumeApprovedExecution,
   recordRejectedExecution,
 } from "@/lib/harmony/autonomy/execution-resumption";
+import { eventForReference, publishAiosEventBestEffort } from "@/lib/event-mesh/publish";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,22 @@ export async function POST(request: Request) {
       );
     }
     await approveApproval(user.id, approvalId);
+    await publishAiosEventBestEffort(eventForReference({
+      eventType: "approval.resolved",
+      userId: user.id,
+      companyId,
+      sourceAgent: payload.original_agent,
+      risk: payload.original_action.includes("delete") || payload.original_action.includes("merge") ? "destructive" : "approval",
+      priority: "high",
+      taskRef: { type: "approval", id: approvalId },
+      approvalId,
+      payload: {
+        status: "approved",
+        resumed: true,
+        originalAction: payload.original_action,
+      },
+      context: { traceSource: "approval_route" },
+    }));
     return NextResponse.json({ ok: true, status: "approved", execution_result: resume.execution_result });
   }
 
@@ -66,6 +83,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
     await recordRejectedExecution(user.id, payload, reason, companyId);
+    await publishAiosEventBestEffort(eventForReference({
+      eventType: "approval.resolved",
+      userId: user.id,
+      companyId,
+      sourceAgent: payload.original_agent,
+      risk: "approval",
+      priority: "high",
+      taskRef: { type: "approval", id: approvalId },
+      approvalId,
+      payload: {
+        status: "rejected",
+        reason: reason.slice(0, 500),
+      },
+      context: { traceSource: "approval_route" },
+    }));
     return NextResponse.json({ ok: true, status: "rejected" });
   }
 

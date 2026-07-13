@@ -29,6 +29,12 @@ layer exposes each agent's real runtime handlers, Julius access, connector depen
 approval/autonomy boundaries, blockers, and unsupported capabilities to the Workforce UI and
 tests. Julius remains the company-scoped organizational brain, not an agent.
 
+The portable AIOS Event Mesh lives in `src/lib/event-mesh`. PostgreSQL/Supabase is
+the authoritative outbox, delivery, retry, dead-letter, and replay ledger. NATS
+JetStream is an optional replaceable real-time transport behind the same
+provider-neutral contract; workforce code does not depend on NATS, Azure, Google
+Pub/Sub, or any cloud-specific messaging SDK.
+
 ## Guiding principles (engineering implications)
 
 | Principle | How it shows up in code |

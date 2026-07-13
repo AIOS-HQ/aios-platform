@@ -5,6 +5,7 @@ import { Activity, AlertTriangle, CheckCircle2, ShieldCheck } from "lucide-react
 import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { listOpsEvents, type OpsEvent, type OpsLevel } from "@/lib/observability/ops";
+import { getEventMeshOperationsSummary } from "@/lib/event-mesh/operations";
 import { resolveOpsEvent, resolveAllOpsEvents } from "@/lib/observability/ops-actions";
 import { listAgentMessages, type AgentMessage } from "@/lib/harmony/agents/a2a";
 import { getAiosAgent } from "@/lib/workforce/registry";
@@ -119,11 +120,12 @@ export default async function OperationsPage() {
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
 
-  const [events, agentMessages] = await Promise.all([
+  const [events, agentMessages, eventMesh] = await Promise.all([
     listOpsEvents(user.id, { limit: 100 }),
     companyId
       ? listAgentMessages(user.id, companyId, { limit: 200 })
       : Promise.resolve([] as AgentMessage[]),
+    getEventMeshOperationsSummary(),
   ]);
 
   const unresolved = events
@@ -171,6 +173,22 @@ export default async function OperationsPage() {
               />
             ))}
           </div>
+        </ExecutiveSection>
+
+        <ExecutiveSection icon={Activity} title={t("eventMesh")}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricTile label={t("provider")} value={eventMesh.provider} icon={Activity} tone={eventMesh.status === "healthy" ? "neutral" : "warning"} />
+            <MetricTile label={t("pending")} value={eventMesh.pending} icon={Activity} tone={eventMesh.pending > 0 ? "info" : "neutral"} />
+            <MetricTile label={t("retries")} value={eventMesh.retries} icon={AlertTriangle} tone={eventMesh.retries > 0 ? "warning" : "neutral"} />
+            <MetricTile label={t("deadLetters")} value={eventMesh.deadLetters} icon={AlertTriangle} tone={eventMesh.deadLetters > 0 ? "danger" : "neutral"} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("eventMeshStatus", {
+              status: eventMesh.status,
+              workers: eventMesh.workerCount,
+              oldest: eventMesh.oldestPendingAt ?? "none",
+            })}
+          </p>
         </ExecutiveSection>
 
         {/* ── Blocked delegations ─────────────────────────────────── */}

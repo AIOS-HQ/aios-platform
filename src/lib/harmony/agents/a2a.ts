@@ -17,6 +17,7 @@ import {
   buildAdaptiveExecutionPlan,
 } from "@/lib/harmony/adaptive-planning";
 import { getAiosAgent } from "@/lib/workforce/registry";
+import { eventForReference, publishAiosEventBestEffort } from "@/lib/event-mesh/publish";
 
 /**
  * Agent-to-Agent (A2A) communication — the AIOS workforce collaboration layer.
@@ -236,6 +237,44 @@ export async function sendAgentMessage(params: {
       sourceId: message.id,
     });
   }
+  await publishAiosEventBestEffort(eventForReference({
+    eventType: kind === "task" ? "workforce.task.created" : "workforce.message.sent",
+    userId: params.userId,
+    companyId: params.companyId,
+    sourceAgent: params.fromAgent,
+    targetAgent: params.toAgent,
+    risk,
+    priority: risk === "destructive" ? "critical" : risk === "approval" ? "high" : "normal",
+    taskRef: { type: "agent_message", id: message.id },
+    payload: {
+      kind,
+      status,
+      subject: message.subject,
+      parentId: message.parent_id,
+    },
+    context: {
+      traceSource: "a2a",
+      gated,
+    },
+  }));
+  if (gated) {
+    await publishAiosEventBestEffort(eventForReference({
+      eventType: "approval.requested",
+      userId: params.userId,
+      companyId: params.companyId,
+      sourceAgent: params.fromAgent,
+      targetAgent: params.toAgent,
+      risk,
+      priority: risk === "destructive" ? "critical" : "high",
+      taskRef: { type: "agent_message", id: message.id },
+      payload: {
+        approvalSource: "agent_message",
+        status: "awaiting_approval",
+        subject: message.subject,
+      },
+      context: { traceSource: "a2a" },
+    }));
+  }
 
   return message;
 }
@@ -383,6 +422,37 @@ export async function respondToTask(params: {
   } catch (e) {
     console.error("[a2a] reflectAfterEvent", e);
   }
+  await publishAiosEventBestEffort(eventForReference({
+    eventType: finalStatus === "completed" ? "workforce.task.completed" : "workforce.task.blocked",
+    userId: params.userId,
+    companyId: params.companyId,
+    sourceAgent: params.fromAgent,
+    targetAgent: parent.from_agent,
+    risk: "routine",
+    priority: finalStatus === "blocked" ? "high" : "normal",
+    taskRef: { type: "agent_message", id: parent.id },
+    payload: {
+      responseId: (data as AgentMessage | null)?.id ?? null,
+      status: finalStatus,
+      outcome: outcome.slice(0, 1000),
+    },
+    context: { traceSource: "a2a_response" },
+  }));
+  await publishAiosEventBestEffort(eventForReference({
+    eventType: "workforce.response.created",
+    userId: params.userId,
+    companyId: params.companyId,
+    sourceAgent: params.fromAgent,
+    targetAgent: parent.from_agent,
+    risk: "routine",
+    priority: "normal",
+    taskRef: { type: "agent_message", id: (data as AgentMessage | null)?.id ?? parent.id },
+    payload: {
+      parentId: parent.id,
+      status: finalStatus,
+    },
+    context: { traceSource: "a2a_response" },
+  }));
 
   return data as AgentMessage | null;
 }
