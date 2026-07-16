@@ -5,6 +5,10 @@ import {
   type MasonLiveExecutionPlanInput,
 } from "@/lib/harmony/code/mason-live-execution";
 import { evaluateMasonOperationGate } from "@/lib/harmony/autonomy/mason-policy";
+import {
+  transitionMasonRuntimeState,
+  type MasonRuntimeState,
+} from "@/lib/harmony/code/mason-runtime-state";
 
 export type MasonRuntimeExecutionStatus = "completed" | "blocked" | "failed";
 export type MasonRuntimeOperationStatus = "completed" | "blocked" | "failed" | "skipped";
@@ -212,10 +216,29 @@ async function executeOperation(operation: MasonLiveConnectorOperation, adapters
 
 export async function executeMasonRuntimePlan(input: MasonLiveExecutionPlanInput, adapters: MasonRuntimeExecutorAdapters): Promise<MasonRuntimeExecutionResult> {
   const plan = createMasonLiveExecutionPlan(input);
+  let runtimeState: MasonRuntimeState =
+    plan.status === "ready"
+      ? "ready"
+      : plan.status === "approval_required"
+        ? "awaiting_founder_approval"
+        : "blocked";
 
   if (plan.status !== "ready") {
     return { plan, status: "blocked", results: [], pullRequestUrl: null, previewUrl: null, summary: plan.blockedReason ?? "Mason runtime execution is blocked." };
   }
+
+  const startTransition = transitionMasonRuntimeState(runtimeState, "executing");
+  if (!startTransition.ok) {
+    return {
+      plan,
+      status: "failed",
+      results: [],
+      pullRequestUrl: null,
+      previewUrl: null,
+      summary: startTransition.reason,
+    };
+  }
+  runtimeState = "executing";
 
   const results: MasonRuntimeOperationResult[] = [];
   for (const operation of plan.operations) {
