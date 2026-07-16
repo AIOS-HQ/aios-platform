@@ -11,6 +11,10 @@ import {
   classifyMasonOperation,
   resolveMasonOperationApproval,
 } from "@/lib/harmony/autonomy/mason-policy";
+import {
+  normalizeMasonRuntimeState,
+  toMasonBridgeStatus,
+} from "@/lib/harmony/code/mason-runtime-state";
 
 export interface MasonLiveFileChange {
   path: string;
@@ -66,6 +70,15 @@ export interface MasonLiveExecutionPlan {
   reportingTargets: ["Activity", "Review Queue", "Outcomes", "Julius", "Company Skills"];
   outcomeSummary: string;
   blockedReason: string | null;
+}
+
+function liveStatusFromCanonical(
+  state: "blocked" | "awaiting_founder_approval" | "ready",
+): MasonLiveExecutionPlan["status"] {
+  const bridgeStatus = toMasonBridgeStatus(normalizeMasonRuntimeState(state));
+  if (bridgeStatus === "ready") return "ready";
+  if (bridgeStatus === "paused_for_founder_approval") return "approval_required";
+  return "blocked";
 }
 
 function cleanFileChanges(fileChanges?: MasonLiveFileChange[]): MasonLiveFileChange[] {
@@ -257,7 +270,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   const reportingTargets = bridge.reporting.targets;
 
   if (!bridge.access.allowed || !bridge.scopedPlan.engineeringPromptRoutesToMason) {
-    const status = "blocked" as const;
+    const status = liveStatusFromCanonical("blocked");
     return {
       bridge,
       status,
@@ -272,7 +285,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   }
 
   if (!bridge.mutation.allowed || !canMasonOpenPullRequest(bridge)) {
-    const status = "approval_required" as const;
+    const status = liveStatusFromCanonical("awaiting_founder_approval");
     return {
       bridge,
       status,
@@ -301,7 +314,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
     };
   }
 
-  const status = "ready" as const;
+  const status = liveStatusFromCanonical("ready");
   const issueTitle = inferIssueTitle(input);
   const issueBody = inferIssueBody(input);
   const openPr = shouldOpenPullRequest(input);

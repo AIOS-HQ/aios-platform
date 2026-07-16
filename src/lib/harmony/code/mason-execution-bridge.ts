@@ -5,6 +5,10 @@ import {
   masonOwnsEngineeringTask,
   type MasonNativeRuntimePlan,
 } from "@/lib/harmony/code/mason";
+import {
+  toMasonBridgeStatus,
+  type MasonRuntimeState,
+} from "@/lib/harmony/code/mason-runtime-state";
 
 export type MasonRequesterRole = "founder" | "subscriber";
 export type MasonBridgeStatus = "ready" | "paused_for_founder_approval" | "blocked";
@@ -118,9 +122,13 @@ function bridgeStatus(input: {
   routesToMason: boolean;
   founderApproved: boolean;
 }): MasonBridgeStatus {
-  if (!input.accessAllowed || !input.routesToMason) return "blocked";
-  if (!input.founderApproved) return "paused_for_founder_approval";
-  return "ready";
+  const state: MasonRuntimeState =
+    !input.accessAllowed || !input.routesToMason
+      ? "blocked"
+      : !input.founderApproved
+        ? "awaiting_founder_approval"
+        : "ready";
+  return toMasonBridgeStatus(state);
 }
 
 export function createMasonExecutionBridge(input: MasonExecutionBridgeRequest): MasonExecutionBridge {
