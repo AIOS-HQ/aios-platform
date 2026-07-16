@@ -9,6 +9,12 @@ import {
   transitionMasonRuntimeState,
   type MasonRuntimeState,
 } from "@/lib/harmony/code/mason-runtime-state";
+import {
+  classifyRollbackTrigger,
+  createMasonRollbackPlan,
+  executeMasonRollbackPlan,
+  type MasonRollbackResult,
+} from "@/lib/harmony/code/mason-rollback";
 
 export type MasonRuntimeExecutionStatus = "completed" | "blocked" | "failed";
 export type MasonRuntimeOperationStatus = "completed" | "blocked" | "failed" | "skipped";
@@ -26,6 +32,7 @@ export interface MasonGithubRuntimeAdapter {
   commitFile(input: { repository: string; branch: string; path: string; content: string; message: string }): Promise<Record<string, unknown>>;
   openPullRequest(input: { repository: string; title: string; head: string; base: string; body: string }): Promise<Record<string, unknown>>;
   createIssue(input: { repository: string; title: string; body?: string | null; labels?: string[] | null }): Promise<Record<string, unknown>>;
+  closePullRequest?(input: { repository: string; prNumber: number }): Promise<Record<string, unknown>>;
 }
 
 export interface MasonVercelRuntimeAdapter {
@@ -54,6 +61,7 @@ export interface MasonRuntimeExecutionResult {
   pullRequestUrl: string | null;
   previewUrl: string | null;
   summary: string;
+  rollback?: MasonRollbackResult;
 }
 
 function requireString(params: Record<string, unknown>, key: string): string {
@@ -269,12 +277,38 @@ export async function executeMasonRuntimePlan(input: MasonLiveExecutionPlanInput
     `Preview: ${previewUrl ?? "not requested"}.`,
   ].join(" ");
 
-  return {
+  const baseResult: MasonRuntimeExecutionResult = {
     plan,
     status: incomplete ? incomplete.status === "blocked" ? "blocked" : "failed" : "completed",
     results,
     pullRequestUrl,
     previewUrl,
     summary: incomplete ? `${incomplete.summary} ${evidence}` : evidence,
+  };
+
+  if (baseResult.status === "completed") return baseResult;
+
+  const trigger = classifyRollbackTrigger(baseResult, input.founderApproved === false);
+  const rollbackPlan = createMasonRollbackPlan({
+    request: {
+      executionId: `${input.repository}:${plan.bridge.scopedPlan.branchName}`,
+      repository: input.repository,
+      branch: plan.bridge.scopedPlan.branchName,
+      trigger,
+      founderRequestedCancellation: input.founderApproved === false,
+    },
+    runtime: baseResult,
+  });
+
+  const rollback = await executeMasonRollbackPlan(rollbackPlan, {
+    runtime: baseResult,
+    adapters,
+    operationScopeId: `${input.repository}:${plan.bridge.scopedPlan.branchName}`,
+  });
+
+  return {
+    ...baseResult,
+    rollback,
+    summary: `${baseResult.summary} ${rollback.summary}`,
   };
 }

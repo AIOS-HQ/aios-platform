@@ -5,7 +5,11 @@ export type MasonRuntimeState =
   | "awaiting_founder_approval"
   | "ready"
   | "executing"
+  | "rollback_pending"
+  | "rolling_back"
   | "completed"
+  | "recovered"
+  | "recovery_failed"
   | "failed";
 
 export const MASON_RUNTIME_TERMINAL_STATES: readonly MasonRuntimeState[] = [
@@ -18,8 +22,12 @@ const LEGAL_TRANSITIONS: Record<MasonRuntimeState, readonly MasonRuntimeState[]>
   blocked: [],
   awaiting_founder_approval: ["ready", "blocked"],
   ready: ["executing", "blocked"],
-  executing: ["completed", "failed", "blocked"],
+  executing: ["completed", "failed", "blocked", "rollback_pending"],
+  rollback_pending: ["rolling_back", "recovery_failed"],
+  rolling_back: ["recovered", "recovery_failed"],
   completed: [],
+  recovered: [],
+  recovery_failed: [],
   failed: [],
 };
 
@@ -89,4 +97,3 @@ export function transitionMasonRuntimeState(
     reason: `Mason runtime transitioned ${from} -> ${to}.`,
   };
 }
-

@@ -98,6 +98,13 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
           labels: args.labels ?? [],
         });
       },
+      closePullRequest(args) {
+        return runRequiredConnector(input.userId, "github", "close_pull_request", {
+          repo: args.repository,
+          pr_number: args.prNumber,
+          state: "closed",
+        });
+      },
     },
     vercel: {
       inspectPreview(args) {
