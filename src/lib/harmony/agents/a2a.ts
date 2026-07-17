@@ -67,6 +67,237 @@ const RISK_TO_PRIORITY: Record<AgentMessageRisk, "low" | "medium" | "high"> = {
   destructive: "high",
 };
 
+export type CanonicalWorkforceEnvelopeStatus =
+  | "created"
+  | "delegated"
+  | "awaiting_approval"
+  | "acknowledged"
+  | "in_progress"
+  | "completed"
+  | "blocked"
+  | "timed_out"
+  | "dead_lettered";
+
+export interface CanonicalWorkforceEnvelope {
+  schemaVersion: 1;
+  envelopeId: string;
+  companyId: string;
+  userId: string;
+  execution: {
+    status: CanonicalWorkforceEnvelopeStatus;
+    createdAt: string;
+    delegatedAt: string;
+    acknowledgedAt: string | null;
+    startedAt: string | null;
+    completedAt: string | null;
+    timedOutAt: string | null;
+    deadLetteredAt: string | null;
+    timeoutMs: number;
+    attempts: number;
+    maxAttempts: number;
+  };
+  trace: {
+    correlationId: string;
+    causationId: string | null;
+    parentMessageId: string | null;
+    approvalRequired: boolean;
+    approvalId: string | null;
+  };
+  policy: {
+    risk: AgentMessageRisk;
+    requiresApproval: boolean;
+    companyScopeEnforced: boolean;
+  };
+  delivery: {
+    ackRequested: boolean;
+    ackReceived: boolean;
+    retryEligible: boolean;
+    timeoutReason: string | null;
+    deadLetterReason: string | null;
+  };
+  actor: {
+    fromAgent: string;
+    toAgent: string;
+    kind: AgentMessageKind;
+  };
+}
+
+const CANONICAL_ENVELOPE_VERSION = 1 as const;
+const DEFAULT_ENVELOPE_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_ENVELOPE_MAX_ATTEMPTS = 5;
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return { ...(value as Record<string, unknown>) };
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+export function readCanonicalWorkforceEnvelope(message: Pick<AgentMessage, "context">): CanonicalWorkforceEnvelope | null {
+  const root = asRecord(message.context);
+  const envelope = asRecord(root.envelope);
+  if (envelope.schemaVersion !== CANONICAL_ENVELOPE_VERSION) return null;
+  const execution = asRecord(envelope.execution);
+  const trace = asRecord(envelope.trace);
+  const policy = asRecord(envelope.policy);
+  const delivery = asRecord(envelope.delivery);
+  const actor = asRecord(envelope.actor);
+  return {
+    schemaVersion: CANONICAL_ENVELOPE_VERSION,
+    envelopeId: asString(envelope.envelopeId) ?? "",
+    companyId: asString(envelope.companyId) ?? "",
+    userId: asString(envelope.userId) ?? "",
+    execution: {
+      status: ((asString(execution.status) as CanonicalWorkforceEnvelopeStatus | null) ?? "created"),
+      createdAt: asString(execution.createdAt) ?? new Date().toISOString(),
+      delegatedAt: asString(execution.delegatedAt) ?? new Date().toISOString(),
+      acknowledgedAt: asString(execution.acknowledgedAt),
+      startedAt: asString(execution.startedAt),
+      completedAt: asString(execution.completedAt),
+      timedOutAt: asString(execution.timedOutAt),
+      deadLetteredAt: asString(execution.deadLetteredAt),
+      timeoutMs: asNumber(execution.timeoutMs, DEFAULT_ENVELOPE_TIMEOUT_MS),
+      attempts: asNumber(execution.attempts, 1),
+      maxAttempts: asNumber(execution.maxAttempts, DEFAULT_ENVELOPE_MAX_ATTEMPTS),
+    },
+    trace: {
+      correlationId: asString(trace.correlationId) ?? "",
+      causationId: asString(trace.causationId),
+      parentMessageId: asString(trace.parentMessageId),
+      approvalRequired: Boolean(trace.approvalRequired),
+      approvalId: asString(trace.approvalId),
+    },
+    policy: {
+      risk: ((asString(policy.risk) as AgentMessageRisk | null) ?? "routine"),
+      requiresApproval: Boolean(policy.requiresApproval),
+      companyScopeEnforced: policy.companyScopeEnforced !== false,
+    },
+    delivery: {
+      ackRequested: delivery.ackRequested !== false,
+      ackReceived: Boolean(delivery.ackReceived),
+      retryEligible: delivery.retryEligible !== false,
+      timeoutReason: asString(delivery.timeoutReason),
+      deadLetterReason: asString(delivery.deadLetterReason),
+    },
+    actor: {
+      fromAgent: asString(actor.fromAgent) ?? "",
+      toAgent: asString(actor.toAgent) ?? "",
+      kind: ((asString(actor.kind) as AgentMessageKind | null) ?? "message"),
+    },
+  };
+}
+
+function _withCanonicalEnvelope(
+  context: Record<string, unknown>,
+  envelope: CanonicalWorkforceEnvelope,
+): Record<string, unknown> {
+  return {
+    ...context,
+    envelope,
+    correlationId: envelope.trace.correlationId,
+  };
+}
+
+export function createCanonicalWorkforceEnvelope(params: {
+  messageId: string;
+  userId: string;
+  companyId: string;
+  fromAgent: string;
+  toAgent: string;
+  kind: AgentMessageKind;
+  risk: AgentMessageRisk;
+  parentId?: string | null;
+  causationId?: string | null;
+  approvalRequired: boolean;
+  now?: Date;
+}): CanonicalWorkforceEnvelope {
+  const nowIso = (params.now ?? new Date()).toISOString();
+  return {
+    schemaVersion: CANONICAL_ENVELOPE_VERSION,
+    envelopeId: params.messageId,
+    companyId: params.companyId,
+    userId: params.userId,
+    execution: {
+      status: params.approvalRequired ? "awaiting_approval" : "delegated",
+      createdAt: nowIso,
+      delegatedAt: nowIso,
+      acknowledgedAt: null,
+      startedAt: null,
+      completedAt: null,
+      timedOutAt: null,
+      deadLetteredAt: null,
+      timeoutMs: DEFAULT_ENVELOPE_TIMEOUT_MS,
+      attempts: 1,
+      maxAttempts: DEFAULT_ENVELOPE_MAX_ATTEMPTS,
+    },
+    trace: {
+      correlationId: params.parentId ?? params.messageId,
+      causationId: params.causationId ?? params.parentId ?? null,
+      parentMessageId: params.parentId ?? null,
+      approvalRequired: params.approvalRequired,
+      approvalId: null,
+    },
+    policy: {
+      risk: params.risk,
+      requiresApproval: params.approvalRequired,
+      companyScopeEnforced: true,
+    },
+    delivery: {
+      ackRequested: true,
+      ackReceived: false,
+      retryEligible: true,
+      timeoutReason: null,
+      deadLetterReason: null,
+    },
+    actor: {
+      fromAgent: params.fromAgent,
+      toAgent: params.toAgent,
+      kind: params.kind,
+    },
+  };
+}
+
+export function transitionCanonicalWorkforceEnvelope(
+  envelope: CanonicalWorkforceEnvelope,
+  next: CanonicalWorkforceEnvelopeStatus,
+  opts?: { now?: Date; approvalId?: string | null; reason?: string | null },
+): CanonicalWorkforceEnvelope {
+  const nowIso = (opts?.now ?? new Date()).toISOString();
+  const cloned: CanonicalWorkforceEnvelope = {
+    ...envelope,
+    execution: { ...envelope.execution, status: next },
+    trace: { ...envelope.trace },
+    policy: { ...envelope.policy },
+    delivery: { ...envelope.delivery },
+    actor: { ...envelope.actor },
+  };
+  if (next === "acknowledged") {
+    cloned.execution.acknowledgedAt = nowIso;
+    cloned.delivery.ackReceived = true;
+  }
+  if (next === "in_progress") cloned.execution.startedAt = nowIso;
+  if (next === "completed" || next === "blocked") cloned.execution.completedAt = nowIso;
+  if (next === "timed_out") {
+    cloned.execution.timedOutAt = nowIso;
+    cloned.delivery.timeoutReason = opts?.reason ?? "delivery_timeout";
+    cloned.delivery.retryEligible = cloned.execution.attempts < cloned.execution.maxAttempts;
+  }
+  if (next === "dead_lettered") {
+    cloned.execution.deadLetteredAt = nowIso;
+    cloned.delivery.deadLetterReason = opts?.reason ?? "dead_lettered";
+    cloned.delivery.retryEligible = false;
+  }
+  if (opts?.approvalId) cloned.trace.approvalId = opts.approvalId;
+  return cloned;
+}
+
+
 function riskRequiresApproval(risk: AgentMessageRisk): boolean {
   return risk === "approval" || risk === "destructive";
 }
