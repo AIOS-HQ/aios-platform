@@ -40,6 +40,25 @@ Code lives in `src/lib/event-mesh`.
 
 Initial event types include workforce task/message/response, connector execution, approvals, skills, Julius memory, system health, and social publishing lifecycle events. Unsupported capabilities must not emit success events.
 
+
+### Canonical Workforce Envelope (Milestone 5)
+
+Milestone 5 extends the existing Event Mesh + A2A compatibility path with a canonical workforce message envelope embedded in `agent_messages.context.envelope`.
+
+- Contract owner: `src/lib/harmony/agents/a2a.ts`
+- Transport: existing Event Mesh (`src/lib/event-mesh/*`)
+- Compatibility: existing `agent_messages` status and approval flow remain authoritative
+
+Envelope fields cover:
+
+- lifecycle (`created`, `delegated`, `awaiting_approval`, `acknowledged`, `in_progress`, `completed`, `blocked`, `timed_out`, `dead_lettered`)
+- correlation and causation (`correlationId`, `causationId`, `parentMessageId`)
+- policy and approvals (`risk`, `requiresApproval`, `approvalRequired`, `approvalId`)
+- delivery semantics (`ackRequested`, `ackReceived`, `retryEligible`, timeout/dead-letter reasons)
+- company execution scope (`companyId`, `userId`, `companyScopeEnforced`)
+
+This is additive and backward-compatible: existing Harmony actions, A2A/delegation, Event Mesh handlers, approvals, review queue, and ledger evidence continue to operate without a parallel bus.
+
 ## Worker Runtime
 
 Run locally or on a long-running host:
