@@ -2,6 +2,8 @@
 
 import { runMasonProductionRuntime } from "@/lib/harmony/code/mason-production-runtime";
 import type { MasonLiveFileChange } from "@/lib/harmony/code/mason-live-execution";
+import { retrieveMasonExecutionContext } from "@/lib/julius/mason-retrieval";
+import { writeVerifiedJuliusOutcome } from "@/lib/julius/writeback";
 
 const DEFAULT_AUTONOMY_TEST_CONTENT = "AIOS autonomous execution test successful.";
 
@@ -153,15 +155,88 @@ export async function handleMasonEngineeringMessage(input: {
   companyId?: string | null;
   repository?: string | null;
 }) {
+  const companyId = input.companyId ?? "aios";
   const slug = slugify(input.message);
   const requestedBranch = inferRequestedBranch(input.message);
   const fileChanges = inferFileChanges(input.message);
   const branchOnly = isBranchOnlyRequest(input.message, requestedBranch);
   const commitOnly = isCommitOnlyRequest(input.message, requestedBranch);
   const prRequested = explicitlyRequestsPullRequest(input.message, requestedBranch);
+  const executionId = `mason-exec-${Date.now().toString(36)}`;
 
-  return runMasonProductionRuntime({
-    companyId: input.companyId ?? null,
+  const retrieval = input.founderApproved !== true
+    ? {
+        status: "degraded" as const,
+        context: {
+          company_id: companyId,
+          user_id: input.userId,
+          actor_id: "mason",
+          execution_id: executionId,
+          correlation_id: executionId,
+          causation_id: null,
+          worker_id: "mason" as const,
+          source_type: "mason_runtime" as const,
+          source_id: `mason-action:${executionId}`,
+          timestamp: new Date().toISOString(),
+          trace: {
+            path: "workforce.mason-action",
+            query: input.message.slice(0, 240),
+          },
+        },
+        entries: [],
+        degraded: true,
+        error: "founder_approval_required_before_retrieval",
+      }
+    : await retrieveMasonExecutionContext({
+    context: {
+      company_id: companyId,
+      user_id: input.userId,
+      actor_id: "mason",
+      execution_id: executionId,
+      correlation_id: executionId,
+      causation_id: null,
+      worker_id: "mason",
+      source_type: "mason_runtime",
+      source_id: `mason-action:${executionId}`,
+      approval_id: null,
+      trace: {
+        path: "workforce.mason-action",
+        query: input.message.slice(0, 240),
+      },
+    },
+    engineeringQuery: input.message,
+  });
+
+  if (retrieval.status === "failed") {
+    return {
+      status: "blocked",
+      summary: `Julius retrieval failed before Mason planning: ${retrieval.error}`,
+      pullRequestUrl: null,
+      previewUrl: null,
+      branch: null,
+      branchCreated: false,
+      commitCreated: false,
+      pullRequestCreated: false,
+      issueCreated: false,
+      issueNumber: null,
+      issueUrl: null,
+      requestedBaseBranch: null,
+      requestedBranchName: null,
+      explicitBranchRequest: false,
+      explicitPullRequestRequest: false,
+      shouldOpenPullRequest: false,
+      diagnostics: {
+        retrievalStatus: retrieval.status,
+        retrievalEntries: retrieval.entries.length,
+        retrievalError: retrieval.error,
+        retrievalExecutionId: retrieval.context.execution_id,
+        retrievalCorrelationId: retrieval.context.correlation_id,
+      },
+    };
+  }
+
+  const result = await runMasonProductionRuntime({
+    companyId,
     userId: input.userId,
     objective: input.message,
     repository:
@@ -176,4 +251,67 @@ export async function handleMasonEngineeringMessage(input: {
     fileChanges,
     openPullRequest: prRequested ? true : branchOnly || commitOnly || suppressesPullRequest(input.message) ? false : undefined,
   });
+
+  const category = result.status === "completed"
+    ? "engineering_completion"
+    : result.summary.toLowerCase().includes("rollback")
+      ? "rollback_lesson"
+      : result.summary.toLowerCase().includes("recover")
+        ? "recovery_lesson"
+        : "failure_lesson";
+
+  const verification = result.status === "completed" || result.status === "failed"
+    ? "verified"
+    : "unverified";
+
+  const juliusWriteback = await writeVerifiedJuliusOutcome({
+      context: {
+        company_id: companyId,
+      user_id: input.userId,
+      actor_id: "mason",
+      execution_id: executionId,
+      correlation_id: retrieval.context.correlation_id,
+      causation_id: retrieval.context.causation_id ?? null,
+      worker_id: "mason",
+      source_type: "mason_runtime",
+      source_id: `mason-runtime:${executionId}`,
+      approval_id: null,
+      trace: {
+        retrievalStatus: retrieval.status,
+        runtimeStatus: result.status,
+      },
+    },
+    category,
+    verification,
+    policy: {
+      approved: input.founderApproved === true,
+      requiresApproval: result.status !== "completed",
+      approvalId: null,
+    },
+    outcome: {
+      status: result.status,
+      summary: result.summary,
+      details: [result.pullRequestUrl, result.previewUrl].filter(Boolean).join(" | ") || null,
+    },
+    source: {
+      source_type: "mason_runtime",
+      source_id: `mason-runtime:${executionId}`,
+    },
+    trace: {
+      retrievalStatus: retrieval.status,
+      retrievalEntries: retrieval.entries.length,
+    },
+  });
+
+  return {
+    juliusWriteback,
+    ...result,
+    summary: `${result.summary} (Julius retrieval: ${retrieval.status}${retrieval.status === "found" ? `, entries=${retrieval.entries.length}` : ""})`,
+    diagnostics: {
+      retrievalStatus: retrieval.status,
+      retrievalEntries: retrieval.entries.length,
+      retrievalExecutionId: retrieval.context.execution_id,
+      retrievalCorrelationId: retrieval.context.correlation_id,
+    },
+  };
 }
