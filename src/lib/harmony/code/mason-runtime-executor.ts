@@ -15,6 +15,11 @@ import {
   executeMasonRollbackPlan,
   type MasonRollbackResult,
 } from "@/lib/harmony/code/mason-rollback";
+import {
+  appendMasonLedgerEvent,
+  createMasonExecutionId,
+  type AppendMasonLedgerEventInput,
+} from "@/lib/harmony/code/mason-ledger";
 
 export type MasonRuntimeExecutionStatus = "completed" | "blocked" | "failed";
 export type MasonRuntimeOperationStatus = "completed" | "blocked" | "failed" | "skipped";
@@ -63,6 +68,11 @@ export interface MasonRuntimeExecutionResult {
   summary: string;
   rollback?: MasonRollbackResult;
 }
+
+export type MasonLedgerWriter = (input: AppendMasonLedgerEventInput) => Promise<unknown>;
+
+const defaultMasonLedgerWriter: MasonLedgerWriter = async (event) =>
+  appendMasonLedgerEvent(event).catch(() => null);
 
 function requireString(params: Record<string, unknown>, key: string): string {
   const value = params[key];
@@ -222,8 +232,37 @@ async function executeOperation(operation: MasonLiveConnectorOperation, adapters
   }
 }
 
-export async function executeMasonRuntimePlan(input: MasonLiveExecutionPlanInput, adapters: MasonRuntimeExecutorAdapters): Promise<MasonRuntimeExecutionResult> {
+export async function executeMasonRuntimePlan(
+  input: MasonLiveExecutionPlanInput,
+  adapters: MasonRuntimeExecutorAdapters,
+  options?: { ledgerWriter?: MasonLedgerWriter },
+): Promise<MasonRuntimeExecutionResult> {
+  const ledgerWriter = options?.ledgerWriter ?? defaultMasonLedgerWriter;
   const plan = createMasonLiveExecutionPlan(input);
+  const executionId = createMasonExecutionId({
+    userId: "unknown-user",
+    companyId: "unknown-company",
+    repository: input.repository,
+    objective: input.objective,
+    branch: plan.bridge.scopedPlan.branchName,
+  });
+
+  await ledgerWriter({
+    executionId,
+    userId: "unknown-user",
+    companyId: "unknown-company",
+    eventType: "execution_started",
+    runtimeState: "executing",
+    operationType: "runtime_plan_execution",
+    resultStatus: "ok",
+    summary: "Mason execution started.",
+    metadata: {
+      repository: input.repository,
+      branch: plan.bridge.scopedPlan.branchName,
+      objective: input.objective,
+    },
+    idempotencyKey: `${executionId}:execution_started`,
+  });
   let runtimeState: MasonRuntimeState =
     plan.status === "ready"
       ? "ready"
@@ -250,8 +289,53 @@ export async function executeMasonRuntimePlan(input: MasonLiveExecutionPlanInput
 
   const results: MasonRuntimeOperationResult[] = [];
   for (const operation of plan.operations) {
+    await ledgerWriter({
+      executionId,
+      userId: "unknown-user",
+      companyId: "unknown-company",
+      eventType: "connector_operation_started",
+      runtimeState,
+      operationType: operation.kind,
+      connectorId: operation.connectorId,
+      targetResource: String(operation.params.repo ?? operation.params.repository ?? ""),
+      resultStatus: "ok",
+      summary: `Connector operation started: ${operation.kind}`,
+      metadata: {
+        capabilityId: operation.capabilityId,
+        approved: operation.approved,
+      },
+      idempotencyKey: `${executionId}:op_started:${operation.kind}:${results.length}`,
+    });
+
     const result = await executeOperation(operation, adapters);
     results.push(result);
+
+    await ledgerWriter({
+      executionId,
+      userId: "unknown-user",
+      companyId: "unknown-company",
+      eventType:
+        result.status === "completed"
+          ? "connector_operation_completed"
+          : "connector_operation_failed",
+      runtimeState,
+      operationType: operation.kind,
+      connectorId: operation.connectorId,
+      targetResource: String(operation.params.repo ?? operation.params.repository ?? ""),
+      resultStatus:
+        result.status === "completed"
+          ? "ok"
+          : result.status === "blocked"
+            ? "blocked"
+            : "failed",
+      failureClassification: result.status === "completed" ? null : "connector_failure",
+      summary: result.summary,
+      metadata: {
+        error: result.error ?? null,
+      },
+      idempotencyKey: `${executionId}:op_done:${operation.kind}:${results.length}`,
+    });
+
     if (result.status === "blocked" || result.status === "failed" || result.status === "skipped") break;
   }
 
