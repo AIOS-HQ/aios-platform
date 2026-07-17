@@ -40,6 +40,8 @@ const baseInput = {
 };
 
 describe("Mason runtime executor", () => {
+  const ledgerWriter = vi.fn(async () => null);
+
   it("executes approved GitHub, validation, Vercel, and Harmony operations in order", async () => {
     const runtimeAdapters = adapters();
     // Intent-driven behavior: the PR + Vercel preview operations exist only when
@@ -47,6 +49,7 @@ describe("Mason runtime executor", () => {
     const result = await executeMasonRuntimePlan(
       { ...baseInput, openPullRequest: true },
       runtimeAdapters,
+      { ledgerWriter },
     );
 
     expect(result.status).toBe("completed");
@@ -85,7 +88,11 @@ describe("Mason runtime executor", () => {
 
   it("blocks runtime execution until Founder approval exists", async () => {
     const runtimeAdapters = adapters();
-    const result = await executeMasonRuntimePlan({ ...baseInput, founderApproved: false }, runtimeAdapters);
+    const result = await executeMasonRuntimePlan(
+      { ...baseInput, founderApproved: false },
+      runtimeAdapters,
+      { ledgerWriter },
+    );
 
     expect(result.status).toBe("blocked");
     expect(result.results).toEqual([]);
@@ -95,7 +102,11 @@ describe("Mason runtime executor", () => {
 
   it("blocks subscriber runtime execution", async () => {
     const runtimeAdapters = adapters();
-    const result = await executeMasonRuntimePlan({ ...baseInput, requesterRole: "subscriber" }, runtimeAdapters);
+    const result = await executeMasonRuntimePlan(
+      { ...baseInput, requesterRole: "subscriber" },
+      runtimeAdapters,
+      { ledgerWriter },
+    );
 
     expect(result.status).toBe("blocked");
     expect(result.results).toEqual([]);
@@ -106,7 +117,7 @@ describe("Mason runtime executor", () => {
     const runtimeAdapters = adapters();
     vi.mocked(runtimeAdapters.github.commitFile).mockRejectedValueOnce(new Error("GitHub file write failed"));
 
-    const result = await executeMasonRuntimePlan(baseInput, runtimeAdapters);
+    const result = await executeMasonRuntimePlan(baseInput, runtimeAdapters, { ledgerWriter });
 
     expect(result.status).toBe("failed");
     expect(result.results.map((item) => item.operation.kind)).toEqual(["github_create_branch", "github_commit_file"]);
@@ -115,7 +126,7 @@ describe("Mason runtime executor", () => {
   });
 
   it("never exposes merge execution through the runtime plan", async () => {
-    const result = await executeMasonRuntimePlan(baseInput, adapters());
+    const result = await executeMasonRuntimePlan(baseInput, adapters(), { ledgerWriter });
 
     expect(result.results.map((item) => item.operation.capabilityId)).not.toContain("merge_pull_request");
     expect(result.plan.bridge.mergePolicy.mergeAllowedNow).toBe(false);

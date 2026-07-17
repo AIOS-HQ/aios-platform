@@ -10,6 +10,7 @@ import { getConnections } from "@/lib/integrations/connections";
 import { emitActivity } from "@/lib/harmony/os/events";
 import { juliusRemember } from "@/lib/julius/wiring";
 import { learnCompanySkill } from "@/lib/company-skills/library";
+import { appendMasonLedgerEvent, createMasonExecutionId } from "@/lib/harmony/code/mason-ledger";
 
 export interface MasonProductionRuntimeInput extends MasonLiveExecutionPlanInput {
   userId: string;
@@ -216,6 +217,30 @@ export async function runMasonProductionRuntime(
   input: MasonProductionRuntimeInput,
   adapters: MasonRuntimeExecutorAdapters = createMasonProductionAdapters(input),
 ): Promise<MasonProductionRuntimeResult> {
+  const executionId = createMasonExecutionId({
+    userId: input.userId,
+    companyId: input.companyId ?? "no-company",
+    repository: input.repository,
+    objective: input.objective,
+    branch: input.branchName ?? null,
+  });
+
+  await appendMasonLedgerEvent({
+    executionId,
+    userId: input.userId,
+    companyId: input.companyId ?? "no-company",
+    eventType: "intake_received",
+    runtimeState: "ready",
+    operationType: "mason_runtime_intake",
+    resultStatus: "ok",
+    summary: "Mason execution request received.",
+    metadata: {
+      repository: input.repository,
+      objective: input.objective,
+      requesterRole: input.requesterRole ?? "founder",
+    },
+    idempotencyKey: `${executionId}:intake_received`,
+  });
   // Route the execute/pause decision through the Unified Autonomy Policy Engine.
   // Approval-required work persists a resumable approval_payload (surfaced in the
   // Review Queue) instead of silently blocking.
@@ -227,7 +252,38 @@ export async function runMasonProductionRuntime(
     MASON_DEFAULT_AUTONOMY_LEVEL,
     input.founderApproved,
   );
+  await appendMasonLedgerEvent({
+    executionId,
+    userId: input.userId,
+    companyId: input.companyId ?? "no-company",
+    eventType: "policy_evaluated",
+    runtimeState: readiness.ready_now ? "ready" : readiness.is_blocked ? "blocked" : "awaiting_founder_approval",
+    operationType: "autonomy_policy",
+    resultStatus: readiness.ready_now ? "ok" : readiness.is_blocked ? "blocked" : "partial",
+    failureClassification: readiness.is_blocked ? "policy_blocked" : null,
+    summary: readiness.reason,
+    metadata: {
+      ready_to_execute: readiness.ready_to_execute,
+      ready_now: readiness.ready_now,
+      requires_approval: readiness.requires_approval,
+      approval_id: readiness.approval_id ?? null,
+    },
+    idempotencyKey: `${executionId}:policy_evaluated`,
+  });
   if (readiness.requires_approval) {
+    await appendMasonLedgerEvent({
+      executionId,
+      userId: input.userId,
+      companyId: input.companyId ?? "no-company",
+      eventType: "approval_requested",
+      runtimeState: "awaiting_founder_approval",
+      approvalId: readiness.approval_id ?? null,
+      operationType: "approval_gate",
+      resultStatus: "blocked",
+      summary: "Mason execution paused for founder approval.",
+      metadata: { reason: readiness.reason },
+      idempotencyKey: `${executionId}:approval_requested`,
+    });
     return {
       status: "blocked",
       summary: `Awaiting Founder approval.${readiness.approval_id ? ` Approval ID: ${readiness.approval_id}.` : ""} ${readiness.reason}`,
@@ -236,6 +292,19 @@ export async function runMasonProductionRuntime(
     };
   }
   if (readiness.is_blocked) {
+    await appendMasonLedgerEvent({
+      executionId,
+      userId: input.userId,
+      companyId: input.companyId ?? "no-company",
+      eventType: "execution_failed",
+      runtimeState: "blocked",
+      operationType: "policy_gate",
+      resultStatus: "blocked",
+      failureClassification: "policy_blocked",
+      summary: `Execution blocked: ${readiness.reason}`,
+      metadata: {},
+      idempotencyKey: `${executionId}:execution_failed_blocked`,
+    });
     return {
       status: "blocked",
       summary: `Execution blocked: ${readiness.reason}`,
@@ -246,6 +315,19 @@ export async function runMasonProductionRuntime(
 
   const health = await masonRuntimeHealth(input.userId);
   if (!health.github || !health.vercel || !health.harmony) {
+    await appendMasonLedgerEvent({
+      executionId,
+      userId: input.userId,
+      companyId: input.companyId ?? "no-company",
+      eventType: "execution_failed",
+      runtimeState: "blocked",
+      operationType: "runtime_health",
+      resultStatus: "failed",
+      failureClassification: "connector_failure",
+      summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercel}, Harmony=${health.harmony}.`,
+      metadata: health,
+      idempotencyKey: `${executionId}:execution_failed_health`,
+    });
     return {
       status: "blocked",
       summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercel}, Harmony=${health.harmony}.`,
@@ -260,6 +342,37 @@ export async function runMasonProductionRuntime(
     ? input
     : { ...input, founderApproved: true };
   const result = await executeMasonRuntimePlan(authorizedInput, adapters);
+  await appendMasonLedgerEvent({
+    executionId,
+    userId: input.userId,
+    companyId: input.companyId ?? "no-company",
+    eventType:
+      result.status === "completed"
+        ? "execution_completed"
+        : result.status === "blocked"
+          ? "execution_cancelled"
+          : "execution_failed",
+    runtimeState:
+      result.status === "completed"
+        ? "completed"
+        : result.rollback?.toState ?? "failed",
+    operationType: "runtime_execution",
+    resultStatus:
+      result.status === "completed"
+        ? "ok"
+        : result.status === "blocked"
+          ? "blocked"
+          : "failed",
+    failureClassification: result.status === "failed" ? "runtime_failure" : null,
+    summary: result.summary,
+    pullRequestUrl: result.pullRequestUrl,
+    previewUrl: result.previewUrl,
+    rollbackRef: result.rollback?.executionId ?? null,
+    metadata: {
+      rollback: result.rollback ?? null,
+    },
+    idempotencyKey: `${executionId}:execution_final`,
+  });
   return {
     status: result.status,
     summary: result.summary,
