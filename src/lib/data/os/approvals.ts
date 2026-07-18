@@ -95,7 +95,7 @@ export async function listApprovalsUnified(opts?: {
   let legacyQ = supabase
     .from("approvals")
     .select(
-      "id, company_id, status, title, summary, risk, type, created_at, decided_at, expires_at, department_id, work_item_id, message_id, agent_message_id",
+      "id, company_id, status, title, summary, risk, type, created_at, decided_at, department_id, work_item_id, message_id, agent_message_id",
     );
   let spineQ = supabase
     .from("approval_payloads")
@@ -128,12 +128,15 @@ export async function listApprovalsUnified(opts?: {
       type: string;
       created_at: string;
       decided_at: string | null;
-      expires_at: string | null;
       department_id: string | null;
       work_item_id: string | null;
       message_id: string | null;
       agent_message_id: string | null;
-    }> | null) ?? []).map((row) => ({ ...row, source: "legacy" }));
+    }> | null) ?? []).map((row) => ({
+      ...row,
+      source: "legacy",
+      expires_at: null,
+    }));
 
   const spineRows: ApprovalUnified[] =
     ((spine.data as Array<{
