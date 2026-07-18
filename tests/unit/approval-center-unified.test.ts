@@ -28,7 +28,6 @@ describe("Approval Center unified contract", () => {
                 type: "work_item",
                 created_at: "2026-07-18T10:00:00Z",
                 decided_at: null,
-                expires_at: null,
                 department_id: null,
                 work_item_id: null,
                 message_id: null,
@@ -68,6 +67,7 @@ describe("Approval Center unified contract", () => {
     const rows = await listApprovalsUnified();
     expect(rows.map((row) => row.id)).toEqual(["spine-1", "legacy-1"]);
     expect(rows.map((row) => row.source)).toEqual(["spine", "legacy"]);
+    expect(rows.find((row) => row.id === "legacy-1")?.expires_at).toBeNull();
   });
 
   it("applies company filter to both stores", async () => {
