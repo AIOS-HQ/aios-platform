@@ -3,24 +3,17 @@ import "server-only";
 import { recordOpsEvent } from "@/lib/observability/ops";
 
 export type MasonChatDiagnosticPhase =
-  | "chat_submit_started"
-  | "auth_resolved"
-  | "company_resolved"
-  | "conversation_resolved"
-  | "user_message_persisted"
-  | "mason_entry_started"
-  | "julius_retrieval_started"
-  | "julius_retrieval_completed"
-  | "ledger_snapshot_started"
-  | "ledger_snapshot_completed"
-  | "event_mesh_started"
-  | "event_mesh_completed"
-  | "mason_entry_completed"
-  | "assistant_message_persisted"
-  | "revalidation_started"
-  | "revalidation_completed"
-  | "chat_submit_completed"
-  | "chat_submit_failed";
+  | "mason_chat_server_entered"
+  | "mason_chat_agent_resolved"
+  | "mason_chat_company_resolved"
+  | "mason_chat_readonly_guard_evaluated"
+  | "mason_chat_intent_classified"
+  | "mason_chat_path_selected"
+  | "mason_chat_engineering_handler_called"
+  | "mason_chat_runtime_called"
+  | "mason_chat_approval_result_received"
+  | "mason_chat_response_returned"
+  | "mason_chat_failed";
 
 export interface MasonChatDiagnosticContext {
   correlationId: string;
@@ -28,6 +21,12 @@ export interface MasonChatDiagnosticContext {
   companyId?: string | null;
   conversationId?: string | null;
   executionId?: string | null;
+  agentKey?: string | null;
+  intentCategory?: string | null;
+  readonlyGuardResult?: boolean | null;
+  selectedPath?: string | null;
+  approvalId?: string | null;
+  functionName?: string | null;
 }
 
 const REDACTED_KEYS = [
@@ -100,7 +99,7 @@ export async function logMasonChatPhase(
   await recordOpsEvent({
     userId: context.userId,
     companyId: context.companyId ?? null,
-    level: phase === "chat_submit_failed" ? "error" : "info",
+    level: phase === "mason_chat_failed" ? "error" : "info",
     source: "workforce.mason-chat",
     message: phase,
     context: {
@@ -109,6 +108,12 @@ export async function logMasonChatPhase(
       companyId: context.companyId ?? null,
       conversationId: context.conversationId ?? null,
       executionId: context.executionId ?? null,
+      agentKey: context.agentKey ?? null,
+      intentCategory: context.intentCategory ?? null,
+      readonlyGuardResult: context.readonlyGuardResult ?? null,
+      selectedPath: context.selectedPath ?? null,
+      approvalId: context.approvalId ?? null,
+      functionName: context.functionName ?? null,
       phase,
       timestamp: new Date().toISOString(),
       ...(extras ? (safeValue(extras) as Record<string, unknown>) : {}),
@@ -123,7 +128,7 @@ export async function logMasonChatFailure(
 ): Promise<void> {
   const normalized = sanitizeError(error);
 
-  await logMasonChatPhase("chat_submit_failed", context, {
+  await logMasonChatPhase("mason_chat_failed", context, {
     failedPhase: phase,
     errorName: normalized.name,
     errorMessage: normalized.message,

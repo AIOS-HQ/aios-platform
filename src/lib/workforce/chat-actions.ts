@@ -53,7 +53,7 @@ export async function sendAgentChatAction(
   formData: FormData,
 ): Promise<ActionState> {
   const correlationId = createMasonChatCorrelationId();
-  let currentPhase: MasonChatDiagnosticPhase = "chat_submit_started";
+  let currentPhase: MasonChatDiagnosticPhase = "mason_chat_server_entered";
 
   const t = await getTranslations("harmony");
   const agent = String(formData.get("agent") ?? "");
@@ -72,14 +72,20 @@ export async function sendAgentChatAction(
       userId,
       companyId,
       executionId,
+      agentKey: agent,
+      functionName: "sendAgentChatAction",
+      selectedPath: "pending",
     });
 
-    currentPhase = "auth_resolved";
+    currentPhase = "mason_chat_agent_resolved";
     await logMasonChatPhase(currentPhase, {
       correlationId,
       userId,
       companyId,
       executionId,
+      agentKey: agent,
+      functionName: "sendAgentChatAction",
+      selectedPath: "pending",
     });
 
     if (!getAiosAgent(agent)) return { status: "error", message: t("errors.generic") };
@@ -89,16 +95,54 @@ export async function sendAgentChatAction(
     }
 
     companyId = await resolvePrimaryCompanyId();
-    currentPhase = "company_resolved";
+    currentPhase = "mason_chat_company_resolved";
     await logMasonChatPhase(currentPhase, {
       correlationId,
       userId,
       companyId,
       executionId,
+      agentKey: agent,
+      functionName: "sendAgentChatAction",
+      selectedPath: "pending",
     });
 
     if (agent === "mason") {
-      if (isReadOnlyMasonConversation(message)) {
+      const readOnly = isReadOnlyMasonConversation(message);
+      await logMasonChatPhase("mason_chat_readonly_guard_evaluated", {
+        correlationId,
+        userId,
+        companyId,
+        executionId,
+        agentKey: agent,
+        readonlyGuardResult: readOnly,
+        functionName: "isReadOnlyMasonConversation",
+      });
+
+      const intentCategory = readOnly ? "conversation_read_only" : "engineering_mutation";
+      await logMasonChatPhase("mason_chat_intent_classified", {
+        correlationId,
+        userId,
+        companyId,
+        executionId,
+        agentKey: agent,
+        intentCategory,
+        readonlyGuardResult: readOnly,
+        functionName: "sendAgentChatAction",
+      });
+
+      if (readOnly) {
+        await logMasonChatPhase("mason_chat_path_selected", {
+          correlationId,
+          userId,
+          companyId,
+          executionId,
+          agentKey: agent,
+          intentCategory,
+          readonlyGuardResult: true,
+          selectedPath: "conversation",
+          functionName: "sendAgentChatAction",
+        });
+
         const ok = await recordAgentChatExchange({
           userId,
           companyId,
@@ -109,80 +153,50 @@ export async function sendAgentChatAction(
         });
         if (!ok) return { status: "error", message: t("errors.generic") };
 
-        currentPhase = "conversation_resolved";
+        currentPhase = "mason_chat_response_returned";
         await logMasonChatPhase(currentPhase, {
           correlationId,
           userId,
           companyId,
           executionId,
-        });
-        await logMasonChatPhase("user_message_persisted", {
-          correlationId,
-          userId,
-          companyId,
-          executionId,
-        });
-        await logMasonChatPhase("assistant_message_persisted", {
-          correlationId,
-          userId,
-          companyId,
-          executionId,
-        });
-
-        currentPhase = "revalidation_started";
-        await logMasonChatPhase(currentPhase, {
-          correlationId,
-          userId,
-          companyId,
-          executionId,
-        });
-        revalidatePath(`/harmony/workforce/${agent}`);
-        await logMasonChatPhase("revalidation_completed", {
-          correlationId,
-          userId,
-          companyId,
-          executionId,
-        });
-
-        await logMasonChatPhase("chat_submit_completed", {
-          correlationId,
-          userId,
-          companyId,
-          executionId,
+          agentKey: agent,
+          intentCategory,
+          readonlyGuardResult: true,
+          selectedPath: "conversation",
+          functionName: "sendAgentChatAction",
         }, {
           actionStatus: "success",
         });
+
+        revalidatePath(`/harmony/workforce/${agent}`);
 
         return { status: "success", message: "" };
       }
 
       const founderApproved = masonFounderApproved(formData.get("founder_approved") ?? message);
 
-      currentPhase = "mason_entry_started";
-      await logMasonChatPhase(currentPhase, {
+      await logMasonChatPhase("mason_chat_path_selected", {
         correlationId,
         userId,
         companyId,
         executionId,
+        agentKey: agent,
+        intentCategory,
+        readonlyGuardResult: false,
+        selectedPath: "engineering_execution",
+        functionName: "sendAgentChatAction",
       });
 
-      await logMasonChatPhase("julius_retrieval_started", {
+      await logMasonChatPhase("mason_chat_engineering_handler_called", {
         correlationId,
         userId,
         companyId,
         executionId,
-      });
-      await logMasonChatPhase("ledger_snapshot_started", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
-      });
-      await logMasonChatPhase("event_mesh_started", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
+        agentKey: agent,
+        intentCategory,
+        readonlyGuardResult: false,
+        selectedPath: "engineering_execution",
+        functionName: "handleMasonEngineeringMessage",
       });
 
       const result = await handleMasonEngineeringMessage({
@@ -197,35 +211,31 @@ export async function sendAgentChatAction(
           ? result.diagnostics.retrievalExecutionId
           : null;
 
-      await logMasonChatPhase("julius_retrieval_completed", {
+      await logMasonChatPhase("mason_chat_runtime_called", {
         correlationId,
         userId,
         companyId,
         executionId,
-      }, {
-        retrievalStatus: result.diagnostics?.retrievalStatus,
+        agentKey: agent,
+        intentCategory,
+        readonlyGuardResult: false,
+        selectedPath: "engineering_execution",
+        functionName: "runMasonProductionRuntime",
       });
-      await logMasonChatPhase("ledger_snapshot_completed", {
+      await logMasonChatPhase("mason_chat_approval_result_received", {
         correlationId,
         userId,
         companyId,
         executionId,
-      });
-      await logMasonChatPhase("event_mesh_completed", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
-      });
-
-      currentPhase = "mason_entry_completed";
-      await logMasonChatPhase(currentPhase, {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
+        agentKey: agent,
+        intentCategory,
+        readonlyGuardResult: false,
+        selectedPath: "engineering_execution",
+        approvalId: result.summary.match(/Approval ID:\s*([^\.\s]+)/i)?.[1] ?? null,
+        functionName: "determineMasonExecutionReadiness",
       }, {
         masonStatus: result.status,
+        retrievalStatus: result.diagnostics?.retrievalStatus,
       });
 
       const ok = await recordAgentChatExchange({
@@ -238,52 +248,26 @@ export async function sendAgentChatAction(
       });
       if (!ok) return { status: "error", message: t("errors.generic") };
 
-      currentPhase = "conversation_resolved";
+      currentPhase = "mason_chat_response_returned";
       await logMasonChatPhase(currentPhase, {
         correlationId,
         userId,
         companyId,
         executionId,
-      });
-      await logMasonChatPhase("user_message_persisted", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
-      });
-      await logMasonChatPhase("assistant_message_persisted", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
-      });
-
-      currentPhase = "revalidation_started";
-      await logMasonChatPhase(currentPhase, {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
-      });
-      revalidatePath(`/harmony/workforce/${agent}`);
-      await logMasonChatPhase("revalidation_completed", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
+        agentKey: agent,
+        intentCategory,
+        readonlyGuardResult: false,
+        selectedPath: "engineering_execution",
+        approvalId: result.summary.match(/Approval ID:\s*([^\.\s]+)/i)?.[1] ?? null,
+        functionName: "sendAgentChatAction",
+      }, {
+        actionStatus: result.status === "failed" || (result.status === "blocked" && !founderApproved) ? "error" : "success",
       });
 
       const isTerminalFailure = result.status === "failed";
       const isBlockedAwaitingApproval = result.status === "blocked" && !founderApproved;
 
-      await logMasonChatPhase("chat_submit_completed", {
-        correlationId,
-        userId,
-        companyId,
-        executionId,
-      }, {
-        actionStatus: isTerminalFailure || isBlockedAwaitingApproval ? "error" : "success",
-      });
+      revalidatePath(`/harmony/workforce/${agent}`);
 
       return {
         status: isTerminalFailure || isBlockedAwaitingApproval ? "error" : "success",
@@ -297,43 +281,21 @@ export async function sendAgentChatAction(
     const ok = await sendAgentChat({ userId, companyId, agent, message });
     if (!ok) return { status: "error", message: t("errors.generic") };
 
-    currentPhase = "conversation_resolved";
+    currentPhase = "mason_chat_response_returned";
     await logMasonChatPhase(currentPhase, {
       correlationId,
       userId,
       companyId,
       executionId,
-    });
-    await logMasonChatPhase("user_message_persisted", {
-      correlationId,
-      userId,
-      companyId,
-      executionId,
-    });
-
-    currentPhase = "revalidation_started";
-    await logMasonChatPhase(currentPhase, {
-      correlationId,
-      userId,
-      companyId,
-      executionId,
-    });
-    revalidatePath(`/harmony/workforce/${agent}`);
-    await logMasonChatPhase("revalidation_completed", {
-      correlationId,
-      userId,
-      companyId,
-      executionId,
-    });
-
-    await logMasonChatPhase("chat_submit_completed", {
-      correlationId,
-      userId,
-      companyId,
-      executionId,
+      agentKey: agent,
+      intentCategory: "non_mason_chat",
+      selectedPath: "conversation",
+      functionName: "sendAgentChatAction",
     }, {
       actionStatus: "success",
     });
+
+    revalidatePath(`/harmony/workforce/${agent}`);
 
     return { status: "success", message: "" };
   } catch (error) {
@@ -342,6 +304,8 @@ export async function sendAgentChatAction(
       userId,
       companyId,
       executionId,
+      agentKey: agent,
+      functionName: "sendAgentChatAction",
     }, error);
 
     throw error;
