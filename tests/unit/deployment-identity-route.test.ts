@@ -20,5 +20,21 @@ describe("deployment identity route", () => {
       buildTimestamp: "2026-07-18T00:00:00.000Z",
       vercelDeploymentId: "dpl_123",
     });
+    expect(typeof json.identity.requestTimestamp).toBe("string");
+  });
+
+  it("returns null buildTimestamp when no build-time value is configured", async () => {
+    delete process.env.BUILD_TIMESTAMP;
+    delete process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
+    process.env.VERCEL_GIT_COMMIT_SHA = "sha-only";
+    process.env.VERCEL_ENV = "production";
+
+    const { GET } = await import("@/app/api/harmony/deployment-identity/route");
+    const res = await GET();
+    const json = await res.json();
+
+    expect(json.identity.commitSha).toBe("sha-only");
+    expect(json.identity.buildTimestamp).toBeNull();
+    expect(typeof json.identity.requestTimestamp).toBe("string");
   });
 });

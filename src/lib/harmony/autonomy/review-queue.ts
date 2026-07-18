@@ -25,6 +25,26 @@ export interface PendingApprovalItem {
   expiresAt: string;
 }
 
+export async function listPendingApprovalsForReview(
+  userId: string,
+  companyId: string | null,
+): Promise<Array<{
+  approvalId: string;
+  agent: string;
+  agentName: string;
+  label: string;
+  destructive: boolean;
+}>> {
+  const rows = await getPendingApprovalQueue(userId, companyId);
+  return rows.map((row) => ({
+    approvalId: row.approvalId,
+    agent: row.agent,
+    agentName: row.agent,
+    label: row.label,
+    destructive: row.destructive,
+  }));
+}
+
 export interface ReviewQueueDeps {
   listPendingApprovals: (userId: string, companyId: string | null) => Promise<ApprovalPayload[]>;
 }

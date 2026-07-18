@@ -7,6 +7,8 @@ import { listApprovalsUnified, type ApprovalUnified } from "@/lib/data/os/approv
 import { listCompanies } from "@/lib/data/os/companies";
 import { listDepartments } from "@/lib/data/os/departments";
 import { decideApproval, deleteApproval } from "@/lib/harmony/os/approval-actions";
+import { ReviewQueue } from "@/components/harmony/workforce/review-queue";
+import { listPendingApprovalsForReview } from "@/lib/harmony/autonomy/review-queue";
 import {
   autonomyCostTier,
   autonomyKey,
@@ -57,13 +59,16 @@ export default async function ApprovalsPage() {
   const tp = await getTranslations("os.priority");
   const tc = await getTranslations("common");
   const locale = await getLocale();
-  await requireUser();
+  const user = await requireUser();
 
   const [companies, departments] = await Promise.all([
     listCompanies(),
     listDepartments(),
   ]);
-  const approvals = await listApprovalsUnified();
+  const selectedCompanyId = companies.length === 1 ? companies[0]?.id ?? null : null;
+  const approvals = await listApprovalsUnified({ companyId: selectedCompanyId ?? undefined });
+  const spineApprovals = await listPendingApprovalsForReview(user.id, selectedCompanyId);
+  const spineByApprovalId = new Map(spineApprovals.map((row) => [row.approvalId, row]));
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
   const deptById = new Map<string, Department>(departments.map((d) => [d.id, d]));
   const pending = approvals.filter((a) => a.status === "pending");
@@ -169,7 +174,16 @@ export default async function ApprovalsPage() {
               </ConfirmDeleteDialog>
             </>
           ) : (
-            <Badge variant="outline">Spine-managed</Badge>
+            <>
+              {(() => {
+                const spineApprovalId = a.summary?.match(/Approval payload:\s*(.+)$/)?.[1]?.trim() ?? null;
+                const mapped = spineApprovalId ? spineByApprovalId.get(spineApprovalId) : null;
+                if (!mapped) return <Badge variant="outline">Spine-managed</Badge>;
+                return (
+                  <ReviewQueue objectives={[]} work={[]} approvals={[mapped]} />
+                );
+              })()}
+            </>
           )}
         </div>
       </li>

@@ -14,7 +14,8 @@ function deploymentIdentity() {
     buildTimestamp:
       process.env.BUILD_TIMESTAMP ??
       process.env.NEXT_PUBLIC_BUILD_TIMESTAMP ??
-      new Date().toISOString(),
+      null,
+    requestTimestamp: new Date().toISOString(),
     vercelDeploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
   };
 }
@@ -23,4 +24,3 @@ export async function GET() {
   await requireUser();
   return NextResponse.json({ ok: true, identity: deploymentIdentity() });
 }
-
