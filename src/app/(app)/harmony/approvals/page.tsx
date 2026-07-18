@@ -61,13 +61,35 @@ export default async function ApprovalsPage() {
   const locale = await getLocale();
   const user = await requireUser();
 
-  const [companies, departments] = await Promise.all([
-    listCompanies(),
-    listDepartments(),
-  ]);
-  const selectedCompanyId = companies.length === 1 ? companies[0]?.id ?? null : null;
-  const approvals = await listApprovalsUnified({ companyId: selectedCompanyId ?? undefined });
-  const spineApprovals = await listPendingApprovalsForReview(user.id, selectedCompanyId);
+  let companies: Awaited<ReturnType<typeof listCompanies>> = [];
+  let departments: Awaited<ReturnType<typeof listDepartments>> = [];
+  let selectedCompanyId: string | null = null;
+  let approvals: ApprovalUnified[] = [];
+  let spineApprovals: Awaited<ReturnType<typeof listPendingApprovalsForReview>> = [];
+  let operationalErrorRef: string | null = null;
+  let operationalErrorMessage: string | null = null;
+
+  try {
+    [companies, departments] = await Promise.all([
+      listCompanies(),
+      listDepartments(),
+    ]);
+    selectedCompanyId = companies.length === 1 ? companies[0]?.id ?? null : null;
+    [approvals, spineApprovals] = await Promise.all([
+      listApprovalsUnified({ companyId: selectedCompanyId ?? undefined }),
+      listPendingApprovalsForReview(user.id, selectedCompanyId),
+    ]);
+  } catch (error) {
+    const errorCode = error instanceof Error && error.message ? error.message : "unknown";
+    operationalErrorRef = `APPR-${errorCode.slice(0, 48)}`;
+    operationalErrorMessage = error instanceof Error ? error.message : "Unknown approvals error";
+    console.error("[approvals-page] load_failed", {
+      ref: operationalErrorRef,
+      userId: user.id,
+      companyId: selectedCompanyId,
+      error: operationalErrorMessage,
+    });
+  }
   const spineByApprovalId = new Map(spineApprovals.map((row) => [row.approvalId, row]));
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
   const deptById = new Map<string, Department>(departments.map((d) => [d.id, d]));
@@ -121,9 +143,9 @@ export default async function ApprovalsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{a.title}</span>
           <Badge variant={riskVariant[a.risk]}>{tp(a.risk)}</Badge>
-          {a.company_id && companyName.get(a.company_id) && (
+          {a.company_id && (
             <span className="text-xs text-muted-foreground">
-              {companyName.get(a.company_id)}
+              {companyName.get(a.company_id) ?? a.company_id}
             </span>
           )}
         </div>
@@ -201,7 +223,18 @@ export default async function ApprovalsPage() {
         </ApprovalDialog>
       </PageHeader>
 
-      {approvals.length === 0 ? (
+      {operationalErrorRef ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("title")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-destructive">{t("error")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Reference: {operationalErrorRef}</p>
+            <p className="mt-2 text-xs text-muted-foreground break-all">{operationalErrorMessage}</p>
+          </CardContent>
+        </Card>
+      ) : approvals.length === 0 ? (
         <EmptyState
           icon={ShieldCheck}
           title={t("empty.title")}
