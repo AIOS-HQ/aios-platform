@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Activity, Check, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import { requireUser } from "@/lib/auth/user";
-import { listApprovals } from "@/lib/data/os/approvals";
+import { listApprovalsUnified, type ApprovalUnified } from "@/lib/data/os/approvals";
 import { listCompanies } from "@/lib/data/os/companies";
 import { listDepartments } from "@/lib/data/os/departments";
 import { decideApproval, deleteApproval } from "@/lib/harmony/os/approval-actions";
@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApprovalDialog } from "@/components/harmony/os/approval-dialog";
 import { ConfirmDeleteDialog } from "@/components/harmony/confirm-delete-dialog";
 import { ActionButton } from "@/components/shared/action-button";
-import type { Approval, ApprovalStatus, Department, TaskPriority } from "@/types/database";
+import type { ApprovalStatus, Department, TaskPriority } from "@/types/database";
 
 const riskVariant: Record<TaskPriority, "secondary" | "warning" | "destructive"> = {
   low: "secondary",
@@ -59,18 +59,18 @@ export default async function ApprovalsPage() {
   const locale = await getLocale();
   await requireUser();
 
-  const [approvals, companies, departments] = await Promise.all([
-    listApprovals(),
+  const [companies, departments] = await Promise.all([
     listCompanies(),
     listDepartments(),
   ]);
+  const approvals = await listApprovalsUnified();
   const companyName = new Map(companies.map((c) => [c.id, c.name]));
   const deptById = new Map<string, Department>(departments.map((d) => [d.id, d]));
   const pending = approvals.filter((a) => a.status === "pending");
   const decided = approvals.filter((a) => a.status !== "pending");
   const companyOpts = companies.map((c) => ({ id: c.id, name: c.name }));
 
-  function classify(a: Approval): Category {
+  function classify(a: ApprovalUnified): Category {
     if (a.message_id) return "comms";
     const dept = a.department_id ? deptById.get(a.department_id) : null;
     if (dept?.key === "content") return "content";
@@ -78,7 +78,7 @@ export default async function ApprovalsPage() {
   }
 
   // Reason chips explaining why the item is gated.
-  function reasons(a: Approval): { key: string; text: string; tone: "muted" | "primary" | "warning" }[] {
+  function reasons(a: ApprovalUnified): { key: string; text: string; tone: "muted" | "primary" | "warning" }[] {
     const out: { key: string; text: string; tone: "muted" | "primary" | "warning" }[] = [];
     const dept = a.department_id ? deptById.get(a.department_id) : null;
     if (dept) {
@@ -107,10 +107,10 @@ export default async function ApprovalsPage() {
     warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
   };
 
-  const grouped: Record<Category, Approval[]> = { work: [], content: [], comms: [] };
+  const grouped: Record<Category, ApprovalUnified[]> = { work: [], content: [], comms: [] };
   for (const a of pending) grouped[classify(a)].push(a);
 
-  function renderPending(a: Approval) {
+  function renderPending(a: ApprovalUnified) {
     return (
       <li key={a.id} className="rounded-lg border p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -136,35 +136,41 @@ export default async function ApprovalsPage() {
           ))}
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <ActionButton
-            action={decideApproval}
-            fields={{ id: a.id, decision: "approved" }}
-            size="sm"
-            successMessage={t("approveToast")}
-          >
-            <Check className="size-4" aria-hidden="true" />
-            {t("approve")}
-          </ActionButton>
-          <ActionButton
-            action={decideApproval}
-            fields={{ id: a.id, decision: "rejected" }}
-            size="sm"
-            variant="outline"
-            successMessage={t("rejectToast")}
-          >
-            <X className="size-4" aria-hidden="true" />
-            {t("reject")}
-          </ActionButton>
-          <ConfirmDeleteDialog action={deleteApproval} id={a.id} itemTitle={a.title}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 text-muted-foreground hover:text-destructive"
-              aria-label={tc("delete")}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-            </Button>
-          </ConfirmDeleteDialog>
+          {a.source === "legacy" ? (
+            <>
+              <ActionButton
+                action={decideApproval}
+                fields={{ id: a.id, decision: "approved" }}
+                size="sm"
+                successMessage={t("approveToast")}
+              >
+                <Check className="size-4" aria-hidden="true" />
+                {t("approve")}
+              </ActionButton>
+              <ActionButton
+                action={decideApproval}
+                fields={{ id: a.id, decision: "rejected" }}
+                size="sm"
+                variant="outline"
+                successMessage={t("rejectToast")}
+              >
+                <X className="size-4" aria-hidden="true" />
+                {t("reject")}
+              </ActionButton>
+              <ConfirmDeleteDialog action={deleteApproval} id={a.id} itemTitle={a.title}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground hover:text-destructive"
+                  aria-label={tc("delete")}
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </Button>
+              </ConfirmDeleteDialog>
+            </>
+          ) : (
+            <Badge variant="outline">Spine-managed</Badge>
+          )}
         </div>
       </li>
     );

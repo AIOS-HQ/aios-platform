@@ -24,6 +24,24 @@ export interface PendingApprovalUnified {
   source: "legacy" | "spine";
 }
 
+export interface ApprovalUnified {
+  id: string;
+  company_id: string | null;
+  status: ApprovalStatus;
+  source: "legacy" | "spine";
+  title: string;
+  summary: string | null;
+  risk: "low" | "medium" | "high";
+  type: string;
+  created_at: string;
+  decided_at: string | null;
+  expires_at: string | null;
+  department_id: string | null;
+  work_item_id: string | null;
+  message_id: string | null;
+  agent_message_id: string | null;
+}
+
 /**
  * Canonical pending approvals contract used by both sidebar counts and
  * Approval Center rendering, so visible pending rows and counts remain
@@ -62,6 +80,93 @@ export async function listPendingApprovalsUnified(opts?: {
   }));
 
   return [...legacyRows, ...spineRows];
+}
+
+/**
+ * Unified Approval Center collection used for both pending + history rendering.
+ * Includes legacy approvals and autonomy-spine approval payloads in a single
+ * canonical row set so badge + page stay consistent.
+ */
+export async function listApprovalsUnified(opts?: {
+  companyId?: string;
+}): Promise<ApprovalUnified[]> {
+  const supabase = await createClient();
+
+  let legacyQ = supabase
+    .from("approvals")
+    .select(
+      "id, company_id, status, title, summary, risk, type, created_at, decided_at, expires_at, department_id, work_item_id, message_id, agent_message_id",
+    );
+  let spineQ = supabase
+    .from("approval_payloads")
+    .select(
+      "id, approval_id, company_id, status, original_agent, original_action, created_at, founder_approved_at, expires_at",
+    );
+
+  if (opts?.companyId) {
+    legacyQ = legacyQ.eq("company_id", opts.companyId);
+    spineQ = spineQ.eq("company_id", opts.companyId);
+  }
+
+  const [legacy, spine] = await Promise.all([legacyQ, spineQ]);
+
+  if (legacy.error) {
+    throw new Error(`[data/os/approvals] listApprovalsUnified(legacy): ${legacy.error.message}`);
+  }
+  if (spine.error) {
+    throw new Error(`[data/os/approvals] listApprovalsUnified(spine): ${spine.error.message}`);
+  }
+
+  const legacyRows: ApprovalUnified[] =
+    ((legacy.data as Array<{
+      id: string;
+      company_id: string | null;
+      status: ApprovalStatus;
+      title: string;
+      summary: string | null;
+      risk: "low" | "medium" | "high";
+      type: string;
+      created_at: string;
+      decided_at: string | null;
+      expires_at: string | null;
+      department_id: string | null;
+      work_item_id: string | null;
+      message_id: string | null;
+      agent_message_id: string | null;
+    }> | null) ?? []).map((row) => ({ ...row, source: "legacy" }));
+
+  const spineRows: ApprovalUnified[] =
+    ((spine.data as Array<{
+      id: string;
+      approval_id: string;
+      company_id: string | null;
+      status: ApprovalStatus;
+      original_agent: string;
+      original_action: string;
+      created_at: string;
+      founder_approved_at: string | null;
+      expires_at: string | null;
+    }> | null) ?? []).map((row) => ({
+      id: row.id,
+      company_id: row.company_id,
+      status: row.status,
+      source: "spine",
+      title: `${row.original_agent} · ${row.original_action}`,
+      summary: `Approval payload: ${row.approval_id}`,
+      risk: "medium",
+      type: row.original_action,
+      created_at: row.created_at,
+      decided_at: row.founder_approved_at,
+      expires_at: row.expires_at,
+      department_id: null,
+      work_item_id: null,
+      message_id: null,
+      agent_message_id: null,
+    }));
+
+  return [...legacyRows, ...spineRows].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 }
 
 /**
