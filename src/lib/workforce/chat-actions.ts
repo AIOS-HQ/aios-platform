@@ -29,11 +29,12 @@ export async function sendAgentChatAction(
 
   const companyId = await resolvePrimaryCompanyId();
   if (agent === "mason") {
+    const founderApproved = masonFounderApproved(formData.get("founder_approved") ?? message);
     const result = await handleMasonEngineeringMessage({
       userId: user.id,
       companyId,
       message,
-      founderApproved: masonFounderApproved(formData.get("founder_approved") ?? message),
+      founderApproved,
     });
     const ok = await recordAgentChatExchange({
       userId: user.id,
@@ -45,7 +46,13 @@ export async function sendAgentChatAction(
     });
     if (!ok) return { status: "error", message: t("errors.generic") };
     revalidatePath(`/harmony/workforce/${agent}`);
-    return { status: result.status === "failed" ? "error" : "success", message: result.status === "failed" ? result.summary : "" };
+    const isTerminalFailure = result.status === "failed";
+    const isBlockedAwaitingApproval = result.status === "blocked" && !founderApproved;
+
+    return {
+      status: isTerminalFailure || isBlockedAwaitingApproval ? "error" : "success",
+      message: isTerminalFailure || isBlockedAwaitingApproval ? result.summary : "",
+    };
   }
 
   const ok = await sendAgentChat({ userId: user.id, companyId, agent, message });
