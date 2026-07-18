@@ -34,6 +34,11 @@ export interface ReviewApproval {
   agentName: string;
   label: string;
   destructive: boolean;
+  action?: string;
+  domain?: string;
+  actor?: string;
+  createdAt?: string;
+  expiresAt?: string;
 }
 
 const RISK_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -230,7 +235,7 @@ export function ReviewQueue({
                     onClick={() => openReject(a.approvalId)}
                     className="h-7 rounded-md border px-2 text-xs font-medium hover:bg-accent disabled:opacity-50"
                   >
-                    {t("dismiss")}
+                    {t("reject")}
                   </button>
                 </span>
               </li>

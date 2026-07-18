@@ -9,6 +9,7 @@ import { listDepartments } from "@/lib/data/os/departments";
 import { decideApproval, deleteApproval } from "@/lib/harmony/os/approval-actions";
 import { ReviewQueue } from "@/components/harmony/workforce/review-queue";
 import { listPendingApprovalsForReview } from "@/lib/harmony/autonomy/review-queue";
+import { buildFounderReviewModel } from "@/lib/harmony/autonomy/founder-review";
 import {
   autonomyCostTier,
   autonomyKey,
@@ -138,6 +139,25 @@ export default async function ApprovalsPage() {
   for (const a of pending) grouped[classify(a)].push(a);
 
   function renderPending(a: ApprovalUnified) {
+    const spineApprovalId = a.summary?.match(/Approval payload:\s*(.+)$/)?.[1]?.trim() ?? null;
+    const mapped = spineApprovalId ? spineByApprovalId.get(spineApprovalId) : null;
+    const review = buildFounderReviewModel({
+      sourceStore: a.source,
+      status: a.status,
+      id: spineApprovalId ?? a.id,
+      companyId: a.company_id,
+      title: a.title,
+      summary: a.summary,
+      type: a.type,
+      risk: a.risk,
+      createdAt: a.created_at,
+      expiresAt: a.expires_at,
+      originalAgent: a.original_agent ?? mapped?.agent,
+      originalAction: a.original_action ?? mapped?.action,
+      originalParams: a.original_params ?? undefined,
+      requiredContext: a.required_context ?? undefined,
+    });
+
     return (
       <li key={a.id} className="rounded-lg border p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -149,9 +169,37 @@ export default async function ApprovalsPage() {
             </span>
           )}
         </div>
-        {a.summary && (
-          <p className="mt-1 text-sm text-muted-foreground">{a.summary}</p>
-        )}
+        <p className="mt-1 text-sm text-muted-foreground">{a.summary ?? review.reasonRequired}</p>
+        <div className="mt-2 grid gap-1.5 rounded-md border bg-muted/20 p-2 text-xs">
+          <p><span className="font-medium">Agent:</span> {review.requestingAgent}</p>
+          <p><span className="font-medium">Action:</span> {review.actionType}</p>
+          <p><span className="font-medium">Reason:</span> {review.reasonRequired}</p>
+          <p>
+            <span className="font-medium">Objective:</span>{" "}
+            {review.objective ?? (review.contextAvailability === "legacy_unavailable" ? "Context unavailable for this legacy approval" : "Unavailable")}
+          </p>
+          <p><span className="font-medium">Proposed work:</span> {review.proposedWork.join(" · ")}</p>
+          {review.repository ? (
+            <p><span className="font-medium">Repository:</span> {review.repository}{review.branch ? ` · ${review.branch}` : ""}</p>
+          ) : null}
+          {review.filesAffected.length > 0 ? (
+            <p><span className="font-medium">Files:</span> {review.filesAffected.join(", ")}</p>
+          ) : null}
+          {review.pullRequest ? <p><span className="font-medium">Pull request:</span> {review.pullRequest}</p> : null}
+          {review.deploymentTarget ? <p><span className="font-medium">Deployment:</span> {review.deploymentTarget}</p> : null}
+          {review.expectedImpact ? <p><span className="font-medium">Expected impact:</span> {review.expectedImpact}</p> : null}
+          {review.rollbackPlan ? <p><span className="font-medium">Rollback:</span> {review.rollbackPlan}</p> : null}
+          {review.validationEvidence ? <p><span className="font-medium">Validation:</span> {review.validationEvidence}</p> : null}
+          <p>
+            <span className="font-medium">Execution reference:</span>{" "}
+            {review.executionId ?? "unavailable"}
+            {review.correlationId ? ` · ${review.correlationId}` : ""}
+          </p>
+          <p><span className="font-medium">Approval reference:</span> {review.approvalId}</p>
+          {a.source === "spine" && mapped == null ? (
+            <p className="text-amber-700 dark:text-amber-300">Action metadata is temporarily unavailable for this spine approval.</p>
+          ) : null}
+        </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {reasons(a).map((r) => (
             <span
@@ -198,9 +246,7 @@ export default async function ApprovalsPage() {
           ) : (
             <>
               {(() => {
-                const spineApprovalId = a.summary?.match(/Approval payload:\s*(.+)$/)?.[1]?.trim() ?? null;
-                const mapped = spineApprovalId ? spineByApprovalId.get(spineApprovalId) : null;
-                if (!mapped) return <Badge variant="outline">Spine-managed</Badge>;
+                if (!mapped) return <Badge variant="outline">Spine-managed (context unavailable)</Badge>;
                 return (
                   <ReviewQueue objectives={[]} work={[]} approvals={[mapped]} />
                 );

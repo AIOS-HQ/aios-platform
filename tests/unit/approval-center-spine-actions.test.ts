@@ -18,6 +18,17 @@ vi.mock("@/lib/data/os/approvals", () => ({
       summary: "Approval payload: approval_42",
       risk: "medium",
       type: "open_pull_request",
+      original_agent: "mason",
+      original_action: "open_pull_request",
+      original_params: {
+        objective: "Open PR for approvals fix",
+        repository: "AIOS-HQ/aios-platform",
+        branch: "hotfix/approvals",
+      },
+      required_context: {
+        execution_id: "exec-123",
+        correlation_id: "corr-123",
+      },
       created_at: "2026-07-18T10:00:00Z",
       decided_at: null,
       expires_at: null,
@@ -56,5 +67,8 @@ describe("Approval Center spine actions", () => {
     const json = JSON.stringify(rendered);
     expect(json).toContain("\"approvals\":[{\"approvalId\":\"approval_42\"");
     expect(json).toContain("approval_42");
+    expect(json).toContain("Open PR for approvals fix");
+    expect(json).toContain("AIOS-HQ/aios-platform");
+    expect(json).toContain("exec-123");
   });
 });
