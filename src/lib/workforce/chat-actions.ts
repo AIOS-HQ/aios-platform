@@ -31,6 +31,7 @@ export async function sendAgentChatAction(
   if (agent === "mason") {
     const result = await handleMasonEngineeringMessage({
       userId: user.id,
+      companyId,
       message,
       founderApproved: masonFounderApproved(formData.get("founder_approved") ?? message),
     });
