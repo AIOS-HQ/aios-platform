@@ -63,13 +63,12 @@ describe("Mason chat diagnostics instrumentation", () => {
     expect(result.status).toBe("success");
 
     const phases = phaseCalls.map((item) => item.phase);
-    expect(phases).toContain("chat_submit_started");
-    expect(phases).toContain("auth_resolved");
-    expect(phases).toContain("company_resolved");
-    expect(phases).toContain("mason_entry_started");
-    expect(phases).toContain("mason_entry_completed");
-    expect(phases).toContain("assistant_message_persisted");
-    expect(phases).toContain("chat_submit_completed");
+    expect(phases).toContain("mason_chat_server_entered");
+    expect(phases).toContain("mason_chat_agent_resolved");
+    expect(phases).toContain("mason_chat_company_resolved");
+    expect(phases).toContain("mason_chat_engineering_handler_called");
+    expect(phases).toContain("mason_chat_runtime_called");
+    expect(phases).toContain("mason_chat_response_returned");
 
     const ids = new Set(phaseCalls.map((entry) => entry.context.correlationId));
     expect(ids.size).toBe(1);
@@ -88,7 +87,7 @@ describe("Mason chat diagnostics instrumentation", () => {
     await expect(sendAgentChatAction({ status: "idle", message: "" }, fd)).rejects.toThrow("ledger exploded");
 
     expect(failureCalls).toHaveLength(1);
-    expect(failureCalls[0]?.phase).toBe("mason_entry_started");
+    expect(failureCalls[0]?.phase).toBe("mason_chat_company_resolved");
     expect(failureCalls[0]?.context.correlationId).toBe("corr-fixed");
   });
 
