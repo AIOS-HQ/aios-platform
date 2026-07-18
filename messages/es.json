@@ -1231,5 +1231,8 @@
       "allClear": "Todo al día — no hay tareas pendientes. ¡Bien hecho!",
       "onTrack": "Vas por buen camino. ¡Mantén el impulso!"
     }
+  },
+  "review": {
+    "reject": "Rechazar"
   }
 }

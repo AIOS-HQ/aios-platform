@@ -40,6 +40,11 @@ export interface ApprovalUnified {
   work_item_id: string | null;
   message_id: string | null;
   agent_message_id: string | null;
+  original_agent?: string | null;
+  original_action?: string | null;
+  original_params?: Record<string, unknown> | null;
+  required_context?: Record<string, unknown> | null;
+  rejection_reason?: string | null;
 }
 
 /**
@@ -100,7 +105,7 @@ export async function listApprovalsUnified(opts?: {
   let spineQ = supabase
     .from("approval_payloads")
     .select(
-      "id, approval_id, company_id, status, original_agent, original_action, created_at, founder_approved_at, expires_at",
+      "id, approval_id, company_id, status, original_agent, original_action, original_params, required_context, rejection_reason, created_at, founder_approved_at, expires_at",
     );
 
   if (opts?.companyId) {
@@ -136,6 +141,11 @@ export async function listApprovalsUnified(opts?: {
       ...row,
       source: "legacy",
       expires_at: null,
+      original_agent: null,
+      original_action: null,
+      original_params: null,
+      required_context: null,
+      rejection_reason: null,
     }));
 
   const spineRows: ApprovalUnified[] =
@@ -146,6 +156,9 @@ export async function listApprovalsUnified(opts?: {
       status: ApprovalStatus;
       original_agent: string;
       original_action: string;
+      original_params: Record<string, unknown> | null;
+      required_context: Record<string, unknown> | null;
+      rejection_reason: string | null;
       created_at: string;
       founder_approved_at: string | null;
       expires_at: string | null;
@@ -165,6 +178,11 @@ export async function listApprovalsUnified(opts?: {
       work_item_id: null,
       message_id: null,
       agent_message_id: null,
+      original_agent: row.original_agent,
+      original_action: row.original_action,
+      original_params: row.original_params,
+      required_context: row.required_context,
+      rejection_reason: row.rejection_reason,
     }));
 
   return [...legacyRows, ...spineRows].sort(

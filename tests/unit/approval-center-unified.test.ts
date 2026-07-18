@@ -50,6 +50,9 @@ describe("Approval Center unified contract", () => {
                 status: "pending",
                 original_agent: "mason",
                 original_action: "open_pull_request",
+                original_params: { repository: "AIOS-HQ/aios-platform", branch: "feature/a" },
+                required_context: { execution_id: "exec-1", correlation_id: "corr-1" },
+                rejection_reason: null,
                 created_at: "2026-07-18T11:00:00Z",
                 founder_approved_at: null,
                 expires_at: null,
@@ -68,6 +71,7 @@ describe("Approval Center unified contract", () => {
     expect(rows.map((row) => row.id)).toEqual(["spine-1", "legacy-1"]);
     expect(rows.map((row) => row.source)).toEqual(["spine", "legacy"]);
     expect(rows.find((row) => row.id === "legacy-1")?.expires_at).toBeNull();
+    expect(rows.find((row) => row.id === "spine-1")?.original_params).toMatchObject({ repository: "AIOS-HQ/aios-platform" });
   });
 
   it("applies company filter to both stores", async () => {

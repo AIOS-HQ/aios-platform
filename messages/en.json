@@ -1231,5 +1231,8 @@
       "allClear": "All caught up — no open tasks. Nicely done!",
       "onTrack": "You're on track. Keep the momentum going!"
     }
+  },
+  "review": {
+    "reject": "Reject"
   }
 }

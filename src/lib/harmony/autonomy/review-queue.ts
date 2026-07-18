@@ -34,6 +34,11 @@ export async function listPendingApprovalsForReview(
   agentName: string;
   label: string;
   destructive: boolean;
+  action: string;
+  domain: string;
+  actor: string;
+  createdAt: string;
+  expiresAt: string;
 }>> {
   const rows = await getPendingApprovalQueue(userId, companyId);
   return rows.map((row) => ({
@@ -42,6 +47,11 @@ export async function listPendingApprovalsForReview(
     agentName: row.agent,
     label: row.label,
     destructive: row.destructive,
+    action: row.action,
+    domain: row.domain,
+    actor: row.actor,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
   }));
 }
 
