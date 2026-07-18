@@ -25,8 +25,19 @@ import type {
  */
 function masonObjectiveToAction(objective: string): ActionType {
   const lower = objective.toLowerCase();
+
+  const readOnlyIntent =
+    /\b(read[- ]?only|diagnostic\s+only|explain\s+only|report\s+only|respond\s+only|acknowledge\s+only)\b/.test(lower) ||
+    /\bdo\s+not\s+(execute|deploy|modify|create|open\s+(?:a\s+)?(?:pr|pull\s+request))\b/.test(lower);
+
+  const deployIntent =
+    /\bdeploy\s+to\s+production\b/.test(lower) ||
+    /\brelease\s+to\s+production\b/.test(lower) ||
+    /\bpromote\s+to\s+production\b/.test(lower) ||
+    /\bexecute\s+production\s+deployment\b/.test(lower);
+
   if (lower.includes("merge")) return "merge_pull_request";
-  if (lower.includes("deploy") || lower.includes("production")) return "deploy_production";
+  if (deployIntent && !readOnlyIntent) return "deploy_production";
   if (lower.includes("branch")) return "create_branch";
   if (lower.includes("commit")) return "commit_file";
   if (lower.includes("pr") || lower.includes("pull request")) return "open_pull_request";
