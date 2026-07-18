@@ -17,6 +17,53 @@ export async function listApprovals(opts?: {
   return (data as Approval[] | null) ?? [];
 }
 
+export interface PendingApprovalUnified {
+  id: string;
+  company_id: string | null;
+  status: "pending";
+  source: "legacy" | "spine";
+}
+
+/**
+ * Canonical pending approvals contract used by both sidebar counts and
+ * Approval Center rendering, so visible pending rows and counts remain
+ * consistent across legacy + autonomy-spine stores.
+ */
+export async function listPendingApprovalsUnified(opts?: {
+  companyId?: string;
+}): Promise<PendingApprovalUnified[]> {
+  const supabase = await createClient();
+
+  let legacyQ = supabase
+    .from("approvals")
+    .select("id, company_id, status")
+    .eq("status", "pending");
+  let spineQ = supabase
+    .from("approval_payloads")
+    .select("id, company_id, status")
+    .eq("status", "pending");
+
+  if (opts?.companyId) {
+    legacyQ = legacyQ.eq("company_id", opts.companyId);
+    spineQ = spineQ.eq("company_id", opts.companyId);
+  }
+
+  const [legacy, spine] = await Promise.all([legacyQ, spineQ]);
+  if (legacy.error) console.error("[data/os/approvals] listPendingApprovalsUnified(legacy)", legacy.error);
+  if (spine.error) console.error("[data/os/approvals] listPendingApprovalsUnified(spine)", spine.error);
+
+  const legacyRows = ((legacy.data as Array<{ id: string; company_id: string | null; status: "pending" }> | null) ?? []).map((row) => ({
+    ...row,
+    source: "legacy" as const,
+  }));
+  const spineRows = ((spine.data as Array<{ id: string; company_id: string | null; status: "pending" }> | null) ?? []).map((row) => ({
+    ...row,
+    source: "spine" as const,
+  }));
+
+  return [...legacyRows, ...spineRows];
+}
+
 /**
  * Count pending approvals for the Command Center badge / sidebar.
  *
@@ -29,17 +76,8 @@ export async function listApprovals(opts?: {
  * PR #308. Both reads are RLS owner-scoped.
  */
 export async function countPendingApprovals(): Promise<number> {
-  const supabase = await createClient();
-  const [legacy, spine] = await Promise.all([
-    supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    supabase
-      .from("approval_payloads")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending"),
-  ]);
-  if (legacy.error) console.error("[data/os/approvals] countPendingApprovals(legacy)", legacy.error);
-  if (spine.error) console.error("[data/os/approvals] countPendingApprovals(spine)", spine.error);
-  return (legacy.count ?? 0) + (spine.count ?? 0);
+  const rows = await listPendingApprovalsUnified();
+  return rows.length;
 }
 
 /**
