@@ -18,6 +18,7 @@ import type { WorkItem } from "@/types/database";
 
 export interface ResumeDeps {
   getApprovalPayload: (userId: string, approvalId: string) => Promise<ApprovalPayload | null>;
+  getApprovedApprovalPayload: (userId: string, approvalId: string) => Promise<ApprovalPayload | null>;
   recordExecutionResult: (
     userId: string,
     companyId: string | null,
@@ -54,6 +55,8 @@ function defaultDeps(): ResumeDeps {
   return {
     getApprovalPayload: async (userId, approvalId) =>
       (await import("./data-access")).getApprovalPayload(userId, approvalId),
+    getApprovedApprovalPayload: async (userId, approvalId) =>
+      (await import("./data-access")).getApprovedApprovalPayload(userId, approvalId),
     recordExecutionResult: async (userId, companyId, result) =>
       (await import("./data-access")).recordExecutionResult(userId, companyId, result),
     runConnector: async (userId, connectorId, capabilityId, params, options) =>
@@ -143,9 +146,9 @@ export async function resumeApprovedExecution(
 ): Promise<ResumeOutcome> {
   const d: ResumeDeps = { ...defaultDeps(), ...deps };
 
-  const approval = await d.getApprovalPayload(userId, approvalId);
+  const approval = await d.getApprovedApprovalPayload(userId, approvalId);
   if (!approval) {
-    return { ok: false, error: "approval_not_found_or_not_pending" };
+    return { ok: false, error: "approval_not_found_or_not_approved" };
   }
 
   // Expired approvals can never resume.
