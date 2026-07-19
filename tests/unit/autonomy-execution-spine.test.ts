@@ -100,6 +100,7 @@ describe("Autonomy Execution Spine", () => {
 
     const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
       getApprovalPayload: async () => payload(),
+      getApprovedApprovalPayload: async () => payload(),
       recordExecutionResult: rec.fn,
       runMason,
       runConnector,
@@ -126,6 +127,15 @@ describe("Autonomy Execution Spine", () => {
 
     const outcome = await resumeApprovedExecution("user-1", "approval_conn", null, {
       getApprovalPayload: async () =>
+        payload({
+          status: "pending",
+          approval_id: "approval_conn",
+          original_agent: "harmony",
+          original_domain: "operations",
+          original_action: "publish_externally",
+          original_params: { connectorId: "github", capabilityId: "create_issue", params: { repo: "AIOS-HQ/aios-platform" } },
+        }),
+      getApprovedApprovalPayload: async () =>
         payload({
           approval_id: "approval_conn",
           original_agent: "harmony",
@@ -177,6 +187,7 @@ describe("Autonomy Execution Spine", () => {
     const outcome = await resumeApprovedExecution("user-1", "approval_1", null, {
       // expires_at is well before T0.
       getApprovalPayload: async () => payload({ expires_at: "2026-07-01T00:00:00.000Z" }),
+      getApprovedApprovalPayload: async () => payload({ expires_at: "2026-07-01T00:00:00.000Z" }),
       recordExecutionResult: rec.fn,
       runMason,
       runConnector,

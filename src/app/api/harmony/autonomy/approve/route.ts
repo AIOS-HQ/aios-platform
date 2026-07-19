@@ -160,10 +160,10 @@ export async function POST(request: Request) {
         {
           ok: true,
           status: blocked ? "approved_blocked" : "approved_failed",
-          error: resume.error ?? "resume_failed",
+          error: resume.error === "approval_not_found_or_not_approved" ? "approval_revoked" : (resume.error ?? "resume_failed"),
           execution_result: resume.execution_result,
         },
-        { status: blocked ? 202 : 500 },
+        { status: resume.error === "approval_not_found_or_not_approved" ? 409 : (blocked ? 202 : 500) },
       );
     }
     await publishAiosEventBestEffort(eventForReference({

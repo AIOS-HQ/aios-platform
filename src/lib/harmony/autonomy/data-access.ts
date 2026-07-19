@@ -187,6 +187,33 @@ export async function getApprovalPayload(
   return (data as ApprovalPayload) ?? null;
 }
 
+/**
+ * Load an approved payload for canonical post-approval resume.
+ * This intentionally requires status=approved, so resume paths can execute
+ * after persistence without re-entering pending-only lookup semantics.
+ */
+export async function getApprovedApprovalPayload(
+  userId: string,
+  approvalId: string,
+): Promise<ApprovalPayload | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("approval_payloads")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("approval_id", approvalId)
+    .eq("status", "approved")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[autonomy/db] getApprovedApprovalPayload", error.message);
+    return null;
+  }
+
+  return (data as ApprovalPayload | null) ?? null;
+}
+
 export async function getApprovalById(
   userId: string,
   approvalId: string,

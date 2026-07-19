@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getCurrentUser = vi.fn();
 const resolvePrimaryCompanyId = vi.fn();
 const getApprovalPayload = vi.fn();
+const getApprovedApprovalPayload = vi.fn();
 const approveApproval = vi.fn();
 const rejectApproval = vi.fn();
 const resumeApprovedExecution = vi.fn();
@@ -12,8 +13,10 @@ vi.mock("@/lib/auth/user", () => ({ getCurrentUser }));
 vi.mock("@/lib/julius/wiring", () => ({ resolvePrimaryCompanyId }));
 vi.mock("@/lib/harmony/autonomy/data-access", () => ({
   getApprovalPayload,
+  getApprovedApprovalPayload,
   approveApproval,
   rejectApproval,
+  getApprovalById: vi.fn(),
 }));
 vi.mock("@/lib/harmony/autonomy/execution-resumption", () => ({
   resumeApprovedExecution,
@@ -48,6 +51,17 @@ describe("approval resume route semantics", () => {
       expires_at: "2099-01-01T00:00:00Z",
     });
     approveApproval.mockResolvedValue(true);
+    getApprovedApprovalPayload.mockResolvedValue({
+      approval_id: "approval-1",
+      original_actor: "founder",
+      original_agent: "mason",
+      original_domain: "engineering",
+      original_action: "merge_pull_request",
+      original_params: { objective: "merge", repository: "AIOS-HQ/aios-platform" },
+      required_context: {},
+      created_at: "2026-01-01T00:00:00Z",
+      expires_at: "2099-01-01T00:00:00Z",
+    });
     rejectApproval.mockResolvedValue(true);
     recordRejectedExecution.mockResolvedValue({});
   });
@@ -93,6 +107,15 @@ describe("approval resume route semantics", () => {
 
     expect(res.status).toBe(200);
     expect(resumeApprovedExecution).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 approval_revoked when approved payload cannot be loaded for resume", async () => {
+    resumeApprovedExecution.mockResolvedValue({ ok: false, error: "approval_not_found_or_not_approved" });
+    const { POST } = await import("@/app/api/harmony/autonomy/approve/route");
+    const res = await POST(req({ approval_id: "approval-1", decision: "approve" }));
+    const body = await res.json();
+    expect(res.status).toBe(409);
+    expect(body.error).toBe("approval_revoked");
   });
 
   it("returns 400 only for malformed request", async () => {

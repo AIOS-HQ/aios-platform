@@ -30,7 +30,7 @@ describe("Work-item approval bridge (execution spine)", () => {
     const runWorkItem = vi.fn(async () => "completed" as const);
 
     const outcome = await resumeApprovedExecution("user-1", "approval_wi_x", "c1", {
-      getApprovalPayload: async () => buildWorkItemApprovalPayload({ id: "wi_9", title: "Ship it" }, T0),
+      getApprovedApprovalPayload: async () => buildWorkItemApprovalPayload({ id: "wi_9", title: "Ship it" }, T0),
       recordExecutionResult: rec.fn,
       runWorkItem,
       now: () => T0,
@@ -52,7 +52,7 @@ describe("Work-item approval bridge (execution spine)", () => {
   it("resume blocks a work item whose execution does not complete", async () => {
     const rec = recorder();
     const outcome = await resumeApprovedExecution("user-1", "a", null, {
-      getApprovalPayload: async () => buildWorkItemApprovalPayload({ id: "wi_2", title: "x" }, T0),
+      getApprovedApprovalPayload: async () => buildWorkItemApprovalPayload({ id: "wi_2", title: "x" }, T0),
       recordExecutionResult: rec.fn,
       runWorkItem: async () => "blocked" as const,
       now: () => T0,
