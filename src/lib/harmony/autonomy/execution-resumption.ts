@@ -92,6 +92,109 @@ export interface ResumeOutcome {
   execution_result?: ExecutionResult;
 }
 
+function asNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function asOptionalObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function parsePullRequestIdentity(params: Record<string, unknown>): {
+  repo: string;
+  prNumber: number;
+  prUrl: string;
+  executionId: string | null;
+  headSha: string | null;
+} | null {
+  const repo = asNonEmptyString(params.repo) ?? asNonEmptyString(params.repository);
+  const prNumberRaw = params.prNumber;
+  const prNumber =
+    typeof prNumberRaw === "number" && Number.isFinite(prNumberRaw)
+      ? Math.trunc(prNumberRaw)
+      : typeof prNumberRaw === "string" && /^\d+$/.test(prNumberRaw.trim())
+        ? Number(prNumberRaw.trim())
+        : 0;
+  const prUrl = asNonEmptyString(params.prUrl) ?? asNonEmptyString(params.pullRequestUrl);
+  const executionId = asNonEmptyString(params.executionId) ?? asNonEmptyString(params.execution_id);
+  const headSha = asNonEmptyString(params.headSha) ?? asNonEmptyString(params.head_sha);
+
+  if (!repo || !prUrl || prNumber <= 0) return null;
+  return { repo, prNumber, prUrl, executionId, headSha };
+}
+
+function validateMergeResumePayload(
+  approval: ApprovalPayload,
+  params: Record<string, unknown>,
+): { ok: true } | { ok: false; reason: string } {
+  if (approval.original_action !== "merge_pull_request") return { ok: true };
+
+  const identity = parsePullRequestIdentity(params);
+  if (!identity) {
+    return {
+      ok: false,
+      reason:
+        "merge_pull_request requires a concrete pull request identity (repo, prNumber, prUrl) created by this execution.",
+    };
+  }
+
+  if (identity.repo !== "AIOS-HQ/aios-platform") {
+    return {
+      ok: false,
+      reason: "merge_pull_request is only permitted for AIOS-HQ/aios-platform in Mason governed resume.",
+    };
+  }
+
+  const parsedUrl = (() => {
+    try {
+      return new URL(identity.prUrl);
+    } catch {
+      return null;
+    }
+  })();
+  if (!parsedUrl) {
+    return { ok: false, reason: "merge_pull_request payload contains an invalid PR URL." };
+  }
+  if (parsedUrl.hostname !== "github.com") {
+    return { ok: false, reason: "merge_pull_request payload must reference github.com." };
+  }
+  if (parsedUrl.pathname !== `/AIOS-HQ/aios-platform/pull/${identity.prNumber}`) {
+    return {
+      ok: false,
+      reason: "merge_pull_request payload PR URL does not match repo and pull request number.",
+    };
+  }
+
+  const context = asOptionalObject(params.context);
+  const contextExecutionId = asNonEmptyString(context?.executionId) ?? asNonEmptyString(context?.execution_id);
+  if (!identity.executionId || !contextExecutionId || identity.executionId !== contextExecutionId) {
+    return {
+      ok: false,
+      reason: "merge_pull_request payload must include matching execution_id context before resume is allowed.",
+    };
+  }
+
+  const mergeReady = params.mergeReady === true;
+  const requiredChecksPassed = params.requiredChecksPassed === true;
+  if (!mergeReady || !requiredChecksPassed) {
+    return {
+      ok: false,
+      reason: "merge_pull_request resume blocked: required merge gate evidence is incomplete.",
+    };
+  }
+
+  if (!identity.headSha) {
+    return {
+      ok: false,
+      reason: "merge_pull_request resume blocked: approved artifact head SHA is missing.",
+    };
+  }
+
+  return { ok: true };
+}
+
 function executionId(): string {
   return `exec_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -163,6 +266,16 @@ export async function resumeApprovedExecution(
   }
 
   const params = (approval.original_params ?? {}) as Record<string, unknown>;
+
+  const mergeValidation = validateMergeResumePayload(approval, params);
+  if (!mergeValidation.ok) {
+    const result = await recordResult(d, userId, companyId, approval, "blocked", {
+      code: "invalid_merge_resume_context",
+      message: mergeValidation.reason,
+      recoverable: true,
+    });
+    return { ok: false, error: "invalid_merge_resume_context", execution_result: result ?? undefined };
+  }
 
   try {
     // Connector dispatch — payload carries connectorId + capabilityId.

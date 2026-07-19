@@ -99,8 +99,16 @@ describe("Autonomy Execution Spine", () => {
     const runConnector = vi.fn(async () => ({ ok: true, status: "executed", message: "ok" }));
 
     const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
-      getApprovalPayload: async () => payload(),
-      getApprovedApprovalPayload: async () => payload(),
+      getApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { objective: "Open release PR", repository: "AIOS-HQ/aios-platform" },
+        }),
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { objective: "Open release PR", repository: "AIOS-HQ/aios-platform" },
+        }),
       recordExecutionResult: rec.fn,
       runMason,
       runConnector,
@@ -112,7 +120,7 @@ describe("Autonomy Execution Spine", () => {
     expect(runMason).toHaveBeenCalledWith(
       expect.objectContaining({
         founderApproved: true,
-        objective: "Merge the release PR",
+        objective: "Open release PR",
         repository: "AIOS-HQ/aios-platform",
       }),
     );
@@ -214,5 +222,99 @@ describe("Autonomy Execution Spine", () => {
     const connector = evaluateConnectorRun({ id: "delete_repository", mode: "write", risk: "destructive" }, 4);
     expect(connector.decision).toBe("approval_required");
     expect(connector.destructive).toBe(true);
+  });
+
+  it("scenario 7 — merge approvals are blocked when PR identity is missing", async () => {
+    const rec = recorder();
+    const runMason = vi.fn(async () => ({
+      status: "completed",
+      summary: "Merged",
+      pullRequestUrl: "https://github.com/AIOS-HQ/aios-platform/pull/1",
+      previewUrl: null,
+    }));
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovalPayload: async () =>
+        payload({
+          original_action: "merge_pull_request",
+          original_params: {
+            repo: "AIOS-HQ/aios-platform",
+            context: { executionId: "exec-1" },
+          },
+        }),
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "merge_pull_request",
+          original_params: {
+            repo: "AIOS-HQ/aios-platform",
+            context: { executionId: "exec-1" },
+          },
+        }),
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toBe("invalid_merge_resume_context");
+    expect(runMason).not.toHaveBeenCalled();
+    expect(rec.calls[0]).toMatchObject({
+      status: "blocked",
+      error: { code: "invalid_merge_resume_context" },
+    });
+  });
+
+  it("scenario 8 — merge approvals are blocked when execution context is tampered", async () => {
+    const rec = recorder();
+    const runMason = vi.fn(async () => ({
+      status: "completed",
+      summary: "Merged",
+      pullRequestUrl: "https://github.com/AIOS-HQ/aios-platform/pull/432",
+      previewUrl: null,
+    }));
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovalPayload: async () =>
+        payload({
+          original_action: "merge_pull_request",
+          original_params: {
+            repo: "AIOS-HQ/aios-platform",
+            prNumber: 432,
+            prUrl: "https://github.com/AIOS-HQ/aios-platform/pull/432",
+            executionId: "exec-real",
+            headSha: "abc123",
+            mergeReady: true,
+            requiredChecksPassed: true,
+            context: { executionId: "exec-other" },
+          },
+        }),
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "merge_pull_request",
+          original_params: {
+            repo: "AIOS-HQ/aios-platform",
+            prNumber: 432,
+            prUrl: "https://github.com/AIOS-HQ/aios-platform/pull/432",
+            executionId: "exec-real",
+            headSha: "abc123",
+            mergeReady: true,
+            requiredChecksPassed: true,
+            context: { executionId: "exec-other" },
+          },
+        }),
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toBe("invalid_merge_resume_context");
+    expect(runMason).not.toHaveBeenCalled();
+    expect(rec.calls[0]).toMatchObject({
+      status: "blocked",
+      error: { code: "invalid_merge_resume_context" },
+    });
   });
 });
