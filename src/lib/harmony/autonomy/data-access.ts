@@ -187,6 +187,25 @@ export async function getApprovalPayload(
   return (data as ApprovalPayload) ?? null;
 }
 
+export async function getApprovalById(
+  userId: string,
+  approvalId: string,
+): Promise<{ approval_id: string; status: string; founder_approved_at: string | null } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("approval_payloads")
+    .select("approval_id,status,founder_approved_at")
+    .eq("user_id", userId)
+    .eq("approval_id", approvalId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[autonomy/db] getApprovalById", error.message);
+    return null;
+  }
+  return (data as { approval_id: string; status: string; founder_approved_at: string | null } | null) ?? null;
+}
+
 /**
  * List pending approvals for a user/company (for Review Queue).
  */
