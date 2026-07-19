@@ -118,6 +118,28 @@ describe("approval resume route semantics", () => {
     expect(body.error).toBe("approval_revoked");
   });
 
+  it("returns explicit approved_failed for failed runtime continuation", async () => {
+    resumeApprovedExecution.mockResolvedValue({
+      ok: false,
+      error: "runtime_unavailable",
+      execution_result: {
+        status: "failed",
+        required_approval: true,
+        approval_id: "approval-1",
+        founder_approved_at: "2026-01-01T00:00:01Z",
+      },
+    });
+
+    const { POST } = await import("@/app/api/harmony/autonomy/approve/route");
+    const res = await POST(req({ approval_id: "approval-1", decision: "approve" }));
+    const body = await res.json();
+
+    expect(res.status).toBe(202);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe("approved_failed");
+    expect(body.error).toBe("runtime_unavailable");
+  });
+
   it("returns 400 only for malformed request", async () => {
     const { POST } = await import("@/app/api/harmony/autonomy/approve/route");
     const res = await POST(req({ decision: "approve" }));

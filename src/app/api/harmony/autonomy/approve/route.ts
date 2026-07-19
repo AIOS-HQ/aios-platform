@@ -146,6 +146,14 @@ export async function POST(request: Request) {
     });
     if (!resume.ok) {
       const blocked = resume.execution_result?.status === "blocked" || resume.execution_result?.status === "failed";
+      const explicitStatus =
+        resume.execution_result?.status === "completed"
+          ? "approved_completed"
+          : resume.execution_result?.status === "blocked"
+            ? "approved_blocked"
+            : resume.execution_result?.status === "failed"
+              ? "approved_failed"
+              : "approved_failed";
       tracePhase({
         phase: "approval_response_returned",
         correlationId,
@@ -159,7 +167,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: true,
-          status: blocked ? "approved_blocked" : "approved_failed",
+          status: explicitStatus,
           error: resume.error === "approval_not_found_or_not_approved" ? "approval_revoked" : (resume.error ?? "resume_failed"),
           execution_result: resume.execution_result,
         },
