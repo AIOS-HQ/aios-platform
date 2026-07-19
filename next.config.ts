@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -28,6 +29,10 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: "standalone",
+  // Normalize standalone tracing to the repository root so the generated
+  // server entrypoint is stable when builds run from nested git worktrees.
+  outputFileTracingRoot: path.resolve(__dirname),
   // Keep build output lean and predictable.
   poweredByHeader: false,
   async headers() {

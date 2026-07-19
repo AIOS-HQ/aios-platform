@@ -1,28 +1,34 @@
 name: Trigger auto deployment for aios-runtime
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches:
+      - main
     paths:
-    - '**'
-    - '.github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+      - "**"
+      - ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "next.config.ts"
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      CONTAINER_APP_NAME: aios-runtime
+      RESOURCE_GROUP: aios-core-rg
+      ACR_NAME: aioscoreacr
+      IMAGE_NAME: aios-runtime
+      IMAGE_TAG: ${{ github.sha }}
 
     steps:
-      - name: Checkout to the branch
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v2
@@ -31,19 +37,33 @@ jobs:
           tenant-id: ${{ secrets.AIOSRUNTIME_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AIOSRUNTIME_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and push container image to registry
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
-          _targetLabelKey_: _targetLabel_
-          registryUrl: 
-          registryUsername: ${{ secrets.AIOSRUNTIME_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.AIOSRUNTIME_REGISTRY_PASSWORD }}
-          containerAppName: aios-runtime
-          resourceGroup: aios-core-rg
-          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
+      - name: ACR login
+        run: az acr login --name "$ACR_NAME"
 
+      - name: Build and push Docker image
+        env:
+          REGISTRY_LOGIN_SERVER: ${{ secrets.AIOSRUNTIME_REGISTRY_LOGIN_SERVER }}
+        run: |
+          test -n "$REGISTRY_LOGIN_SERVER"
+          test "$REGISTRY_LOGIN_SERVER" != ""
+          docker build -t "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" .
+          docker push "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
 
+      - name: Deploy to Azure Container Apps
+        env:
+          REGISTRY_LOGIN_SERVER: ${{ secrets.AIOSRUNTIME_REGISTRY_LOGIN_SERVER }}
+          REGISTRY_USERNAME: ${{ secrets.AIOSRUNTIME_REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.AIOSRUNTIME_REGISTRY_PASSWORD }}
+        run: |
+          test -n "$REGISTRY_LOGIN_SERVER"
+          test -n "$REGISTRY_USERNAME"
+          test -n "$REGISTRY_PASSWORD"
+          az containerapp update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" \
+            --target-port 3000 \
+            --ingress external \
+            --registry-server "$REGISTRY_LOGIN_SERVER" \
+            --registry-username "$REGISTRY_USERNAME" \
+            --registry-password "$REGISTRY_PASSWORD"
