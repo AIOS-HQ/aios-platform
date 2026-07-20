@@ -132,6 +132,10 @@ jobs:
           az containerapp update \
             --name "$CONTAINER_APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" \
+            --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
+          az containerapp ingress update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --type external \
             --target-port 3000 \
-            --ingress external
+            --transport auto
