@@ -98,32 +98,40 @@ jobs:
           tenant-id: ${{ secrets.AIOSRUNTIME_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AIOSRUNTIME_AZURE_SUBSCRIPTION_ID }}
 
+      - name: Resolve ACR login server
+        run: |
+          REGISTRY_LOGIN_SERVER=$(az acr show \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query loginServer \
+            --output tsv)
+          test -n "$REGISTRY_LOGIN_SERVER"
+          echo "REGISTRY_LOGIN_SERVER=$REGISTRY_LOGIN_SERVER" >> "$GITHUB_ENV"
+
       - name: ACR login
         run: az acr login --name "$ACR_NAME"
 
       - name: Build and push Docker image
-        env:
-          REGISTRY_LOGIN_SERVER: ${{ secrets.AIOSRUNTIME_REGISTRY_LOGIN_SERVER }}
         run: |
           test -n "$REGISTRY_LOGIN_SERVER"
           docker build -t "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" .
           docker push "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
 
-      - name: Deploy to Azure Container Apps
-        env:
-          REGISTRY_LOGIN_SERVER: ${{ secrets.AIOSRUNTIME_REGISTRY_LOGIN_SERVER }}
-          REGISTRY_USERNAME: ${{ secrets.AIOSRUNTIME_REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.AIOSRUNTIME_REGISTRY_PASSWORD }}
+      - name: Configure Container App registry with managed identity
         run: |
           test -n "$REGISTRY_LOGIN_SERVER"
-          test -n "$REGISTRY_USERNAME"
-          test -n "$REGISTRY_PASSWORD"
+          az containerapp registry set \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$REGISTRY_LOGIN_SERVER" \
+            --identity system
+
+      - name: Deploy to Azure Container Apps
+        run: |
+          test -n "$REGISTRY_LOGIN_SERVER"
           az containerapp update \
             --name "$CONTAINER_APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" \
             --target-port 3000 \
-            --ingress external \
-            --registry-server "$REGISTRY_LOGIN_SERVER" \
-            --registry-username "$REGISTRY_USERNAME" \
-            --registry-password "$REGISTRY_PASSWORD"
+            --ingress external
