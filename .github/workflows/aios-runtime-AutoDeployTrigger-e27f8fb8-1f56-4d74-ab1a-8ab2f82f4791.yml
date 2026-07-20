@@ -1,28 +1,95 @@
 name: Trigger auto deployment for aios-runtime
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches:
+      - main
     paths:
-    - '**'
-    - '.github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+      - "**"
+      - ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "next.config.ts"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "next.config.ts"
+      - ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml"
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  docker-pr-validation:
+    name: Docker PR Validation
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout to the branch
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t aios-runtime:pr-${{ github.sha }} .
+
+      - name: Verify runtime assets in image
+        run: |
+          docker run --rm \
+            --entrypoint sh \
+            aios-runtime:pr-${{ github.sha }} \
+            -c 'test -f /app/server.js && test -d /app/.next/static && test -d /app/public'
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name aios-runtime-pr-test \
+            -p 3000:3000 \
+            aios-runtime:pr-${{ github.sha }}
+
+      - name: Wait for startup and verify HTTP response
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/ > /tmp/aca-pr-response.html; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "Container failed HTTP readiness check on port 3000"
+            docker logs aios-runtime-pr-test || true
+            exit 1
+          fi
+          test -s /tmp/aca-pr-response.html
+
+      - name: Cleanup test container
+        if: always()
+        run: |
+          docker logs aios-runtime-pr-test || true
+          docker rm -f aios-runtime-pr-test || true
+
+  build-and-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      CONTAINER_APP_NAME: aios-runtime
+      RESOURCE_GROUP: aios-core-rg
+      ACR_NAME: aioscoreacr
+      IMAGE_NAME: aios-runtime
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v2
@@ -31,19 +98,40 @@ jobs:
           tenant-id: ${{ secrets.AIOSRUNTIME_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AIOSRUNTIME_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and push container image to registry
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
-          _targetLabelKey_: _targetLabel_
-          registryUrl: 
-          registryUsername: ${{ secrets.AIOSRUNTIME_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.AIOSRUNTIME_REGISTRY_PASSWORD }}
-          containerAppName: aios-runtime
-          resourceGroup: aios-core-rg
-          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
+      - name: Resolve ACR login server
+        run: |
+          REGISTRY_LOGIN_SERVER=$(az acr show \
+            --name "$ACR_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query loginServer \
+            --output tsv)
+          test -n "$REGISTRY_LOGIN_SERVER"
+          echo "REGISTRY_LOGIN_SERVER=$REGISTRY_LOGIN_SERVER" >> "$GITHUB_ENV"
 
+      - name: ACR login
+        run: az acr login --name "$ACR_NAME"
 
+      - name: Build and push Docker image
+        run: |
+          test -n "$REGISTRY_LOGIN_SERVER"
+          docker build -t "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" .
+          docker push "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
+
+      - name: Configure Container App registry with managed identity
+        run: |
+          test -n "$REGISTRY_LOGIN_SERVER"
+          az containerapp registry set \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$REGISTRY_LOGIN_SERVER" \
+            --identity system
+
+      - name: Deploy to Azure Container Apps
+        run: |
+          test -n "$REGISTRY_LOGIN_SERVER"
+          az containerapp update \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" \
+            --target-port 3000 \
+            --ingress external
