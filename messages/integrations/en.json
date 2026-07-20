@@ -26,7 +26,8 @@
       "connected": "Connected",
       "expired": "Reauthorize",
       "available": "Ready to connect",
-      "comingSoon": "Setup required"
+      "setupRequired": "Requires Credentials",
+      "roadmap": "Not installed"
     },
     "capabilities": "{read} read / {write} write",
     "noCapabilitiesYet": "Capabilities activate when connected.",

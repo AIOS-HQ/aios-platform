@@ -47,6 +47,8 @@ describe("AIOS workforce certification", () => {
     expect(frameworkOnly).toHaveLength(3);
     expect(frameworkOnly.every((dep) => dep.status === "metadata_only")).toBe(true);
     expect(ambassador.contract.unsupportedCapabilities.join(" ")).toContain("Framework-only Meta channel execution");
+    expect(ambassador.blockers.join(" ")).not.toContain("Unsupported");
+    expect(ambassador.capabilityBoundaries.join(" ")).toContain("Framework-only Meta channel execution");
   });
 
   it("keeps Catalyst bound to Harmony Social approval providers", async () => {
@@ -58,6 +60,8 @@ describe("AIOS workforce certification", () => {
     expect(catalyst.dependencyReadiness.map((dep) => dep.provider)).toEqual(["linkedin", "x", "youtube"]);
     expect(catalyst.contract.approvalPolicy).toContain("Harmony Social approval");
     expect(catalyst.contract.unsupportedCapabilities.join(" ")).toContain("Ungoverned publishing");
+    expect(catalyst.blockers.join(" ")).not.toContain("Unsupported");
+    expect(catalyst.capabilityBoundaries.join(" ")).toContain("Ungoverned publishing");
   });
 
   it("reports Vercel unavailable until a real token configuration exists", async () => {

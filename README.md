@@ -1,13 +1,24 @@
 # AIOS Platform
 
-**Artificial Intelligence Operating Systems** — secure, accessible, AI-powered operating systems for life and business.
+**Artificial Intelligence Operating Systems** — secure, governed, AI-powered
+operating systems for people, companies, and AI-operated departments.
 
-AIOS Core is the shared foundation that powers two products:
+The canonical product architecture is defined in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](docs/product/AIOS_PRODUCT_ARCHITECTURE.md).
+AIOS currently has four connected product surfaces:
 
-- **Harmony** — the Personal Operating System (students, parents, families, seniors, professionals, accessibility users).
-- **Opera** — the Business Operating System _(planned for a later phase — not in this build)._
-
-This repository currently contains the **AIOS Core foundation** and **Harmony Lite** (the first working product). Opera, the marketplace, mobile apps, and billing are intentionally **not** built yet.
+- **Public AIOS Website** — explains AIOS, Harmony, Julius, the AI workforce,
+  Marketplace, Company Templates, Portable Company, managed services, pricing,
+  and documentation.
+- **Subscriber Harmony** — the authenticated customer operating system for
+  personal productivity, business/company operations, onboarding, company
+  creation/import, Marketplace, integrations, approvals, memory, learning, and
+  multi-company management.
+- **Founder OS** — Founder/admin-only operations for AIOS, Subscriber Harmony,
+  the public website, Marketplace, integrations, releases, incidents,
+  governance, managed services, and aggregate KPIs.
+- **Customer-deployed company websites and applications** — future productized
+  outputs AIOS creates and maintains for customer companies.
 
 > Guiding principles: **Human in control · Trust before automation · Global first · Accessibility first · Users own their data.**
 
@@ -89,7 +100,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Supabase publishable/anon key (legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` also accepted) |
 | `SUPABASE_SERVICE_ROLE_KEY` | — | Server-only key for maintenance tooling (never exposed to the browser) |
 | `NEXT_PUBLIC_SITE_URL` | — | Public site URL for auth email redirect links (default `http://localhost:3000`) |
-| `AI_PROVIDER` | — | `mock` (default), `openai`, or `anthropic` for the Life Operator |
+| `AI_PROVIDER` | — | `mock` (default), `openai`, or `anthropic` for AI provider-backed Harmony flows |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | — | Provider key; only needed if `AI_PROVIDER` is set to a real provider |
 | `AI_MODEL` | — | Optional model override |
 
@@ -116,7 +127,8 @@ docs/                 # architecture + setup documentation
 supabase/             # migrations + config (Sprint 1+)
 ```
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full design,
+See **[docs/product/AIOS_PRODUCT_ARCHITECTURE.md](docs/product/AIOS_PRODUCT_ARCHITECTURE.md)**
+for the canonical product model, **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full design,
 **[docs/architecture/aios-v1-architecture-blueprint.md](docs/architecture/aios-v1-architecture-blueprint.md)**
 for the v1 launch blueprint, and
 **[docs/launch-readiness.md](docs/launch-readiness.md)** for the current launch tracker.
@@ -142,9 +154,17 @@ foundation.
 
 - ✅ **Foundation** — Next.js + TS + Tailwind + shadcn/ui + Supabase clients + i18n + branding
 - ✅ **Sprint 1 — AIOS Core** — auth, profiles, roles, settings, schema, protected shell
-- ✅ **Sprint 2 — Harmony Lite** — dashboard, tasks, goals, notes, Personal Brain, Life Operator, Life Advisor
-- ✅ **Launch Sprint 2 — Product completion & readiness** — landing polish, Founder Executive Feed, diagnostics, localization, accessibility, and launch certification
-- ⬜ Opera (Business OS), mobile, marketplace, billing — _future phases_
+- ✅ **Subscriber Harmony foundation** — operator, dashboard, tasks, goals,
+  notes, memory, learning, approvals, integrations, and settings.
+- ✅ **Founder OS foundation** — Command Center, workforce, operations,
+  integrations, Social, Website Operations, Customer Experience, approvals, and
+  diagnostics.
+- ✅ **Marketplace foundations** — engine, categories, templates, persistence,
+  and protected storefront routes are present; the next Marketplace milestone
+  completes the product experience, listing depth, commerce, and entitlement UX.
+- ⬜ **Future layers** — customer-deployed websites/applications, advanced
+  enterprise tenancy, marketplace commerce, mobile apps, and advanced
+  cross-cloud deployment orchestration.
 
 ## License
 

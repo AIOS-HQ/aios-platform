@@ -38,7 +38,6 @@ export default function FounderOnboardingPage() {
             <AiosHarmonyLogo
               inverse
               aiosMarkClassName="size-10 sm:size-11"
-              harmonyMarkClassName="size-10 sm:size-11"
             />
           </Link>
           <Button asChild variant="ghost" size="sm" className="text-sky-100 hover:bg-white/10 hover:text-white">

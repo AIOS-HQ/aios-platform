@@ -1,8 +1,10 @@
 # Phase 6 — Live MCP Connectors: Architecture & Credential Plan
 
 > Status: **IMPLEMENTATION PLAN.** Connector *code* can ship incrementally and
-> green without secrets (tiles render "Coming soon" until configured). Making a
-> connector **live** requires founder-provided OAuth credentials — see
+> green without secrets. Provider cards must render truthful setup states such
+> as **Configuration required**, **Partial**, **Roadmap**, or **Unsupported**,
+> not a fake actionable connector. Making a connector **live** requires
+> founder-provided OAuth credentials — see
 > [§6 Founder credential matrix](#6-founder-credential-matrix). That is the
 > approved stop condition for this phase.
 
@@ -80,7 +82,8 @@ Owner ─▶ /settings/integrations ─▶ /api/integrations/{p}/connect
    migration).
 
 These land as small PRs (§5). Until env credentials exist, the providers appear
-as "Coming soon" and tools are inert — **no runtime risk**.
+as configuration-required or roadmap entries, and unsupported tools remain inert
+with no fake Connect action.
 
 ---
 

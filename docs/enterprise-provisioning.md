@@ -4,6 +4,12 @@ Turns a **Company Template** into a fully-configured autonomous company on the O
 Universal Runtime — the same runtime specializes into each company via
 configuration, with no per-company codebase (AIOS Law 1 + Law 2).
 
+This follows the canonical product model in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md):
+Company Templates, Company Builder, AI-operated departments, and provisioning are
+first-class AIOS capabilities, while customer-generated websites/applications and
+advanced cross-cloud orchestration remain later product milestones.
+
 Module: `src/lib/company/enterprise-provisioning.ts` (server-only, additive,
 inert — explicit entry point, no automatic caller).
 
@@ -13,7 +19,9 @@ inert — explicit entry point, no automatic caller).
 2. Writes the **Company Context Envelope** (`upsertEnvelope`, idempotent, owner-
    scoped via RLS):
    - **Identity** — companyName, industry, brand voice (from the template's tone).
-   - **Structure** — departments (from the blueprint).
+   - **Structure** — AI-operated departments (from the blueprint), including
+     lead/supporting specialists, skills, workflows, integrations, KPIs,
+     autonomy, readiness, and approval boundaries where provided.
    - **Direction** — objectives (active).
    - **Capabilities** — connectors bound **config-only** (`enabled: false`; credentials re-consented after provisioning — no secrets move).
    - **Workforce** — the template's AI workers activated at the chosen autonomy (Harmony always coordinates).

@@ -1,27 +1,48 @@
 # AIOS Architecture
 
 This document describes how the AIOS Platform is structured and the decisions behind it.
+The canonical product model is
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
 For the launch-specific v1 blueprint, see
 [`docs/architecture/aios-v1-architecture-blueprint.md`](architecture/aios-v1-architecture-blueprint.md).
 
 ## Overview
 
-AIOS is a **shared-platform architecture**. A single Next.js application contains:
+AIOS is a **shared-platform architecture**. A single Next.js application contains
+the first three surfaces of the canonical four-surface model:
 
-- **AIOS Core** — shared foundation: identity/auth, user profiles, roles, settings, UI system,
-  localization, theming, and the Supabase data layer.
-- **Harmony** — the Personal Operating System, built on top of AIOS Core.
-- **Opera** — the Business Operating System _(future phase, not in this build)._
+- **Public AIOS website** — unauthenticated acquisition and education routes for
+  visitors, prospects, investors, and partners.
+- **Subscriber Harmony** — the authenticated customer operating system for
+  personal productivity and business/company operations: onboarding, company
+  creation/import, chat/operator work, tasks, goals, notes, memory, learning,
+  AI workforce deployment, integrations, approvals, Marketplace, and settings.
+- **Founder OS** — Founder/admin-only operations for AIOS, Subscriber Harmony,
+  the public website, Marketplace, workforce, integrations, approvals, releases,
+  diagnostics, managed services, and governance.
+- **Customer-deployed company websites and applications** are the future fourth
+  product surface. They are AIOS-created outputs for customer companies, not the
+  AIOS public website and not Subscriber Harmony.
 
-Products live in their own route groups and feature folders but reuse Core's components,
-data clients, i18n, and conventions. This keeps the codebase modular without premature
-microservice complexity.
+Those experiences reuse **AIOS Core**: identity/auth, user profiles, roles,
+settings, UI system, localization, theming, and the Supabase data layer.
+Business Harmony/company operations now live inside Subscriber Harmony rather
+than a separate Opera codebase. Products live in route groups and feature
+folders but reuse Core's components, data clients, i18n, and conventions. This
+keeps the codebase modular without premature microservice complexity.
 
 Harmony Social is a native Harmony module at `/harmony/social`. It uses the existing Harmony
 layout and navigation, keeps external publishing Founder-approved, and supports production
 LinkedIn, X, and YouTube publishing. YouTube publishing includes multi-channel selection,
 video/Short upload, thumbnails, visibility, scheduling, playlists, progress, recovery, and
 provider result persistence through the shared Social publishing governance pipeline.
+
+Founder-only Subscriber Harmony operations live under `/harmony/customer-experience`.
+They provide aggregate customer-product KPIs, route/readiness matrices, a safe synthetic
+preview, reliability checks, feedback setup, release visibility, and specialist routing
+without exposing private customer content. Public website operations live under
+`/harmony/website` and track public routes, content, SEO, performance, reliability,
+feedback, releases, and analytics configuration without fabricating visitor metrics.
 
 The AIOS Workforce is certified through `src/lib/workforce/certification.ts`, with
 `src/lib/workforce/registry.ts` remaining the named-agent source of truth. The certification
@@ -40,7 +61,7 @@ Pub/Sub, or any cloud-specific messaging SDK.
 | Principle | How it shows up in code |
 | --- | --- |
 | Human in control | No destructive automation. AI suggests; the user confirms. |
-| Trust before automation | The Life Operator defaults to a transparent mock; real AI is opt-in via env. |
+| Trust before automation | Harmony operator flows default to transparent, governed behavior; real external AI/provider execution is opt-in via env and readiness. |
 | Global first | All strings come from `messages/*`. No hardcoded copy. |
 | Accessibility first | Semantic HTML, focus management, labels, contrast, reduced-motion. |
 | Users own their data | Row Level Security scopes every row to its owner; export/delete are first-class goals. |
@@ -54,7 +75,7 @@ src/
     (app)/            # protected, authenticated shell (Harmony + settings)
     auth/             # auth route handlers (callback, sign-out)
     layout.tsx        # root layout: theme, i18n provider, skip link, toaster
-    page.tsx          # marketing landing
+    page.tsx          # public AIOS marketing landing
   components/
     ui/               # shadcn/ui-style primitives (button, card, dialog, …)
     brand/            # logo + brand lockups
@@ -67,7 +88,7 @@ src/
     auth/             # auth actions + user/session helpers
     data/             # typed data-access functions per table
     harmony/          # Harmony server actions + domain logic
-    ai/               # Life Operator provider abstraction (mock/openai/anthropic)
+    ai/               # AI provider abstraction (mock/openai/anthropic)
   types/              # shared TypeScript types (database row types)
 messages/             # en.json, es.json
 supabase/             # config.toml + migrations
@@ -84,6 +105,13 @@ docs/                 # documentation
   also guards protected routes.
 - **Security** is enforced at the database level with Row Level Security (RLS) — even if a query
   is wrong, a user can never read another user's rows.
+- **Founder aggregate dashboards** use service-role server code only for counts,
+  readiness, and metadata. They do not return customer prompts, notes, goals,
+  memory content, email/message bodies, or connector secrets.
+- **WhatsApp Business** uses the official Meta Cloud API boundary only. Webhooks
+  are signature-verified, inbound events are deduplicated, contact identifiers are
+  hashed in broad operational records, and outbound message capabilities remain
+  governed by approval, service-window, opt-out, and credential readiness checks.
 
 ## Localization
 
@@ -115,6 +143,9 @@ never breaks the build.
 
 ## What is intentionally NOT here (yet)
 
-Opera, mobile apps, billing, CRM, team management, enterprise
-features, and an AI agent marketplace are **out of scope** for this build and must not be added
-until their dedicated phases.
+Full Marketplace commerce, third-party seller economics, advanced enterprise
+tenancy, mobile apps, customer-generated websites/applications, and advanced
+cross-cloud deployment orchestration remain dedicated future phases. Marketplace
+engine/persistence/storefront foundations, Company Templates, Company Builder,
+Portable Company, and enterprise provisioning are first-class AIOS capabilities
+and must not be described as absent.

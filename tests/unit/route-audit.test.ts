@@ -6,6 +6,7 @@ import {
   navSections,
   sectionsForAudience,
   isFounderHarmonyPath,
+  flattenNavItems,
 } from "@/components/app/nav-config";
 import {
   SETTINGS_ROUTE_CARDS,
@@ -50,18 +51,18 @@ describe("launch route audit", () => {
   ];
 
   it("keeps every founder sidebar route backed by an app route", () => {
-    const founderRoutes = sectionsForAudience(true).flatMap((section) =>
-      section.items.map((item) => item.href),
-    );
+    const founderRoutes = flattenNavItems(sectionsForAudience(true)).map((item) => item.href);
     expect(founderRoutes).toContain("/settings/auditor");
     expect(founderRoutes).toContain("/harmony/social");
+    expect(founderRoutes).toContain("/harmony/customer-experience");
+    expect(founderRoutes).toContain("/harmony/customer-experience/preview");
+    expect(founderRoutes).toContain("/harmony/website");
+    expect(founderRoutes).toContain("/harmony/website/analytics");
     expect(founderRoutes.filter((href) => !routeExists(href))).toEqual([]);
   });
 
   it("keeps every subscriber sidebar route backed by an app route and founder-free", () => {
-    const subscriberRoutes = sectionsForAudience(false).flatMap((section) =>
-      section.items.map((item) => item.href),
-    );
+    const subscriberRoutes = flattenNavItems(sectionsForAudience(false)).map((item) => item.href);
     expect(subscriberRoutes).toEqual(customerSidebarRoutes);
     expect(subscriberRoutes).not.toContain("/settings/auditor");
     expect(subscriberRoutes).not.toContain("/harmony/auditor");
@@ -70,6 +71,8 @@ describe("launch route audit", () => {
     expect(subscriberRoutes).not.toContain("/settings/mason");
     expect(subscriberRoutes).not.toContain("/harmony/workforce");
     expect(subscriberRoutes).not.toContain("/harmony/oversight");
+    expect(subscriberRoutes).not.toContain("/harmony/customer-experience");
+    expect(subscriberRoutes).not.toContain("/harmony/website");
     expect(subscriberRoutes.filter((href) => !routeExists(href))).toEqual([]);
   });
 
@@ -77,31 +80,38 @@ describe("launch route audit", () => {
     expect(navSections.length).toBeGreaterThan(0);
     expect(sectionsForAudience(true)).toEqual(sectionsForAudience(true));
     expect(sectionsForAudience(false)).toEqual(sectionsForAudience(false));
-    expect(sectionsForAudience(true).flatMap((section) => section.items.map((item) => item.href))).toContain(
+    expect(flattenNavItems(sectionsForAudience(true)).map((item) => item.href)).toContain(
       "/harmony/social",
     );
-    expect(sectionsForAudience(false).flatMap((section) => section.items.map((item) => item.href))).toEqual(
+    expect(flattenNavItems(sectionsForAudience(false)).map((item) => item.href)).toEqual(
       customerSidebarRoutes,
     );
   });
 
-  it("surfaces Social once inside Harmony founder navigation", () => {
-    const allItems = navSections.flatMap((section) =>
-      section.items.map((item) => ({ section, item })),
+  it("surfaces Social once under the Harmony operational primary item", () => {
+    const allItems = sectionsForAudience(true).flatMap((section) =>
+      flattenNavItems([section]).map((item) => ({ section, item })),
     );
+    const primary = sectionsForAudience(true).find((section) => section.titleKey === "primary");
+    const harmony = primary?.items.find((item) => item.labelKey === "operator");
     const socialItems = allItems.filter(({ item }) => item.href === "/harmony/social");
     expect(socialItems).toHaveLength(1);
-    expect(socialItems[0].section.audience).toBe("founder");
+    expect(harmony?.children?.map((item) => item.href)).toEqual([
+      "/harmony/advisor",
+      "/harmony/comms",
+      "/harmony/content",
+      "/harmony/social",
+    ]);
+    expect(socialItems[0].section.titleKey).toBe("primary");
     expect(socialItems[0].item.labelKey).toBe("social");
-    expect(sectionsForAudience(false).flatMap((section) => section.items.map((item) => item.href))).not.toContain(
+    expect(flattenNavItems(sectionsForAudience(false)).map((item) => item.href)).not.toContain(
       "/harmony/social",
     );
     expect(allItems.map(({ item }) => item.labelKey)).not.toContain("harmonySocial");
   });
 
   it("keeps Social active for nested Harmony Social paths", () => {
-    const socialItem = sectionsForAudience(true)
-      .flatMap((section) => section.items)
+    const socialItem = flattenNavItems(sectionsForAudience(true))
       .find((item) => item.href === "/harmony/social");
     expect(socialItem).toBeDefined();
     expect(isNavItemActive("/harmony/social", socialItem!)).toBe(true);
@@ -127,6 +137,8 @@ describe("launch route audit", () => {
     expect(isFounderHarmonyPath("/harmony")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/code")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/social")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/customer-experience")).toBe(true);
+    expect(isFounderHarmonyPath("/harmony/website")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/workforce")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/mason")).toBe(true);
     expect(isFounderHarmonyPath("/harmony/not-yet-known")).toBe(true);

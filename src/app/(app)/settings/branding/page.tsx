@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth/user";
 import { getProfile } from "@/lib/data/profile";
+import { listCompanies } from "@/lib/data/os/companies";
+import { getEnvelope } from "@/lib/company/envelope/data-access";
 import { getDownloadUrl } from "@/lib/uploads/storage";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UploadButton } from "@/components/uploads/upload-button";
+import { CompanyBrandingForm } from "@/components/uploads/company-branding-form";
 
 export const metadata: Metadata = { title: "Branding & Profile · AIOS" };
 
@@ -15,9 +18,18 @@ export const metadata: Metadata = { title: "Branding & Profile · AIOS" };
 export default async function BrandingPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
+  const companies = await listCompanies();
+  const company = companies[0] ?? null;
+  const envelope = company ? await getEnvelope(company.id) : null;
   const profilePhotoUrl = profile?.profile_photo_path
     ? await getDownloadUrl(profile.profile_photo_path, 3600)
     : null;
+  const companyLogoPath = envelope?.brand.logo ?? null;
+  const companyBannerPath = envelope?.brand.banner ?? null;
+  const [companyLogoUrl, companyBannerUrl] = await Promise.all([
+    companyLogoPath ? getDownloadUrl(companyLogoPath, 3600) : Promise.resolve(null),
+    companyBannerPath ? getDownloadUrl(companyBannerPath, 3600) : Promise.resolve(null),
+  ]);
 
   return (
     <>
@@ -34,7 +46,7 @@ export default async function BrandingPage() {
             <UploadButton
               category="profile"
               label="Profile photo"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               initialPreview={profilePhotoUrl}
             />
           </CardContent>
@@ -44,8 +56,20 @@ export default async function BrandingPage() {
             <CardTitle className="text-base">Company branding</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <UploadButton category="company-logo" label="Company logo" accept="image/*" />
-            <UploadButton category="company-banner" label="Company banner" accept="image/*" />
+            {company ? (
+              <CompanyBrandingForm
+                companyId={company.id}
+                companyName={company.name}
+                initialLogoPath={companyLogoPath}
+                initialLogoUrl={companyLogoUrl}
+                initialBannerPath={companyBannerPath}
+                initialBannerUrl={companyBannerUrl}
+              />
+            ) : (
+              <p className="rounded-lg border bg-muted/35 p-4 text-sm text-muted-foreground">
+                Create or connect a company before saving company logo and banner assets.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -64,7 +64,7 @@ const CERT_VARIANT: Record<WorkforceCertificationStatus, "default" | "secondary"
   configuration_required: "outline",
   blocked: "destructive",
   metadata_only: "outline",
-  unsupported: "destructive",
+  unsupported: "outline",
 };
 
 const ACTIVE = ["open", "delegated", "in_progress", "awaiting_approval"];
@@ -317,14 +317,20 @@ export default async function WorkforcePage() {
                         </div>
                       ) : null}
                       <div className="mt-2 flex flex-wrap gap-1">
-                        <Badge variant="outline" className="text-[10px]">{t("queuedWork", { n: sum.queuedWork })}</Badge>
-                        <Badge variant="outline" className="text-[10px]">{t("openRecs", { n: sum.openRecommendations })}</Badge>
-                        <Badge
-                          variant={agentPendingApprovals > 0 ? "default" : "outline"}
-                          className="text-[10px]"
-                        >
-                          {t("pendingApprovals", { n: agentPendingApprovals })}
-                        </Badge>
+                        {sum.queuedWork > 0 ? (
+                          <Badge variant="outline" className="text-[10px]">{t("queuedWork", { n: sum.queuedWork })}</Badge>
+                        ) : null}
+                        {sum.openRecommendations > 0 ? (
+                          <Badge variant="outline" className="text-[10px]">{t("openRecs", { n: sum.openRecommendations })}</Badge>
+                        ) : null}
+                        {agentPendingApprovals > 0 ? (
+                          <Badge variant="default" className="text-[10px]">
+                            {t("pendingApprovals", { n: agentPendingApprovals })}
+                          </Badge>
+                        ) : null}
+                        {sum.queuedWork === 0 && sum.openRecommendations === 0 && agentPendingApprovals === 0 ? (
+                          <Badge variant="outline" className="text-[10px]">{t("none")}</Badge>
+                        ) : null}
                       </div>
                       <div className="mt-2 grid gap-1 text-[11px] text-muted-foreground">
                         <p className="truncate">Tools: {cert.contract.availableTools.slice(0, 3).join(", ")}</p>
@@ -334,8 +340,12 @@ export default async function WorkforcePage() {
                             : "none"}
                         </p>
                         {cert.blockers.length > 0 ? (
-                          <p className="truncate text-amber-600 dark:text-amber-400">
-                            Blocker: {cert.blockers[0]}
+                          <p className="line-clamp-2 text-amber-700 dark:text-amber-300">
+                            Action needed: {cert.blockers[0]}
+                          </p>
+                        ) : cert.capabilityBoundaries.length > 0 ? (
+                          <p className="line-clamp-2 text-muted-foreground">
+                            Boundary: {cert.capabilityBoundaries[0]}
                           </p>
                         ) : null}
                       </div>

@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
-import { HarmonyMark } from "./harmony-logo";
 
-/** The AIOS glyph: a rounded badge with an intelligent "core" ring + node. */
+/** The public AIOS platform glyph. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg
@@ -36,7 +35,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** Full lockup: glyph + wordmark. */
+/** Full public AIOS lockup: glyph + wordmark. */
 export function Logo({
   className,
   showWordmark = true,
@@ -56,24 +55,38 @@ export function Logo({
   );
 }
 
+/** The official Founder-approved Harmony mark for authenticated product chrome. */
+export function HarmonyOfficialMark({ className }: { className?: string }) {
+  return (
+    <img
+      src="/branding/harmony-official-mark.svg"
+      alt="Harmony"
+      className={cn("size-9 shrink-0 rounded-xl object-contain", className)}
+      data-harmony-product-mark="true"
+    />
+  );
+}
+
 /**
- * Official AIOS + Harmony lockup for shared chrome and page headers.
+ * Official Harmony lockup for the authenticated operating system.
  *
- * AIOS is the platform brand; Harmony is the active product surface. Use this
- * component anywhere top-level app, marketing, or auth branding is rendered so
- * mark sizing, baseline alignment, and text treatment stay consistent.
+ * The public marketing website remains AIOS-branded. Authenticated product
+ * chrome uses the Founder-approved Harmony mark stored at
+ * /public/branding/harmony-official-mark.svg and exactly one product identity.
+ *
+ * The export name is retained for compatibility with existing imports.
  */
 export function AiosHarmonyLogo({
   className,
   compact = false,
   inverse = false,
   aiosMarkClassName,
-  harmonyMarkClassName,
 }: {
   className?: string;
   compact?: boolean;
   inverse?: boolean;
   aiosMarkClassName?: string;
+  /** @deprecated Retained for call-site compatibility only. */
   harmonyMarkClassName?: string;
 }) {
   return (
@@ -83,25 +96,21 @@ export function AiosHarmonyLogo({
         inverse && "text-white",
         className,
       )}
+      data-harmony-product-lockup="true"
     >
-      <span className="inline-flex shrink-0 items-center -space-x-1.5">
-        <LogoMark className={cn("size-8", aiosMarkClassName)} />
-        <HarmonyMark
-          className={cn(
-            "size-8 rounded-[22%] ring-2 ring-background",
-            inverse && "ring-[#050814]",
-            harmonyMarkClassName,
-          )}
-          title="Harmony"
-        />
-      </span>
+      <HarmonyOfficialMark className={aiosMarkClassName} />
       {!compact && (
         <span className="flex min-w-0 flex-col justify-center gap-0.5">
           <span className="truncate text-sm font-semibold tracking-tight sm:text-base">
-            AIOS
-          </span>
-          <span className={cn("truncate text-xs font-medium text-muted-foreground", inverse && "text-slate-300")}>
             Harmony
+          </span>
+          <span
+            className={cn(
+              "truncate text-xs font-medium text-muted-foreground",
+              inverse && "text-slate-300",
+            )}
+          >
+            Company operating system
           </span>
         </span>
       )}

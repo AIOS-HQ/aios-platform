@@ -2,28 +2,28 @@
   "landing": {
     "nav": [
       {
-        "label": "Why Harmony",
-        "href": "/#why"
+        "label": "Features",
+        "href": "/features"
       },
       {
-        "label": "Personal",
-        "href": "/#personal"
+        "label": "AI Workforce",
+        "href": "/ai-workforce"
       },
       {
-        "label": "Business",
-        "href": "/#business"
+        "label": "How It Works",
+        "href": "/#automation"
       },
       {
-        "label": "Harmony Hub",
-        "href": "/#harmony-hub"
+        "label": "Integrations",
+        "href": "/#integrations"
       },
       {
         "label": "Pricing",
         "href": "/pricing"
       },
       {
-        "label": "FAQ",
-        "href": "/faq"
+        "label": "Docs",
+        "href": "/docs"
       }
     ],
     "cta": {

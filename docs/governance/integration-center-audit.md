@@ -50,7 +50,7 @@ The Integration Center is the global account, credential, identity, readiness, a
 | Shopify | OAuth family metadata | Connection row only | None | OAuth endpoints are not complete; product/order handlers absent | Connect gate blocks until configured | FRAMEWORK ONLY | Complete Shopify shop-specific OAuth and runtime handlers |
 | Stripe | OAuth metadata | None | None | Connect OAuth and payment/customer handlers absent | Normalized health only | FRAMEWORK ONLY | Stripe Connect app, scopes, runtime handlers |
 | QuickBooks | OAuth metadata | None | None | Accounting handlers absent | Normalized health only | FRAMEWORK ONLY | Intuit app, scopes, runtime handlers |
-| WhatsApp Business | OAuth metadata | None | None | Messaging handlers absent | Normalized health only | FRAMEWORK ONLY | Meta app, WhatsApp Business setup, runtime handlers |
+| WhatsApp Business | API key / Meta Cloud API environment | Business account and phone-number identity through Cloud API self-tests when configured | Webhook verification, signed webhook validation, inbound text/media metadata/status normalization, duplicate webhook suppression, safe conversation/message metadata persistence, business/phone verification, template listing, governed text/template/media send handlers | Live send requires Meta app, WhatsApp Business Account, approved phone number, valid token, templates, opt-in, and service-window/approval policy; no personal WhatsApp or WhatsApp Web support | Normalized configuration health plus Cloud API identity/template self-tests when credentials are present | CONFIGURATION REQUIRED; PARTIAL runtime foundation when configured until live production acceptance is completed | Configure Meta app, callback URL, `WHATSAPP_*` env vars, webhook subscription, WABA/phone access, approved templates, consent process |
 | Instagram | OAuth metadata | None | None | Publishing/insights handlers absent | Normalized health only | FRAMEWORK ONLY | Meta app, scopes, runtime handlers |
 | Facebook Messenger | OAuth metadata | None | None | Messenger handlers absent | Normalized health only | FRAMEWORK ONLY | Meta app, page permissions, runtime handlers |
 | Dropbox | OAuth, Dropbox family | Connection row only | None | File handlers absent | Normalized health only | FRAMEWORK ONLY | Dropbox app, scopes, runtime handlers |
@@ -82,7 +82,7 @@ Approved fallback logos remain only for custom/non-brand surfaces: Webhooks and 
 
 ## Branding Certification
 
-The canonical app chrome uses `AiosHarmonyLogo`. Auth and onboarding screens no longer render standalone `HarmonyMark` elements beside that lockup. `HarmonyAvatar` remains preserved for chat, operator, Ask Harmony, awareness, and guided interaction surfaces.
+The canonical authenticated app chrome uses `AiosHarmonyLogo`, which now renders the single official Harmony mark from `public/branding/harmony-official-mark.svg`. Public marketing chrome uses the AIOS `Logo`. Auth and onboarding screens no longer render standalone `HarmonyMark` elements beside the authenticated lockup. `HarmonyAvatar` remains preserved for chat, operator, Ask Harmony, awareness, and guided interaction surfaces.
 
 ## Migration Status
 
@@ -98,13 +98,22 @@ Confirm these migrations are applied in the production project:
 
 - `20260712000000_social_publishing_jobs.sql`
 - `20260712010000_youtube_production_publishing.sql`
+- `20260713000000_event_mesh.sql`
+- `20260713010000_profile_photo_path.sql`
+- `20260713020000_whatsapp_business_foundation.sql`
 
 Validation query after application:
 
 ```sql
 select version, name, inserted_at
 from supabase_migrations.schema_migrations
-where version in ('20260712000000', '20260712010000')
+where version in (
+  '20260712000000',
+  '20260712010000',
+  '20260713000000',
+  '20260713010000',
+  '20260713020000'
+)
 order by version;
 ```
 
@@ -112,4 +121,4 @@ Do not run production migrations from an unverified environment.
 
 ## Consolidated Follow-Up
 
-Open one follow-up workstream for metadata-only connectors before marking them functional: Vercel, Supabase, Microsoft 365/Outlook/Teams/OneDrive, Meta providers, Stripe, QuickBooks, Dropbox/Box, Twilio, Webhooks, OpenAI/Anthropic/Gemini, and office devices. Each workstream needs a credential model, safe health adapter, identity verification, runtime handlers, governance tests, and production documentation.
+Open one follow-up workstream for metadata-only connectors before marking them functional: Vercel, Supabase, Microsoft 365/Outlook/Teams/OneDrive, Instagram, Facebook Messenger, Stripe, QuickBooks, Dropbox/Box, Twilio, Webhooks, OpenAI/Anthropic/Gemini, and office devices. Each workstream needs a credential model, safe health adapter, identity verification, runtime handlers, governance tests, and production documentation. WhatsApp Business now has a bounded official Cloud API foundation but remains configuration-gated until Founder supplies and validates Meta production credentials.

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Menu, X } from "lucide-react";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -39,10 +39,7 @@ export function SiteHeader() {
         aria-label={t("cta.primaryNavigation")}
       >
         <Link href="/" className="inline-flex min-w-0 items-center" aria-label={t("cta.home")}>
-          <AiosHarmonyLogo
-            aiosMarkClassName="size-9"
-            harmonyMarkClassName="size-9"
-          />
+          <Logo markClassName="size-9" />
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">

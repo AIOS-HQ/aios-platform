@@ -65,12 +65,22 @@ export function MobileNav({
                 </p>
               )}
               {section.items.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  badge={badges?.[item.href]}
-                  onNavigate={close}
-                />
+                <div key={item.href} className="space-y-1">
+                  <NavLink
+                    item={item}
+                    badge={badges?.[item.href]}
+                    onNavigate={close}
+                  />
+                  {item.children?.map((child) => (
+                    <NavLink
+                      key={child.href}
+                      item={child}
+                      badge={badges?.[child.href]}
+                      onNavigate={close}
+                      depth={1}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
           ))}

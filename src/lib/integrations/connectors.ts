@@ -13,9 +13,10 @@
  *
  * Connectors marked `authorizable: true` have a live OAuth flow wired
  * (/api/integrations/[provider]/connect). The remaining entries are the
- * scalable catalog the Integration Center renders as "coming soon" until their
- * connection flow + capabilities are implemented in a later phase (most need
- * provider credentials, which are a founder infrastructure action).
+ * scalable catalog the Integration Center renders with truthful readiness
+ * states until their connection flow + capabilities are implemented in a later
+ * phase (most need provider credentials, which are a founder infrastructure
+ * action).
  */
 
 export type ConnectorAuth = "oauth2" | "api_key" | "webhook" | "device";
@@ -286,11 +287,25 @@ export const CONNECTORS: ConnectorDef[] = [
     id: "whatsapp",
     name: "WhatsApp Business",
     category: "communication",
-    auth: "oauth2",
+    auth: "api_key",
     initials: "WA",
     docsUrl: "https://developers.facebook.com/docs/whatsapp",
-    requiredEnv: [],
-    capabilities: [],
+    requiredEnv: [
+      "WHATSAPP_ACCESS_TOKEN",
+      "WHATSAPP_PHONE_NUMBER_ID",
+      "WHATSAPP_BUSINESS_ACCOUNT_ID",
+      "WHATSAPP_VERIFY_TOKEN",
+      "WHATSAPP_APP_SECRET",
+    ],
+    capabilities: [
+      { id: "verify_business_account", mode: "read" },
+      { id: "verify_phone_number", mode: "read" },
+      { id: "list_templates", mode: "read" },
+      { id: "receive_message", mode: "read" },
+      { id: "send_text", mode: "write", risk: "approval" },
+      { id: "send_template", mode: "write", risk: "approval" },
+      { id: "send_media", mode: "write", risk: "approval" },
+    ],
   },
   {
     id: "outlook",

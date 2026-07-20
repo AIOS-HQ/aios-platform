@@ -88,8 +88,8 @@ const STATE_META: Record<
   healthy: { label: "Healthy", badge: "default", dot: "bg-emerald-500" },
   expired_refreshable: { label: "Auto-refreshing", badge: "secondary", dot: "bg-amber-500" },
   plaintext_token: { label: "Token unencrypted", badge: "secondary", dot: "bg-orange-500" },
-  needs_reauth: { label: "Needs reconnect", badge: "destructive", dot: "bg-red-500" },
-  setup_required: { label: "Setup required", badge: "outline", dot: "bg-muted-foreground" },
+  needs_reauth: { label: "Needs Authorization", badge: "destructive", dot: "bg-red-500" },
+  setup_required: { label: "Requires Credentials", badge: "outline", dot: "bg-muted-foreground" },
   unknown: { label: "Unknown", badge: "outline", dot: "bg-muted-foreground" },
 };
 
@@ -155,6 +155,16 @@ const CLASSIFICATION_BADGE: Record<string, "default" | "secondary" | "outline" |
   framework_only: "outline",
   unsupported: "outline",
 };
+
+function catalogBadge(c: ConnectorView): string {
+  if (c.connected) return "Connected";
+  if (!c.configured && c.authorizable) return "Requires Credentials";
+  if (c.authorizable) return "Needs Authorization";
+  if (c.classification === "configuration_required") return "Requires Credentials";
+  if (c.classification === "framework_only") return "Not installed";
+  if (c.classification === "unsupported") return "Not installed";
+  return c.classificationLabel;
+}
 
 export function IntegrationCenter({
   items,
@@ -421,11 +431,11 @@ function ConnectorCard({
               </span>
             ) : finishSetup ? (
               <Badge variant="outline" className="shrink-0">
-                Setup required
+                Requires Credentials
               </Badge>
             ) : (
               <Badge variant="secondary" className="shrink-0">
-                {c.authorizable ? "Available" : "Coming soon"}
+                {catalogBadge(c)}
               </Badge>
             )}
             <Badge variant={classificationBadge} className="shrink-0">
@@ -473,7 +483,7 @@ function ConnectorCard({
               {c.implementedReadCount + c.implementedWriteCount}/
               {c.declaredReadCount + c.declaredWriteCount} capabilities implemented
             </span>
-            <span>{c.configured ? "Developer config present" : "Developer config pending"}</span>
+            <span>{c.configured ? "Configured" : "Requires Credentials"}</span>
             {c.selfTestAvailable ? <span>Self-test available</span> : null}
           </div>
           <p className="text-muted-foreground">{c.classificationDescription}</p>

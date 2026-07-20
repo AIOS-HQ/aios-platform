@@ -142,7 +142,6 @@ export function AuthShell({
           <AiosHarmonyLogo
             inverse
             aiosMarkClassName="size-10 sm:size-11"
-            harmonyMarkClassName="size-10 sm:size-11"
           />
         </Link>
         <div className="flex items-center gap-2">

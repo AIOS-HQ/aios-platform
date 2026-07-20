@@ -2,53 +2,119 @@
 
 This document defines the official branding system for AIOS and Harmony in this
 repository. Product chrome, authentication, onboarding, and public marketing
-surfaces must use the shared components below instead of recreating logos
-locally.
+surfaces must use shared components instead of recreating logos locally.
+
+## Official Brand Split
+
+Public website:
+
+- Brand: AIOS.
+- Purpose: marketing, education, acquisition, documentation, and conversion.
+- Component: `Logo` or `LogoMark` from `src/components/brand/logo.tsx`.
+
+Authenticated platform:
+
+- Brand: Harmony.
+- Purpose: operate the customer's company and workspace.
+- Official mark: `public/branding/harmony-official-mark.svg`.
+- Component: `AiosHarmonyLogo` from `src/components/brand/logo.tsx`.
+
+`AiosHarmonyLogo` keeps its historical export name for compatibility, but it is
+now the official Harmony authenticated-product lockup. It must render the
+approved Harmony SVG and text for Harmony only.
+
+## One-Mark Rule
+
+Authenticated product chrome must render exactly one official Harmony visual
+mark. Do not show an AIOS icon beside a Harmony icon. Do not compose old AIOS +
+Harmony marks. Do not create a new H mark, letter badge, inline SVG, or
+generated replacement.
+
+Allowed authenticated product mark:
+
+```tsx
+import { AiosHarmonyLogo } from "@/components/brand/logo";
+```
+
+Public marketing chrome must use AIOS:
+
+```tsx
+import { Logo } from "@/components/brand/logo";
+```
+
+## Canonical Harmony Design System
+
+Harmony blue is the canonical accent color for AIOS product UI. The source of
+truth is `--harmony-blue` in `src/app/globals.css`; `--primary` and `--ring`
+must derive from it. New features must use the existing semantic tokens
+(`primary`, `accent`, `muted`, `canvas`, `card`, `sidebar`, `border`, `ring`)
+instead of hardcoding one-off blues or inventing local palettes.
+
+The official Harmony logo is immutable. Do not alter
+`public/branding/harmony-official-mark.svg`, trace it into a new SVG, recolor
+it, redraw it, crop it, or replace it with a generated mark.
+
+The current authenticated product UI is the design system baseline for the rest
+of AIOS:
+
+- card radius: use the shared radius tokens from `src/app/globals.css`;
+- spacing: follow existing sidebar, page header, section, card, form, and button
+  spacing;
+- typography: use the established title, section header, label, body, metric,
+  and muted text hierarchy;
+- buttons: use shared button variants from `src/components/ui/button.tsx`;
+- navigation: use `src/components/app/nav-config.ts`, `Sidebar`, `MobileNav`,
+  and `NavLink`;
+- surfaces: use the three-level elevation model already in the authenticated
+  shell: application background, content canvas, and cards.
+
+Marketplace, Company Builder, Workforce, Founder Command Center, Integrations,
+Deployments, and all future authenticated modules must conform to this system.
+They must not introduce new card shapes, local navigation systems, custom
+button styles, decorative brand marks, or unrelated accent palettes unless the
+Founder explicitly approves a design-system change.
 
 ## Official Components
 
-- AIOS primary logo: `LogoMark` in `src/components/brand/logo.tsx`.
-- AIOS wordmark lockup: `Logo` in `src/components/brand/logo.tsx`.
-- AIOS + Harmony lockup: `AiosHarmonyLogo` in `src/components/brand/logo.tsx`.
-- Harmony brand mark and wordmark: `HarmonyMark` and `HarmonyLogo` in
-  `src/components/brand/harmony-logo.tsx`.
-- Harmony conversational avatar: `HarmonyAvatar` in
-  `src/components/brand/harmony-logo.tsx`.
-- Harmony raster asset source: `getHarmonyLogoSrc` in
-  `src/components/brand/harmony-logo-asset.ts`.
+- `LogoMark`: AIOS public glyph.
+- `Logo`: AIOS public glyph + wordmark.
+- `HarmonyOfficialMark`: official Harmony SVG mark from
+  `public/branding/harmony-official-mark.svg`.
+- `AiosHarmonyLogo`: authenticated Harmony product lockup using the official
+  Harmony mark.
+- `HarmonyAvatar`: conversational identity for Harmony.
 
-## AIOS Primary Logo
+Legacy `HarmonyMark`, `HarmonyLogo`, and `getHarmonyLogoSrc` remain available
+only for compatibility or deliberate non-chrome illustrations. They must not be
+used for authenticated product chrome.
 
-`LogoMark` is the official AIOS primary mark. It is the rounded AIOS badge with
-the core ring, node points, and white AIOS glyph.
+## Required Usage
 
-Use `LogoMark` only inside shared brand components or icon-only contexts where
-AIOS alone is the subject. For top-level application chrome, prefer
-`AiosHarmonyLogo` so the platform brand and active product are shown together.
+Use authenticated Harmony branding in:
 
-Do not hand-copy the AIOS SVG into route files, layouts, headers, footers, docs
-examples, or feature components.
+- authenticated sidebar;
+- authenticated mobile navigation;
+- workspace selector and app chrome;
+- Founder Command Center;
+- Workforce;
+- Integrations;
+- Settings;
+- Deployments;
+- Profile;
+- authentication;
+- onboarding;
+- authenticated empty states where a product mark is appropriate.
 
-## Harmony Lockup
+Use public AIOS branding in:
 
-`AiosHarmonyLogo` is the canonical top-level lockup for the product experience:
-AIOS is the platform, Harmony is the active product surface.
-
-Use `AiosHarmonyLogo` in:
-
-- authenticated app sidebar and mobile navigation;
-- public marketing navigation and footer;
-- authentication headers;
-- onboarding headers;
-- error and not-found brand surfaces.
-
-`HarmonyLogo` remains available for Harmony-only brand contexts, but new
-top-level chrome should use `AiosHarmonyLogo` unless there is a deliberate
-Harmony-only brand requirement.
+- public marketing navbar;
+- public marketing footer;
+- public not-found/error surfaces;
+- public metadata and website assets.
 
 ## HarmonyAvatar Usage Rules
 
-`HarmonyAvatar` is the conversational identity for Harmony. It is not a brand
+`HarmonyAvatar` is the conversational identity for Harmony. It is not a product
 logo and must not be used for navbar, footer, favicon, page header, auth header,
 or onboarding header branding.
 
@@ -61,105 +127,55 @@ acting as an assistant in the interface, such as:
 - guided onboarding conversation;
 - Harmony awareness and collaboration notices.
 
-Do not use `HarmonyMark` or `HarmonyLogo` inside a conversation thread. Use
-`HarmonyAvatar` there.
-
-## Favicon Usage
-
-`src/app/icon.svg` is the app icon and favicon source. It must visually match
-the AIOS primary mark.
-
-Do not add alternate favicon SVGs, inline favicon data URLs, or page-specific
-favicon implementations. If the AIOS mark changes, update `LogoMark` and
-`src/app/icon.svg` together.
-
-## Navigation Branding
-
-Navigation branding must use `AiosHarmonyLogo`.
-
-Required import:
-
-```tsx
-import { AiosHarmonyLogo } from "@/components/brand/logo";
-```
-
-Current canonical navigation surfaces:
-
-- `src/components/app/sidebar.tsx`
-- `src/components/app/mobile-nav.tsx`
-- `src/components/marketing/public-navbar.tsx`
-- `src/components/marketing/site-header.tsx`
-
-Navigation must not render ad hoc letter badges, copied SVGs, standalone
-wordmarks, or separate AIOS and Harmony logos side by side.
-
 ## Page Header Branding
 
-Application pages must use the shared `PageHeader` component from
+Authenticated application pages must use the shared `PageHeader` component from
 `src/components/shared/page-header.tsx`.
 
 `PageHeader` must not render AIOS or Harmony marks inside the authenticated app
 shell. The app sidebar and mobile drawer own the single canonical app chrome
-lockup; page headers provide breadcrumbs, titles, descriptions, and actions
-only. Individual pages should not add their own top-of-page logo unless the page
-has a specific hero or product illustration need outside the authenticated app
-chrome.
+mark; page headers provide breadcrumbs, titles, descriptions, and actions only.
 
 Loading states should use `PageHeaderSkeleton` from
 `src/components/shared/loaders.tsx`, which mirrors the title and description
 structure without adding brand marks.
 
-## Onboarding Branding
+## Favicon Usage
 
-Onboarding headers must use `AiosHarmonyLogo` with inverse treatment on dark
-surfaces.
+`src/app/icon.svg` is the app icon and favicon source. It must visually match
+the public AIOS mark unless a future explicit favicon migration is approved.
 
-Do not render a standalone `HarmonyMark`, `HarmonyLogo`, or local wordmark in
-the onboarding rail or background when the header already renders
-`AiosHarmonyLogo`. The lockup owns top-level onboarding branding.
-
-Do not create local onboarding-only logos or inline SVG marks.
-
-## Authentication Branding
-
-Authentication headers must use `AiosHarmonyLogo` with inverse treatment on the
-dark auth surface.
-
-Do not render a standalone `HarmonyMark`, `HarmonyLogo`, or local wordmark in
-auth rails, forms, or backgrounds when the header already renders
-`AiosHarmonyLogo`. Auth forms and auth headers must not create their own
-AIOS/Harmony logo implementation.
+Do not add alternate favicon SVGs, inline favicon data URLs, or page-specific
+favicon implementations.
 
 ## Spacing and Sizing Guidelines
 
-- Default shared lockup marks: `size-8`.
-- Large dark header lockup marks: `size-10 sm:size-11`.
-- Landing header lockup marks: `size-9`.
+- Default authenticated Harmony mark: `size-9`.
+- Large dark header Harmony mark: `size-10 sm:size-11`.
+- Public landing AIOS mark: `size-9`.
 - Use `min-w-0`, truncation, and fixed mark sizes in constrained nav surfaces.
 - Use `inline-flex items-center` for brand links so mark baselines align.
 - Keep text labels in the shared lockup; do not rebuild wordmark text locally.
 - Do not scale logo text with viewport width. Prefer explicit responsive size
   steps such as `sm:`.
 
-## Components That Must Import Shared Branding
+## Components That Must Use Shared Branding
 
-These components must import `AiosHarmonyLogo` from
-`@/components/brand/logo` for top-level branding:
+Authenticated Harmony:
 
 - `src/components/app/sidebar.tsx`
 - `src/components/app/mobile-nav.tsx`
+- `src/components/auth/auth-shell.tsx`
+- `src/app/onboarding/founder/page.tsx`
+- `src/app/onboarding/harmony/page.tsx`
+
+Public AIOS:
+
 - `src/components/marketing/public-navbar.tsx`
 - `src/components/marketing/public-footer.tsx`
 - `src/components/marketing/site-header.tsx`
 - `src/components/marketing/site-footer.tsx`
-- `src/components/auth/auth-shell.tsx`
 - `src/app/not-found.tsx`
-- `src/app/onboarding/founder/page.tsx`
-- `src/app/onboarding/harmony/page.tsx`
-
-New layouts, shells, navbars, and footers must follow the same rule. New
-page-header abstractions must follow the Page Header Branding rule above and
-avoid authenticated app brand marks.
 
 ## Components That Must Never Create Their Own Logo
 
@@ -175,21 +191,21 @@ homegrown wordmark for AIOS or Harmony:
 - shared page headers and loading states;
 - docs examples, story files, archived examples, or test fixtures.
 
-If a visual needs AIOS, Harmony, or both, import the appropriate shared component
-from `src/components/brand`.
+If a visual needs AIOS or Harmony, import the appropriate shared component from
+`src/components/brand`.
 
 ## Review Checklist
 
 Before committing branding changes, verify:
 
-- `rg -n "<HarmonyLogo|<Logo\\b|inline-flex size-7|>A<|bg-primary text-sm font-bold" src/app src/components -S`
-  finds no ad hoc top-level branding;
-- `rg -n "AiosHarmonyLogo|HarmonyMark" src/components/auth src/app/onboarding -S`
-  shows the canonical lockup only, with no standalone Harmony brand mark beside it;
-- `rg -n "AiosHarmonyLogo|HarmonyMark|HarmonyLogo" src/components/shared/page-header.tsx src/components/shared/loaders.tsx -S`
-  returns no matches;
-- `rg -n "HarmonyAvatar" src/app src/components -S` shows only
-  conversational or interaction contexts;
+- rendered authenticated chrome contains exactly one
+  `data-harmony-product-mark="true"` element per product lockup;
+- `src/app/globals.css` defines `--harmony-blue` and derives `--primary` and
+  `--ring` from it;
+- public marketing chrome imports `Logo`, not `AiosHarmonyLogo`;
+- authenticated app chrome imports `AiosHarmonyLogo`, not public-only `Logo`;
+- shared page headers and loading states do not import product marks;
+- `HarmonyAvatar` appears only in conversational or interaction contexts;
 - `npm run lint` passes;
 - `npm run typecheck` passes;
 - `npm run test -- tests/unit/route-audit.test.ts` passes;

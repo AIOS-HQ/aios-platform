@@ -13,6 +13,10 @@ Organizational brain: Julius (`src/lib/julius/`)
 
 This document defines the official AIOS workforce structure.
 
+The broader product architecture, including AI-operated departments and
+Marketplace department bundles, is canonical in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](docs/product/AIOS_PRODUCT_ARCHITECTURE.md).
+
 AIOS and AirBid are separate companies. AirBid workforce agents belong to AirBid;
 AIOS workforce agents belong to AIOS. Agent names, responsibilities, permissions,
 memory, credentials, and operational scope must remain separated. Cross-company
@@ -84,6 +88,13 @@ Runtime readiness, connector dependencies, tools, handlers, autonomy boundaries,
 and unsupported capabilities are certified in `src/lib/workforce/certification.ts`
 and surfaced in the Harmony Workforce UI. A registered profile alone does not
 make an agent operational.
+
+AIOS departments are primarily AI-operated business departments under human
+governance. A department should declare its identity, AI lead, supporting
+specialists, capabilities, skills, workflows, integrations, knowledge,
+objectives, KPIs, autonomy, approval boundaries, readiness, and health. Human
+team members may coexist later, but the default value proposition is
+AI-operated departments governed by humans.
 
 ---
 

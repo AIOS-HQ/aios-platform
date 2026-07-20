@@ -4,6 +4,11 @@ Expands **Portable Workforce** into a whole **deployable company**. Objective: a
 entire autonomous company exports and imports together, redeployable to another
 AIOS instance with minimal manual setup.
 
+Portable Company is defined canonically in
+[`docs/product/AIOS_PRODUCT_ARCHITECTURE.md`](product/AIOS_PRODUCT_ARCHITECTURE.md).
+It is a configuration and knowledge portability layer, not a new company-specific
+codebase and not a place to store credentials.
+
 Module: `src/lib/company/portable-company.ts` (server-only, additive, inert —
 explicit entry points, no automatic caller).
 

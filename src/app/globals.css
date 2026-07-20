@@ -16,8 +16,9 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.21 0.02 264);
 
-  /* AIOS brand indigo */
-  --primary: oklch(0.54 0.2 269);
+  /* Harmony blue — canonical accent for authenticated AIOS product surfaces. */
+  --harmony-blue: oklch(0.54 0.2 269);
+  --primary: var(--harmony-blue);
   --primary-foreground: oklch(0.99 0.01 269);
 
   --secondary: oklch(0.975 0.006 264);
@@ -40,7 +41,7 @@
 
   --border: oklch(0.895 0.01 264);
   --input: oklch(0.895 0.01 264);
-  --ring: oklch(0.54 0.2 269);
+  --ring: var(--harmony-blue);
 
   /* Soft, diffuse elevation for white floating cards & popovers. */
   --shadow-soft: 0 1px 2px -1px oklch(0.28 0.03 264 / 0.1),
@@ -66,7 +67,8 @@
   --popover: oklch(0.22 0.02 264);
   --popover-foreground: oklch(0.96 0.008 264);
 
-  --primary: oklch(0.68 0.17 269);
+  --harmony-blue: oklch(0.68 0.17 269);
+  --primary: var(--harmony-blue);
   --primary-foreground: oklch(0.18 0.02 269);
 
   --secondary: oklch(0.205 0.02 264);
@@ -89,7 +91,7 @@
 
   --border: oklch(0.34 0.02 264);
   --input: oklch(0.32 0.02 264);
-  --ring: oklch(0.68 0.17 269);
+  --ring: var(--harmony-blue);
 
   /* Deeper, soft elevation tuned for the dark canvas. */
   --shadow-soft: 0 1px 2px -1px oklch(0 0 0 / 0.5),

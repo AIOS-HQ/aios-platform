@@ -66,7 +66,7 @@ export default async function IntegrationsPage() {
                             </div>
                           ) : p.auth === "api_key" ? (
                             <Badge variant={configured ? "success" : "outline"}>
-                              {configured ? t("status.active") : t("status.comingSoon")}
+                              {configured ? t("status.active") : t("status.setupRequired")}
                             </Badge>
                           ) : configured ? (
                             <Button asChild size="sm">
@@ -75,7 +75,7 @@ export default async function IntegrationsPage() {
                               </a>
                             </Button>
                           ) : (
-                            <Badge variant="outline">{t("status.comingSoon")}</Badge>
+                            <Badge variant="outline">{t("status.setupRequired")}</Badge>
                           )}
                         </div>
                       </CardContent>

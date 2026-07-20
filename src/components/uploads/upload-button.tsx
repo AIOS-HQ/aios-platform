@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { Plus, Loader2, Check, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Loader2, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import type { UploadCategory } from "@/lib/uploads/storage";
-import { completeUpload, requestUploadTicket } from "@/app/(app)/settings/branding/upload-action";
+import {
+  completeUpload,
+  removeProfilePhoto,
+  requestUploadTicket,
+} from "@/app/(app)/settings/branding/upload-action";
+import { validateUploadInput } from "@/lib/uploads/validation";
 
 /**
  * UploadButton (P6) — "+" attachment/upload control with drag-and-drop,
@@ -30,19 +36,37 @@ export function UploadButton({
   initialPreview?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [preview, setPreview] = useState<string | null>(initialPreview);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [pending, startTransition] = useTransition();
 
   async function upload(file: File): Promise<void> {
+    const validation = validateUploadInput({
+      category,
+      filename: file.name,
+      mimeType: file.type,
+      byteSize: file.size,
+    });
+    if (!validation.ok) {
+      setStatus("error");
+      setMessage(validation.message);
+      return;
+    }
+
     setStatus("uploading");
     setFileName(file.name);
+    setMessage(null);
+    const localPreview = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
+    if (localPreview) setPreview(localPreview);
     try {
-      const ticket = await requestUploadTicket(category, file.name);
-      if (!ticket) {
+      const ticket = await requestUploadTicket(category, file.name, file.type, file.size);
+      if (!ticket || ticket.error) {
         setStatus("error");
+        setMessage(ticket?.error ?? "Upload could not be prepared.");
         return;
       }
       const supabase = createClient();
@@ -51,13 +75,22 @@ export function UploadButton({
         .uploadToSignedUrl(ticket.path, ticket.token, file);
       if (error) {
         setStatus("error");
+        setMessage(error.message || "Upload failed.");
         return;
       }
       const url = await completeUpload(category, ticket.path);
+      if (!url) {
+        setStatus("error");
+        setMessage("Upload finished, but the profile could not be saved.");
+        return;
+      }
       setPreview(url);
       setStatus("done");
+      setMessage("Uploaded and saved.");
+      router.refresh();
     } catch {
       setStatus("error");
+      setMessage("Upload failed. Try again.");
     }
   }
 
@@ -67,6 +100,24 @@ export function UploadButton({
   }
 
   const busy = pending || status === "uploading";
+  const removable = category === "profile" && Boolean(preview);
+
+  async function remove(): Promise<void> {
+    if (category !== "profile") return;
+    setStatus("uploading");
+    setMessage(null);
+    const result = await removeProfilePhoto();
+    if (!result.ok) {
+      setStatus("error");
+      setMessage(result.error ?? "Could not remove the profile photo.");
+      return;
+    }
+    setPreview(null);
+    setFileName(null);
+    setStatus("done");
+    setMessage("Profile photo removed.");
+    router.refresh();
+  }
 
   return (
     <div
@@ -103,29 +154,43 @@ export function UploadButton({
             {fileName ?? "Drag & drop, paste, or choose a file"}
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-        >
-          {busy ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-          ) : (
-            <Plus className="size-3.5" aria-hidden="true" />
-          )}
-          Upload
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          {removable ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => startTransition(() => void remove())}
+              aria-label="Remove profile photo"
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Plus className="size-3.5" aria-hidden="true" />
+            )}
+            Upload
+          </Button>
+        </div>
       </div>
       {status === "done" ? (
         <p className="mt-2 flex items-center gap-1 text-xs text-success">
-          <Check className="size-3" aria-hidden="true" /> Uploaded
+          <Check className="size-3" aria-hidden="true" /> {message ?? "Uploaded"}
         </p>
       ) : null}
       {status === "error" ? (
         <p className="mt-2 flex items-center gap-1 text-xs text-destructive">
-          <X className="size-3" aria-hidden="true" /> Upload failed — try again
+          <X className="size-3" aria-hidden="true" /> {message ?? "Upload failed. Try again."}
         </p>
       ) : null}
     </div>

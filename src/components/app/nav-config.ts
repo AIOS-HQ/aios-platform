@@ -1,6 +1,7 @@
 import {
   Activity,
   AlertTriangle,
+  BarChart3,
   Boxes,
   BrainCircuit,
   Building2,
@@ -9,6 +10,7 @@ import {
   CreditCard,
   Eye,
   Gauge,
+  Globe2,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
@@ -34,6 +36,7 @@ import {
 export const NAV_ICONS = {
   Activity,
   AlertTriangle,
+  BarChart3,
   Boxes,
   BrainCircuit,
   Building2,
@@ -42,6 +45,7 @@ export const NAV_ICONS = {
   CreditCard,
   Eye,
   Gauge,
+  Globe2,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
@@ -67,6 +71,10 @@ export type NavItem = {
   icon: NavIconKey;
   /** Match the active state exactly (no prefix match). */
   exact?: boolean;
+  /** Optional audience override for nested items. */
+  audience?: NavAudience;
+  /** Child items rendered under this item in the same navigation source. */
+  children?: NavItem[];
 };
 
 /**
@@ -121,7 +129,17 @@ export const navSections: NavSection[] = [
     titleKey: "primary",
     audience: "all",
     items: [
-      { href: "/harmony/operator", labelKey: "operator", icon: "Sparkles" },
+      {
+        href: "/harmony/operator",
+        labelKey: "operator",
+        icon: "Sparkles",
+        children: [
+          { href: "/harmony/advisor", labelKey: "advisor", icon: "Lightbulb", audience: "founder" },
+          { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare", audience: "founder" },
+          { href: "/harmony/content", labelKey: "content", icon: "Clapperboard", audience: "founder" },
+          { href: "/harmony/social", labelKey: "social", icon: "Share2", audience: "founder" },
+        ],
+      },
       { href: "/harmony/personal", labelKey: "dashboard", icon: "LayoutDashboard" },
     ],
   },
@@ -140,13 +158,51 @@ export const navSections: NavSection[] = [
       { href: "/harmony/approvals", labelKey: "approvals", icon: "ShieldCheck" },
       { href: "/settings/auditor", labelKey: "auditor", icon: "Gauge" },
       { href: "/harmony/activity", labelKey: "activity", icon: "Activity" },
-      { href: "/harmony/comms", labelKey: "comms", icon: "MessageSquare" },
-      { href: "/harmony/content", labelKey: "content", icon: "Clapperboard" },
-      { href: "/harmony/social", labelKey: "social", icon: "Share2" },
       { href: "/harmony/integrations", labelKey: "integrations", icon: "Plug" },
       { href: "/harmony/code", labelKey: "code", icon: "Code2" },
       { href: "/harmony/outcomes", labelKey: "outcomes", icon: "Building2" },
       { href: "/settings/branding", labelKey: "branding", icon: "Building2" },
+    ],
+  },
+  {
+    titleKey: "customerExperience",
+    audience: "founder",
+    items: [
+      {
+        href: "/harmony/customer-experience",
+        labelKey: "subscriberHarmony",
+        icon: "Users",
+        children: [
+          { href: "/harmony/customer-experience/preview", labelKey: "livePreview", icon: "Eye" },
+          { href: "/harmony/customer-experience/journey", labelKey: "userJourney", icon: "ListChecks" },
+          { href: "/harmony/customer-experience/analytics", labelKey: "usageKpis", icon: "BarChart3" },
+          { href: "/harmony/customer-experience/reliability", labelKey: "reliability", icon: "Activity" },
+          { href: "/harmony/customer-experience/feedback", labelKey: "feedback", icon: "MessageSquare" },
+          { href: "/harmony/customer-experience/releases", labelKey: "releases", icon: "Code2" },
+        ],
+      },
+    ],
+  },
+  {
+    titleKey: "website",
+    audience: "founder",
+    items: [
+      {
+        href: "/harmony/website",
+        labelKey: "websiteOperations",
+        icon: "Globe2",
+        children: [
+          { href: "/harmony/website/analytics", labelKey: "analytics", icon: "BarChart3" },
+          { href: "/harmony/website/visitors", labelKey: "visitors", icon: "Users" },
+          { href: "/harmony/website/conversions", labelKey: "conversions", icon: "Target" },
+          { href: "/harmony/website/content", labelKey: "content", icon: "Clapperboard" },
+          { href: "/harmony/website/seo", labelKey: "seo", icon: "Gauge" },
+          { href: "/harmony/website/performance", labelKey: "performance", icon: "Activity" },
+          { href: "/harmony/website/reliability", labelKey: "reliability", icon: "ShieldCheck" },
+          { href: "/harmony/website/feedback", labelKey: "feedback", icon: "MessageSquare" },
+          { href: "/harmony/website/releases", labelKey: "releases", icon: "Code2" },
+        ],
+      },
     ],
   },
   {
@@ -189,17 +245,38 @@ export const navSections: NavSection[] = [
  * Founder OS). Sections with no explicit audience default to "all".
  */
 export function sectionsForAudience(isFounder: boolean): NavSection[] {
-  return navSections.filter((s) => {
+  return navSections.map((section) => ({
+    ...section,
+    items: section.items
+      .filter((item) => itemVisibleForAudience(item, isFounder))
+      .map((item) => ({
+        ...item,
+        children: item.children?.filter((child) => itemVisibleForAudience(child, isFounder)),
+      })),
+  })).filter((s) => {
     const audience = s.audience ?? "all";
     if (audience === "all") return true;
     return isFounder ? audience === "founder" : audience === "customer";
-  });
+  }).filter((section) => section.items.length > 0);
 }
 
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
-  return item.exact
+  const selfActive = item.exact
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return selfActive || Boolean(item.children?.some((child) => isNavItemActive(pathname, child)));
+}
+
+function itemVisibleForAudience(item: NavItem, isFounder: boolean): boolean {
+  const audience = item.audience ?? "all";
+  if (audience === "all") return true;
+  return isFounder ? audience === "founder" : audience === "customer";
+}
+
+export function flattenNavItems(sections: NavSection[]): NavItem[] {
+  return sections.flatMap((section) =>
+    section.items.flatMap((item) => [item, ...(item.children ?? [])]),
+  );
 }
 
 /**
@@ -216,9 +293,8 @@ const LEGACY_CUSTOMER_REDIRECTS = ["/harmony/advisor", "/harmony/brain"];
  * NOT listed here is treated as founder-only.
  */
 export const CUSTOMER_HARMONY_PREFIXES: string[] = [
-  ...navSections
-    .filter((s) => (s.audience ?? "all") !== "founder")
-    .flatMap((s) => s.items.map((i) => i.href))
+  ...flattenNavItems(sectionsForAudience(false))
+    .map((i) => i.href)
     .filter((href) => href.startsWith("/harmony/")),
   ...LEGACY_CUSTOMER_REDIRECTS,
 ];

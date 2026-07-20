@@ -1,6 +1,8 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { validateUploadInput } from "@/lib/uploads/validation";
 
 /**
  * AIOS uploads backend (Foundation P6) — owner-scoped object storage on the
@@ -23,7 +25,7 @@ export interface UploadTarget {
 
 function ownerPath(userId: string, category: UploadCategory, filename: string): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "file";
-  return `${userId}/${category}/${Date.now()}-${safe}`;
+  return `${userId}/${category}/${Date.now()}-${randomUUID()}-${safe}`;
 }
 
 /** One-time signed upload URL under the caller's owner path (RLS-enforced). */
@@ -31,7 +33,19 @@ export async function createUploadUrl(
   userId: string,
   category: UploadCategory,
   filename: string,
+  opts: { mimeType?: string | null; byteSize?: number | null } = {},
 ): Promise<UploadTarget | null> {
+  const validation = validateUploadInput({
+    category,
+    filename,
+    mimeType: opts.mimeType,
+    byteSize: opts.byteSize,
+  });
+  if (!validation.ok) {
+    console.error("[uploads] createUploadUrl validation", validation.message);
+    return null;
+  }
+
   const supabase = await createClient();
   const path = ownerPath(userId, category, filename);
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
