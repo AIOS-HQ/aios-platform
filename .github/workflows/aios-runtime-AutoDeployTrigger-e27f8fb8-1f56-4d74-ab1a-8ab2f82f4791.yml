@@ -10,10 +10,71 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - "next.config.ts"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "next.config.ts"
+      - ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml"
   workflow_dispatch:
 
 jobs:
+  docker-pr-validation:
+    name: Docker PR Validation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t aios-runtime:pr-${{ github.sha }} .
+
+      - name: Verify runtime assets in image
+        run: |
+          docker run --rm \
+            --entrypoint sh \
+            aios-runtime:pr-${{ github.sha }} \
+            -c 'test -f /app/server.js && test -d /app/.next/static && test -d /app/public'
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name aios-runtime-pr-test \
+            -p 3000:3000 \
+            aios-runtime:pr-${{ github.sha }}
+
+      - name: Wait for startup and verify HTTP response
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/ > /tmp/aca-pr-response.html; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "Container failed HTTP readiness check on port 3000"
+            docker logs aios-runtime-pr-test || true
+            exit 1
+          fi
+          test -s /tmp/aca-pr-response.html
+
+      - name: Cleanup test container
+        if: always()
+        run: |
+          docker logs aios-runtime-pr-test || true
+          docker rm -f aios-runtime-pr-test || true
+
   build-and-deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -45,7 +106,6 @@ jobs:
           REGISTRY_LOGIN_SERVER: ${{ secrets.AIOSRUNTIME_REGISTRY_LOGIN_SERVER }}
         run: |
           test -n "$REGISTRY_LOGIN_SERVER"
-          test "$REGISTRY_LOGIN_SERVER" != ""
           docker build -t "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" .
           docker push "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
 
