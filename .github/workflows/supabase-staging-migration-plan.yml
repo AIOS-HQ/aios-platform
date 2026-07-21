@@ -1,0 +1,121 @@
+name: Supabase Staging Migration Plan
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-staging-migration-plan
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan complete staging migration history
+    if: github.ref == 'refs/heads/codex/youtube-resumable-upload-repair'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    env:
+      SUPABASE_CLI_VERSION: "2.109.1"
+      AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED: "false"
+
+    steps:
+      - name: Checkout exact reviewed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Verify immutable review scope
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF" = "refs/heads/codex/youtube-resumable-upload-repair"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED" = "false"
+          test -d supabase/migrations
+          migration_count="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
+          test "$migration_count" -gt 0
+          printf 'Migration files discovered: %s\n' "$migration_count"
+
+      - name: Verify pinned CLI supports fail-closed dry run
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          help_output="$(npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push --help 2>&1)"
+          grep -F -- '--dry-run' <<<"$help_output" >/dev/null
+          grep -F -- '--include-all' <<<"$help_output" >/dev/null
+          unset help_output
+
+      - name: Validate staging target and generate migration plan only
+        shell: bash
+        env:
+          SUPABASE_STAGING_DB_URI_TEMPLATE: ${{ secrets.SUPABASE_STAGING_DB_URI_TEMPLATE }}
+          SUPABASE_STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          set -Eeuo pipefail
+          set +x
+          template="$SUPABASE_STAGING_DB_URI_TEMPLATE"
+          password="$SUPABASE_STAGING_DB_PASSWORD"
+          printf '::add-mask::%s\n' "$template"
+          printf '::add-mask::%s\n' "$password"
+          unset SUPABASE_STAGING_DB_URI_TEMPLATE SUPABASE_STAGING_DB_PASSWORD
+
+          encoded_password="$(
+            SUPABASE_STAGING_DB_PASSWORD="$password" \
+              node scripts/ci/supabase-staging-plan.mjs encode-password
+          )"
+          database_uri="$(
+            SUPABASE_STAGING_DB_URI_TEMPLATE="$template" \
+            SUPABASE_STAGING_DB_PASSWORD="$password" \
+              node scripts/ci/supabase-staging-plan.mjs assemble
+          )"
+          printf '::add-mask::%s\n' "$encoded_password"
+          printf '::add-mask::%s\n' "$database_uri"
+
+          cleanup() {
+            template=""
+            password=""
+            encoded_password=""
+            database_uri=""
+            unset template password encoded_password database_uri
+          }
+          trap cleanup EXIT HUP INT TERM
+
+          set +e
+          npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
+            --db-url "$database_uri" \
+            --dry-run \
+            --include-all \
+            --workdir "$GITHUB_WORKSPACE" \
+            --agent no \
+            --output-format text 2>&1 |
+            SUPABASE_STAGING_DB_URI_TEMPLATE="$template" \
+            SUPABASE_STAGING_DB_PASSWORD="$password" \
+            SUPABASE_STAGING_DB_PASSWORD_ENCODED="$encoded_password" \
+            SUPABASE_STAGING_DB_URI="$database_uri" \
+              node scripts/ci/supabase-staging-plan.mjs sanitize
+          dry_run_status=${PIPESTATUS[0]}
+          set -e
+          test "$dry_run_status" -eq 0
+
+      - name: Record sanitized plan result
+        shell: bash
+        run: |
+          {
+            printf '### Supabase staging migration plan\n\n'
+            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Target: protected `staging` environment\n'
+            printf -- '- Mode: complete migration history, dry run only\n'
+            printf -- '- Worker: disabled\n'
+            printf -- '- Database changes: none\n'
+          } >>"$GITHUB_STEP_SUMMARY"
