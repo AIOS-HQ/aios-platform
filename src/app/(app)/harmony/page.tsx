@@ -49,6 +49,10 @@ import { CreateCompanyDialog } from "@/components/harmony/os/create-company-dial
 import { CommandCenter } from "@/components/harmony/command-center/command-center";
 import { CommandCenterRecommendations } from "@/components/harmony/command-center/command-center-recommendations";
 import { CommandCenterBriefing } from "@/components/harmony/command-center/command-center-briefing";
+import {
+  HarmonyLiveFeed,
+  type FeedItem,
+} from "@/components/harmony/harmony-live-feed";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("os.commandCenter");
@@ -91,11 +95,41 @@ export default async function CommandCenterPage() {
   const companyOpts = companies.map((c) => ({ id: c.id, name: c.name }));
 
   const name = profile?.full_name?.trim() || user.email?.split("@")[0] || "";
+  const feedItems: FeedItem[] = [
+    {
+      label: t("feed.reviews.label"),
+      title: t("feed.reviews.title", { count: pendingApprovals }),
+      body: t("feed.reviews.body"),
+      tone: pendingApprovals > 0 ? "alert" : "status",
+      href: "/harmony/approvals",
+    },
+    {
+      label: t("feed.objectives.label"),
+      title: t("feed.objectives.title", { count: objectives.length }),
+      body: t("feed.objectives.body"),
+      tone: "feature",
+      href: "/harmony/objectives",
+    },
+    {
+      label: t("feed.companies.label"),
+      title: t("feed.companies.title", { count: companies.length }),
+      body: t("feed.companies.body"),
+      tone: "benefit",
+      href: "/harmony/companies",
+    },
+  ];
 
   if (companies.length === 0) {
     return (
       <>
         <PageHeader title={t("greeting", { name })} description={t("subtitle")} />
+        <HarmonyLiveFeed
+          audience="founder"
+          items={feedItems}
+          variant="authenticated"
+          linkLabel={t("feed.view")}
+          statusLabel={t("feed.status")}
+        />
         <EmptyState
           icon={Building2}
           title={t("empty.title")}
@@ -143,6 +177,14 @@ export default async function CommandCenterPage() {
         </HarmonyDelegateDialog>
       </PageHeader>
 
+      <HarmonyLiveFeed
+        audience="founder"
+        items={feedItems}
+        variant="authenticated"
+        linkLabel={t("feed.view")}
+        statusLabel={t("feed.status")}
+      />
+
       <StatTiles stats={stats} />
 
       <CommandCenterBriefing />
@@ -169,15 +211,15 @@ export default async function CommandCenterPage() {
               <Boxes className="size-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <p className="text-base font-semibold">Marketplace</p>
+              <p className="text-base font-semibold">{t("marketplace.title")}</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Discover and install AI workers, skills, workflows, and company templates.
+                {t("marketplace.description")}
               </p>
             </div>
           </div>
           <Button asChild className="shrink-0">
             <Link href="/harmony/marketplace">
-              Browse Marketplace
+              {t("marketplace.cta")}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           </Button>

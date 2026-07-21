@@ -19,7 +19,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "mb-8 rounded-xl border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-6",
+        "app-page-header mb-8 rounded-xl border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-6",
         className,
       )}
     >

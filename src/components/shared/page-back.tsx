@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { getAiosAgent } from "@/lib/workforce/registry";
@@ -30,20 +31,20 @@ const NAV_KEY: Record<string, string> = {
   brain: "brain",
   operator: "operator",
   advisor: "advisor",
+  personal: "dashboard",
+  graph: "graph",
+  auditor: "auditor",
+  integrations: "integrations",
+  connections: "connections",
+  diagnostics: "diagnostics",
+  learning: "learning",
+  memory: "brain",
+  departments: "departments",
+  projects: "projects",
 };
 
 /** Static fallback labels for segments without a nav key (no t() on missing keys). */
 const STATIC_LABEL: Record<string, string> = {
-  graph: "Relationship Graph",
-  auditor: "Auditor",
-  integrations: "Integrations",
-  connections: "Connections",
-  diagnostics: "Diagnostics",
-  learning: "Learning",
-  memory: "Memory",
-  departments: "Departments",
-  projects: "Projects",
-  personal: "Personal",
 };
 
 function titleCase(s: string): string {
@@ -80,21 +81,21 @@ export function PageBack() {
   };
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+    <nav aria-label={t("breadcrumb")} className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
       <button
         type="button"
         onClick={goBack}
         className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-foreground hover:bg-accent"
       >
         <ArrowLeft className="size-3.5" aria-hidden="true" />
-        Back
+        {t("back")}
       </button>
       <ol className="flex flex-wrap items-center gap-1">
         {crumbs.map((c, i) => (
           <li key={c.href} className="flex items-center gap-1">
             {i > 0 && <ChevronRight className="size-3 opacity-50" aria-hidden="true" />}
             {i < crumbs.length - 1 ? (
-              <a href={c.href} className="hover:text-foreground hover:underline">{c.label}</a>
+              <Link href={c.href} className="hover:text-foreground hover:underline">{c.label}</Link>
             ) : (
               <span className="text-foreground">{c.label}</span>
             )}

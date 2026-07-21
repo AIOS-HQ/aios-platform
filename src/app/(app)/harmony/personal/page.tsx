@@ -36,6 +36,10 @@ import { QuickAddTask } from "@/components/harmony/dashboard/quick-add-task";
 import { AdvisorPanel } from "@/components/harmony/advisor/advisor-panel";
 import { OperatorQuickInput } from "@/components/harmony/operator/operator-quick-input";
 import { HarmonyAvatar } from "@/components/brand/harmony-logo";
+import {
+  HarmonyLiveFeed,
+  type FeedItem,
+} from "@/components/harmony/harmony-live-feed";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("dashboard");
@@ -70,6 +74,34 @@ export default async function DashboardPage() {
   const activeGoals = activeGoalsAll.slice(0, 3);
   const recentNotes = notes.slice(0, 4);
   const recommendations = buildRecommendations({ tasks, goals, notes });
+  const feedItems: FeedItem[] = [
+    {
+      label: t("feed.priorities.label"),
+      title: t("feed.priorities.title", { count: today.length }),
+      body: t("feed.priorities.body", {
+        due: dueTodayCount,
+        overdue: overdueCount,
+      }),
+      tone: overdueCount > 0 ? "alert" : today.length > 0 ? "feature" : "status",
+      href: "/harmony/tasks",
+    },
+    {
+      label: t("feed.goals.label"),
+      title: t("feed.goals.title", { count: activeGoalsAll.length }),
+      body: t("feed.goals.body"),
+      tone: "benefit",
+      href: "/harmony/goals",
+    },
+    {
+      label: t("feed.recommendations.label"),
+      title: t("feed.recommendations.title", {
+        count: recommendations.length,
+      }),
+      body: t("feed.recommendations.body"),
+      tone: "feature",
+      href: "/harmony/operator?tab=suggestions",
+    },
+  ];
   const isNew =
     tasks.length === 0 && goals.length === 0 && notes.length === 0;
 
@@ -87,6 +119,14 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader title={greeting} description={t("subtitle")} />
+
+      <HarmonyLiveFeed
+        audience="customer"
+        items={feedItems}
+        variant="authenticated"
+        linkLabel={t("feed.view")}
+        statusLabel={t("feed.status")}
+      />
 
       {/* Harmony — the customer's AI Chief of Staff — is the front door: ask for
           anything and Harmony coordinates the work behind the scenes. */}

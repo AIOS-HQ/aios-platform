@@ -1203,10 +1203,349 @@
   }
 }
 
+@media (pointer: coarse) {
+  .app-executive button,
+  .app-executive [role="button"],
+  .app-executive input,
+  .app-executive select {
+    min-height: 2.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-public-nav__item,
   .auth-feed__buttons button {
     transition: none;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Authenticated AIOS executive workspace
+   Shared role-aware shell for Customer Harmony and Founder OS. The default
+   presentation is dark (ThemeScript defaults to dark); explicit light mode
+   keeps the same depth and hierarchy with higher-luminance surfaces.
+   ─────────────────────────────────────────────────────────────────────────── */
+.app-executive {
+  color-scheme: light;
+  --background: oklch(0.94 0.014 260);
+  --foreground: oklch(0.2 0.03 260);
+  --card: oklch(0.985 0.008 260 / 0.92);
+  --card-foreground: oklch(0.2 0.03 260);
+  --popover: oklch(0.99 0.006 260);
+  --popover-foreground: oklch(0.2 0.03 260);
+  --primary: oklch(0.56 0.2 265);
+  --primary-foreground: oklch(0.99 0.01 260);
+  --secondary: oklch(0.92 0.02 260);
+  --secondary-foreground: oklch(0.26 0.04 260);
+  --muted: oklch(0.91 0.018 260);
+  --muted-foreground: oklch(0.43 0.035 260);
+  --accent: oklch(0.9 0.045 265);
+  --accent-foreground: oklch(0.3 0.08 265);
+  --border: oklch(0.82 0.025 260);
+  --input: oklch(0.8 0.03 260);
+  --ring: oklch(0.6 0.18 255);
+  --canvas: oklch(0.97 0.01 260 / 0.86);
+  --canvas-border: oklch(0.8 0.03 260);
+  --sidebar: oklch(0.14 0.035 260);
+  --sidebar-foreground: oklch(0.95 0.012 255);
+  --sidebar-border: oklch(0.3 0.045 260);
+  --shadow-soft: 0 18px 44px -30px oklch(0.22 0.08 260 / 0.34),
+    inset 0 1px 0 oklch(1 0 0 / 0.65);
+  --shadow-canvas: 0 30px 80px -48px oklch(0.24 0.1 260 / 0.46),
+    inset 0 1px 0 oklch(1 0 0 / 0.62);
+  background:
+    radial-gradient(circle at 75% 4%, rgba(89, 100, 225, 0.13), transparent 31rem),
+    linear-gradient(145deg, #e8edf8 0%, #f3f6fc 48%, #e7edf8 100%);
+}
+
+.dark .app-executive {
+  color-scheme: dark;
+  --background: oklch(0.115 0.028 260);
+  --foreground: oklch(0.96 0.012 255);
+  --card: oklch(0.18 0.035 260 / 0.88);
+  --card-foreground: oklch(0.96 0.012 255);
+  --popover: oklch(0.165 0.035 260);
+  --popover-foreground: oklch(0.96 0.012 255);
+  --primary: oklch(0.7 0.17 255);
+  --primary-foreground: oklch(0.12 0.025 260);
+  --secondary: oklch(0.22 0.035 260);
+  --secondary-foreground: oklch(0.94 0.012 255);
+  --muted: oklch(0.235 0.03 260);
+  --muted-foreground: oklch(0.75 0.025 255);
+  --accent: oklch(0.27 0.065 265);
+  --accent-foreground: oklch(0.96 0.015 255);
+  --border: oklch(0.32 0.035 260);
+  --input: oklch(0.34 0.04 260);
+  --ring: oklch(0.72 0.16 245);
+  --canvas: oklch(0.145 0.03 260 / 0.84);
+  --canvas-border: oklch(0.3 0.045 260);
+  --sidebar: oklch(0.09 0.025 260 / 0.96);
+  --sidebar-foreground: oklch(0.95 0.012 255);
+  --sidebar-border: oklch(0.25 0.04 260);
+  --shadow-soft: 0 20px 48px -34px rgba(48, 70, 155, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  --shadow-canvas: 0 34px 90px -52px rgba(45, 71, 178, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  background:
+    radial-gradient(circle at 72% 4%, rgba(76, 83, 220, 0.16), transparent 34rem),
+    radial-gradient(circle at 28% 100%, rgba(24, 104, 190, 0.1), transparent 38rem),
+    linear-gradient(150deg, #030711 0%, #071021 54%, #03050d 100%);
+}
+
+.app-executive__grid {
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(83, 112, 190, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(83, 112, 190, 0.055) 1px, transparent 1px);
+  background-size: 52px 52px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.65), transparent 94%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.65), transparent 94%);
+}
+
+.dark .app-executive__grid {
+  background-image:
+    linear-gradient(to right, rgba(111, 139, 224, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(111, 139, 224, 0.05) 1px, transparent 1px);
+}
+
+.app-executive__glow {
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(110px);
+}
+
+.app-executive__glow--top {
+  top: -17rem;
+  right: 4%;
+  width: 42rem;
+  height: 31rem;
+  background: rgba(83, 78, 222, 0.17);
+}
+
+.app-executive__glow--floor {
+  bottom: -20rem;
+  left: 23%;
+  width: 54rem;
+  height: 32rem;
+  background: rgba(25, 109, 194, 0.1);
+}
+
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow: hidden;
+  border-color: var(--sidebar-border);
+  background:
+    radial-gradient(circle at 50% 0, rgba(76, 92, 210, 0.12), transparent 14rem),
+    var(--sidebar);
+  box-shadow: 18px 0 64px -52px rgba(71, 93, 210, 0.8);
+}
+
+.app-topbar {
+  border-color: color-mix(in oklab, var(--canvas-border) 72%, transparent);
+  background: color-mix(in oklab, var(--canvas) 88%, transparent);
+  box-shadow: 0 12px 36px -30px rgba(30, 48, 116, 0.5);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.app-content-surface,
+.app-surface {
+  border-color: color-mix(in oklab, var(--canvas-border) 82%, transparent);
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--canvas) 95%, white 5%), var(--canvas));
+  box-shadow: var(--shadow-canvas);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+
+.app-page-header {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in oklab, var(--canvas-border) 82%, transparent);
+  background:
+    radial-gradient(circle at 92% 0, color-mix(in oklab, var(--primary) 12%, transparent), transparent 16rem),
+    color-mix(in oklab, var(--card) 94%, transparent);
+}
+
+.app-page-header::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  content: "";
+  background: linear-gradient(to bottom, transparent, var(--primary), transparent);
+  opacity: 0.8;
+}
+
+.dark .app-content-surface,
+.dark .app-surface {
+  background:
+    linear-gradient(145deg, rgba(76, 100, 166, 0.06), rgba(255, 255, 255, 0.012)),
+    var(--canvas);
+}
+
+.app-executive .rounded-xl.border.bg-card,
+.app-executive .card-elevated {
+  border-color: color-mix(in oklab, var(--border) 84%, transparent);
+}
+
+.app-executive input,
+.app-executive textarea,
+.app-executive [role="combobox"] {
+  min-height: 2.75rem;
+}
+
+.app-executive button,
+.app-executive a {
+  text-underline-offset: 0.22em;
+}
+
+.app-mobile-nav {
+  background:
+    radial-gradient(circle at 40% 0, rgba(76, 92, 210, 0.14), transparent 15rem),
+    var(--sidebar);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-feed {
+  display: grid;
+  min-height: 12.5rem;
+  margin-bottom: 1.5rem;
+  grid-template-columns: minmax(10rem, 19%) minmax(0, 1.25fr) minmax(14rem, 0.95fr) 7.5rem;
+  overflow: hidden;
+  border-radius: 1.15rem;
+}
+
+.app-feed .auth-feed__art {
+  min-height: 12.5rem;
+}
+
+.app-feed .auth-feed__story {
+  padding-block: 1.35rem;
+}
+
+.app-feed .auth-feed__announcement {
+  margin-right: 0.9rem;
+}
+
+.app-route-state {
+  display: flex;
+  min-height: min(34rem, calc(100dvh - 9rem));
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed color-mix(in oklab, var(--destructive) 45%, var(--border));
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--card) 92%, transparent);
+  padding: 2rem;
+  text-align: center;
+}
+
+.app-route-state__icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 1rem;
+  place-items: center;
+  border: 1px solid color-mix(in oklab, var(--destructive) 35%, var(--border));
+  border-radius: 0.9rem;
+  background: color-mix(in oklab, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+.app-route-state__icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.app-route-state h1 {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.app-route-state p {
+  max-width: 30rem;
+  margin: 0.65rem 0 1.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .app-feed {
+    grid-template-columns: minmax(9rem, 24%) minmax(0, 1fr) 7.5rem;
+  }
+
+  .app-feed .auth-feed__announcement {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-executive__grid {
+    background-size: 42px 42px;
+    opacity: 0.72;
+  }
+
+  .app-content-surface {
+    border-radius: 1rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .app-feed {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .app-feed .auth-feed__art {
+    min-height: 7rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(117, 147, 204, 0.16);
+  }
+
+  .app-feed .auth-feed__mark {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .app-feed .auth-feed__story {
+    padding: 1.25rem;
+  }
+
+  .app-feed .auth-feed__announcement {
+    display: block;
+    min-height: 0;
+    margin: 0 1rem 1rem;
+  }
+
+  .app-feed .auth-feed__controls {
+    flex-direction: row;
+    justify-content: space-between;
+    border-top: 1px solid rgba(117, 147, 204, 0.14);
+    border-left: 0;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-executive .animate-spin {
+    animation: none;
+  }
+
+  .app-topbar,
+  .app-content-surface,
+  .app-surface {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 

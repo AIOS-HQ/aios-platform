@@ -197,9 +197,22 @@ export function sectionsForAudience(isFounder: boolean): NavSection[] {
 }
 
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const current = normalizeNavPathname(pathname);
+  const destination = normalizeNavPathname(item.href);
   return item.exact
-    ? pathname === item.href
-    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+    ? current === destination
+    : current === destination || current.startsWith(`${destination}/`);
+}
+
+/**
+ * App Router pathnames do not include query/hash values, but direct loads and
+ * proxies may preserve a trailing slash. Normalize both inputs so desktop,
+ * mobile, back/forward, and rapid navigation resolve one deterministic item.
+ */
+export function normalizeNavPathname(pathname: string): string {
+  const path = pathname.split(/[?#]/, 1)[0] || "/";
+  if (path === "/") return path;
+  return path.replace(/\/+$/, "");
 }
 
 /**
