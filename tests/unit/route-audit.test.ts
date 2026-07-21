@@ -183,9 +183,14 @@ describe("launch route audit", () => {
       path.join(process.cwd(), "src/app/(app)/harmony/social/page.tsx"),
       "utf8",
     );
+    const uploader = fs.readFileSync(
+      path.join(process.cwd(), "src/components/harmony/social/youtube-draft-uploader.tsx"),
+      "utf8",
+    );
     expect(source).toContain("prepareLinkedInTestDraft");
     expect(source).toContain("prepareXTestDraft");
-    expect(source).toContain("prepareYouTubeDraft");
+    expect(source).toContain("YouTubeDraftUploader");
+    expect(source).not.toContain("prepareYouTubeDraft");
     expect(source).toContain("approveSocialDraft");
     expect(source).toContain("publishSocialDraft");
     expect(source).toContain("Provider health");
@@ -204,8 +209,9 @@ describe("launch route audit", () => {
     expect(source).toContain("Thumbnail upload");
     expect(source).toContain("Scheduled publishing");
     expect(source).toContain("Shorts publishing");
-    expect(source).toContain("Prepare YouTube draft");
-    expect(source).toContain("Scheduled publish time");
+    expect(uploader).toContain('t("prepareDraft")');
+    expect(uploader).toContain('t("scheduledAt")');
+    expect(uploader).toContain("uploadFileWithTus");
     expect(source).toContain("Retry publish");
     expect(source).not.toContain("access_token");
     expect(source).not.toContain("refresh_token");

@@ -5,7 +5,12 @@ import { getProviderHealth } from "@/lib/integrations/connector-health";
 import { redactDiagnostics, redactSecret } from "@/lib/integrations/secret-redaction";
 import { getValidAccessToken } from "@/lib/integrations/token-refresh";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { downloadAssetBytes } from "@/lib/social-publishing/storage";
+import { downloadAssetBytes, readAssetRange } from "@/lib/social-publishing/storage";
+import {
+  ExpiredYouTubeUploadSessionError,
+  uploadYouTubeResumable,
+  type YouTubeUploadResponse,
+} from "@/lib/social-publishing/youtube-resumable";
 import { updateYouTubeUploadProgress } from "../jobs";
 import { validateYouTubeShort } from "../media";
 import type {
@@ -115,32 +120,113 @@ export async function listYouTubePlaylists(userId: string): Promise<YouTubePlayl
     .filter((playlist) => Boolean(playlist.id));
 }
 
-async function findUploadSession(userId: string, jobId: string): Promise<string | null> {
+type UploadSession = {
+  uploadUrl: string;
+  acknowledgedOffset: number;
+  totalBytes: number | null;
+  retryCount: number;
+  verifyOffset: boolean;
+  completedVideoId: string | null;
+};
+
+async function findUploadSession(userId: string, jobId: string): Promise<UploadSession | null> {
   const admin = createAdminClient();
   if (!admin) return null;
   const { data } = await admin
     .from("youtube_upload_sessions")
-    .select("upload_url_encrypted")
+    .select("upload_url_encrypted,acknowledged_offset,total_bytes,retry_count,status,session_expires_at,provider_video_id")
     .eq("user_id", userId)
     .eq("job_id", jobId)
     .maybeSingle();
-  const encrypted = (data as { upload_url_encrypted?: string | null } | null)?.upload_url_encrypted ?? null;
-  return decryptToken(encrypted);
+  if (!data) return null;
+  const row = data as Record<string, unknown>;
+  const status = String(row.status ?? "");
+  const completedVideoId = row.provider_video_id ? String(row.provider_video_id) : null;
+  if (status === "completed" && completedVideoId) {
+    return {
+      uploadUrl: "",
+      acknowledgedOffset: Number(row.acknowledged_offset ?? 0),
+      totalBytes: row.total_bytes == null ? null : Number(row.total_bytes),
+      retryCount: Number(row.retry_count ?? 0),
+      verifyOffset: false,
+      completedVideoId,
+    };
+  }
+  if (status !== "uploading") return null;
+  const uploadUrl = decryptToken(row.upload_url_encrypted as string | null);
+  const expiresAt = row.session_expires_at ? new Date(String(row.session_expires_at)).getTime() : null;
+  if (!uploadUrl || (expiresAt != null && expiresAt <= Date.now())) return null;
+  return {
+    uploadUrl,
+    acknowledgedOffset: Number(row.acknowledged_offset ?? 0),
+    totalBytes: row.total_bytes == null ? null : Number(row.total_bytes),
+    retryCount: Number(row.retry_count ?? 0),
+    verifyOffset: true,
+    completedVideoId: null,
+  };
 }
 
-async function persistUploadSession(userId: string, jobId: string, uploadUrl: string): Promise<void> {
+async function persistUploadSession(input: {
+  userId: string;
+  jobId: string;
+  uploadUrl: string;
+  totalBytes: number;
+  acknowledgedOffset?: number;
+}): Promise<void> {
   const admin = createAdminClient();
-  if (!admin) return;
-  await admin.from("youtube_upload_sessions").upsert(
+  if (!admin) throw new Error("Admin client unavailable.");
+  const { error } = await admin.from("youtube_upload_sessions").upsert(
     {
-      user_id: userId,
-      job_id: jobId,
-      upload_url_encrypted: encryptToken(uploadUrl),
+      user_id: input.userId,
+      job_id: input.jobId,
+      upload_url_encrypted: encryptToken(input.uploadUrl),
       status: "uploading",
+      acknowledged_offset: input.acknowledgedOffset ?? 0,
+      total_bytes: input.totalBytes,
+      retry_count: 0,
+      session_expires_at: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+      last_error_code: null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,job_id" },
   );
+  if (error) throw new Error("YouTube upload recovery state could not be saved.");
+}
+
+async function updateUploadSessionOffset(input: {
+  userId: string;
+  jobId: string;
+  offset: number;
+  retryCount: number;
+}): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) throw new Error("Admin client unavailable.");
+  const { error } = await admin
+    .from("youtube_upload_sessions")
+    .update({
+      acknowledged_offset: input.offset,
+      retry_count: input.retryCount,
+      last_error_code: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", input.userId)
+    .eq("job_id", input.jobId)
+    .eq("status", "uploading");
+  if (error) throw new Error("YouTube upload offset could not be saved.");
+}
+
+async function markUploadSessionExpired(userId: string, jobId: string): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  await admin
+    .from("youtube_upload_sessions")
+    .update({
+      status: "expired",
+      last_error_code: "session_expired",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("job_id", jobId);
 }
 
 async function completeUploadSession(userId: string, jobId: string, videoId: string): Promise<void> {
@@ -148,7 +234,11 @@ async function completeUploadSession(userId: string, jobId: string, videoId: str
   if (!admin) return;
   await admin
     .from("youtube_upload_sessions")
-    .update({ status: "completed", provider_video_id: videoId, updated_at: new Date().toISOString() })
+    .update({
+      status: "completed",
+      provider_video_id: videoId,
+      updated_at: new Date().toISOString(),
+    })
     .eq("user_id", userId)
     .eq("job_id", jobId);
 }
@@ -162,10 +252,10 @@ async function initializeResumableUpload(
 ): Promise<string> {
   const publishAt = job.scheduledAt ? new Date(job.scheduledAt).toISOString() : undefined;
   const privacyStatus = publishAt ? "private" : visibility;
-  const response = await fetch(`${YOUTUBE_UPLOAD_API}/videos?uploadType=resumable&part=snippet,status`, {
+  const response = await fetch(YOUTUBE_UPLOAD_API + "/videos?uploadType=resumable&part=snippet,status", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: "Bearer " + token,
       "Content-Type": "application/json; charset=UTF-8",
       "X-Upload-Content-Type": video.mimeType,
       "X-Upload-Content-Length": String(video.byteSize),
@@ -186,35 +276,106 @@ async function initializeResumableUpload(
   });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`YouTube upload initialization failed (${response.status}): ${redactSecret(text).slice(0, 500)}`);
+    throw new Error("YouTube upload initialization failed (" + response.status + "): " + redactSecret(text).slice(0, 500));
   }
   const location = response.headers.get("location");
   if (!location) throw new Error("YouTube upload initialization did not return a resumable upload URL.");
   return location;
 }
 
-async function uploadVideoBytes(token: string, uploadUrl: string, video: SocialMediaAsset): Promise<YouTubeVideoResponse> {
-  const bytes = await downloadAssetBytes(video.storagePath);
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": video.mimeType,
-      "Content-Length": String(bytes.byteLength),
-      "Content-Range": `bytes 0-${bytes.byteLength - 1}/${bytes.byteLength}`,
-    },
-    body: Buffer.from(bytes),
-  });
-  const text = await response.text();
-  if (response.status === 308) {
-    throw new Error("YouTube upload is incomplete and can be retried safely.");
+async function uploadVideoFromStorage(input: {
+  token: string;
+  userId: string;
+  job: SocialPublishJob;
+  video: SocialMediaAsset;
+  channelId: string;
+  visibility: YouTubeVisibility;
+}): Promise<YouTubeUploadResponse> {
+  let session = await findUploadSession(input.userId, input.job.id);
+  if (session?.totalBytes != null && session.totalBytes !== input.video.byteSize) {
+    await markUploadSessionExpired(input.userId, input.job.id);
+    session = null;
   }
-  if (!response.ok) {
-    throw new Error(`YouTube video upload failed (${response.status}): ${redactSecret(text).slice(0, 500)}`);
+  if (session?.completedVideoId) return { id: session.completedVideoId };
+  if (!session) {
+    const uploadUrl = await initializeResumableUpload(
+      input.token,
+      input.job,
+      input.video,
+      input.channelId,
+      input.visibility,
+    );
+    await persistUploadSession({
+      userId: input.userId,
+      jobId: input.job.id,
+      uploadUrl,
+      totalBytes: input.video.byteSize,
+    });
+    session = {
+      uploadUrl,
+      acknowledgedOffset: 0,
+      totalBytes: input.video.byteSize,
+      retryCount: 0,
+      verifyOffset: false,
+      completedVideoId: null,
+    };
   }
-  return (text ? JSON.parse(text) : {}) as YouTubeVideoResponse;
-}
 
+  const run = async (active: UploadSession): Promise<YouTubeUploadResponse> =>
+    uploadYouTubeResumable({
+      uploadUrl: active.uploadUrl,
+      accessToken: input.token,
+      mimeType: input.video.mimeType,
+      totalBytes: input.video.byteSize,
+      acknowledgedOffset: active.acknowledgedOffset,
+      verifyOffsetBeforeUpload: active.verifyOffset,
+      readChunk: (start, endInclusive) => readAssetRange(input.video.storagePath, start, endInclusive),
+      onAcknowledgedOffset: async (offset, retryCount) => {
+        await updateUploadSessionOffset({
+          userId: input.userId,
+          jobId: input.job.id,
+          offset,
+          retryCount,
+        });
+        await updateYouTubeUploadProgress({
+          userId: input.userId,
+          jobId: input.job.id,
+          state: "uploading",
+          progress: 10 + (offset / input.video.byteSize) * 60,
+          processingStatus: "uploading",
+          diagnostics: { stage: "resumable_upload", acknowledgedBytes: offset, totalBytes: input.video.byteSize },
+        });
+      },
+    });
+
+  try {
+    return await run(session);
+  } catch (error) {
+    if (!(error instanceof ExpiredYouTubeUploadSessionError)) throw error;
+    await markUploadSessionExpired(input.userId, input.job.id);
+    const uploadUrl = await initializeResumableUpload(
+      input.token,
+      input.job,
+      input.video,
+      input.channelId,
+      input.visibility,
+    );
+    await persistUploadSession({
+      userId: input.userId,
+      jobId: input.job.id,
+      uploadUrl,
+      totalBytes: input.video.byteSize,
+    });
+    return run({
+      uploadUrl,
+      acknowledgedOffset: 0,
+      totalBytes: input.video.byteSize,
+      retryCount: 0,
+      verifyOffset: false,
+      completedVideoId: null,
+    });
+  }
+}
 async function uploadThumbnail(token: string, videoId: string, thumbnail: SocialMediaAsset): Promise<void> {
   const bytes = await downloadAssetBytes(thumbnail.storagePath);
   await youtubeFetch(token, `${YOUTUBE_UPLOAD_API}/thumbnails/set?videoId=${encodeURIComponent(videoId)}`, {
@@ -228,6 +389,11 @@ async function uploadThumbnail(token: string, videoId: string, thumbnail: Social
 }
 
 async function addToPlaylist(token: string, videoId: string, playlistId: string): Promise<void> {
+  const existing = await youtubeFetch<{ items?: Array<{ id?: string }> }>(
+    token,
+    `${YOUTUBE_API}/playlistItems?part=id&playlistId=${encodeURIComponent(playlistId)}&videoId=${encodeURIComponent(videoId)}&maxResults=1`,
+  );
+  if ((existing.items ?? []).length > 0) return;
   await youtubeFetch(token, `${YOUTUBE_API}/playlistItems?part=snippet`, {
     method: "POST",
     body: JSON.stringify({
@@ -297,11 +463,14 @@ export const youTubePublishingAdapter: ProviderAdapter = {
       diagnostics: { stage: "resumable_upload" },
     });
 
-    const sessionUrl = await findUploadSession(userId, job.id)
-      ?? await initializeResumableUpload(token, job, video, channelId, visibility);
-    await persistUploadSession(userId, job.id, sessionUrl);
-
-    const uploaded = await uploadVideoBytes(token, sessionUrl, video);
+    const uploaded = await uploadVideoFromStorage({
+      token,
+      userId,
+      job,
+      video,
+      channelId,
+      visibility,
+    });
     const videoId = uploaded.id;
     if (!videoId) throw new Error("YouTube upload response did not include a video id.");
     await completeUploadSession(userId, job.id, videoId);
