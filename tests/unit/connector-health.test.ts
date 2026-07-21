@@ -34,6 +34,8 @@ describe("normalized connector health", () => {
     expect(health.configured).toBe(false);
     expect(health.connected).toBe(false);
     expect(health.healthy).toBe(false);
+    expect(health.status).toBe("degraded");
+    expect(health.evidenceType).toBe("configuration_proof");
     expect(health.blockers.join(" ")).toContain("OAuth family");
     expect(JSON.stringify(health)).not.toMatch(/token-value|secret-value/i);
   });
@@ -83,6 +85,9 @@ describe("normalized connector health", () => {
     expect(health.configured).toBe(true);
     expect(health.connected).toBe(true);
     expect(health.healthy).toBe(true);
+    expect(health.status).toBe("healthy");
+    expect(health.evidenceType).toBe("authenticated_runtime_proof");
+    expect(health.observedBy).toBe("connector.health");
     expect(health.identity).toBe("AIOS-HQ");
     expect(health.capabilityDetails.some((cap) => cap.implemented)).toBe(true);
     expect(JSON.stringify(health)).not.toContain("token-value");

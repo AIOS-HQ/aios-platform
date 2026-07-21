@@ -1,5 +1,10 @@
 import "server-only";
 
+import type { EvidenceMetadata, EvidenceType } from "@/lib/evidence/model";
+import {
+  createCertificationEvidence,
+  evidenceTypeFromVercelTier,
+} from "@/lib/evidence/certification";
 import { getProviderHealth } from "@/lib/integrations/connector-health";
 import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
@@ -55,7 +60,13 @@ export interface WorkforceRuntimeContract {
   unsupportedCapabilities: string[];
 }
 
-export interface WorkforceDependencyReadiness extends WorkforceConnectorDependency {
+export interface WorkforceDependencyReadiness
+  extends WorkforceConnectorDependency,
+    EvidenceMetadata<{
+      scope: "connector_dependency";
+      provider: string;
+      runtimeProbed: boolean;
+    }> {
   exists: boolean;
   configured: boolean;
   connected: boolean;
@@ -65,7 +76,12 @@ export interface WorkforceDependencyReadiness extends WorkforceConnectorDependen
   missingCapabilities: string[];
 }
 
-export interface WorkforceAgentCertification {
+export interface WorkforceAgentCertification
+  extends EvidenceMetadata<{
+    scope: "workforce_runtime_contract";
+    runtimeProbed: false;
+    dependencyChecks: number;
+  }> {
   agent: AiosAgent;
   founderOnly: boolean;
   juliusAccess: AiosAgent["julius"];
@@ -259,6 +275,15 @@ function vercelCapabilityImplemented(capability: string): boolean {
   return VERCEL_READ_CAPABILITIES.has(capability);
 }
 
+function dependencyEvidenceType(
+  health: Awaited<ReturnType<typeof getProviderHealth>> | null,
+): EvidenceType {
+  if (health?.deploymentStatus) {
+    return evidenceTypeFromVercelTier(health.deploymentStatus.evidenceTier);
+  }
+  return health ? "authenticated_runtime_proof" : "configuration_proof";
+}
+
 async function evaluateDependency(
   userId: string | null,
   dependency: WorkforceConnectorDependency,
@@ -266,12 +291,23 @@ async function evaluateDependency(
   const def = getConnectorDefinition(dependency.provider);
   const configured = providerConfigured(dependency.provider);
   if (!def) {
+    const evidence = createCertificationEvidence({
+      status: "unsupported" as const,
+      evidenceType: "source_code_proof",
+      observedBy: "workforce.certification.dependency",
+      confidence: 1,
+      details: {
+        scope: "connector_dependency" as const,
+        provider: dependency.provider,
+        runtimeProbed: false,
+      },
+    });
     return {
       ...dependency,
+      ...evidence,
       exists: false,
       configured: false,
       connected: false,
-      status: "unsupported",
       blockers: ["Connector is not registered."],
       implementedCapabilities: [],
       missingCapabilities: dependency.capabilities,
@@ -303,12 +339,31 @@ async function evaluateDependency(
   else if (blockers.length > 0) status = "partial";
   else status = dependency.required ? "production_ready" : "operational_with_approval";
 
+  const evidenceType = dependencyEvidenceType(health);
+  const evidence = createCertificationEvidence({
+    status,
+    evidenceType,
+    observedBy: "workforce.certification.dependency",
+    confidence:
+      evidenceType === "live_runtime_proof"
+        ? 1
+        : evidenceType === "authenticated_runtime_proof"
+          ? 0.85
+          : evidenceType === "configuration_proof"
+            ? 0.75
+            : 0,
+    details: {
+      scope: "connector_dependency" as const,
+      provider: dependency.provider,
+      runtimeProbed: Boolean(health),
+    },
+  });
   return {
     ...dependency,
+    ...evidence,
     exists: true,
     configured: health?.configured ?? configured,
     connected: health?.connected ?? false,
-    status,
     blockers,
     implementedCapabilities,
     missingCapabilities,
@@ -345,14 +400,27 @@ export async function certifyWorkforceAgent(
     ...contract.unsupportedCapabilities.map((capability) => `Unsupported: ${capability}.`),
   ];
 
+  const evidence = createCertificationEvidence({
+    status,
+    evidenceType: "source_code_proof",
+    observedBy: "workforce.certification.runtime_contract",
+    confidence: 1,
+    details: {
+      scope: "workforce_runtime_contract" as const,
+      runtimeProbed: false as const,
+      dependencyChecks: dependencyReadiness.length,
+    },
+  });
+
   return {
     agent,
     founderOnly: isFounderOnlyAgent(agent.key),
     juliusAccess: agent.julius,
     contract,
-    status,
+    ...evidence,
     label: WORKFORCE_STATUS_LABELS[status],
-    health: status === "blocked" ? "blocked" : dependencyBlockers.length > 0 ? "degraded" : "healthy",
+    // Runtime contracts and dependency metadata are not live agent health.
+    health: status === "blocked" ? "blocked" : "degraded",
     blockers,
     dependencyReadiness,
   };
