@@ -6,7 +6,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { LoginForm } from "@/components/auth/login-form";
 import { safeRedirectPath } from "@/lib/auth/redirects";
@@ -30,9 +29,9 @@ export default async function LoginPage({
   return (
     <Card className="border-0 bg-transparent shadow-none">
       <CardHeader className="space-y-2 px-5 pt-6 text-center sm:px-7 sm:pt-7">
-        <CardTitle className="text-2xl text-white sm:text-3xl">
+        <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           {t("login.title")}
-        </CardTitle>
+        </h2>
         <CardDescription className="text-sm leading-6 text-slate-300">
           {t("login.subtitle")}
         </CardDescription>

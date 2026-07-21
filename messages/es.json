@@ -93,11 +93,39 @@
     },
     "executive": {
       "homeAria": "Inicio de Harmony",
+      "workspaceLabel": "Espacio de autenticación de AIOS",
+      "nav": {
+        "label": "Navegación pública",
+        "menu": "Menú de navegación",
+        "openMenu": "Abrir menú de navegación",
+        "access": "Iniciar sesión",
+        "home": "Inicio",
+        "features": "Funciones",
+        "pricing": "Precios",
+        "resources": "Recursos",
+        "updates": "Actualizaciones",
+        "status": "Estado del sistema",
+        "company": "Empresa",
+        "contact": "Contacto"
+      },
+      "utility": {
+        "label": "Controles de cuenta e idioma",
+        "register": "Crear cuenta"
+      },
       "eyebrow": "Sistema Operativo Autónomo",
       "title": "Entra a tu espacio ejecutivo.",
       "subtitle": "Harmony reúne tu sistema operativo, tu capa de inteligencia y tu fuerza laboral de IA en una superficie segura de mando.",
       "support": "¿Necesitas ayuda para entrar a tu espacio?",
       "supportCta": "Centro de ayuda",
+      "advice": {
+        "label": "Guía de Harmony",
+        "body": "Usa la misma cuenta segura para volver a tu contexto, tus decisiones y tu trabajo coordinado."
+      },
+      "footer": {
+        "copyright": "© {year} AIOS. Todos los derechos reservados.",
+        "privacy": "Privacidad",
+        "terms": "Términos"
+      },
       "signals": [
         "Sesión segura",
         "Contexto operativo en vivo",
@@ -105,6 +133,10 @@
       ],
       "feed": {
         "label": "Feed en vivo de Harmony",
+        "announcement": "Anuncio actual",
+        "learnMore": "Explorar AIOS",
+        "position": "{current} de {total}",
+        "operational": "Portal de acceso listo",
         "previous": "Actualización anterior",
         "next": "Siguiente actualización",
         "customer": [
@@ -128,8 +160,8 @@
           },
           {
             "label": "Estado del sistema",
-            "title": "Servicios principales operando normalmente",
-            "body": "La autenticación y el acceso al espacio de Harmony están disponibles.",
+            "title": "Tu vista autorizada está a un inicio de sesión",
+            "body": "La salud de la empresa y de las integraciones permanece dentro del espacio seguro de AIOS.",
             "tone": "status"
           }
         ],

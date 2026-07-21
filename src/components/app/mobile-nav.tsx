@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { sectionsForAudience } from "./nav-config";
 import { NavLink } from "./nav-link";
@@ -48,7 +48,7 @@ export function MobileNav({
       <DialogContent className="left-0 top-0 flex h-dvh max-w-[17rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r border-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:rounded-none">
         <DialogTitle className="sr-only">{t("menu")}</DialogTitle>
         <div className="flex h-16 items-center border-b border-sidebar-border/70 px-4">
-          <AiosHarmonyLogo />
+          <HarmonyMark className="size-10" title="Harmony" />
         </div>
         <nav
           className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4"

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeScript } from "@/components/theme-script";
+import { HARMONY_LOGO_SRC } from "@/components/brand/harmony-logo-asset";
 import { APP_DESCRIPTION, APP_FULL_NAME } from "@/lib/constants";
 import "./globals.css";
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
   title: { default: `${APP_FULL_NAME} — Intelligent Operating Systems`, template: `%s · ${APP_FULL_NAME}` },
   description: APP_DESCRIPTION,
   applicationName: APP_FULL_NAME,
+  icons: { icon: HARMONY_LOGO_SRC },
 };
 
 export const viewport: Viewport = {

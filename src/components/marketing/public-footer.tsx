@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { APP_NAME, APP_DESCRIPTION, AIOS_PRINCIPLES } from "@/lib/constants";
 
 /**
@@ -45,7 +45,7 @@ export function PublicFooter() {
     <footer className="border-t bg-muted/30">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div className="flex flex-col gap-3">
-          <AiosHarmonyLogo />
+          <HarmonyMark className="size-11" title="Harmony" />
           <p className="max-w-xs text-sm text-muted-foreground">{APP_DESCRIPTION}</p>
           <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {AIOS_PRINCIPLES.map((p) => (

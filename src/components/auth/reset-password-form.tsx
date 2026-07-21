@@ -16,7 +16,7 @@ export function ResetPasswordForm() {
 
   return (
     <form action={action} className="space-y-4" noValidate>
-      <FormMessage state={state} />
+      <FormMessage state={state} id="reset-form-message" />
       <div className="space-y-2">
         <Label htmlFor="email">{t("fields.email")}</Label>
         <Input
@@ -25,6 +25,8 @@ export function ResetPasswordForm() {
           type="email"
           autoComplete="email"
           required
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "reset-form-message" : undefined}
         />
       </div>
       <SubmitButton className="w-full" pendingLabel={tc("loading")}>

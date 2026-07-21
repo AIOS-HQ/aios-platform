@@ -1,118 +1,144 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, type ComponentType } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
-  ArrowLeft,
-  Bell,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  CircleAlert,
-  ShieldCheck,
+  Activity,
+  BookOpen,
+  Building2,
+  CreditCard,
+  House,
+  LogIn,
+  Mail,
+  Megaphone,
+  Menu,
   Sparkles,
 } from "lucide-react";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  HarmonyLiveFeed,
+  type FeedAudience,
+} from "@/components/auth/harmony-live-feed";
 import { cn } from "@/lib/utils";
 
-type FeedAudience = "customer" | "founder";
-type FeedTone = "status" | "feature" | "benefit" | "alert";
-type FeedItem = {
-  label: string;
-  title: string;
-  body: string;
-  tone: FeedTone;
+type PublicNavItem = {
+  key: string;
+  href?: string;
+  icon: ComponentType<{ className?: string }>;
+  authActive?: boolean;
 };
 
-const toneIcon = {
-  status: CheckCircle2,
-  feature: Sparkles,
-  benefit: ShieldCheck,
-  alert: CircleAlert,
-} satisfies Record<FeedTone, typeof Bell>;
+const PUBLIC_NAV_ITEMS: PublicNavItem[] = [
+  { key: "access", href: "/login", icon: LogIn, authActive: true },
+  { key: "home", href: "/", icon: House },
+  { key: "features", href: "/features", icon: Sparkles },
+  { key: "pricing", href: "/pricing", icon: CreditCard },
+  { key: "resources", href: "/docs", icon: BookOpen },
+  { key: "updates", icon: Megaphone },
+  { key: "status", icon: Activity },
+  { key: "company", icon: Building2 },
+  { key: "contact", icon: Mail },
+];
 
-function HarmonyLiveFeed({ audience = "customer" }: { audience?: FeedAudience }) {
-  const t = useTranslations("auth.executive.feed");
-  const items = t.raw(audience) as FeedItem[];
-  const sorted = useMemo(
-    () => [...items].sort((a, b) => Number(b.tone === "alert") - Number(a.tone === "alert")),
-    [items],
-  );
-  const [index, setIndex] = useState(0);
-  const item = sorted[index] ?? sorted[0];
-  const Icon = toneIcon[item?.tone ?? "status"];
-
-  function previous() {
-    setIndex((current) => (current === 0 ? sorted.length - 1 : current - 1));
-  }
-
-  function next() {
-    setIndex((current) => (current + 1) % sorted.length);
-  }
+function AuthPublicNav({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const t = useTranslations("auth.executive.nav");
 
   return (
-    <section
-      className="auth-executive-panel flex min-h-[7.5rem] flex-col justify-between p-4 sm:p-5 lg:h-[15dvh] lg:min-h-[7.75rem] lg:max-h-36"
-      aria-label={t("label")}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={cn(
-            "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg border",
-            item?.tone === "alert"
-              ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
-              : "border-sky-300/20 bg-sky-300/10 text-sky-200",
-          )}
-        >
-          <Icon className="size-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-200/80">
-            {item?.label}
-          </p>
-          <h2 className="mt-1 text-base font-semibold leading-tight text-white sm:text-lg">
-            {item?.title}
-          </h2>
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-300">{item?.body}</p>
-        </div>
-      </div>
+    <nav className="auth-public-nav" aria-label={t("label")}>
+      {PUBLIC_NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+        const active = item.authActive
+          ? pathname === "/login" || pathname === "/reset-password" || pathname === "/update-password"
+          : item.href === pathname;
+        const content = (
+          <>
+            <Icon className="auth-public-nav__icon" aria-hidden="true" />
+            <span>{t(item.key)}</span>
+            {active ? <span className="auth-public-nav__active-dot" aria-hidden="true" /> : null}
+          </>
+        );
 
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5" aria-hidden="true">
-          {sorted.map((entry, i) => (
+        if (!item.href) {
+          return (
             <span
-              key={`${entry.title}-${i}`}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                i === index ? "w-5 bg-sky-300" : "w-1.5 bg-white/20",
-              )}
-            />
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={previous}
-            className="inline-flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.08]"
-            aria-label={t("previous")}
+              key={item.key}
+              className="auth-public-nav__item auth-public-nav__item--disabled"
+              aria-disabled="true"
+            >
+              {content}
+            </span>
+          );
+        }
+
+        return (
+          <Link
+            key={item.key}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn("auth-public-nav__item", active && "auth-public-nav__item--active")}
+            aria-current={active ? "page" : undefined}
           >
-            <ChevronLeft className="size-4" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            className="inline-flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.08]"
-            aria-label={t("next")}
-          >
-            <ChevronRight className="size-4" aria-hidden="true" />
-          </button>
-        </div>
+            {content}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SidebarFooter() {
+  const t = useTranslations("auth.executive");
+
+  return (
+    <div className="auth-sidebar__footer">
+      <LocaleSwitcher />
+      <p>{t("footer.copyright", { year: new Date().getFullYear() })}</p>
+      <div className="auth-sidebar__legal">
+        <Link href="/privacy">{t("footer.privacy")}</Link>
+        <Link href="/terms">{t("footer.terms")}</Link>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function MobileHeader() {
+  const [open, setOpen] = useState(false);
+  const t = useTranslations("auth.executive");
+
+  return (
+    <header className="auth-mobile-header">
+      <Link href="/" aria-label={t("homeAria")}>
+        <HarmonyMark className="size-9" title="Harmony" />
+      </Link>
+      <div className="auth-mobile-header__actions">
+        <Button asChild className="auth-register-button">
+          <Link href="/signup">{t("utility.register")}</Link>
+        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={t("nav.openMenu")}>
+              <Menu aria-hidden="true" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="auth-mobile-drawer">
+            <DialogTitle className="sr-only">{t("nav.menu")}</DialogTitle>
+            <AuthPublicNav onNavigate={() => setOpen(false)} />
+            <SidebarFooter />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </header>
   );
 }
 
@@ -124,78 +150,71 @@ export function AuthShell({
   feedAudience?: FeedAudience;
 }) {
   const t = useTranslations("auth.executive");
-  const signals = t.raw("signals") as string[];
 
   return (
-    <div className="auth-executive relative min-h-dvh overflow-hidden bg-[#050814] text-white">
-      <div className="pointer-events-none absolute inset-0 harmony-grid opacity-30" aria-hidden="true" />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-sky-300/70 to-transparent"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute left-1/2 top-[-14rem] h-[42rem] w-[60rem] -translate-x-1/2 rounded-full bg-sky-500/18 blur-[150px]"
-        aria-hidden="true"
-      />
-      <header className="relative z-10 flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label={t("homeAria")} className="inline-flex">
-          <AiosHarmonyLogo
-            inverse
-            aiosMarkClassName="size-10 sm:size-11"
-            harmonyMarkClassName="size-10 sm:size-11"
-          />
-        </Link>
-        <div className="flex items-center gap-2">
-          <LocaleSwitcher />
-          <ThemeToggle />
-        </div>
-      </header>
+    <div className="auth-executive">
+      <div className="auth-executive__grid" aria-hidden="true" />
+      <div className="auth-executive__glow auth-executive__glow--top" aria-hidden="true" />
+      <div className="auth-executive__glow auth-executive__glow--floor" aria-hidden="true" />
 
-      <main id="main-content" className="relative z-10 px-4 pb-8 pt-2 sm:px-6 lg:px-8">
-        <div className="mx-auto grid min-h-[calc(100dvh-6rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,30rem)] lg:gap-8">
-          <aside className="hidden lg:block">
-            <div className="auth-executive-rail max-w-lg p-6">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/80">
-                {t("eyebrow")}
-              </p>
-              <h1 className="mt-4 max-w-xl text-5xl font-semibold leading-[1.02] tracking-tight text-white">
-                {t("title")}
-              </h1>
-              <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">{t("subtitle")}</p>
-              <div className="mt-8 grid max-w-md gap-3">
-                {signals.map((signal) => (
-                  <div
-                    key={signal}
-                    className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-2.5 text-sm text-slate-200"
-                  >
-                    <span className="size-1.5 rounded-full bg-sky-300 shadow-[0_0_18px_rgba(125,211,252,0.8)]" />
-                    {signal}
-                  </div>
-                ))}
+      <aside className="auth-sidebar">
+        <Link href="/" className="auth-sidebar__brand" aria-label={t("homeAria")}>
+          <HarmonyMark className="size-10" title="Harmony" />
+        </Link>
+        <AuthPublicNav />
+        <SidebarFooter />
+      </aside>
+
+      <MobileHeader />
+
+      <div className="auth-desktop-utility" aria-label={t("utility.label")}>
+        <LocaleSwitcher />
+        <Button asChild className="auth-register-button">
+          <Link href="/signup">{t("utility.register")}</Link>
+        </Button>
+      </div>
+
+      <main id="main-content" className="auth-executive__main">
+        <div className="auth-executive__canvas">
+          <HarmonyLiveFeed audience={feedAudience} />
+
+          <section className="auth-workspace auth-executive-panel" aria-label={t("workspaceLabel")}>
+            <div className="auth-brand-panel">
+              <div className="auth-brand-panel__copy">
+                <p className="auth-kicker">{t("eyebrow")}</p>
+                <h1>{t("title")}</h1>
+                <p className="auth-brand-panel__subtitle">{t("subtitle")}</p>
+              </div>
+
+              <div className="auth-brand-panel__art" aria-hidden="true">
+                <span className="auth-brand-panel__halo" />
+                <HarmonyMark className="auth-brand-panel__mark" />
+                <span className="auth-brand-panel__line auth-brand-panel__line--one" />
+                <span className="auth-brand-panel__line auth-brand-panel__line--two" />
+              </div>
+
+              <div className="auth-advice">
+                <div className="auth-advice__header">
+                  <HarmonyMark className="size-8" />
+                  <span>{t("advice.label")}</span>
+                </div>
+                <p>{t("advice.body")}</p>
+                <Link href="/help" className="auth-inline-link">
+                  {t("supportCta")}
+                </Link>
               </div>
             </div>
-          </aside>
 
-          <div className="mx-auto flex w-full max-w-[30rem] flex-col gap-2">
-            <HarmonyLiveFeed audience={feedAudience} />
-            <div className="auth-executive-panel auth-executive-workspace overflow-hidden">
-              {children}
-            </div>
-            <div className="auth-executive-panel flex items-center justify-between gap-3 px-4 py-3 text-sm text-slate-300">
-              <span className="min-w-0">{t("support")}</span>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="shrink-0 text-sky-100 hover:bg-white/10 hover:text-white"
-              >
-                <Link href="/help">
-                  {t("supportCta")}
-                  <ArrowLeft className="size-3.5 rotate-180" aria-hidden="true" />
-                </Link>
-              </Button>
-            </div>
-          </div>
+            <div className="auth-executive-workspace auth-form-panel">{children}</div>
+          </section>
+
+          <footer className="auth-legal-footer">
+            <p>{t("footer.copyright", { year: new Date().getFullYear() })}</p>
+            <span aria-hidden="true">•</span>
+            <Link href="/privacy">{t("footer.privacy")}</Link>
+            <span aria-hidden="true">•</span>
+            <Link href="/terms">{t("footer.terms")}</Link>
+          </footer>
         </div>
       </main>
     </div>

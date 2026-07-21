@@ -16,7 +16,7 @@ export function UpdatePasswordForm() {
 
   return (
     <form action={action} className="space-y-4" noValidate>
-      <FormMessage state={state} />
+      <FormMessage state={state} id="update-form-message" />
       <div className="space-y-2">
         <Label htmlFor="password">{t("fields.password")}</Label>
         <Input
@@ -26,6 +26,8 @@ export function UpdatePasswordForm() {
           autoComplete="new-password"
           minLength={8}
           required
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "update-form-message" : undefined}
         />
       </div>
       <div className="space-y-2">
@@ -37,6 +39,8 @@ export function UpdatePasswordForm() {
           autoComplete="new-password"
           minLength={8}
           required
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "update-form-message" : undefined}
         />
       </div>
       <SubmitButton className="w-full" pendingLabel={tc("loading")}>
