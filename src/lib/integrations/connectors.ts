@@ -107,7 +107,7 @@ export const CONNECTORS: ConnectorDef[] = [
     auth: "api_key",
     initials: "VC",
     docsUrl: "https://vercel.com/docs/rest-api",
-    requiredEnv: [],
+    requiredEnv: ["VERCEL_TOKEN", "VERCEL_TEAM_ID", "VERCEL_PROJECT_ID"],
     capabilities: [
       { id: "deployment_status", mode: "read" },
       { id: "production_url_verification", mode: "read" },

@@ -1,6 +1,10 @@
 import "server-only";
 
 import { getValidAccessToken } from "@/lib/integrations/token-refresh";
+import type {
+  GitHubVercelEvidence,
+  VercelDeploymentEnvironment,
+} from "@/lib/integrations/vercel/deployment-status";
 
 /**
  * GitHub read client (PR 6c).
@@ -113,7 +117,7 @@ export async function runGithubRead(
     case "monitor_deployment": {
       if (!repo) return { ok: false, error: "repo_required" };
       const j = (await gh(userId, `/repos/${repoEnc}/actions/runs?per_page=5`)) as
-        | { workflow_runs?: { name?: string; status?: string; conclusion?: string }[] }
+        | { workflow_runs?: { name?: string; status?: string; conclusion?: string; head_sha?: string }[] }
         | null;
       if (!j || !Array.isArray(j.workflow_runs)) return { ok: false, error: "unavailable" };
       return {
@@ -123,6 +127,7 @@ export async function runGithubRead(
             name: r.name,
             status: r.status,
             conclusion: r.conclusion,
+            head_sha: r.head_sha,
           })),
         },
       };
@@ -130,4 +135,109 @@ export async function runGithubRead(
     default:
       return { ok: false, error: "unsupported_read" };
   }
+}
+
+interface GitHubCommitStatusPayload {
+  statuses?: Array<{
+    context?: string;
+    state?: string;
+    target_url?: string;
+    created_at?: string;
+    updated_at?: string;
+  }>;
+}
+
+interface GitHubDeploymentPayload {
+  id?: number;
+  sha?: string;
+  environment?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface GitHubDeploymentStatusPayload {
+  state?: string;
+  environment_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+function githubDeploymentState(value: string | null | undefined): GitHubVercelEvidence["status"] {
+  const state = value?.toLowerCase();
+  if (state === "success") return "success";
+  if (state === "pending" || state === "queued" || state === "in_progress") return "pending";
+  if (state === "failure" || state === "error" || state === "inactive") return "failure";
+  return "unavailable";
+}
+
+/**
+ * Read-only fallback evidence emitted by the installed GitHub/Vercel
+ * integration. This is deliberately labeled GitHub evidence and never
+ * represented as direct Vercel API proof.
+ */
+export async function readGitHubVercelDeploymentEvidence(
+  userId: string,
+  input: {
+    repository: string;
+    gitSha: string;
+    environment: VercelDeploymentEnvironment;
+  },
+): Promise<GitHubVercelEvidence | null> {
+  const repo = input.repository
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const sha = encodeURIComponent(input.gitSha);
+  const [combined, deploymentList] = await Promise.all([
+    gh(userId, `/repos/${repo}/commits/${sha}/status`) as Promise<GitHubCommitStatusPayload | null>,
+    gh(userId, `/repos/${repo}/deployments?sha=${sha}&per_page=30`) as Promise<GitHubDeploymentPayload[] | null>,
+  ]);
+
+  const vercelStatus = combined?.statuses?.find((status) =>
+    status.context?.toLowerCase().includes("vercel"),
+  );
+  const requestedEnvironment = input.environment.toLowerCase();
+  const deployment = Array.isArray(deploymentList)
+    ? deploymentList.find((item) => {
+        const environment = item.environment?.toLowerCase() ?? "";
+        return item.sha === input.gitSha &&
+          (requestedEnvironment === "production"
+            ? environment === "production"
+            : environment !== "production");
+      })
+    : undefined;
+
+  // A generic successful Vercel commit status may support preview readiness,
+  // but it cannot prove a production deployment or alias without an explicit
+  // GitHub deployment record for the requested SHA/environment.
+  if (input.environment === "production" && !deployment) return null;
+
+  const deploymentStatuses = deployment?.id
+    ? ((await gh(userId, `/repos/${repo}/deployments/${deployment.id}/statuses?per_page=10`)) as
+        | GitHubDeploymentStatusPayload[]
+        | null)
+    : null;
+  const deploymentStatus = Array.isArray(deploymentStatuses) ? deploymentStatuses[0] : undefined;
+  const deploymentState = githubDeploymentState(deploymentStatus?.state);
+  const commitState = githubDeploymentState(vercelStatus?.state);
+  const status =
+    deploymentState !== "unavailable"
+      ? deploymentState
+      : commitState;
+  if (status === "unavailable") return null;
+
+  return {
+    status,
+    deploymentId: deployment?.id ?? null,
+    deploymentUrl: deploymentStatus?.environment_url ?? vercelStatus?.target_url ?? null,
+    environment: deployment?.environment ?? input.environment,
+    gitSha: deployment?.sha ?? input.gitSha,
+    createdAt: deployment?.created_at ?? vercelStatus?.created_at ?? null,
+    completedAt: deploymentStatus?.updated_at ?? deployment?.updated_at ?? vercelStatus?.updated_at ?? null,
+    sources: [
+      ...(vercelStatus ? ["github_vercel_status"] : []),
+      ...(deployment ? ["github_vercel_deployment"] : []),
+      ...(deploymentStatus ? ["github_vercel_deployment_status"] : []),
+    ],
+  };
 }

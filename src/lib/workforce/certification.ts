@@ -256,7 +256,7 @@ function socialCapabilityImplemented(provider: string, capability: string): bool
 }
 
 function vercelCapabilityImplemented(capability: string): boolean {
-  return Boolean(process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN) && VERCEL_READ_CAPABILITIES.has(capability);
+  return VERCEL_READ_CAPABILITIES.has(capability);
 }
 
 async function evaluateDependency(

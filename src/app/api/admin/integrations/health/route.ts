@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
-import { getConnectorHealth } from "@/lib/integrations/connector-health";
+import { getConnectorHealth, getProviderHealth } from "@/lib/integrations/connector-health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +16,14 @@ export async function GET() {
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   if (!(await currentUserIsAdmin())) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
-  const connectors = await getConnectorHealth(user.id);
-  return NextResponse.json({ ok: true, count: connectors.length, connectors });
+  const [connectors, vercel] = await Promise.all([
+    getConnectorHealth(user.id),
+    getProviderHealth(user.id, "vercel"),
+  ]);
+  return NextResponse.json({
+    ok: true,
+    count: connectors.length,
+    connectors,
+    deploymentStatus: vercel.deploymentStatus ?? null,
+  });
 }

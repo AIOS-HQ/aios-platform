@@ -1,6 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMasonProductionAdapters, masonRuntimeHealth } from "@/lib/harmony/code/mason-production-runtime";
 
+const { vercelStatusMock } = vi.hoisted(() => ({
+  vercelStatusMock: vi.fn(async () => ({
+    status: "healthy",
+    evidenceTier: "github_vercel_deployment_status",
+    evidenceSources: ["github_vercel_status"],
+    gitShaMatches: true,
+  })),
+}));
+
+vi.mock("@/lib/integrations/clients/vercel", () => ({
+  getCanonicalVercelDeploymentStatus: (...args: unknown[]) => vercelStatusMock(...args),
+}));
+
 vi.mock("@/lib/integrations/connections", () => ({
   getConnections: vi.fn(async () => [
     { provider: "github", status: "connected" },
@@ -43,7 +56,31 @@ vi.mock("@/lib/company-skills/library", () => ({ learnCompanySkill: vi.fn(async 
 
 describe("Mason production runtime", () => {
   it("reports connector health", async () => {
-    await expect(masonRuntimeHealth("founder-1")).resolves.toEqual({ github: true, vercel: true, harmony: true });
+    await expect(masonRuntimeHealth("founder-1")).resolves.toEqual({
+      github: true,
+      vercel: true,
+      vercelStatus: "healthy",
+      vercelEvidenceTier: "github_vercel_deployment_status",
+      vercelEvidenceSources: ["github_vercel_status"],
+      vercelGitShaMatches: true,
+      harmony: true,
+    });
+  });
+
+  it("keeps Mason health available when Vercel evidence is unavailable", async () => {
+    vercelStatusMock.mockResolvedValueOnce({
+      status: "unavailable",
+      evidenceTier: "unavailable",
+      evidenceSources: [],
+      gitShaMatches: null,
+    });
+    await expect(masonRuntimeHealth("founder-1")).resolves.toMatchObject({
+      github: true,
+      harmony: true,
+      vercel: false,
+      vercelStatus: "unavailable",
+      vercelEvidenceTier: "unavailable",
+    });
   });
 
   it("creates production adapters", () => {

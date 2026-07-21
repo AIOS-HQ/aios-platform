@@ -74,6 +74,9 @@ export type MasonMergeGateResult = {
   expectedHeadSha?: string | null;
   actualHeadSha?: string | null;
   prOpen?: boolean;
+  vercelStatus?: string;
+  vercelEvidenceTier?: string;
+  vercelGitShaMatches?: boolean | null;
 };
 
 export type MasonFinalReport = {

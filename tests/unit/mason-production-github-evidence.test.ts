@@ -2,6 +2,20 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const runLoopMock = vi.fn();
 const runGithubReadMock = vi.fn();
+const vercelStatusMock = vi.fn();
+
+function healthyVercel() {
+  return {
+    status: "healthy",
+    evidenceTier: "github_vercel_deployment_status",
+    evidenceSources: ["github_vercel_status", "github_vercel_deployment"],
+    environment: "preview",
+    requestedGitSha: "abc123",
+    gitSha: "abc123",
+    gitShaMatches: true,
+    requiredChecksPassed: true,
+  };
+}
 
 vi.mock("@/lib/workforce/mason-closed-loop", () => ({
   runMasonClosedLoopExecution: (...args: unknown[]) => runLoopMock(...args),
@@ -9,6 +23,10 @@ vi.mock("@/lib/workforce/mason-closed-loop", () => ({
 
 vi.mock("@/lib/integrations/clients/github", () => ({
   runGithubRead: (...args: unknown[]) => runGithubReadMock(...args),
+}));
+
+vi.mock("@/lib/integrations/clients/vercel", () => ({
+  getCanonicalVercelDeploymentStatus: (...args: unknown[]) => vercelStatusMock(...args),
 }));
 
 vi.mock("@/lib/harmony/code/mason-production-runtime", () => ({
@@ -68,6 +86,8 @@ describe("mason production GitHub evidence binding", () => {
   beforeEach(() => {
     runLoopMock.mockReset();
     runGithubReadMock.mockReset();
+    vercelStatusMock.mockReset();
+    vercelStatusMock.mockResolvedValue(healthyVercel());
   });
 
   it("calls production GitHub evidence functions with repo context", async () => {
@@ -209,6 +229,45 @@ describe("mason production GitHub evidence binding", () => {
       message: "missing evidence",
       founderApproved: true,
     });
+  });
+
+  it("blocks guarded merge for non-green or SHA-mismatched Vercel evidence", async () => {
+    const cases = [
+      { status: "pending", gitShaMatches: true, requiredChecksPassed: false, expected: "vercel_pending" },
+      { status: "failed", gitShaMatches: true, requiredChecksPassed: false, expected: "vercel_failed" },
+      { status: "unavailable", gitShaMatches: null, requiredChecksPassed: null, expected: "vercel_unavailable" },
+      { status: "misconfigured", gitShaMatches: false, requiredChecksPassed: false, expected: "vercel_misconfigured" },
+      { status: "healthy", gitShaMatches: false, requiredChecksPassed: true, expected: "vercel_git_sha_unproven" },
+    ] as const;
+
+    for (const testCase of cases) {
+      runGithubReadMock.mockReset();
+      runGithubReadMock
+        .mockResolvedValueOnce({ ok: true, data: { runs: [{ status: "completed", conclusion: "success", head_sha: "abc123" }] } })
+        .mockResolvedValueOnce({ ok: true, data: { pulls: [{ number: 77, title: "PR" }] } });
+      vercelStatusMock.mockResolvedValueOnce({
+        ...healthyVercel(),
+        status: testCase.status,
+        gitShaMatches: testCase.gitShaMatches,
+        requiredChecksPassed: testCase.requiredChecksPassed,
+      });
+      runLoopMock.mockImplementationOnce(async (input, adapters) => {
+        const ci = await adapters.readCiStatus({ ...input, attempt: 1 });
+        const gate = await adapters.evaluateMergeGate({ ...input, ci, expectedHeadSha: "abc123" });
+        expect(gate.ready).toBe(false);
+        expect(gate.detail).toBe(testCase.expected);
+        return loopResult("escalated");
+      });
+
+      const { handleMasonEngineeringMessage } = await import("@/lib/workforce/mason-action");
+      await handleMasonEngineeringMessage({
+        userId: "founder-1",
+        companyId: "co-1",
+        repository: "AIOS-HQ/aios-platform",
+        message: `Vercel gate ${testCase.status}`,
+        founderApproved: true,
+      });
+    }
   });
 
   it("preserves company/execution/correlation identity in adapter path", async () => {

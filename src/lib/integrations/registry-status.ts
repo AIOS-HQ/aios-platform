@@ -16,6 +16,13 @@ import type { ConnectorDefinition } from "@/lib/integrations/registry";
  * secret values are never read or returned.
  */
 export function isDevConfigured(def: ConnectorDefinition): boolean {
+  if (def.id === "vercel") {
+    return Boolean(
+      (process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN) &&
+        (process.env.VERCEL_TEAM_ID || process.env.VERCEL_ORG_ID) &&
+        process.env.VERCEL_PROJECT_ID,
+    );
+  }
   if (def.auth === "oauth2") {
     return def.oauthFamily ? isFamilyConfigured(def.oauthFamily) : false;
   }
@@ -31,6 +38,12 @@ export function isDevConfigured(def: ConnectorDefinition): boolean {
 /** Reasons a provider is not yet dev-configured (for Developer Platform diagnostics). */
 export function devConfigurationGaps(def: ConnectorDefinition): string[] {
   const gaps: string[] = [];
+  if (def.id === "vercel") {
+    if (!(process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN)) gaps.push("VERCEL_TOKEN is not configured.");
+    if (!(process.env.VERCEL_TEAM_ID || process.env.VERCEL_ORG_ID)) gaps.push("VERCEL_TEAM_ID is not configured.");
+    if (!process.env.VERCEL_PROJECT_ID) gaps.push("VERCEL_PROJECT_ID is not configured.");
+    return gaps;
+  }
   if (def.auth === "oauth2") {
     if (!def.oauthFamily) {
       gaps.push("No OAuth family assigned to this provider.");

@@ -112,16 +112,13 @@ export async function runConnectorCapability(
     };
   }
 
-  if (!isConnectorConfigured(connector)) {
-    await audit(userId, tool, "failed", requiresApproval, "not_configured", params);
-    return { ok: false, status: "blocked", message: "not_configured" };
-  }
-
-  if (connectorId === "github") {
-    const result =
-      capability.mode === "read"
-        ? await runGithubRead(userId, capabilityId, params)
-        : await runGithubWrite(userId, capabilityId, params);
+  // Vercel read evidence is deliberately available before direct-token
+  // configuration: the canonical reader can use GitHub deployment status and
+  // runtime identity fallbacks, returning an explicit unavailable state when
+  // none is sufficient. Never turn missing direct credentials into false
+  // healthy evidence or block ordinary Mason conversation/PR creation.
+  if (connectorId === "vercel" && capability.mode === "read") {
+    const result = await runVercelRead(userId, capabilityId, params);
 
     await audit(
       userId,
@@ -141,8 +138,16 @@ export async function runConnectorCapability(
     };
   }
 
-  if (connectorId === "vercel" && capability.mode === "read") {
-    const result = await runVercelRead(userId, capabilityId, params);
+  if (!isConnectorConfigured(connector)) {
+    await audit(userId, tool, "failed", requiresApproval, "not_configured", params);
+    return { ok: false, status: "blocked", message: "not_configured" };
+  }
+
+  if (connectorId === "github") {
+    const result =
+      capability.mode === "read"
+        ? await runGithubRead(userId, capabilityId, params)
+        : await runGithubWrite(userId, capabilityId, params);
 
     await audit(
       userId,

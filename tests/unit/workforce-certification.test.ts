@@ -5,6 +5,9 @@ describe("AIOS workforce certification", () => {
     vi.resetModules();
     delete process.env.VERCEL_TOKEN;
     delete process.env.VERCEL_API_TOKEN;
+    delete process.env.VERCEL_TEAM_ID;
+    delete process.env.VERCEL_ORG_ID;
+    delete process.env.VERCEL_PROJECT_ID;
     delete process.env.GITHUB_OAUTH_CLIENT_ID;
     delete process.env.GITHUB_OAUTH_CLIENT_SECRET;
   });
@@ -33,6 +36,9 @@ describe("AIOS workforce certification", () => {
     );
     expect(mason.blockers.join(" ")).toContain("github");
     expect(mason.blockers.join(" ")).toContain("vercel");
+    const vercel = mason.dependencyReadiness.find((dependency) => dependency.provider === "vercel");
+    expect(vercel?.implementedCapabilities).toContain("deployment_status");
+    expect(vercel?.status).toBe("configuration_required");
   });
 
   it("does not mark framework-only Ambassador channels as executable", async () => {
@@ -60,7 +66,7 @@ describe("AIOS workforce certification", () => {
     expect(catalyst.contract.unsupportedCapabilities.join(" ")).toContain("Ungoverned publishing");
   });
 
-  it("reports Vercel unavailable until a real token configuration exists", async () => {
+  it("reports Vercel direct access unavailable until scoped configuration exists", async () => {
     const { isConnectorConfigured } = await import("@/lib/integrations/connector-config");
     const { getConnector } = await import("@/lib/integrations/connectors");
     const vercel = getConnector("vercel");
@@ -69,6 +75,9 @@ describe("AIOS workforce certification", () => {
     expect(isConnectorConfigured(vercel!)).toBe(false);
 
     process.env.VERCEL_TOKEN = "configured-token-name-only";
+    expect(isConnectorConfigured(vercel!)).toBe(false);
+    process.env.VERCEL_TEAM_ID = "team-aios";
+    process.env.VERCEL_PROJECT_ID = "project-aios";
     expect(isConnectorConfigured(vercel!)).toBe(true);
   });
 });
