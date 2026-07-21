@@ -17,7 +17,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
 
   return (
     <form action={action} className="space-y-4" noValidate>
-      <FormMessage state={state} />
+      <FormMessage state={state} id="login-form-message" />
       {redirectTo ? <input type="hidden" name="redirect" value={redirectTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="email">{t("fields.email")}</Label>
@@ -27,6 +27,8 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           type="email"
           autoComplete="email"
           required
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "login-form-message" : undefined}
         />
       </div>
       <div className="space-y-2">
@@ -45,6 +47,8 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
           type="password"
           autoComplete="current-password"
           required
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "login-form-message" : undefined}
         />
       </div>
       <SubmitButton className="w-full" pendingLabel={tc("loading")}>

@@ -12,5 +12,14 @@
  */
 export function ThemeScript({ nonce }: { nonce?: string }) {
   const code = `(function(){try{var m=document.cookie.match(/(?:^|; )aios-theme=([^;]*)/);var t=m?decodeURIComponent(m[1]):(localStorage.getItem('aios-theme')||'');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||t===''||(t==='system'&&d)){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`;
-  return <script nonce={nonce} dangerouslySetInnerHTML={{ __html: code }} />;
+  return (
+    <script
+      nonce={nonce}
+      // Browsers intentionally hide a parsed nonce from the content attribute,
+      // so React sees nonce="" during hydration even though script.nonce and the
+      // CSP header retain the valid value. Suppress only that known mismatch.
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: code }}
+    />
+  );
 }

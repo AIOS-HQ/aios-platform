@@ -105,30 +105,3 @@ export function HarmonyAvatar({
     </svg>
   );
 }
-
-/**
- * Full Harmony lockup: the official logo mark + wordmark. Used in the marketing
- * header/footer, the app header, and auth. The wordmark hue inherits the current
- * text color so it adapts to the surrounding surface; pass `showWordmark={false}`
- * for the icon-only canonical logo.
- */
-export function HarmonyLogo({
-  className,
-  showWordmark = true,
-  locale,
-  markClassName,
-}: {
-  className?: string;
-  showWordmark?: boolean;
-  locale?: string;
-  markClassName?: string;
-}) {
-  return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <HarmonyMark className={cn("size-7 sm:size-8", markClassName)} locale={locale} title="Harmony" />
-      {showWordmark && (
-        <span className="text-base font-semibold leading-none sm:text-lg">Harmony</span>
-      )}
-    </span>
-  );
-}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import { sectionsForAudience } from "./nav-config";
 import { NavLink } from "./nav-link";
 
@@ -27,7 +27,7 @@ export async function Sidebar({
     >
       <div className="flex h-16 items-center border-b border-sidebar-border/70 px-4">
         <Link href="/harmony" aria-label={t("home")} className="inline-flex min-w-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar">
-          <AiosHarmonyLogo />
+          <HarmonyMark className="size-10" title="Harmony" />
         </Link>
       </div>
       <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4" aria-label={t("main")}>

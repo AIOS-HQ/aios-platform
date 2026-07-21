@@ -93,11 +93,39 @@
     },
     "executive": {
       "homeAria": "Harmony home",
+      "workspaceLabel": "AIOS authentication workspace",
+      "nav": {
+        "label": "Public navigation",
+        "menu": "Navigation menu",
+        "openMenu": "Open navigation menu",
+        "access": "Sign in",
+        "home": "Home",
+        "features": "Features",
+        "pricing": "Pricing",
+        "resources": "Resources",
+        "updates": "Updates",
+        "status": "System Status",
+        "company": "Company",
+        "contact": "Contact"
+      },
+      "utility": {
+        "label": "Account and language controls",
+        "register": "Create account"
+      },
       "eyebrow": "Autonomous Operating System",
       "title": "Enter your executive workspace.",
       "subtitle": "Harmony brings your operating system, intelligence layer, and AI workforce into one secure command surface.",
       "support": "Need help entering your workspace?",
       "supportCta": "Help center",
+      "advice": {
+        "label": "Harmony guidance",
+        "body": "Use the same secure account to return to your context, decisions, and coordinated work."
+      },
+      "footer": {
+        "copyright": "© {year} AIOS. All rights reserved.",
+        "privacy": "Privacy",
+        "terms": "Terms"
+      },
       "signals": [
         "Secure session handoff",
         "Live operating context",
@@ -105,6 +133,10 @@
       ],
       "feed": {
         "label": "Harmony Live Feed",
+        "announcement": "Current announcement",
+        "learnMore": "Explore AIOS",
+        "position": "{current} of {total}",
+        "operational": "Access portal ready",
         "previous": "Previous update",
         "next": "Next update",
         "customer": [
@@ -128,8 +160,8 @@
           },
           {
             "label": "System Status",
-            "title": "Core services operating normally",
-            "body": "Authentication and Harmony workspace access are available.",
+            "title": "Your authorized status view is one sign-in away",
+            "body": "Company and integration health remain inside the secure AIOS workspace.",
             "tone": "status"
           }
         ],

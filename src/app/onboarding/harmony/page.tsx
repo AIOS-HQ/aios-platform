@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Brain, Sparkles } from "lucide-react";
-import { AiosHarmonyLogo } from "@/components/brand/logo";
+import { HarmonyMark } from "@/components/brand/harmony-logo";
 import {
   OnboardingFlow,
   type OnboardingFlowData,
@@ -35,11 +35,7 @@ export default function HarmonyOnboardingPage() {
       <header className="relative z-10 px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
           <Link href="/" aria-label={ui.home} className="inline-flex">
-            <AiosHarmonyLogo
-              inverse
-              aiosMarkClassName="size-10 sm:size-11"
-              harmonyMarkClassName="size-10 sm:size-11"
-            />
+            <HarmonyMark className="size-10 sm:size-11" title="Harmony" />
           </Link>
           <Button asChild variant="ghost" size="sm" className="text-sky-100 hover:bg-white/10 hover:text-white">
             <Link href="/">

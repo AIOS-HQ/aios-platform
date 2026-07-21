@@ -23,25 +23,6 @@ export default function OpengraphImage() {
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div
-            style={{
-              width: 92,
-              height: 92,
-              borderRadius: 999,
-              border: "5px solid #3f8bff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 9,
-            }}
-          >
-            <div style={{ width: 11, height: 46, borderRadius: 6, backgroundColor: "#eef5fe" }} />
-            <div style={{ width: 11, height: 46, borderRadius: 6, backgroundColor: "#eef5fe" }} />
-          </div>
-          <div style={{ fontSize: 46, fontWeight: 700, letterSpacing: -1 }}>Harmony</div>
-        </div>
-
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={{ fontSize: 72, fontWeight: 700, letterSpacing: -2, lineHeight: 1.05, maxWidth: 980 }}>
             Run your life. Run your business.

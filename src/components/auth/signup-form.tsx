@@ -16,10 +16,17 @@ export function SignupForm() {
 
   return (
     <form action={action} className="space-y-4" noValidate>
-      <FormMessage state={state} />
+      <FormMessage state={state} id="signup-form-message" />
       <div className="space-y-2">
         <Label htmlFor="fullName">{t("fields.fullName")}</Label>
-        <Input id="fullName" name="fullName" type="text" autoComplete="name" />
+        <Input
+          id="fullName"
+          name="fullName"
+          type="text"
+          autoComplete="name"
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "signup-form-message" : undefined}
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="email">{t("fields.email")}</Label>
@@ -29,6 +36,8 @@ export function SignupForm() {
           type="email"
           autoComplete="email"
           required
+          aria-invalid={state.status === "error"}
+          aria-describedby={state.status === "error" ? "signup-form-message" : undefined}
         />
       </div>
       <div className="space-y-2">
@@ -40,7 +49,10 @@ export function SignupForm() {
           autoComplete="new-password"
           minLength={8}
           required
-          aria-describedby="password-hint"
+          aria-invalid={state.status === "error"}
+          aria-describedby={
+            state.status === "error" ? "password-hint signup-form-message" : "password-hint"
+          }
         />
         <p id="password-hint" className="text-xs text-muted-foreground">
           {t("signup.passwordHint")}
