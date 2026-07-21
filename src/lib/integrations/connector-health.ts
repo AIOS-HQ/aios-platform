@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createCertificationResult, evidenceTypeFromVercelTier } from "@/lib/evidence/certification";
+import type { EvidenceMetadata, EvidenceStatus } from "@/lib/evidence/model";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getConnectorDefinition } from "@/lib/integrations/registry";
 import { resolveOAuthFamily } from "@/lib/integrations/oauth-families";
@@ -28,7 +30,12 @@ export type HealthState =
   | "setup_required"
   | "unknown";
 
-export interface ConnectorHealth {
+export interface ConnectorHealth
+  extends EvidenceMetadata<{
+    scope: "connection_record";
+    provider: string;
+    providerValidated: false;
+  }> {
   provider: string;
   name: string;
   /** Raw connection status from the DB (connected / expired / …). */
@@ -47,6 +54,7 @@ export interface ConnectorHealth {
   connectedAt: string | null;
   /** Human-facing next step. */
   recommendedAction: string;
+  evidenceStatus: EvidenceStatus;
 }
 
 interface HealthRow {
@@ -68,7 +76,13 @@ export interface NormalizedConnectorCapability {
   implemented: boolean;
 }
 
-export interface NormalizedConnectorHealth {
+export interface NormalizedConnectorHealth
+  extends EvidenceMetadata<{
+    scope: "connector_health";
+    provider: string;
+    providerValidated: boolean;
+  }> {
+  status: EvidenceStatus;
   provider: string;
   name: string;
   connectionMode: string;
@@ -118,7 +132,16 @@ export async function getProviderHealth(
   const checkedAt = new Date().toISOString();
   const def = getConnectorDefinition(provider);
   if (!def) {
+    const evidence = createCertificationResult({
+      outcome: null,
+      evidenceType: "unknown",
+      observedBy: "connector.health",
+      confidence: 0,
+      observedAt: checkedAt,
+      details: { scope: "connector_health" as const, provider, providerValidated: false },
+    });
     return {
+      ...evidence,
       provider,
       name: provider,
       connectionMode: "unknown",
@@ -207,7 +230,33 @@ export async function getProviderHealth(
     ? deploymentStatus.status === "healthy" && deploymentStatus.gitShaMatches !== false
     : configured && (def.auth !== "oauth2" || connected) && tokenValid !== false && blockers.length === 0;
 
+  const evidenceType = deploymentStatus
+    ? evidenceTypeFromVercelTier(deploymentStatus.evidenceTier)
+    : row
+      ? "authenticated_runtime_proof" as const
+      : "configuration_proof" as const;
+  const evidence = createCertificationResult({
+    outcome: healthy,
+    evidenceType,
+    observedBy: "connector.health",
+    confidence:
+      evidenceType === "live_runtime_proof"
+        ? 1
+        : evidenceType === "authenticated_runtime_proof"
+          ? 0.8
+          : evidenceType === "configuration_proof"
+            ? 0.7
+            : 0,
+    observedAt: checkedAt,
+    details: {
+      scope: "connector_health" as const,
+      provider,
+      providerValidated: evidenceType === "live_runtime_proof",
+    },
+  });
+
   return {
+    ...evidence,
     provider,
     name: def.name,
     connectionMode: def.auth,
@@ -280,7 +329,21 @@ function computeHealth(r: HealthRow): ConnectorHealth {
     recommendedAction = "None — connection is healthy.";
   }
 
+  const evidence = createCertificationResult({
+    outcome: state === "healthy",
+    evidenceType: "authenticated_runtime_proof",
+    observedBy: "connector.health.connection_record",
+    confidence: 0.75,
+    details: {
+      scope: "connection_record" as const,
+      provider: r.provider,
+      providerValidated: false as const,
+    },
+  });
+  const { status: evidenceStatus, ...evidenceMetadata } = evidence;
+
   return {
+    ...evidenceMetadata,
     provider: r.provider,
     name: def?.name ?? r.provider,
     status: r.status ?? "unknown",
@@ -293,6 +356,7 @@ function computeHealth(r: HealthRow): ConnectorHealth {
     lastRefresh: r.updated_at,
     connectedAt: r.connected_at,
     recommendedAction,
+    evidenceStatus,
   };
 }
 

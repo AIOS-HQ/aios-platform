@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  createCertificationEvidence,
+  evidenceTypeFromVercelTier,
+} from "@/lib/evidence/certification";
+import type { EvidenceMetadata } from "@/lib/evidence/model";
 import type { RuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 
 export type VercelDeploymentHealth =
@@ -17,7 +22,11 @@ export type VercelEvidenceTier =
 
 export type VercelDeploymentEnvironment = "preview" | "production";
 
-export interface VercelDeploymentStatusResult {
+export interface VercelDeploymentStatusResult
+  extends EvidenceMetadata<{
+    scope: "vercel_deployment";
+    sources: string[];
+  }> {
   provider: "vercel";
   status: VercelDeploymentHealth;
   evidenceTier: VercelEvidenceTier;
@@ -155,7 +164,10 @@ function statusResult(
   now: Date,
   overrides: Partial<VercelDeploymentStatusResult>,
 ): VercelDeploymentStatusResult {
-  return {
+  const result: Omit<
+    VercelDeploymentStatusResult,
+    "evidenceType" | "observedBy" | "confidence" | "details"
+  > = {
     provider: "vercel",
     status: "unavailable",
     evidenceTier: "unavailable",
@@ -182,6 +194,26 @@ function statusResult(
     observedAt: now.toISOString(),
     ...overrides,
   };
+  const evidenceType = evidenceTypeFromVercelTier(result.evidenceTier);
+  const evidence = createCertificationEvidence({
+    status: result.status,
+    evidenceType,
+    observedBy: "vercel.deployment_status",
+    confidence:
+      evidenceType === "live_runtime_proof"
+        ? 1
+        : evidenceType === "authenticated_runtime_proof"
+          ? 0.9
+          : evidenceType === "configuration_proof"
+            ? 0.7
+            : 0,
+    observedAt: result.observedAt,
+    details: {
+      scope: "vercel_deployment" as const,
+      sources: result.evidenceSources,
+    },
+  });
+  return { ...result, ...evidence };
 }
 
 export function getVercelConfigurationPresence(): {

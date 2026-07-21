@@ -21,6 +21,13 @@ describe("AIOS workforce certification", () => {
     expect(Object.keys(certification)).toEqual(AIOS_WORKFORCE.map((agent) => agent.key));
     expect(certification).not.toHaveProperty("julius");
     expect(certification.atlas.juliusAccess).toBe("steward");
+    expect(certification.atlas).toMatchObject({
+      evidenceType: "source_code_proof",
+      observedBy: "workforce.certification.runtime_contract",
+      confidence: 1,
+      health: "degraded",
+      details: { scope: "workforce_runtime_contract", runtimeProbed: false },
+    });
   });
 
   it("keeps Mason Founder-only and blocked/configuration-required when engineering connectors are absent", async () => {
@@ -39,6 +46,7 @@ describe("AIOS workforce certification", () => {
     const vercel = mason.dependencyReadiness.find((dependency) => dependency.provider === "vercel");
     expect(vercel?.implementedCapabilities).toContain("deployment_status");
     expect(vercel?.status).toBe("configuration_required");
+    expect(vercel?.evidenceType).toBe("configuration_proof");
   });
 
   it("does not mark framework-only Ambassador channels as executable", async () => {

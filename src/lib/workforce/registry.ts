@@ -18,6 +18,9 @@ import { AIRBID_RESERVED_NAMES, isReservedAirbidName } from "@/lib/workforce/air
 
 export { AIRBID_RESERVED_NAMES, isReservedAirbidName };
 
+/** Machine-readable version of the canonical named-workforce registry. */
+export const AIOS_WORKFORCE_REGISTRY_VERSION = "2.1" as const;
+
 export type AiosAgentKey =
   | "harmony"
   | "auditor"

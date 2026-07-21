@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+  createDiagnosticItem,
+  createDiagnosticsResult,
+  type CertifiedDiagnosticItem,
+  type CertifiedDiagnosticsResult,
+} from "@/lib/evidence/certification";
 import { getConnectionSecret } from "@/lib/integrations/secrets";
 
 /**
@@ -11,15 +17,21 @@ import { getConnectionSecret } from "@/lib/integrations/secrets";
  * read service-side only and never exposed to the browser.
  */
 
-export interface DiagnosticItem {
-  id: string;
-  ok: boolean;
-  detail: string;
-}
-export interface DiagnosticsResult {
-  connected: boolean;
-  items: DiagnosticItem[];
-}
+type DiagnosticEvidenceDetails = {
+  scope: "supabase_management" | "vercel_deployment";
+  check: string;
+};
+
+type DiagnosticsEvidenceDetails = {
+  scope: "supabase_diagnostics" | "vercel_diagnostics";
+  itemCount: number;
+};
+
+export type DiagnosticItem = CertifiedDiagnosticItem<DiagnosticEvidenceDetails>;
+export type DiagnosticsResult = CertifiedDiagnosticsResult<
+  DiagnosticEvidenceDetails,
+  DiagnosticsEvidenceDetails
+>;
 
 const MGMT = "https://api.supabase.com/v1/projects";
 
@@ -50,18 +62,35 @@ export async function runSupabaseManagementQuery(
 }
 
 export async function runSupabaseDiagnostics(userId: string): Promise<DiagnosticsResult> {
+  const observedAt = new Date();
   const secret = await getConnectionSecret(userId, "supabase");
-  if (!secret || !secret.externalAccount) return { connected: false, items: [] };
+  if (!secret || !secret.externalAccount) {
+    return createDiagnosticsResult({
+      connected: false,
+      items: [],
+      evidenceType: "configuration_proof",
+      observedBy: "diagnostics.supabase",
+      confidence: 0.9,
+      observedAt,
+      details: { scope: "supabase_diagnostics", itemCount: 0 },
+    });
+  }
   const ref = secret.externalAccount;
   const token = secret.accessToken;
   const items: DiagnosticItem[] = [];
 
   const health = await runSupabaseManagementQuery(ref, token, "select 1 as ok;");
-  items.push({
+  items.push(createDiagnosticItem({
     id: "db_health_check",
     ok: Array.isArray(health),
     detail: Array.isArray(health) ? "reachable" : "unreachable",
-  });
+    evidenceType: "authenticated_runtime_proof",
+    observedBy: "diagnostics.supabase",
+    confidence: 0.95,
+    observedAt,
+    failureStatus: "unavailable",
+    details: { scope: "supabase_management", check: "database_reachability" },
+  }));
 
   const migs = await runSupabaseManagementQuery(
     ref,
@@ -71,13 +100,28 @@ export async function runSupabaseDiagnostics(userId: string): Promise<Diagnostic
   if (Array.isArray(migs)) {
     const versions = migs.map((r) => String((r as { version?: string }).version ?? ""));
     const missing = EXPECTED_MIGRATIONS.filter((v) => !versions.includes(v));
-    items.push({
+    items.push(createDiagnosticItem({
       id: "migration_verification",
       ok: missing.length === 0,
       detail: missing.length ? `missing: ${missing.join(", ")}` : "all expected migrations present",
-    });
+      evidenceType: "authenticated_runtime_proof",
+      observedBy: "diagnostics.supabase",
+      confidence: 0.95,
+      observedAt,
+      details: { scope: "supabase_management", check: "migration_verification" },
+    }));
   } else {
-    items.push({ id: "migration_verification", ok: false, detail: "unavailable" });
+    items.push(createDiagnosticItem({
+      id: "migration_verification",
+      ok: false,
+      detail: "unavailable",
+      evidenceType: "authenticated_runtime_proof",
+      observedBy: "diagnostics.supabase",
+      confidence: 0.8,
+      observedAt,
+      failureStatus: "unavailable",
+      details: { scope: "supabase_management", check: "migration_verification" },
+    }));
   }
 
   const tables = await runSupabaseManagementQuery(
@@ -85,11 +129,17 @@ export async function runSupabaseDiagnostics(userId: string): Promise<Diagnostic
     token,
     "select table_name from information_schema.tables where table_schema = 'public';",
   );
-  items.push({
+  items.push(createDiagnosticItem({
     id: "public_table_inspection",
     ok: Array.isArray(tables),
     detail: Array.isArray(tables) ? `${tables.length} public tables` : "unavailable",
-  });
+    evidenceType: "authenticated_runtime_proof",
+    observedBy: "diagnostics.supabase",
+    confidence: 0.9,
+    observedAt,
+    failureStatus: "unavailable",
+    details: { scope: "supabase_management", check: "public_table_inspection" },
+  }));
 
   const rls = await runSupabaseManagementQuery(
     ref,
@@ -100,14 +150,37 @@ export async function runSupabaseDiagnostics(userId: string): Promise<Diagnostic
     const without = rls.filter(
       (r) => !(r as { relrowsecurity?: boolean }).relrowsecurity,
     ).length;
-    items.push({
+    items.push(createDiagnosticItem({
       id: "rls_diagnostics",
       ok: without === 0,
       detail: without === 0 ? "RLS enabled on all public tables" : `${without} table(s) without RLS`,
-    });
+      evidenceType: "authenticated_runtime_proof",
+      observedBy: "diagnostics.supabase",
+      confidence: 0.95,
+      observedAt,
+      details: { scope: "supabase_management", check: "rls_diagnostics" },
+    }));
   } else {
-    items.push({ id: "rls_diagnostics", ok: false, detail: "unavailable" });
+    items.push(createDiagnosticItem({
+      id: "rls_diagnostics",
+      ok: false,
+      detail: "unavailable",
+      evidenceType: "authenticated_runtime_proof",
+      observedBy: "diagnostics.supabase",
+      confidence: 0.8,
+      observedAt,
+      failureStatus: "unavailable",
+      details: { scope: "supabase_management", check: "rls_diagnostics" },
+    }));
   }
 
-  return { connected: true, items };
+  return createDiagnosticsResult({
+    connected: true,
+    items,
+    evidenceType: "authenticated_runtime_proof",
+    observedBy: "diagnostics.supabase",
+    confidence: 0.95,
+    observedAt,
+    details: { scope: "supabase_diagnostics", itemCount: items.length },
+  });
 }
