@@ -61,10 +61,16 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-dvh bg-background text-foreground">
+    <div
+      className="app-executive relative flex min-h-dvh overflow-x-clip bg-background text-foreground"
+      data-audience={isFounder ? "founder" : "customer"}
+    >
+      <div className="app-executive__grid" aria-hidden="true" />
+      <div className="app-executive__glow app-executive__glow--top" aria-hidden="true" />
+      <div className="app-executive__glow app-executive__glow--floor" aria-hidden="true" />
       <Sidebar badges={navBadges} isFounder={isFounder} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/80 bg-canvas/90 px-4 backdrop-blur sm:px-6">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <header className="app-topbar sticky top-0 z-30 flex h-16 items-center gap-2 border-b px-4 sm:px-6">
           <MobileNav badges={navBadges} isFounder={isFounder} />
           {isFounder && <CompanySwitcher companies={companies} />}
           <div className="flex-1" />
@@ -79,8 +85,8 @@ export function AppShell({
             imageUrl={profilePhotoUrl}
           />
         </header>
-        <main id="main-content" className="flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
-          <div className="mx-auto min-h-[calc(100dvh-7rem)] w-full max-w-6xl rounded-2xl border border-canvas-border bg-canvas p-4 shadow-[var(--shadow-canvas)] sm:p-6 lg:p-7">
+        <main id="main-content" className="app-main flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
+          <div className="app-content-surface mx-auto min-h-[calc(100dvh-7rem)] w-full max-w-[92rem] rounded-[1.25rem] border p-4 sm:p-6 lg:p-7">
             {children}
           </div>
         </main>

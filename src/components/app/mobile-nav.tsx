@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
@@ -45,10 +46,17 @@ export function MobileNav({
           <Menu className="size-5" aria-hidden="true" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="left-0 top-0 flex h-dvh max-w-[17rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r border-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:rounded-none">
+      <DialogContent className="app-mobile-nav left-0 top-0 flex h-dvh max-w-[18rem] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-r border-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:rounded-none">
         <DialogTitle className="sr-only">{t("menu")}</DialogTitle>
         <div className="flex h-16 items-center border-b border-sidebar-border/70 px-4">
-          <HarmonyMark className="size-10" title="Harmony" />
+          <Link
+            href={isFounder ? "/harmony" : "/harmony/personal"}
+            onClick={close}
+            aria-label={t("home")}
+            className="inline-flex min-h-11 items-center rounded-md"
+          >
+            <HarmonyMark className="size-10" title="Harmony" />
+          </Link>
         </div>
         <nav
           className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4"

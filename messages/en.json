@@ -242,6 +242,8 @@
     "main": "Main navigation",
     "mobile": "Mobile navigation",
     "home": "Harmony home",
+    "back": "Back",
+    "breadcrumb": "Breadcrumb",
     "tasks": "Tasks",
     "goals": "Goals",
     "notes": "Notes",
@@ -250,6 +252,9 @@
     "learning": "Learning",
     "connections": "Connections",
     "diagnostics": "Diagnostics",
+    "graph": "Relationship graph",
+    "departments": "Departments",
+    "projects": "Projects",
     "approvalCenter": "Approval Center",
     "planBilling": "Plan",
     "operator": "Harmony",
@@ -301,6 +306,30 @@
         "companies": "Companies",
         "objectives": "Active objectives",
         "approvals": "Pending approvals"
+      },
+      "feed": {
+        "view": "Open details",
+        "status": "Founder workspace live",
+        "companies": {
+          "label": "Company Health",
+          "title": "{count, plural, =0 {No companies configured} one {# company in context} other {# companies in context}}",
+          "body": "Company context comes directly from your Founder OS workspace."
+        },
+        "objectives": {
+          "label": "Today's Objectives",
+          "title": "{count, plural, =0 {No active objectives} one {# active objective} other {# active objectives}}",
+          "body": "Review the current objectives already tracked across your companies."
+        },
+        "reviews": {
+          "label": "Pending Reviews",
+          "title": "{count, plural, =0 {No approvals waiting} one {# approval needs review} other {# approvals need review}}",
+          "body": "Only real pending approval records are surfaced here."
+        }
+      },
+      "marketplace": {
+        "title": "Marketplace",
+        "description": "Discover and install AI workers, skills, workflows, and company templates.",
+        "cta": "Browse Marketplace"
       },
       "empty": {
         "title": "Set up your first company",
@@ -917,6 +946,25 @@
       "overdue": "Overdue",
       "activeGoals": "Active goals",
       "notes": "Notes"
+    },
+    "feed": {
+      "view": "Open details",
+      "status": "Customer workspace live",
+      "priorities": {
+        "label": "Today's Priorities",
+        "title": "{count, plural, =0 {No urgent items} one {# priority item} other {# priority items}}",
+        "body": "{due} due today · {overdue} overdue"
+      },
+      "goals": {
+        "label": "Goal Progress",
+        "title": "{count, plural, =0 {No active goals} one {# active goal} other {# active goals}}",
+        "body": "Open your goals to review their current progress."
+      },
+      "recommendations": {
+        "label": "Harmony Recommendations",
+        "title": "{count, plural, one {# current recommendation} other {# current recommendations}}",
+        "body": "Suggestions are derived only from your own tasks, goals, and notes."
+      }
     },
     "quickAdd": {
       "placeholder": "Add a task…",

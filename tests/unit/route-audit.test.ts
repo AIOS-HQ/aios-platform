@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isNavItemActive,
+  normalizeNavPathname,
   navSections,
   sectionsForAudience,
   isFounderHarmonyPath,
@@ -109,6 +110,18 @@ describe("launch route audit", () => {
     expect(isNavItemActive("/harmony/socialize", socialItem!)).toBe(false);
   });
 
+  it("normalizes navigation paths without making sibling prefixes active", () => {
+    const dashboard = sectionsForAudience(false)
+      .flatMap((section) => section.items)
+      .find((item) => item.href === "/harmony/personal");
+    expect(dashboard).toBeDefined();
+    expect(normalizeNavPathname("/harmony/personal/?view=today#top")).toBe(
+      "/harmony/personal",
+    );
+    expect(isNavItemActive("/harmony/personal/", dashboard!)).toBe(true);
+    expect(isNavItemActive("/harmony/personality", dashboard!)).toBe(false);
+  });
+
   it("keeps every settings card route backed by an app route", () => {
     expect(SETTINGS_ROUTE_CARDS.map((card) => card.href).filter((href) => !routeExists(href))).toEqual([]);
   });
@@ -146,6 +159,23 @@ describe("launch route audit", () => {
     expect(routeExists("/harmony/social")).toBe(true);
     expect(fs.existsSync(path.join(process.cwd(), "src/app/(app)/layout.tsx"))).toBe(true);
     expect(fs.existsSync(path.join(process.cwd(), "src/app/(app)/harmony/layout.tsx"))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), "src/app/(app)/harmony/template.tsx"))).toBe(true);
+  });
+
+  it("runs path-dependent Harmony gates per destination instead of in the cached layout", () => {
+    const layout = fs.readFileSync(
+      path.join(process.cwd(), "src/app/(app)/harmony/layout.tsx"),
+      "utf8",
+    );
+    const template = fs.readFileSync(
+      path.join(process.cwd(), "src/app/(app)/harmony/template.tsx"),
+      "utf8",
+    );
+    expect(layout).not.toContain("x-pathname");
+    expect(layout).not.toContain("isFounderHarmonyPath");
+    expect(template).toContain("x-pathname");
+    expect(template).toContain("isFounderHarmonyPath");
+    expect(template).toContain('redirect("/harmony/personal")');
   });
 
   it("keeps the Social page wired to test drafts, approval, and truthful YouTube status", () => {

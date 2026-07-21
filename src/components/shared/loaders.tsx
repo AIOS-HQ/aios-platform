@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function PageHeaderSkeleton() {
   return (
     <div
-      className="mb-8 rounded-xl border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-6"
+      className="app-page-header mb-8 rounded-xl border bg-card px-5 py-5 shadow-[var(--shadow-soft)] sm:px-6"
       aria-hidden="true"
     >
       <div className="space-y-3">

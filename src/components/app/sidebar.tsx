@@ -22,11 +22,11 @@ export async function Sidebar({
   const sections = sectionsForAudience(isFounder);
   return (
     <aside
-      className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex"
+      className="app-sidebar relative z-20 hidden w-64 shrink-0 flex-col border-r text-sidebar-foreground md:flex"
       aria-label={t("sidebar")}
     >
       <div className="flex h-16 items-center border-b border-sidebar-border/70 px-4">
-        <Link href="/harmony" aria-label={t("home")} className="inline-flex min-w-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar">
+        <Link href={isFounder ? "/harmony" : "/harmony/personal"} aria-label={t("home")} className="inline-flex min-w-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar">
           <HarmonyMark className="size-10" title="Harmony" />
         </Link>
       </div>
@@ -34,7 +34,7 @@ export async function Sidebar({
         {sections.map((section, i) => (
           <div key={section.titleKey ?? `section-${i}`} className="flex flex-col gap-1.5">
             {section.titleKey && (
-              <p className="px-3 pb-1 text-[0.68rem] font-bold uppercase tracking-[0.13em] text-sidebar-foreground/65">
+              <p className="px-3 pb-1 text-[0.66rem] font-bold uppercase tracking-[0.15em] text-sidebar-foreground/52">
                 {t(`sections.${section.titleKey}`)}
               </p>
             )}

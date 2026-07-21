@@ -242,6 +242,8 @@
     "main": "Navegación principal",
     "mobile": "Navegación móvil",
     "home": "Inicio de Harmony",
+    "back": "Volver",
+    "breadcrumb": "Ruta de navegación",
     "tasks": "Tareas",
     "goals": "Objetivos",
     "notes": "Notas",
@@ -250,6 +252,9 @@
     "learning": "Aprendizaje",
     "connections": "Conexiones",
     "diagnostics": "Diagnóstico",
+    "graph": "Mapa de relaciones",
+    "departments": "Departamentos",
+    "projects": "Proyectos",
     "approvalCenter": "Centro de aprobaciones",
     "planBilling": "Plan",
     "operator": "Harmony",
@@ -301,6 +306,30 @@
         "companies": "Empresas",
         "objectives": "Objetivos activos",
         "approvals": "Aprobaciones pendientes"
+      },
+      "feed": {
+        "view": "Abrir detalles",
+        "status": "Espacio de fundador activo",
+        "companies": {
+          "label": "Salud de la empresa",
+          "title": "{count, plural, =0 {No hay empresas configuradas} one {# empresa en contexto} other {# empresas en contexto}}",
+          "body": "El contexto empresarial proviene directamente de tu espacio de Founder OS."
+        },
+        "objectives": {
+          "label": "Objetivos de hoy",
+          "title": "{count, plural, =0 {No hay objetivos activos} one {# objetivo activo} other {# objetivos activos}}",
+          "body": "Revisa los objetivos actuales que ya se siguen en tus empresas."
+        },
+        "reviews": {
+          "label": "Revisiones pendientes",
+          "title": "{count, plural, =0 {No hay aprobaciones pendientes} one {# aprobación necesita revisión} other {# aprobaciones necesitan revisión}}",
+          "body": "Aquí solo aparecen registros reales de aprobaciones pendientes."
+        }
+      },
+      "marketplace": {
+        "title": "Marketplace",
+        "description": "Descubre e instala trabajadores de IA, habilidades, flujos de trabajo y plantillas empresariales.",
+        "cta": "Explorar Marketplace"
       },
       "empty": {
         "title": "Configura tu primera empresa",
@@ -917,6 +946,25 @@
       "overdue": "Vencidas",
       "activeGoals": "Objetivos activos",
       "notes": "Notas"
+    },
+    "feed": {
+      "view": "Abrir detalles",
+      "status": "Espacio de cliente activo",
+      "priorities": {
+        "label": "Prioridades de hoy",
+        "title": "{count, plural, =0 {No hay elementos urgentes} one {# elemento prioritario} other {# elementos prioritarios}}",
+        "body": "{due} para hoy · {overdue} vencidas"
+      },
+      "goals": {
+        "label": "Progreso de objetivos",
+        "title": "{count, plural, =0 {No hay objetivos activos} one {# objetivo activo} other {# objetivos activos}}",
+        "body": "Abre tus objetivos para revisar su progreso actual."
+      },
+      "recommendations": {
+        "label": "Recomendaciones de Harmony",
+        "title": "{count, plural, one {# recomendación actual} other {# recomendaciones actuales}}",
+        "body": "Las sugerencias se derivan únicamente de tus tareas, objetivos y notas."
+      }
     },
     "quickAdd": {
       "placeholder": "Agregar una tarea…",
