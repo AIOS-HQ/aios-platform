@@ -1312,6 +1312,7 @@
         "invalid_metadata": "The selected media does not meet YouTube requirements.",
         "upload_expired": "The secure upload authorization expired. Retry to create a new one.",
         "upload_not_found": "This upload is not available to the current account.",
+        "verification_in_progress": "This upload is already being verified. Wait a moment, then retry.",
         "storage_incomplete": "Storage has not finished processing the upload. Retry verification.",
         "storage_mismatch": "The stored media does not match the selected file.",
         "provider_validation": "The selected YouTube channel or playlist is no longer available.",

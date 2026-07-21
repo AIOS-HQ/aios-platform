@@ -25,7 +25,19 @@ import {
   type YouTubeUploadMetadata,
 } from "./upload-contract";
 
-type UploadIntentRow = {
+export const STORAGE_DIGEST_CHUNK_BYTES = 8 * 1024 * 1024;
+
+type UploadIntentStatus =
+  | "authorized"
+  | "uploading"
+  | "verifying"
+  | "verified"
+  | "finalized"
+  | "failed"
+  | "cancelled"
+  | "expired";
+
+export type UploadIntentRow = {
   id: string;
   client_request_id: string;
   user_id: string;
@@ -39,14 +51,17 @@ type UploadIntentRow = {
   width: number | null;
   height: number | null;
   alt_text: string | null;
-  status: string;
+  status: UploadIntentStatus;
   authorization_expires_at: string;
   expires_at: string;
+  verification_token: string | null;
+  verification_started_at: string | null;
   asset_id: string | null;
   job_id: string | null;
 };
 
 type StorageMetadata = { size?: number | string; mimetype?: string; contentType?: string };
+type StoredObject = { byteSize: number; mimeType: string };
 
 function requireAdmin() {
   const admin = createAdminClient();
@@ -85,7 +100,7 @@ export async function authorizeYouTubeUpload(input: {
 
   let row = existing.data as UploadIntentRow | null;
   if (row && (new Date(row.expires_at).getTime() <= now || !["authorized", "uploading"].includes(row.status))) {
-    throw new YouTubeUploadError("upload_expired", "This upload authorization has expired. Start a new upload.", 409);
+    throw new YouTubeUploadError("upload_expired", "This upload is no longer mutable. Start a new upload.", 409);
   }
   if (row) {
     const metadataMatches = row.file_name === safeUploadFileName(input.metadata.fileName)
@@ -95,6 +110,7 @@ export async function authorizeYouTubeUpload(input: {
       throw new YouTubeUploadError("invalid_metadata", "This retry does not match the original upload metadata.", 409);
     }
   }
+
   const authorizationExpiresAt = new Date(now + SOCIAL_UPLOAD_AUTHORIZATION_TTL_MS).toISOString();
   if (!row) {
     const uploadId = randomUUID();
@@ -139,6 +155,7 @@ export async function authorizeYouTubeUpload(input: {
       .eq("id", row.id)
       .eq("user_id", input.userId)
       .eq("company_id", input.companyId)
+      .in("status", ["authorized", "uploading"])
       .select("*")
       .single();
     if (refreshed.error || !refreshed.data) {
@@ -147,19 +164,12 @@ export async function authorizeYouTubeUpload(input: {
     row = refreshed.data as UploadIntentRow;
   }
 
-  const signed = await admin.storage.from(SOCIAL_UPLOAD_BUCKET).createSignedUploadUrl(row.storage_path, { upsert: false });
-  if (signed.error || !signed.data) {
-    throw new YouTubeUploadError("service_unavailable", "Upload storage authorization is unavailable.", 503);
-  }
-  const supabaseUrl = env.supabaseUrl.replace(/\/$/, "");
   return {
     uploadId: row.id,
     bucket: SOCIAL_UPLOAD_BUCKET,
     path: row.storage_path,
-    signedUrl: signed.data.signedUrl,
-    signedToken: signed.data.token,
     expiresAt: authorizationExpiresAt,
-    tusEndpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+    tusEndpoint: `${env.supabaseUrl.replace(/\/$/, "")}/storage/v1/upload/resumable`,
   };
 }
 
@@ -182,17 +192,22 @@ async function loadOwnedIntent(input: {
   if (error || !data) throw new YouTubeUploadError("upload_not_found", "The upload does not belong to this account.", 404);
   const intent = data as UploadIntentRow;
   assertUploadIntentOwnership(intent, input);
-  if (intent.status === "cancelled" || intent.status === "failed" || intent.status === "expired") {
-    throw new YouTubeUploadError("upload_expired", "The upload is no longer available.", 409);
-  }
-  if (new Date(intent.expires_at).getTime() <= Date.now() && intent.status !== "finalized") {
-    await admin.from("social_upload_intents").update({ status: "expired" }).eq("id", intent.id);
-    throw new YouTubeUploadError("upload_expired", "The upload authorization has expired.", 409);
-  }
   return intent;
 }
 
-async function verifyStoredObject(intent: UploadIntentRow): Promise<{ byteSize: number; mimeType: string }> {
+function validateIntentForDraft(intent: UploadIntentRow, clientRequestId: string): void {
+  if (intent.client_request_id !== clientRequestId) {
+    throw new YouTubeUploadError("upload_not_found", "The upload does not match this draft.", 404);
+  }
+  if (["cancelled", "failed", "expired"].includes(intent.status) || new Date(intent.expires_at).getTime() <= Date.now()) {
+    throw new YouTubeUploadError("upload_expired", "The upload is no longer available.", 409);
+  }
+  if (intent.status === "verifying" || intent.status === "verified") {
+    throw new YouTubeUploadError("verification_in_progress", "Media verification is already in progress.", 409);
+  }
+}
+
+async function storedObjectMetadata(intent: UploadIntentRow): Promise<StoredObject> {
   const admin = requireAdmin();
   const slash = intent.storage_path.lastIndexOf("/");
   const prefix = intent.storage_path.slice(0, slash);
@@ -222,14 +237,51 @@ async function verifyStoredObject(intent: UploadIntentRow): Promise<{ byteSize: 
     altText: intent.alt_text,
   });
   if (errors.length > 0) throw new YouTubeUploadError("storage_mismatch", errors.join(" "), 409);
-  const header = await readAssetRange(intent.storage_path, 0, Math.min(31, byteSize - 1));
-  if (!matchesMediaSignature(mimeType, header)) {
-    throw new YouTubeUploadError("storage_mismatch", "Stored media contents do not match the declared type.", 409);
-  }
   return { byteSize, mimeType };
 }
 
-function assetFromIntent(intent: UploadIntentRow, stored: { byteSize: number; mimeType: string }): SocialMediaAsset {
+export async function sha256AssetRanges(input: {
+  byteSize: number;
+  readRange: (start: number, endInclusive: number) => Promise<Uint8Array>;
+  chunkBytes?: number;
+}): Promise<string> {
+  const chunkBytes = input.chunkBytes ?? STORAGE_DIGEST_CHUNK_BYTES;
+  if (!Number.isSafeInteger(input.byteSize) || input.byteSize <= 0 || !Number.isSafeInteger(chunkBytes) || chunkBytes <= 0) {
+    throw new Error("Storage digest bounds are invalid.");
+  }
+  const digest = createHash("sha256");
+  for (let start = 0; start < input.byteSize; start += chunkBytes) {
+    const endInclusive = Math.min(start + chunkBytes, input.byteSize) - 1;
+    const bytes = await input.readRange(start, endInclusive);
+    if (bytes.byteLength !== endInclusive - start + 1) {
+      throw new Error("Storage returned an incomplete digest range.");
+    }
+    digest.update(bytes);
+  }
+  return digest.digest("hex");
+}
+
+async function verifyStoredObject(intent: UploadIntentRow): Promise<StoredObject & { checksumSha256: string }> {
+  const before = await storedObjectMetadata(intent);
+  const header = await readAssetRange(intent.storage_path, 0, Math.min(31, before.byteSize - 1));
+  if (!matchesMediaSignature(before.mimeType, header)) {
+    throw new YouTubeUploadError("storage_mismatch", "Stored media contents do not match the declared type.", 409);
+  }
+  const checksumSha256 = await sha256AssetRanges({
+    byteSize: before.byteSize,
+    readRange: (start, endInclusive) => readAssetRange(intent.storage_path, start, endInclusive),
+  });
+  const after = await storedObjectMetadata(intent);
+  if (after.byteSize !== before.byteSize || after.mimeType !== before.mimeType) {
+    throw new YouTubeUploadError("storage_mismatch", "Stored media changed during verification.", 409);
+  }
+  return { ...after, checksumSha256 };
+}
+
+function assetFromIntent(
+  intent: UploadIntentRow,
+  stored: StoredObject & { checksumSha256: string },
+): SocialMediaAsset {
   return {
     id: intent.id,
     provider: "youtube",
@@ -237,14 +289,12 @@ function assetFromIntent(intent: UploadIntentRow, stored: { byteSize: number; mi
     mimeType: stored.mimeType,
     fileName: intent.file_name,
     byteSize: stored.byteSize,
-    checksumSha256: createHash("sha256")
-      .update(`verified-storage-object-v1:${intent.storage_path}:${stored.byteSize}:${stored.mimeType}`)
-      .digest("hex"),
+    checksumSha256: stored.checksumSha256,
     durationSeconds: intent.duration_seconds == null ? null : Number(intent.duration_seconds),
     width: intent.width,
     height: intent.height,
     altText: intent.alt_text,
-    state: "ready",
+    state: "validated",
     storagePath: intent.storage_path,
   };
 }
@@ -271,7 +321,7 @@ function normalizedFinalization(input: YouTubeDraftFinalization): YouTubeDraftFi
   if (!uuid.test(input.clientRequestId) || !uuid.test(input.videoUploadId) || (input.thumbnailUploadId && !uuid.test(input.thumbnailUploadId)) || !title || title.length > 100 || !description || description.length > 5000 || !input.channelId.trim()) {
     throw new YouTubeUploadError("invalid_request", "Required YouTube draft metadata is missing or invalid.");
   }
-  if (!['private', 'unlisted', 'public'].includes(input.visibility)) {
+  if (!["private", "unlisted", "public"].includes(input.visibility)) {
     throw new YouTubeUploadError("invalid_request", "YouTube visibility is invalid.");
   }
   const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : null;
@@ -289,6 +339,47 @@ function normalizedFinalization(input: YouTubeDraftFinalization): YouTubeDraftFi
   };
 }
 
+async function assertVerificationClaim(input: {
+  userId: string;
+  companyId: string;
+  ids: string[];
+  verificationToken: string;
+}): Promise<void> {
+  const admin = requireAdmin();
+  const { data, error } = await admin
+    .from("social_upload_intents")
+    .select("id,status,verification_token")
+    .eq("user_id", input.userId)
+    .eq("company_id", input.companyId)
+    .in("id", input.ids);
+  const rows = (data ?? []) as Array<{ id: string; status: string; verification_token: string | null }>;
+  if (
+    error
+    || rows.length !== input.ids.length
+    || rows.some((row) => row.status !== "verifying" || row.verification_token !== input.verificationToken)
+  ) {
+    throw new YouTubeUploadError("storage_mismatch", "Upload verification ownership changed unexpectedly.", 409);
+  }
+}
+
+async function failVerification(input: {
+  userId: string;
+  companyId: string;
+  verificationToken: string;
+  errorCode: string;
+  jobId?: string | null;
+}): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  await admin.rpc("fail_youtube_upload_verification", {
+    p_user_id: input.userId,
+    p_company_id: input.companyId,
+    p_verification_token: input.verificationToken,
+    p_error_code: input.errorCode.slice(0, 80),
+    p_job_id: input.jobId ?? null,
+  });
+}
+
 export async function finalizeYouTubeDraft(input: {
   userId: string;
   companyId: string;
@@ -303,9 +394,6 @@ export async function finalizeYouTubeDraft(input: {
     uploadId: draft.videoUploadId,
     expectedKind: "video",
   });
-  if (videoIntent.client_request_id !== draft.clientRequestId) {
-    throw new YouTubeUploadError("upload_not_found", "The upload does not match this draft.", 404);
-  }
   const thumbnailIntent = draft.thumbnailUploadId
     ? await loadOwnedIntent({
         userId: input.userId,
@@ -314,16 +402,14 @@ export async function finalizeYouTubeDraft(input: {
         expectedKind: "thumbnail",
       })
     : null;
-  if (thumbnailIntent && thumbnailIntent.client_request_id !== draft.clientRequestId) {
-    throw new YouTubeUploadError("upload_not_found", "The thumbnail does not match this draft.", 404);
-  }
-  if (videoIntent.job_id && videoIntent.status === "finalized") {
+
+  if (videoIntent.status === "finalized" && videoIntent.job_id) {
     return { jobId: videoIntent.job_id, state: "awaiting_approval", duplicate: true };
   }
+  validateIntentForDraft(videoIntent, draft.clientRequestId);
+  if (thumbnailIntent) validateIntentForDraft(thumbnailIntent, draft.clientRequestId);
 
-  const [videoStored, thumbnailStored, channels, playlists] = await Promise.all([
-    verifyStoredObject(videoIntent),
-    thumbnailIntent ? verifyStoredObject(thumbnailIntent) : Promise.resolve(null),
+  const [channels, playlists] = await Promise.all([
     listYouTubeChannels(input.userId),
     draft.playlistId ? listYouTubePlaylists(input.userId) : Promise.resolve([]),
   ]);
@@ -334,82 +420,157 @@ export async function finalizeYouTubeDraft(input: {
     throw new YouTubeUploadError("provider_validation", "The selected YouTube playlist is unavailable.", 409);
   }
 
-  const media = [assetFromIntent(videoIntent, videoStored)];
-  if (thumbnailIntent && thumbnailStored) media.push(assetFromIntent(thumbnailIntent, thumbnailStored));
+  const verificationToken = randomUUID();
+  const ids = [videoIntent.id, ...(thumbnailIntent ? [thumbnailIntent.id] : [])];
+  let claimed = false;
+  let stagedJobId: string | null = null;
   try {
-    validateMediaSet("youtube", media);
-    if (draft.contentType === "youtube_short") validateYouTubeShort(media);
-  } catch (error) {
-    throw new YouTubeUploadError("invalid_metadata", error instanceof Error ? error.message : "Media validation failed.");
-  }
-  const hash = contentHash({
-    provider: "youtube",
-    contentType: draft.contentType,
-    title: draft.title,
-    caption: draft.description,
-    targetIdentity: draft.channelId,
-    youtubeChannelId: draft.channelId,
-    youtubeVisibility: draft.visibility,
-    youtubeTags: draft.tags,
-    youtubePlaylistId: draft.playlistId,
-    scheduledAt: draft.scheduledAt,
-    media,
-  });
-  const job: Omit<SocialPublishJob, "id" | "attempts"> = {
-    provider: "youtube",
-    contentType: draft.contentType,
-    title: draft.title,
-    caption: draft.description,
-    targetIdentity: draft.channelId,
-    youtubeChannelId: draft.channelId,
-    youtubeChannelTitle: channel.title,
-    youtubeVisibility: draft.visibility,
-    youtubeTags: draft.tags,
-    youtubePlaylistId: draft.playlistId,
-    youtubePlaylistTitle: playlist?.title ?? null,
-    scheduledAt: draft.scheduledAt,
-    uploadProgress: 0,
-    processingStatus: "queued",
-    state: "awaiting_approval",
-    mediaAssetIds: media.map((asset) => asset.id),
-    idempotencyKey: createIdempotencyKey({
-      userId: input.userId,
-      provider: "youtube",
-      targetIdentity: draft.channelId,
-      contentHash: hash,
-    }),
-    contentHash: hash,
-    approvedContentHash: null,
-    providerPostId: null,
-    providerPostUrl: null,
-    providerAssetId: null,
-    lastError: null,
-  };
+    const claim = await admin.rpc("claim_youtube_upload_intents", {
+      p_user_id: input.userId,
+      p_company_id: input.companyId,
+      p_client_request_id: draft.clientRequestId,
+      p_video_id: videoIntent.id,
+      p_thumbnail_id: thumbnailIntent?.id ?? null,
+      p_verification_token: verificationToken,
+    });
+    if (claim.error || !claim.data || (claim.data as unknown[]).length !== ids.length) {
+      const latest = await loadOwnedIntent({
+        userId: input.userId,
+        companyId: input.companyId,
+        uploadId: videoIntent.id,
+        expectedKind: "video",
+      });
+      if (latest.status === "finalized" && latest.job_id) {
+        return { jobId: latest.job_id, state: "awaiting_approval", duplicate: true };
+      }
+      if (latest.status === "verifying" || latest.status === "verified") {
+        throw new YouTubeUploadError("verification_in_progress", "Media verification is already in progress.", 409);
+      }
+      throw new YouTubeUploadError("upload_expired", "The upload could not be claimed for verification.", 409);
+    }
+    claimed = true;
 
-  const assetResult = await admin
-    .from("social_media_assets")
-    .upsert(media.map((asset) => socialMediaAssetRow(input.userId, asset, input.companyId)), { onConflict: "id" });
-  if (assetResult.error) throw new YouTubeUploadError("service_unavailable", "Verified media could not be registered.", 503);
-  const insertedJob = await admin
-    .from("social_publish_jobs")
-    .upsert(socialPublishJobRow(input.userId, job, input.companyId), { onConflict: "user_id,provider,idempotency_key" })
-    .select("id,state")
-    .single();
-  if (insertedJob.error || !insertedJob.data) {
-    throw new YouTubeUploadError("service_unavailable", "The YouTube draft could not be created.", 503);
+    const [videoStored, thumbnailStored] = await Promise.all([
+      verifyStoredObject(videoIntent),
+      thumbnailIntent ? verifyStoredObject(thumbnailIntent) : Promise.resolve(null),
+    ]);
+    await assertVerificationClaim({
+      userId: input.userId,
+      companyId: input.companyId,
+      ids,
+      verificationToken,
+    });
+
+    const media = [assetFromIntent(videoIntent, videoStored)];
+    if (thumbnailIntent && thumbnailStored) media.push(assetFromIntent(thumbnailIntent, thumbnailStored));
+    try {
+      validateMediaSet("youtube", media);
+      if (draft.contentType === "youtube_short") validateYouTubeShort(media);
+    } catch (error) {
+      throw new YouTubeUploadError("invalid_metadata", error instanceof Error ? error.message : "Media validation failed.");
+    }
+
+    const hash = contentHash({
+      provider: "youtube",
+      contentType: draft.contentType,
+      title: draft.title,
+      caption: draft.description,
+      targetIdentity: draft.channelId,
+      youtubeChannelId: draft.channelId,
+      youtubeVisibility: draft.visibility,
+      youtubeTags: draft.tags,
+      youtubePlaylistId: draft.playlistId,
+      scheduledAt: draft.scheduledAt,
+      media,
+    });
+    const job: Omit<SocialPublishJob, "id" | "attempts"> = {
+      provider: "youtube",
+      contentType: draft.contentType,
+      title: draft.title,
+      caption: draft.description,
+      targetIdentity: draft.channelId,
+      youtubeChannelId: draft.channelId,
+      youtubeChannelTitle: channel.title,
+      youtubeVisibility: draft.visibility,
+      youtubeTags: draft.tags,
+      youtubePlaylistId: draft.playlistId,
+      youtubePlaylistTitle: playlist?.title ?? null,
+      scheduledAt: draft.scheduledAt,
+      uploadProgress: 0,
+      processingStatus: "queued",
+      state: "preparing_media",
+      mediaAssetIds: media.map((asset) => asset.id),
+      idempotencyKey: createIdempotencyKey({
+        userId: input.userId,
+        provider: "youtube",
+        targetIdentity: draft.channelId,
+        contentHash: hash,
+      }),
+      contentHash: hash,
+      approvedContentHash: null,
+      providerPostId: null,
+      providerPostUrl: null,
+      providerAssetId: null,
+      lastError: null,
+    };
+
+    const assetResult = await admin
+      .from("social_media_assets")
+      .upsert(media.map((asset) => socialMediaAssetRow(input.userId, asset, input.companyId)), { onConflict: "id" });
+    if (assetResult.error) throw new YouTubeUploadError("service_unavailable", "Verified media could not be staged.", 503);
+
+    const existingJob = await admin
+      .from("social_publish_jobs")
+      .select("id,state,content_hash")
+      .eq("user_id", input.userId)
+      .eq("provider", "youtube")
+      .eq("idempotency_key", job.idempotencyKey)
+      .maybeSingle();
+    if (existingJob.error) throw new YouTubeUploadError("service_unavailable", "The YouTube draft could not be staged.", 503);
+    if (existingJob.data) {
+      const existing = existingJob.data as { id: string; state: string; content_hash: string };
+      if (existing.content_hash !== hash || existing.state !== "preparing_media") {
+        throw new YouTubeUploadError("storage_mismatch", "An incompatible draft already uses this content identity.", 409);
+      }
+      stagedJobId = existing.id;
+    } else {
+      const insertedJob = await admin
+        .from("social_publish_jobs")
+        .insert(socialPublishJobRow(input.userId, job, input.companyId))
+        .select("id")
+        .single();
+      if (insertedJob.error || !insertedJob.data) {
+        throw new YouTubeUploadError("service_unavailable", "The YouTube draft could not be staged.", 503);
+      }
+      stagedJobId = String(insertedJob.data.id);
+    }
+
+    const finalized = await admin.rpc("finalize_youtube_upload_draft", {
+      p_user_id: input.userId,
+      p_company_id: input.companyId,
+      p_client_request_id: draft.clientRequestId,
+      p_video_id: videoIntent.id,
+      p_thumbnail_id: thumbnailIntent?.id ?? null,
+      p_verification_token: verificationToken,
+      p_job_id: stagedJobId,
+    });
+    if (finalized.error || !finalized.data) {
+      throw new YouTubeUploadError("service_unavailable", "The verified YouTube draft could not be finalized.", 503);
+    }
+    return { jobId: stagedJobId, state: "awaiting_approval", duplicate: false };
+  } catch (error) {
+    if (claimed) {
+      await failVerification({
+        userId: input.userId,
+        companyId: input.companyId,
+        verificationToken,
+        errorCode: error instanceof YouTubeUploadError ? error.code : "verification_failed",
+        jobId: stagedJobId,
+      });
+    }
+    if (error instanceof YouTubeUploadError) throw error;
+    throw new YouTubeUploadError("service_unavailable", "Media verification failed safely.", 503);
   }
-  const jobId = String(insertedJob.data.id);
-  const finalized = await Promise.all(media.map((asset) => admin
-    .from("social_upload_intents")
-    .update({ status: "finalized", job_id: jobId, asset_id: asset.id })
-    .eq("id", asset.id)
-    .eq("user_id", input.userId)
-    .eq("company_id", input.companyId)
-    .eq("client_request_id", draft.clientRequestId)));
-  if (finalized.some((result) => result.error)) {
-    throw new YouTubeUploadError("service_unavailable", "Upload finalization could not be recorded.", 503);
-  }
-  return { jobId, state: "awaiting_approval", duplicate: false };
 }
 
 export async function cancelYouTubeUpload(input: {
@@ -417,28 +578,62 @@ export async function cancelYouTubeUpload(input: {
   companyId: string;
   uploadId: string;
 }): Promise<void> {
-  const intent = await loadOwnedIntent({ ...input, expectedKind: "video" }).catch(async (error) => {
-    if (!(error instanceof YouTubeUploadError) || error.code !== "upload_not_found") throw error;
-    return loadOwnedIntent({ ...input, expectedKind: "thumbnail" });
-  });
-  if (intent.status === "finalized") throw new YouTubeUploadError("invalid_request", "A finalized upload cannot be cancelled.", 409);
   const admin = requireAdmin();
-  await admin.storage.from(SOCIAL_UPLOAD_BUCKET).remove([intent.storage_path]);
-  await admin.from("social_upload_intents").update({ status: "cancelled" }).eq("id", intent.id).eq("user_id", input.userId);
-}
-
-/** Marks abandoned authorizations without deleting media or touching finalized work. */
-export async function markExpiredYouTubeUploadIntents(limit = 100): Promise<number> {
-  const admin = requireAdmin();
-  const { data } = await admin
+  const now = new Date().toISOString();
+  const cancelled = await admin
     .from("social_upload_intents")
-    .select("id")
+    .update({ status: "cancelled", authorization_expires_at: now, error_code: "cancelled" })
+    .eq("id", input.uploadId)
+    .eq("user_id", input.userId)
+    .eq("company_id", input.companyId)
     .eq("provider", "youtube")
     .in("status", ["authorized", "uploading"])
-    .lt("expires_at", new Date().toISOString())
-    .limit(Math.max(1, Math.min(500, limit)));
-  const ids = (data ?? []).map((row) => String((row as { id: string }).id));
-  if (ids.length === 0) return 0;
-  await admin.from("social_upload_intents").update({ status: "expired" }).in("id", ids);
-  return ids.length;
+    .select("storage_path")
+    .maybeSingle();
+  if (cancelled.error || !cancelled.data) {
+    throw new YouTubeUploadError("invalid_request", "Only an active upload can be cancelled.", 409);
+  }
+  const storagePath = String((cancelled.data as { storage_path: string }).storage_path);
+  await admin.storage.from(SOCIAL_UPLOAD_BUCKET).remove([storagePath]);
+}
+
+/** Marks abandoned uploads safely; verifying work is failed after a bounded stale interval. */
+export async function markExpiredYouTubeUploadIntents(limit = 100): Promise<number> {
+  const admin = requireAdmin();
+  const boundedLimit = Math.max(1, Math.min(500, limit));
+  const now = new Date().toISOString();
+  const staleVerification = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const [expired, stale] = await Promise.all([
+    admin
+      .from("social_upload_intents")
+      .select("id")
+      .eq("provider", "youtube")
+      .in("status", ["authorized", "uploading"])
+      .lt("expires_at", now)
+      .limit(boundedLimit),
+    admin
+      .from("social_upload_intents")
+      .select("id")
+      .eq("provider", "youtube")
+      .in("status", ["verifying", "verified"])
+      .lt("verification_started_at", staleVerification)
+      .limit(boundedLimit),
+  ]);
+  const expiredIds = (expired.data ?? []).map((row) => String((row as { id: string }).id));
+  const staleIds = (stale.data ?? []).map((row) => String((row as { id: string }).id));
+  if (expiredIds.length > 0) {
+    await admin
+      .from("social_upload_intents")
+      .update({ status: "expired", authorization_expires_at: now, error_code: "intent_expired" })
+      .in("id", expiredIds)
+      .in("status", ["authorized", "uploading"]);
+  }
+  if (staleIds.length > 0) {
+    await admin
+      .from("social_upload_intents")
+      .update({ status: "failed", authorization_expires_at: now, verification_token: null, error_code: "verification_stale" })
+      .in("id", staleIds)
+      .in("status", ["verifying", "verified"]);
+  }
+  return expiredIds.length + staleIds.length;
 }

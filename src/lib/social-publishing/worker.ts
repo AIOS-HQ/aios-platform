@@ -7,7 +7,19 @@ import { assertApprovedExactContent, mapJob, publishApprovedJob } from "./jobs";
 import { markExpiredYouTubeUploadIntents } from "./uploads";
 
 const LOCK_TIMEOUT_MS = 10 * 60 * 1000;
+const LOCK_HEARTBEAT_MS = 30 * 1000;
 const MAX_AUTOMATIC_ATTEMPTS = 5;
+
+export async function assertSocialPublishingWorkerSchema(): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) throw new Error("worker_admin_unavailable");
+  const [intents, jobs, sessions] = await Promise.all([
+    admin.from("social_upload_intents").select("verification_token,verification_started_at").limit(1),
+    admin.from("social_publish_jobs").select("publish_requested_at,next_attempt_at,worker_locked_at,worker_id").limit(1),
+    admin.from("youtube_upload_sessions").select("acknowledged_offset,total_bytes,retry_count,session_expires_at").limit(1),
+  ]);
+  if (intents.error || jobs.error || sessions.error) throw new Error("worker_schema_not_ready");
+}
 
 export async function queueYouTubePublishJob(userId: string, jobId: string): Promise<boolean> {
   const admin = createAdminClient();
@@ -73,6 +85,30 @@ async function claimNextJob(workerId: string): Promise<QueueRow | null> {
   return claimed as QueueRow | null;
 }
 
+async function withLeaseHeartbeat<T>(input: {
+  jobId: string;
+  workerId: string;
+  run: () => Promise<T>;
+}): Promise<T> {
+  const admin = createAdminClient();
+  let updating = false;
+  const timer = setInterval(() => {
+    if (!admin || updating) return;
+    updating = true;
+    void admin
+      .from("social_publish_jobs")
+      .update({ worker_locked_at: new Date().toISOString() })
+      .eq("id", input.jobId)
+      .eq("worker_id", input.workerId)
+      .then(() => { updating = false; }, () => { updating = false; });
+  }, LOCK_HEARTBEAT_MS);
+  try {
+    return await input.run();
+  } finally {
+    clearInterval(timer);
+  }
+}
+
 export async function runSocialPublishingWorkerOnce(workerId = `social-${randomUUID()}`): Promise<{
   processed: boolean;
   ok?: boolean;
@@ -83,11 +119,15 @@ export async function runSocialPublishingWorkerOnce(workerId = `social-${randomU
   await markExpiredYouTubeUploadIntents().catch(() => 0);
   const job = await claimNextJob(workerId);
   if (!job) return { processed: false };
-  const result = await publishApprovedJob({
-    userId: job.user_id,
+  const result = await withLeaseHeartbeat({
     jobId: job.id,
-    adapter: youTubePublishingAdapter,
-    resumeInProgress: true,
+    workerId,
+    run: () => publishApprovedJob({
+      userId: job.user_id,
+      jobId: job.id,
+      adapter: youTubePublishingAdapter,
+      resumeInProgress: true,
+    }),
   });
   if (result.ok) {
     await admin
@@ -126,7 +166,13 @@ export async function runSocialPublishingWorker(input: {
   while (!input.signal?.aborted) {
     const result = await runSocialPublishingWorkerOnce(workerId);
     if (!result.processed) {
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, pollIntervalMs);
+        input.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          resolve();
+        }, { once: true });
+      });
     }
   }
 }

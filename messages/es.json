@@ -1312,6 +1312,7 @@
         "invalid_metadata": "El contenido seleccionado no cumple los requisitos de YouTube.",
         "upload_expired": "La autorización de carga segura caducó. Reintenta para crear una nueva.",
         "upload_not_found": "Esta carga no está disponible para la cuenta actual.",
+        "verification_in_progress": "Esta carga ya se está verificando. Espera un momento y vuelve a intentarlo.",
         "storage_incomplete": "El almacenamiento aún no termina de procesar la carga. Reintenta la verificación.",
         "storage_mismatch": "El contenido almacenado no coincide con el archivo seleccionado.",
         "provider_validation": "El canal o la lista de reproducción de YouTube ya no está disponible.",

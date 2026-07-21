@@ -1,5 +1,5 @@
 export const SOCIAL_UPLOAD_BUCKET = "aios-uploads";
-export const SOCIAL_UPLOAD_AUTHORIZATION_TTL_MS = 15 * 60 * 1000;
+export const SOCIAL_UPLOAD_AUTHORIZATION_TTL_MS = 60 * 60 * 1000;
 export const SOCIAL_UPLOAD_INTENT_TTL_MS = 24 * 60 * 60 * 1000;
 export const SUPABASE_TUS_CHUNK_BYTES = 6 * 1024 * 1024;
 export const YOUTUBE_VIDEO_MAX_BYTES = 256 * 1024 * 1024 * 1024;
@@ -26,8 +26,6 @@ export interface YouTubeUploadAuthorization {
   uploadId: string;
   bucket: typeof SOCIAL_UPLOAD_BUCKET;
   path: string;
-  signedUrl: string;
-  signedToken: string;
   expiresAt: string;
   tusEndpoint: string;
 }
@@ -59,11 +57,22 @@ export type YouTubeUploadErrorCode =
   | "invalid_request"
   | "invalid_metadata"
   | "upload_expired"
+  | "verification_in_progress"
   | "upload_not_found"
   | "storage_incomplete"
   | "storage_mismatch"
   | "provider_validation"
   | "service_unavailable";
+
+export function uploadIntentAcceptsMutation(intent: {
+  status: string;
+  authorization_expires_at: string;
+  expires_at: string;
+}, now = Date.now()): boolean {
+  return ["authorized", "uploading"].includes(intent.status)
+    && new Date(intent.authorization_expires_at).getTime() > now
+    && new Date(intent.expires_at).getTime() > now;
+}
 
 export class YouTubeUploadError extends Error {
   constructor(

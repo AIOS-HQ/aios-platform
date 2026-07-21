@@ -9,8 +9,6 @@ function authorization(): YouTubeUploadAuthorization {
     uploadId: "upload-1",
     bucket: "aios-uploads",
     path: "user-a/company-a/social/youtube/upload-1/video-large.mp4",
-    signedUrl: "https://storage.test/signed/fixed-path",
-    signedToken: "signed-upload-secret",
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
     tusEndpoint: "https://storage.test/storage/v1/upload/resumable",
   };

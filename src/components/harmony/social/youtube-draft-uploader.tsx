@@ -33,6 +33,7 @@ const SAFE_ERROR_CODES: readonly YouTubeUploadErrorCode[] = [
   "invalid_metadata",
   "upload_expired",
   "upload_not_found",
+  "verification_in_progress",
   "storage_incomplete",
   "storage_mismatch",
   "provider_validation",
