@@ -15,7 +15,11 @@ export type ConnectorStatus = "not_connected" | "ready" | "connected" | "expired
 
 export function isConnectorConfigured(connector: ConnectorDef): boolean {
   if (connector.id === "vercel") {
-    return Boolean(process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN);
+    return Boolean(
+      (process.env.VERCEL_TOKEN || process.env.VERCEL_API_TOKEN) &&
+        (process.env.VERCEL_TEAM_ID || process.env.VERCEL_ORG_ID) &&
+        process.env.VERCEL_PROJECT_ID,
+    );
   }
   // API-key connectors without a credential model or required environment are
   // framework-only. Do not mark them ready merely because they are cataloged.

@@ -6,6 +6,8 @@ import { listConnectorDefinitions, type ConnectorDefinition } from "@/lib/integr
 import { assessIntegrationReadiness } from "@/lib/integrations/readiness";
 import { SELF_TEST_PROBES } from "@/lib/integrations/self-test-probes";
 import type { NormalizedConnectorHealth } from "@/lib/integrations/connector-health";
+import { ensureProvidersRegistered } from "@/lib/integrations/providers";
+import { hasCapabilityHandler } from "@/lib/integrations/runtime/runtime";
 
 const ROOT = process.cwd();
 
@@ -74,6 +76,12 @@ describe("Integration Center certification", () => {
 
     expect(readiness.classification).toBe("framework_only");
     expect(readiness.implementedCapabilities).toEqual([]);
+  });
+
+  it("registers the canonical Vercel deployment-status runtime handler", () => {
+    ensureProvidersRegistered();
+    expect(hasCapabilityHandler("vercel", "deployment_status")).toBe(true);
+    expect(hasCapabilityHandler("vercel", "trigger_deployment")).toBe(false);
   });
 
   it("keeps X video publishing unavailable while surfacing certified Social capabilities", () => {

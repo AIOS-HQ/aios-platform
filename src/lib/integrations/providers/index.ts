@@ -14,6 +14,7 @@ import { registerGoogleDocsCapabilities } from "./google-docs";
 import { registerGoogleSheetsCapabilities } from "./google-sheets";
 import { registerGoogleMeetCapabilities } from "./google-meet";
 import { registerYouTubeCapabilities } from "./youtube";
+import { registerVercelCapabilities } from "./vercel";
 
 /**
  * Provider bootstrap. Idempotently registers every provider's capability
@@ -40,4 +41,5 @@ export function ensureProvidersRegistered(): void {
   registerGoogleSheetsCapabilities();
   registerGoogleMeetCapabilities();
   registerYouTubeCapabilities();
+  registerVercelCapabilities();
 }

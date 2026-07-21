@@ -11,6 +11,7 @@ import { emitActivity } from "@/lib/harmony/os/events";
 import { juliusRemember } from "@/lib/julius/wiring";
 import { learnCompanySkill } from "@/lib/company-skills/library";
 import { appendMasonLedgerEvent, createMasonExecutionId } from "@/lib/harmony/code/mason-ledger";
+import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
 
 export interface MasonProductionRuntimeInput extends MasonLiveExecutionPlanInput {
   userId: string;
@@ -47,6 +48,20 @@ export async function masonRuntimeHealth(userId: string) {
   const vercel = getConnector("vercel");
   const githubCapabilities = new Set((github?.capabilities ?? []).map((cap) => cap.id));
   const vercelCapabilities = new Set((vercel?.capabilities ?? []).map((cap) => cap.id));
+  const vercelDeployment = await getCanonicalVercelDeploymentStatus(userId, {
+    repo: process.env.HARMONY_DEFAULT_GITHUB_REPO ?? process.env.GITHUB_DEFAULT_REPO ?? "AIOS-HQ/aios-platform",
+    environment: "production",
+    requestedGitSha:
+      process.env.VERCEL_GIT_COMMIT_SHA ??
+      process.env.GIT_COMMIT_SHA ??
+      process.env.NEXT_PUBLIC_GIT_SHA ??
+      null,
+    canonicalDomain:
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ??
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      null,
+  });
   return {
     github: github
       ? connected.has("github") &&
@@ -55,9 +70,14 @@ export async function masonRuntimeHealth(userId: string) {
           githubCapabilities.has(capability),
         )
       : false,
-    vercel: vercel
-      ? isConnectorConfigured(vercel) && ["deployment_status"].every((capability) => vercelCapabilities.has(capability))
-      : false,
+    vercel:
+      Boolean(vercel) &&
+      vercelCapabilities.has("deployment_status") &&
+      vercelDeployment.status === "healthy",
+    vercelStatus: vercelDeployment.status,
+    vercelEvidenceTier: vercelDeployment.evidenceTier,
+    vercelEvidenceSources: vercelDeployment.evidenceSources,
+    vercelGitShaMatches: vercelDeployment.gitShaMatches,
     harmony: true,
   };
 }
@@ -314,7 +334,7 @@ export async function runMasonProductionRuntime(
   }
 
   const health = await masonRuntimeHealth(input.userId);
-  if (!health.github || !health.vercel || !health.harmony) {
+  if (!health.github || !health.harmony) {
     await appendMasonLedgerEvent({
       executionId,
       userId: input.userId,
@@ -324,13 +344,13 @@ export async function runMasonProductionRuntime(
       operationType: "runtime_health",
       resultStatus: "failed",
       failureClassification: "connector_failure",
-      summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercel}, Harmony=${health.harmony}.`,
+      summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercelStatus} (${health.vercelEvidenceTier}), Harmony=${health.harmony}.`,
       metadata: health,
       idempotencyKey: `${executionId}:execution_failed_health`,
     });
     return {
       status: "blocked",
-      summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercel}, Harmony=${health.harmony}.`,
+      summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercelStatus} (${health.vercelEvidenceTier}), Harmony=${health.harmony}.`,
       pullRequestUrl: null,
       previewUrl: null,
     };

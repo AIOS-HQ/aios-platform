@@ -30,6 +30,12 @@ import type {
  */
 
 const HANDLERS = new Map<string, CapabilityHandler>();
+const CONFIG_OPTIONAL_FALLBACK_READS = new Set([
+  "vercel:deployment_status",
+  "vercel:production_url_verification",
+  "vercel:build_status",
+  "vercel:list_deployments",
+]);
 
 function handlerKey(connectorId: string, capabilityId: string): string {
   return `${connectorId}:${capabilityId}`;
@@ -94,7 +100,7 @@ export async function executeCapability<I = unknown, O = unknown>(
   }
 
   // Configuration (dev_configured invariant).
-  if (!isDevConfigured(def)) {
+  if (!isDevConfigured(def) && !CONFIG_OPTIONAL_FALLBACK_READS.has(handlerKey(connectorId, capabilityId))) {
     return finish("not_configured", {
       error: { code: "not_configured", message: "Developer configuration incomplete", retryable: false },
     });

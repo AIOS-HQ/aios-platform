@@ -7,6 +7,8 @@ import { isDevConfigured, devConfigurationGaps } from "@/lib/integrations/regist
 import { ensureProvidersRegistered } from "@/lib/integrations/providers";
 import { hasCapabilityHandler } from "@/lib/integrations/runtime/runtime";
 import { isEncrypted } from "@/lib/crypto/tokens";
+import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
+import type { VercelDeploymentStatusResult } from "@/lib/integrations/vercel/deployment-status";
 
 /**
  * Connector health model — derives a per-connection health snapshot for the
@@ -90,6 +92,7 @@ export interface NormalizedConnectorHealth {
   warnings: string[];
   blockers: string[];
   diagnostics: Record<string, string | boolean | null>;
+  deploymentStatus?: VercelDeploymentStatusResult;
 }
 
 /** Health snapshot for every connector the user has a connection row for. */
@@ -165,6 +168,17 @@ export async function getProviderHealth(
     implemented: hasCapabilityHandler(provider, cap.id),
   }));
   const capabilities = Object.fromEntries(capabilityDetails.map((cap) => [cap.id, cap.implemented]));
+  const deploymentStatus = provider === "vercel"
+    ? await getCanonicalVercelDeploymentStatus(userId, {
+        repo: process.env.HARMONY_DEFAULT_GITHUB_REPO ?? process.env.GITHUB_DEFAULT_REPO ?? "AIOS-HQ/aios-platform",
+        environment: "production",
+        requestedGitSha:
+          process.env.VERCEL_GIT_COMMIT_SHA ??
+          process.env.GIT_COMMIT_SHA ??
+          process.env.NEXT_PUBLIC_GIT_SHA ??
+          null,
+      })
+    : undefined;
 
   const warnings: string[] = [];
   const blockers: string[] = [];
@@ -183,6 +197,15 @@ export async function getProviderHealth(
   if (youtubeMissingScopes.length > 0) {
     blockers.push(`Reconnect YouTube with required upload scopes: ${youtubeMissingScopes.join(", ")}.`);
   }
+  if (deploymentStatus && deploymentStatus.status !== "healthy") {
+    warnings.push(
+      `Vercel deployment evidence: ${deploymentStatus.status} (${deploymentStatus.evidenceTier}).`,
+    );
+  }
+
+  const healthy = deploymentStatus
+    ? deploymentStatus.status === "healthy" && deploymentStatus.gitShaMatches !== false
+    : configured && (def.auth !== "oauth2" || connected) && tokenValid !== false && blockers.length === 0;
 
   return {
     provider,
@@ -190,7 +213,7 @@ export async function getProviderHealth(
     connectionMode: def.auth,
     configured,
     connected,
-    healthy: configured && (def.auth !== "oauth2" || connected) && tokenValid !== false && blockers.length === 0,
+    healthy,
     identity: row?.external_account ?? null,
     workspace: row?.external_account ?? null,
     requiredScopes: def.scopes ?? [],
@@ -211,7 +234,10 @@ export async function getProviderHealth(
       status: row?.status ?? null,
       oauthFamily: def.oauthFamily ?? null,
       authorizable: def.authorizable,
+      deploymentStatus: deploymentStatus?.status ?? null,
+      evidenceTier: deploymentStatus?.evidenceTier ?? null,
     },
+    ...(deploymentStatus ? { deploymentStatus } : {}),
   };
 }
 

@@ -8,6 +8,8 @@ import { runMasonClosedLoopExecution, type MasonClosedLoopAdapters } from "@/lib
 import { appendMasonLedgerEvent, listMasonExecutionTimeline } from "@/lib/harmony/code/mason-ledger";
 import { runGithubRead } from "@/lib/integrations/clients/github";
 import { runGithubWrite } from "@/lib/integrations/clients/github-write";
+import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
+import { evaluateVercelReadiness } from "@/lib/integrations/vercel/deployment-status";
 
 const DEFAULT_AUTONOMY_TEST_CONTENT = "AIOS autonomous execution test successful.";
 
@@ -408,6 +410,29 @@ export async function handleMasonEngineeringMessage(input: {
         return { ready: false, detail: "stale_head_sha", expectedHeadSha, actualHeadSha: ciHead, prOpen: true };
       }
 
+      const vercelDeployment = await getCanonicalVercelDeploymentStatus(input.userId, {
+        repo: repository,
+        branch: requestedBranch ?? `mason/${slug || "engineering-task"}`,
+        environment: "preview",
+        requestedGitSha: ciHead,
+        previewUrl: result.previewUrl,
+      });
+      const vercelReadiness = evaluateVercelReadiness(vercelDeployment, {
+        requireChecks: true,
+      });
+      if (!vercelReadiness.ready) {
+        return {
+          ready: false,
+          detail: vercelReadiness.code,
+          expectedHeadSha: expectedHeadSha ?? ciHead,
+          actualHeadSha: ciHead,
+          prOpen: true,
+          vercelStatus: vercelDeployment.status,
+          vercelEvidenceTier: vercelDeployment.evidenceTier,
+          vercelGitShaMatches: vercelDeployment.gitShaMatches,
+        };
+      }
+
       const staleHead = /stale-head-sha/i.test(input.message);
       if (staleHead) {
         return { ready: false, detail: "stale_head_sha" };
@@ -431,6 +456,9 @@ export async function handleMasonEngineeringMessage(input: {
         mergeable: true,
         reviewDecision: "approved",
         prOpen: true,
+        vercelStatus: vercelDeployment.status,
+        vercelEvidenceTier: vercelDeployment.evidenceTier,
+        vercelGitShaMatches: vercelDeployment.gitShaMatches,
       };
     },
     performMerge: async ({ expectedHeadSha: mergeExpectedHeadSha }) => {

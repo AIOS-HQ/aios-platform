@@ -1,80 +1,60 @@
 import "server-only";
 
-import { getConnectionSecret } from "@/lib/integrations/secrets";
+import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
+import { getVercelConfigurationPresence } from "@/lib/integrations/vercel/deployment-status";
 import type {
   DiagnosticItem,
   DiagnosticsResult,
 } from "@/lib/integrations/clients/supabase-diagnostics";
 
 /**
- * Read-only Vercel diagnostics (Phase 6b).
- *
- * Uses the user's Vercel access token (+ optional project id) to read deployment
- * and project state via the Vercel REST API. No writes. Environment-variable
- * checks return NAMES/counts only — never values. Degrades gracefully on error.
+ * Read-only Vercel diagnostics backed by the same canonical deployment-status
+ * capability Mason and Harmony use. No separate status interpretation and no
+ * credential values leave the server.
  */
-
-const API = "https://api.vercel.com";
-
-async function apiGet(token: string, path: string): Promise<unknown | null> {
-  try {
-    const res = await fetch(`${API}${path}`, {
-      headers: { authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as unknown;
-  } catch (e) {
-    console.error("[diagnostics] vercel api", e);
-    return null;
-  }
-}
-
 export async function runVercelDiagnostics(userId: string): Promise<DiagnosticsResult> {
-  const secret = await getConnectionSecret(userId, "vercel");
-  if (!secret) return { connected: false, items: [] };
-  const token = secret.accessToken;
-  const project = secret.externalAccount;
-  const items: DiagnosticItem[] = [];
-
-  const q = project
-    ? `?projectId=${encodeURIComponent(project)}&limit=1&target=production`
-    : "?limit=1&target=production";
-  const deployments = (await apiGet(token, `/v6/deployments${q}`)) as {
-    deployments?: { state?: string; readyState?: string; url?: string }[];
-  } | null;
-  const dep = deployments?.deployments?.[0];
-  const state = dep?.state ?? dep?.readyState ?? "unknown";
-
-  items.push({
-    id: "deployment_status",
-    ok: Boolean(dep),
-    detail: dep ? state : "no deployments found",
+  const status = await getCanonicalVercelDeploymentStatus(userId, {
+    repo: process.env.HARMONY_DEFAULT_GITHUB_REPO ?? process.env.GITHUB_DEFAULT_REPO ?? "AIOS-HQ/aios-platform",
+    environment: "production",
+    requestedGitSha:
+      process.env.VERCEL_GIT_COMMIT_SHA ??
+      process.env.GIT_COMMIT_SHA ??
+      process.env.NEXT_PUBLIC_GIT_SHA ??
+      null,
   });
-  items.push({
-    id: "production_url_verification",
-    ok: Boolean(dep?.url),
-    detail: dep?.url ? `https://${dep.url}` : "no production URL",
-  });
-  items.push({
-    id: "build_status",
-    ok: state === "READY",
-    detail: state === "READY" ? "latest build READY" : `state: ${state}`,
-  });
+  const configuration = getVercelConfigurationPresence();
 
-  if (project) {
-    const env = (await apiGet(
-      token,
-      `/v9/projects/${encodeURIComponent(project)}/env`,
-    )) as { envs?: { key?: string }[] } | null;
-    const count = (env?.envs ?? []).filter((e) => Boolean(e.key)).length;
-    items.push({
+  const items: DiagnosticItem[] = [
+    {
+      id: "deployment_status",
+      ok: status.status === "healthy",
+      detail: `${status.status} via ${status.evidenceTier}`,
+    },
+    {
+      id: "production_url_verification",
+      ok:
+        status.status === "healthy" &&
+        (status.evidenceSources.includes("vercel_alias") ||
+          (status.evidenceSources.includes("github_vercel_deployment") &&
+            status.evidenceSources.includes("runtime_deployment_identity"))),
+      detail: status.canonicalDomain ?? "canonical domain not proven",
+    },
+    {
+      id: "build_status",
+      ok: status.requiredChecksPassed === true,
+      detail: status.readyState ?? status.deploymentState ?? "unavailable",
+    },
+    {
       id: "env_var_presence",
-      ok: count > 0,
-      detail: count > 0 ? `${count} environment variables set` : "none found or no access",
-    });
-  } else {
-    items.push({ id: "env_var_presence", ok: false, detail: "project id required" });
-  }
+      ok: configuration.complete,
+      detail: configuration.complete
+        ? "direct read configuration present"
+        : "direct read configuration incomplete; fallback evidence may still be available",
+    },
+  ];
 
-  return { connected: true, items };
+  return {
+    connected: status.evidenceTier !== "unavailable",
+    items,
+  };
 }

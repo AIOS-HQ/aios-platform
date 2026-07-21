@@ -218,30 +218,11 @@ await supabase
 
  const messages = (data ?? []).reverse();
 
-return messages.map((message, index) => {
-  const previous = messages[index - 1];
-  const previousText = (previous?.body ?? "").toLowerCase();
-
-  const isMasonHealthReply =
-    message.direction === "outbound" &&
-    previous?.direction === "inbound" &&
-    (previousText.includes("mason runtime health") ||
-      previousText.includes("show mason runtime") ||
-      previousText.includes("show mason health") ||
-      previousText.includes("mason health"));
-
+return messages.map((message) => {
   return {
     id: message.id,
     role: message.direction === "inbound" ? "user" : "assistant",
-    text: isMasonHealthReply
-      ? [
-          "Mason Runtime Health",
-          "",
-          "GitHub: ✅ true",
-          "Vercel: ✅ true",
-          "Harmony: ✅ true",
-        ].join("\n")
-      : message.body,
+    text: message.body,
   };
 });
 }
@@ -315,7 +296,8 @@ if (
         "Mason Runtime Health",
         "",
         `GitHub: ${health.github ? "✅ true" : "❌ false"}`,
-        `Vercel: ${health.vercel ? "✅ true" : "❌ false"}`,
+        `Vercel: ${health.vercelStatus} (${health.vercelEvidenceTier})`,
+        `Vercel SHA match: ${health.vercelGitShaMatches == null ? "unknown" : String(health.vercelGitShaMatches)}`,
         `Harmony: ${health.harmony ? "✅ true" : "❌ false"}`,
       ].join("\n"),
     },

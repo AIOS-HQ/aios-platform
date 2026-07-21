@@ -4,6 +4,7 @@ import { getConnections } from "@/lib/integrations/connections";
 import { isTokenEncryptionEnabled } from "@/lib/crypto/tokens";
 import { PRODUCTION_REQUIRED_ENV } from "@/lib/env.server";
 import { runSupabaseManagementQuery } from "@/lib/integrations/clients/supabase-diagnostics";
+import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
 
 export type ReadinessStatus = "ok" | "warn";
 export type ReadinessSeverity = "blocking" | "warning" | "info";
@@ -147,6 +148,9 @@ const OPTIONAL_INTEGRATION_ENV = [
   "X_OAUTH_CLIENT_SECRET",
   "TIKTOK_CLIENT_KEY",
   "TIKTOK_CLIENT_SECRET",
+  "VERCEL_TOKEN",
+  "VERCEL_TEAM_ID",
+  "VERCEL_PROJECT_ID",
 ] as const;
 
 function present(name: string): boolean {
@@ -366,7 +370,18 @@ function aiCoreSection(): ReadinessSection {
 }
 
 async function integrationsSection(userId: string): Promise<ReadinessSection> {
-  const connections = await getConnections(userId);
+  const [connections, vercelDeployment] = await Promise.all([
+    getConnections(userId),
+    getCanonicalVercelDeploymentStatus(userId, {
+      repo: process.env.HARMONY_DEFAULT_GITHUB_REPO ?? process.env.GITHUB_DEFAULT_REPO ?? "AIOS-HQ/aios-platform",
+      environment: "production",
+      requestedGitSha:
+        process.env.VERCEL_GIT_COMMIT_SHA ??
+        process.env.GIT_COMMIT_SHA ??
+        process.env.NEXT_PUBLIC_GIT_SHA ??
+        null,
+    }),
+  ]);
   const connected = new Set(connections.filter((c) => c.status === "connected").map((c) => c.provider));
   const optionalMissing = OPTIONAL_INTEGRATION_ENV.filter((name) => !present(name));
   return section("integrations", [
@@ -390,9 +405,9 @@ async function integrationsSection(userId: string): Promise<ReadinessSection> {
     },
     {
       id: "integration_vercel",
-      ok: connected.has("vercel"),
+      ok: vercelDeployment.status === "healthy",
       severity: "warning",
-      detail: connected.has("vercel") ? "diagnostics connected" : "diagnostics token not connected",
+      detail: `${vercelDeployment.status} via ${vercelDeployment.evidenceTier}`,
     },
     {
       id: "integration_stripe",
