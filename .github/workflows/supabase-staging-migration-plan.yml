@@ -20,7 +20,8 @@ jobs:
     name: Plan complete staging migration history
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: staging
+    environment:
+      name: staging
     env:
       SUPABASE_CLI_VERSION: "2.109.1"
       AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED: "false"
@@ -80,6 +81,15 @@ jobs:
           grep -F -- '--include-all' <<<"$help_output" >/dev/null
           unset help_output
 
+      - name: Preflight staging environment secret presence
+        shell: bash
+        env:
+          SUPABASE_STAGING_DB_URI_TEMPLATE: ${{ secrets.SUPABASE_STAGING_DB_URI_TEMPLATE }}
+          SUPABASE_STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+        run: |
+          set -Eeuo pipefail
+          node "$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs" preflight
+
       - name: Validate staging target and generate migration plan only
         shell: bash
         env:
@@ -91,6 +101,10 @@ jobs:
           validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
           template="$SUPABASE_STAGING_DB_URI_TEMPLATE"
           password="$SUPABASE_STAGING_DB_PASSWORD"
+          if [[ -z "$template" || -z "$password" ]]; then
+            printf 'secret_preflight_mismatch\n' >&2
+            exit 1
+          fi
           printf '::add-mask::%s\n' "$template"
           printf '::add-mask::%s\n' "$password"
           unset SUPABASE_STAGING_DB_URI_TEMPLATE SUPABASE_STAGING_DB_PASSWORD

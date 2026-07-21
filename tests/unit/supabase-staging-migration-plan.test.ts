@@ -9,6 +9,7 @@ import {
   assembleStagingDatabaseUri,
   encodeDatabasePassword,
   sanitizePlanOutput,
+  stagingSecretPresence,
   validateStagingTemplate,
 } from "../../scripts/ci/supabase-staging-plan.mjs";
 
@@ -42,6 +43,18 @@ describe("Supabase staging migration plan", () => {
     expect(encodeDatabasePassword("a b")).toBe("a%20b");
   });
 
+  it("reproduces an absent password safely before masking or encoding", () => {
+    expect(stagingSecretPresence(template, "")).toEqual({
+      uriTemplatePresent: true,
+      passwordPresent: false,
+    });
+    expect(stagingSecretPresence("", "configured")).toEqual({
+      uriTemplatePresent: false,
+      passwordPresent: true,
+    });
+    expect(() => encodeDatabasePassword("")).toThrow("missing_password");
+  });
+
   it("redacts raw, encoded, assembled, and unexpected PostgreSQL connection strings", () => {
     const password = "mock password!";
     const encoded = encodeDatabasePassword(password);
@@ -61,7 +74,7 @@ describe("Supabase staging migration plan", () => {
     expect(workflow).toMatch(/^name: Supabase Staging Migration Plan$/m);
     expect(workflow).toMatch(/^on:\n  workflow_dispatch:\n    inputs:\n      target_ref:/m);
     expect(workflow).not.toMatch(/^\s+(push|pull_request|schedule|workflow_call):/m);
-    expect(workflow).toContain("environment: staging");
+    expect(workflow).toMatch(/environment:\n\s+name: staging/);
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("timeout-minutes: 15");
@@ -81,5 +94,16 @@ describe("Supabase staging migration plan", () => {
     expect(workflow.match(/ db push /g)).toHaveLength(2); // help capability check + one guarded dry run
     expect(workflow).not.toMatch(/supabase(?:@[^ ]+)?\s+link|migration\s+up|db\s+(reset|seed)|--linked|az\s+containerapp|vercel\s+deploy|worker:social/i);
     expect(workflow).not.toContain("upload-artifact");
+
+    const preflight = workflow.indexOf("Preflight staging environment secret presence");
+    const emptyGuard = workflow.indexOf('if [[ -z "$template" || -z "$password" ]]');
+    const firstMask = workflow.indexOf("::add-mask::");
+    const dryRun = workflow.indexOf("--dry-run", firstMask);
+    expect(preflight).toBeGreaterThan(0);
+    expect(emptyGuard).toBeGreaterThan(preflight);
+    expect(firstMask).toBeGreaterThan(emptyGuard);
+    expect(dryRun).toBeGreaterThan(firstMask);
+    expect(workflow).toContain("node \"$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs\" preflight");
+    expect(workflow).not.toContain("workflow_call:");
   });
 });

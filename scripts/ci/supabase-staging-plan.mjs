@@ -29,6 +29,13 @@ export function encodeDatabasePassword(password) {
   );
 }
 
+export function stagingSecretPresence(template, password) {
+  return {
+    uriTemplatePresent: typeof template === "string" && template.length > 0,
+    passwordPresent: typeof password === "string" && password.length > 0,
+  };
+}
+
 export function assembleStagingDatabaseUri(template, password) {
   const validation = validateStagingTemplate(template);
   if (!validation.ok) throw new Error(validation.reason);
@@ -52,6 +59,18 @@ async function readStandardInput() {
 
 async function main() {
   const command = process.argv[2];
+  if (command === "preflight") {
+    const presence = stagingSecretPresence(
+      process.env.SUPABASE_STAGING_DB_URI_TEMPLATE,
+      process.env.SUPABASE_STAGING_DB_PASSWORD,
+    );
+    console.info(`uri_template_present=${presence.uriTemplatePresent}`);
+    console.info(`password_present=${presence.passwordPresent}`);
+    if (!presence.uriTemplatePresent || !presence.passwordPresent) {
+      throw new Error("missing_staging_environment_secret");
+    }
+    return;
+  }
   if (command === "assemble") {
     process.stdout.write(assembleStagingDatabaseUri(
       process.env.SUPABASE_STAGING_DB_URI_TEMPLATE ?? "",
