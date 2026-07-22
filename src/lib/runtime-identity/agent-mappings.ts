@@ -27,6 +27,9 @@ export interface AgentRuntimeMapping
     deterministicEvidenceType: "source_code_proof";
     dedicatedDeploymentVerified: false;
     agentProbeAttempted: boolean;
+    sharedRuntimeProofApplied: boolean;
+    proofStrategy: "none" | "shared_runtime_snapshot";
+    runtimeConditionId: string | null;
   }> {
   status: EvidenceStatus;
   agentKey: AiosAgentKey;
@@ -58,10 +61,16 @@ export interface AgentRuntimeMapping
     sharedOrDedicated: RuntimeIdentity["sharedOrDedicated"];
   };
   externalRuntimeStatus: "not_declared" | "externally_configured_unverified";
+  safeErrorCode: string | null;
   safeMessage: string;
 }
 
 export type AgentRuntimeProofs = Partial<Record<AiosAgentKey, RuntimeIdentity>>;
+
+export interface AgentRuntimeMappingContext {
+  proofStrategy: "shared_runtime_snapshot";
+  runtimeConditionId: string;
+}
 
 const MAPPING_SPECS: Record<AiosAgentKey, {
   primaryExecution: AgentRuntimeMapping["primaryExecution"];
@@ -126,6 +135,7 @@ export function getAgentRuntimeMappings(
   providerIdentity: RuntimeIdentity,
   observedAt?: string | Date,
   runtimeProofs: AgentRuntimeProofs = {},
+  context?: AgentRuntimeMappingContext,
 ): AgentRuntimeMapping[] {
   const sharedProviderRuntimeId = providerIdentity.sharedOrDedicated === "shared"
     ? providerIdentity.runtimeId
@@ -135,7 +145,10 @@ export function getAgentRuntimeMappings(
     const spec = MAPPING_SPECS[agent.key];
     const contract = WORKFORCE_RUNTIME_CONTRACTS[agent.key];
     const proof = runtimeProofs[agent.key];
-    const probeAttempted = Boolean(proof?.details.inferenceAttempted);
+    const modelRuntimeObserved = Boolean(proof?.details.inferenceAttempted);
+    const sharedRuntimeProofApplied = Boolean(
+      proof && context?.proofStrategy === "shared_runtime_snapshot",
+    );
     const liveProof = Boolean(
       proof &&
       proof.inferenceStatus === "healthy" &&
@@ -144,7 +157,7 @@ export function getAgentRuntimeMappings(
     const providerUnavailable = providerIdentity.sharedOrDedicated !== "shared";
     const modelRuntimeStatus: AgentRuntimeMapping["modelRuntimeStatus"] = liveProof
       ? "healthy"
-      : proof?.details.inferenceAttempted
+      : modelRuntimeObserved
         ? "failed"
         : providerIdentity.configurationStatus === "incomplete"
           ? "configuration_missing"
@@ -166,22 +179,27 @@ export function getAgentRuntimeMappings(
           : blockedCapabilities.length > 0 && spec.primaryExecution === "shared_provider"
             ? "blocked"
           : "degraded";
-    const evidenceType = liveProof || probeAttempted
+    const evidenceType = liveProof || modelRuntimeObserved
       ? proof!.evidenceType
       : "source_code_proof";
     const evidence = createCertificationEvidence({
       status,
       evidenceType,
       observedAt,
-      observedBy: proof?.observedBy ?? "runtime_identity.agent_mapping",
-      confidence: liveProof ? proof!.confidence : probeAttempted ? 0.9 : 0.7,
+      observedBy: sharedRuntimeProofApplied
+        ? `runtime_identity.shared_runtime_binding.${agent.key}`
+        : "runtime_identity.agent_mapping",
+      confidence: liveProof ? proof!.confidence : modelRuntimeObserved ? 0.9 : 0.7,
       details: {
         scope: "agent_runtime_mapping" as const,
         providerEvidenceType: providerIdentity.evidenceType,
         modelRuntimeEvidenceType: proof?.evidenceType ?? "unknown",
         deterministicEvidenceType: "source_code_proof" as const,
         dedicatedDeploymentVerified: false as const,
-        agentProbeAttempted: probeAttempted,
+        agentProbeAttempted: false,
+        sharedRuntimeProofApplied,
+        proofStrategy: context?.proofStrategy ?? ("none" as const),
+        runtimeConditionId: context?.runtimeConditionId ?? null,
       },
     });
     return {
@@ -201,7 +219,8 @@ export function getAgentRuntimeMappings(
       approvalRequirements: [contract.approvalPolicy],
       safetyBoundaries: [
         contract.autonomyPolicy,
-        "Agent certification probes are fixed, read-only, non-persisting, and cannot execute tools.",
+        "Shared-runtime certification is fixed, read-only, non-persisting, and cannot execute tools.",
+        "Deterministic capabilities remain source-code proof until separately live-probed.",
         "Company and Founder access boundaries remain enforced outside the shared model transport.",
         ...(isFounderOnlyAgent(agent.key) ? ["Founder-only agent surface."] : []),
       ],
@@ -215,10 +234,11 @@ export function getAgentRuntimeMappings(
         sharedOrDedicated: providerIdentity.sharedOrDedicated,
       },
       externalRuntimeStatus: spec.externalRuntimeStatus ?? "not_declared",
+      safeErrorCode: proof?.safeErrorCode ?? providerIdentity.safeErrorCode,
       safeMessage: liveProof
-        ? "agent_shared_model_runtime_probe_succeeded"
-        : probeAttempted
-          ? "agent_shared_model_runtime_probe_failed"
+        ? "agent_shared_model_runtime_binding_succeeded"
+        : modelRuntimeObserved
+          ? "agent_shared_model_runtime_binding_failed"
           : sharedProviderRuntimeId
             ? "agent_runtime_mapping_not_live_probed"
             : "agent_runtime_mapping_provider_unavailable",

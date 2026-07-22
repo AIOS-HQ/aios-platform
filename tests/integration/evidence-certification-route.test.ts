@@ -73,7 +73,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
       confidence: 1,
       details: {
         scope: "evidence_layer",
-        schemaVersion: "1.3.0",
+        schemaVersion: "1.4.0",
         deployment: {
           commitSha: "safe-commit-sha",
           environment: "production",
@@ -97,6 +97,11 @@ describe("Founder Evidence Layer certification endpoint", () => {
     expect(body.certification.details.supportedEvidenceTypes).toHaveLength(6);
     expect(body.certification.details.workforceRegistry.agentKeys).toContain("harmony");
     expect(body.certification.details.agentRuntimeMappings).toHaveLength(10);
+    expect(body.certification.details.operationalRuntimeFoundation).toHaveLength(6);
+    expect(body.certification.details.operationalRuntimeFoundation.every(
+      (item: { status: string; evidenceType: string }) =>
+        item.status === "unknown" && item.evidenceType === "source_code_proof",
+    )).toBe(true);
     expect(body.certification.details.agentRuntimeMappings).toEqual(expect.arrayContaining([
       expect.objectContaining({
         agentKey: "mason",
@@ -193,7 +198,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
     expect(JSON.stringify(body)).not.toContain("endpoint-test-secret");
   });
 
-  it("runs all fixed workforce probes only when explicitly requested", async () => {
+  it("reuses one shared provider proof for workforce certification only when explicitly requested", async () => {
     authState.user = { id: "founder-1" };
     authState.admin = true;
     const providerProof = {
@@ -229,9 +234,13 @@ describe("Founder Evidence Layer certification endpoint", () => {
       status: "healthy",
       evidenceType: "authenticated_runtime_proof",
       observedAt: "2026-07-22T12:00:00.000Z",
-      observedBy: `runtime_identity.agent_probe.agent-${index}`,
+      observedBy: `runtime_identity.shared_runtime_binding.agent-${index}`,
       confidence: 0.95,
-      details: { scope: "agent_runtime_mapping", agentProbeAttempted: true },
+      details: {
+        scope: "agent_runtime_mapping",
+        agentProbeAttempted: false,
+        sharedRuntimeProofApplied: true,
+      },
     }));
     runtimeProbe.mockResolvedValue(providerProof);
     agentCertification.mockResolvedValue({
@@ -241,6 +250,24 @@ describe("Founder Evidence Layer certification endpoint", () => {
       degraded: 0,
       blocked: 0,
       unavailable: 0,
+      proofStrategy: "shared_runtime_snapshot",
+      agentSpecificProbeCount: 0,
+      providerProbeCount: 0,
+      runtimeCondition: {
+        conditionId: "safe-condition-id",
+        logicVersion: "shared-runtime-snapshot-v1",
+        runtimeId: "aios.runtime.shared.azure",
+        runtimeType: "azure_openai",
+        provider: "azure",
+        model: "gpt-5.6-sol",
+        deploymentName: "gpt-5.6-sol",
+        endpointHostname: "aios-harmony.openai.azure.com",
+        sharedOrDedicated: "shared",
+        configurationStatus: "complete",
+        deploymentEnvironment: "production",
+        deploymentSha: "safe-commit-sha",
+      },
+      outcomeId: "safe-outcome-id",
       mappings,
     });
 
@@ -255,6 +282,8 @@ describe("Founder Evidence Layer certification endpoint", () => {
     expect(agentCertification).toHaveBeenCalledTimes(1);
     expect(agentCertification).toHaveBeenCalledWith(expect.objectContaining({
       providerIdentity: providerProof,
+      deploymentEnvironment: "production",
+      deploymentSha: "safe-commit-sha",
     }));
     expect(agentCertification.mock.calls[0][0]).not.toHaveProperty("prompt");
     expect(body.certification.details).toMatchObject({
@@ -266,6 +295,14 @@ describe("Founder Evidence Layer certification endpoint", () => {
         degraded: 0,
         blocked: 0,
         unavailable: 0,
+        proofStrategy: "shared_runtime_snapshot",
+        agentSpecificProbeCount: 0,
+        providerProbeCount: 0,
+        runtimeCondition: {
+          conditionId: "safe-condition-id",
+          logicVersion: "shared-runtime-snapshot-v1",
+        },
+        outcomeId: "safe-outcome-id",
       },
       agentRuntimeMappings: mappings,
     });
