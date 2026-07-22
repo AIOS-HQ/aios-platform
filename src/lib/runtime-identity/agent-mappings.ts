@@ -1,11 +1,15 @@
+import "server-only";
+
 import {
   createCertificationEvidence,
 } from "@/lib/evidence/certification";
-import type { EvidenceMetadata } from "@/lib/evidence/model";
+import type { EvidenceMetadata, EvidenceStatus, EvidenceType } from "@/lib/evidence/model";
 import type { RuntimeIdentity } from "@/lib/runtime-identity/model";
+import { WORKFORCE_RUNTIME_CONTRACTS } from "@/lib/workforce/certification";
 import {
   AIOS_WORKFORCE,
   type AiosAgentKey,
+  isFounderOnlyAgent,
 } from "@/lib/workforce/registry";
 
 export type AgentRuntimeMode =
@@ -19,20 +23,45 @@ export interface AgentRuntimeMapping
   extends EvidenceMetadata<{
     scope: "agent_runtime_mapping";
     providerEvidenceType: RuntimeIdentity["evidenceType"];
+    modelRuntimeEvidenceType: EvidenceType;
+    deterministicEvidenceType: "source_code_proof";
     dedicatedDeploymentVerified: false;
+    agentProbeAttempted: boolean;
   }> {
-  status: "degraded";
+  status: EvidenceStatus;
   agentKey: AiosAgentKey;
   agentName: string;
   runtimeMode: AgentRuntimeMode;
   primaryExecution: "shared_provider" | "deterministic";
+  executionCapability: "real_runtime" | "guided_runtime" | "advisory" | "none";
   sharedProviderRuntimeId: string | null;
   deterministicRuntimeId: string;
   deterministicCapabilities: string[];
   modelBackedCapabilities: string[];
+  unverifiedCapabilities: string[];
+  blockedCapabilities: string[];
+  unsupportedCapabilities: string[];
+  approvalRequirements: string[];
+  safetyBoundaries: string[];
+  modelRuntimeStatus:
+    | "healthy"
+    | "failed"
+    | "configuration_missing"
+    | "runtime_unavailable"
+    | "not_probed";
+  deploymentIdentity: {
+    provider: string | null;
+    runtimeId: string | null;
+    model: string | null;
+    deploymentName: string | null;
+    endpointHostname: string | null;
+    sharedOrDedicated: RuntimeIdentity["sharedOrDedicated"];
+  };
   externalRuntimeStatus: "not_declared" | "externally_configured_unverified";
   safeMessage: string;
 }
+
+export type AgentRuntimeProofs = Partial<Record<AiosAgentKey, RuntimeIdentity>>;
 
 const MAPPING_SPECS: Record<AiosAgentKey, {
   primaryExecution: AgentRuntimeMapping["primaryExecution"];
@@ -96,6 +125,7 @@ const MAPPING_SPECS: Record<AiosAgentKey, {
 export function getAgentRuntimeMappings(
   providerIdentity: RuntimeIdentity,
   observedAt?: string | Date,
+  runtimeProofs: AgentRuntimeProofs = {},
 ): AgentRuntimeMapping[] {
   const sharedProviderRuntimeId = providerIdentity.sharedOrDedicated === "shared"
     ? providerIdentity.runtimeId
@@ -103,16 +133,55 @@ export function getAgentRuntimeMappings(
 
   return AIOS_WORKFORCE.map((agent) => {
     const spec = MAPPING_SPECS[agent.key];
+    const contract = WORKFORCE_RUNTIME_CONTRACTS[agent.key];
+    const proof = runtimeProofs[agent.key];
+    const probeAttempted = Boolean(proof?.details.inferenceAttempted);
+    const liveProof = Boolean(
+      proof &&
+      proof.inferenceStatus === "healthy" &&
+      ["authenticated_runtime_proof", "live_runtime_proof"].includes(proof.evidenceType),
+    );
+    const providerUnavailable = providerIdentity.sharedOrDedicated !== "shared";
+    const modelRuntimeStatus: AgentRuntimeMapping["modelRuntimeStatus"] = liveProof
+      ? "healthy"
+      : proof?.details.inferenceAttempted
+        ? "failed"
+        : providerIdentity.configurationStatus === "incomplete"
+          ? "configuration_missing"
+          : providerUnavailable
+            ? "runtime_unavailable"
+            : "not_probed";
+    const blockedCapabilities = ["failed", "configuration_missing", "runtime_unavailable"].includes(
+      modelRuntimeStatus,
+    )
+      ? [...spec.modelBackedCapabilities]
+      : [];
+    const unverifiedCapabilities = modelRuntimeStatus === "not_probed"
+      ? [...spec.modelBackedCapabilities]
+      : [];
+    const status: EvidenceStatus = liveProof
+      ? "healthy"
+      : modelRuntimeStatus === "runtime_unavailable" && spec.primaryExecution === "shared_provider"
+          ? "unavailable"
+          : blockedCapabilities.length > 0 && spec.primaryExecution === "shared_provider"
+            ? "blocked"
+          : "degraded";
+    const evidenceType = liveProof || probeAttempted
+      ? proof!.evidenceType
+      : "source_code_proof";
     const evidence = createCertificationEvidence({
-      status: "degraded" as const,
-      evidenceType: "source_code_proof",
+      status,
+      evidenceType,
       observedAt,
-      observedBy: "runtime_identity.agent_mapping",
-      confidence: 1,
+      observedBy: proof?.observedBy ?? "runtime_identity.agent_mapping",
+      confidence: liveProof ? proof!.confidence : probeAttempted ? 0.9 : 0.7,
       details: {
         scope: "agent_runtime_mapping" as const,
         providerEvidenceType: providerIdentity.evidenceType,
+        modelRuntimeEvidenceType: proof?.evidenceType ?? "unknown",
+        deterministicEvidenceType: "source_code_proof" as const,
         dedicatedDeploymentVerified: false as const,
+        agentProbeAttempted: probeAttempted,
       },
     });
     return {
@@ -121,14 +190,38 @@ export function getAgentRuntimeMappings(
       agentName: agent.name,
       runtimeMode: "hybrid_shared_deterministic_runtime" as const,
       primaryExecution: spec.primaryExecution,
+      executionCapability: contract.executionCapability,
       sharedProviderRuntimeId,
       deterministicRuntimeId: `aios.runtime.deterministic.${agent.key}`,
       deterministicCapabilities: spec.deterministicCapabilities,
       modelBackedCapabilities: spec.modelBackedCapabilities,
+      unverifiedCapabilities,
+      blockedCapabilities,
+      unsupportedCapabilities: [...contract.unsupportedCapabilities],
+      approvalRequirements: [contract.approvalPolicy],
+      safetyBoundaries: [
+        contract.autonomyPolicy,
+        "Agent certification probes are fixed, read-only, non-persisting, and cannot execute tools.",
+        "Company and Founder access boundaries remain enforced outside the shared model transport.",
+        ...(isFounderOnlyAgent(agent.key) ? ["Founder-only agent surface."] : []),
+      ],
+      modelRuntimeStatus,
+      deploymentIdentity: {
+        provider: providerIdentity.provider,
+        runtimeId: sharedProviderRuntimeId,
+        model: providerIdentity.model,
+        deploymentName: providerIdentity.deploymentName,
+        endpointHostname: providerIdentity.endpointHostname,
+        sharedOrDedicated: providerIdentity.sharedOrDedicated,
+      },
       externalRuntimeStatus: spec.externalRuntimeStatus ?? "not_declared",
-      safeMessage: sharedProviderRuntimeId
-        ? "source_mapping_with_shared_provider_identity"
-        : "source_mapping_provider_runtime_unavailable",
+      safeMessage: liveProof
+        ? "agent_shared_model_runtime_probe_succeeded"
+        : probeAttempted
+          ? "agent_shared_model_runtime_probe_failed"
+          : sharedProviderRuntimeId
+            ? "agent_runtime_mapping_not_live_probed"
+            : "agent_runtime_mapping_provider_unavailable",
     };
   });
 }

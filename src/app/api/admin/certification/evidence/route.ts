@@ -5,6 +5,7 @@ import { getRuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 import { createCertificationResult } from "@/lib/evidence/certification";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
 import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
+import { certifyAgentRuntimes } from "@/lib/runtime-identity/agent-certification";
 import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
 import { resolveRuntimeIdentity } from "@/lib/runtime-identity/resolver";
 import {
@@ -14,6 +15,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
  * Founder-only, read-only Evidence Layer certification.
@@ -32,13 +34,18 @@ export async function GET(request?: Request) {
 
   const now = new Date();
   const deployment = getRuntimeDeploymentIdentity(now);
-  const probeRequested = request
-    ? new URL(request.url).searchParams.get("probe") === "1"
-    : false;
-  const runtimeIdentity = probeRequested
+  const probeMode = request
+    ? new URL(request.url).searchParams.get("probe")
+    : null;
+  const inferenceProbeRequested = probeMode === "1" || probeMode === "workforce";
+  const workforceProbeRequested = probeMode === "workforce";
+  const runtimeIdentity = inferenceProbeRequested
     ? await probeRuntimeIdentity({ observedAt: now })
     : resolveRuntimeIdentity(process.env, now);
-  const agentRuntimeMappings = getAgentRuntimeMappings(runtimeIdentity, now);
+  const workforceRuntime = workforceProbeRequested
+    ? await certifyAgentRuntimes({ providerIdentity: runtimeIdentity, observedAt: now })
+    : null;
+  const agentRuntimeMappings = workforceRuntime?.mappings ?? getAgentRuntimeMappings(runtimeIdentity, now);
   const certification = createCertificationResult({
     outcome: true,
     evidenceType: "authenticated_runtime_proof",
@@ -47,11 +54,21 @@ export async function GET(request?: Request) {
     observedAt: now,
     details: {
       scope: "evidence_layer" as const,
-      schemaVersion: "1.2.0",
+      schemaVersion: "1.3.0",
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
       runtimeIdentity,
-      inferenceProbeRequested: probeRequested,
+      inferenceProbeRequested,
+      workforceProbeRequested,
+      workforceRuntimeSummary: workforceRuntime
+        ? {
+            agentCount: workforceRuntime.agentCount,
+            healthy: workforceRuntime.healthy,
+            degraded: workforceRuntime.degraded,
+            blocked: workforceRuntime.blocked,
+            unavailable: workforceRuntime.unavailable,
+          }
+        : null,
       agentRuntimeMappings,
       workforceRegistry: {
         version: AIOS_WORKFORCE_REGISTRY_VERSION,

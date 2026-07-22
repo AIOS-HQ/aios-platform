@@ -28,6 +28,12 @@ export interface RuntimeProbeOptions {
   maxAttempts?: number;
   observedAt?: string | Date;
   clock?: () => number;
+  /** Server-owned fixed probe profile. Never populate from request/user input. */
+  fixedProbe?: {
+    request: string;
+    system: string;
+    observedBy: string;
+  };
 }
 
 const FIXED_HEALTH_REQUEST = "Respond with the single word OK.";
@@ -52,10 +58,13 @@ function safeErrorCode(status: number): string {
   return "provider_request_rejected";
 }
 
-function probeRequest(identity: RuntimeIdentity, environment: RuntimeEnvironment): {
-  url: string;
-  init: RequestInit;
-} | null {
+function probeRequest(
+  identity: RuntimeIdentity,
+  environment: RuntimeEnvironment,
+  fixedProbe?: RuntimeProbeOptions["fixedProbe"],
+): { url: string; init: RequestInit } | null {
+  const requestText = fixedProbe?.request ?? FIXED_HEALTH_REQUEST;
+  const systemText = fixedProbe?.system ?? FIXED_HEALTH_SYSTEM;
   if (!identity.model) return null;
   if (identity.provider === "openai" && environment.OPENAI_API_KEY) {
     return {
@@ -71,8 +80,8 @@ function probeRequest(identity: RuntimeIdentity, environment: RuntimeEnvironment
           temperature: 0,
           max_tokens: 2,
           messages: [
-            { role: "system", content: FIXED_HEALTH_SYSTEM },
-            { role: "user", content: FIXED_HEALTH_REQUEST },
+            { role: "system", content: systemText },
+            { role: "user", content: requestText },
           ],
         }),
       },
@@ -91,8 +100,8 @@ function probeRequest(identity: RuntimeIdentity, environment: RuntimeEnvironment
         body: JSON.stringify({
           model: identity.model,
           max_tokens: 2,
-          system: FIXED_HEALTH_SYSTEM,
-          messages: [{ role: "user", content: FIXED_HEALTH_REQUEST }],
+          system: systemText,
+          messages: [{ role: "user", content: requestText }],
         }),
       },
     };
@@ -102,8 +111,8 @@ function probeRequest(identity: RuntimeIdentity, environment: RuntimeEnvironment
     if (!resolved.ok) return null;
     return createAzureResponsesRequest({
       config: resolved.config,
-      prompt: FIXED_HEALTH_REQUEST,
-      system: FIXED_HEALTH_SYSTEM,
+      prompt: requestText,
+      system: systemText,
       maxPromptChars: 256,
       maxOutputTokens: 16,
     });
@@ -139,6 +148,7 @@ function probeResult(input: {
   observedAt?: string | Date;
   inferenceAttempted: boolean;
   configurationStatus?: RuntimeIdentity["configurationStatus"];
+  observedBy: string;
 }): RuntimeIdentity {
   return createRuntimeIdentity({
     fields: {
@@ -156,7 +166,7 @@ function probeResult(input: {
       ? "authenticated_runtime_proof"
       : input.configured.evidenceType,
     observedAt: input.observedAt,
-    observedBy: "runtime_identity.inference_probe",
+    observedBy: input.observedBy,
     confidence: input.inferenceAttempted ? 0.95 : input.configured.confidence,
     details: {
       ...input.configured.details,
@@ -171,7 +181,8 @@ export async function probeRuntimeIdentity(
   const environment = options.environment ?? process.env;
   const observedAt = options.observedAt ?? new Date();
   const configured = resolveRuntimeIdentity(environment, observedAt);
-  const request = probeRequest(configured, environment);
+  const request = probeRequest(configured, environment, options.fixedProbe);
+  const observedBy = options.fixedProbe?.observedBy ?? "runtime_identity.inference_probe";
   if (!request) {
     return probeResult({
       configured,
@@ -182,6 +193,7 @@ export async function probeRuntimeIdentity(
       latency: null,
       observedAt,
       inferenceAttempted: false,
+      observedBy,
     });
   }
 
@@ -221,6 +233,7 @@ export async function probeRuntimeIdentity(
           observedAt,
           inferenceAttempted: true,
           configurationStatus,
+          observedBy,
         });
       }
 
@@ -235,6 +248,7 @@ export async function probeRuntimeIdentity(
           latency: latencyBucket(clock() - startedAt),
           observedAt,
           inferenceAttempted: true,
+          observedBy,
         });
       }
 
@@ -247,6 +261,7 @@ export async function probeRuntimeIdentity(
         latency: latencyBucket(clock() - startedAt),
         observedAt,
         inferenceAttempted: true,
+        observedBy,
       });
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
@@ -259,6 +274,7 @@ export async function probeRuntimeIdentity(
           latency: latencyBucket(clock() - startedAt),
           observedAt,
           inferenceAttempted: true,
+          observedBy,
         });
       }
       lastCode = "provider_network_error";
@@ -277,5 +293,6 @@ export async function probeRuntimeIdentity(
     latency: latencyBucket(clock() - startedAt),
     observedAt,
     inferenceAttempted: true,
+    observedBy,
   });
 }
