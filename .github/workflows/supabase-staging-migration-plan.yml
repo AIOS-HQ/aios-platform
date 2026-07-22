@@ -2,6 +2,11 @@ name: Supabase Staging Migration Plan
 
 on:
   workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Full 40-character commit SHA whose repository migrations will be planned
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,37 +18,85 @@ concurrency:
 jobs:
   plan:
     name: Plan complete staging migration history
-    if: github.ref == 'refs/heads/codex/youtube-resumable-upload-repair'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: staging
+    environment:
+      name: staging
     env:
       SUPABASE_CLI_VERSION: "2.109.1"
       AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED: "false"
 
     steps:
-      - name: Checkout exact reviewed commit
+      - name: Validate immutable target ref
+        shell: bash
+        env:
+          TARGET_REF: ${{ inputs.target_ref }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$TARGET_REF" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Checkout trusted workflow controls
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          repository: AIOS-HQ/aios-platform
+          ref: refs/heads/main
+          path: control
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Checkout exact migration target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+          path: target
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Pin current protected-main controls
+        id: controls
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          control_sha="$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)"
+          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          [[ "$control_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$current_main_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$control_sha" = "$current_main_sha"
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
+          test -f "$validator"
+          validator_sha256="$(sha256sum "$validator" | cut -d ' ' -f 1)"
+          [[ "$validator_sha256" =~ ^[0-9a-f]{64}$ ]]
+          {
+            printf 'control_sha=%s\n' "$control_sha"
+            printf 'validator_sha256=%s\n' "$validator_sha256"
+          } >>"$GITHUB_OUTPUT"
+          unset control_sha current_main_sha validator validator_sha256
 
       - name: Use Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: control/package-lock.json
 
-      - name: Verify immutable review scope
+      - name: Verify immutable target and trusted controls
         shell: bash
+        env:
+          TARGET_REF: ${{ inputs.target_ref }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
         run: |
           set -Eeuo pipefail
-          test "$GITHUB_REF" = "refs/heads/codex/youtube-resumable-upload-repair"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE/target" rev-parse HEAD)" = "$TARGET_REF"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
           test "$AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED" = "false"
-          test -d supabase/migrations
-          migration_count="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
+          test -d "$GITHUB_WORKSPACE/target/supabase/migrations"
+          migration_count="$(find "$GITHUB_WORKSPACE/target/supabase/migrations" -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
           test "$migration_count" -gt 0
           printf 'Migration files discovered: %s\n' "$migration_count"
 
@@ -56,38 +109,63 @@ jobs:
           grep -F -- '--include-all' <<<"$help_output" >/dev/null
           unset help_output
 
+      - name: Preflight staging environment secret presence
+        shell: bash
+        env:
+          SUPABASE_STAGING_DB_URI_TEMPLATE: ${{ secrets.SUPABASE_STAGING_DB_URI_TEMPLATE }}
+          SUPABASE_STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          node "$validator" preflight
+          unset validator
+
       - name: Validate staging target and generate migration plan only
         shell: bash
         env:
           SUPABASE_STAGING_DB_URI_TEMPLATE: ${{ secrets.SUPABASE_STAGING_DB_URI_TEMPLATE }}
           SUPABASE_STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
         run: |
           set -Eeuo pipefail
           set +x
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
           template="$SUPABASE_STAGING_DB_URI_TEMPLATE"
           password="$SUPABASE_STAGING_DB_PASSWORD"
+          if [[ -z "$template" || -z "$password" ]]; then
+            printf 'secret_preflight_mismatch\n' >&2
+            exit 1
+          fi
           printf '::add-mask::%s\n' "$template"
           printf '::add-mask::%s\n' "$password"
           unset SUPABASE_STAGING_DB_URI_TEMPLATE SUPABASE_STAGING_DB_PASSWORD
 
           encoded_password="$(
             SUPABASE_STAGING_DB_PASSWORD="$password" \
-              node scripts/ci/supabase-staging-plan.mjs encode-password
+              node "$validator" encode-password
           )"
           database_uri="$(
             SUPABASE_STAGING_DB_URI_TEMPLATE="$template" \
             SUPABASE_STAGING_DB_PASSWORD="$password" \
-              node scripts/ci/supabase-staging-plan.mjs assemble
+              node "$validator" assemble
           )"
           printf '::add-mask::%s\n' "$encoded_password"
           printf '::add-mask::%s\n' "$database_uri"
 
           cleanup() {
+            validator=""
             template=""
             password=""
             encoded_password=""
             database_uri=""
-            unset template password encoded_password database_uri
+            unset validator template password encoded_password database_uri
           }
           trap cleanup EXIT HUP INT TERM
 
@@ -96,24 +174,28 @@ jobs:
             --db-url "$database_uri" \
             --dry-run \
             --include-all \
-            --workdir "$GITHUB_WORKSPACE" \
+            --workdir "$GITHUB_WORKSPACE/target" \
             --agent no \
             --output-format text 2>&1 |
             SUPABASE_STAGING_DB_URI_TEMPLATE="$template" \
             SUPABASE_STAGING_DB_PASSWORD="$password" \
             SUPABASE_STAGING_DB_PASSWORD_ENCODED="$encoded_password" \
             SUPABASE_STAGING_DB_URI="$database_uri" \
-              node scripts/ci/supabase-staging-plan.mjs sanitize
+              node "$validator" sanitize
           dry_run_status=${PIPESTATUS[0]}
           set -e
           test "$dry_run_status" -eq 0
 
       - name: Record sanitized plan result
         shell: bash
+        env:
+          TARGET_REF: ${{ inputs.target_ref }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
         run: |
           {
             printf '### Supabase staging migration plan\n\n'
-            printf -- '- Commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Target commit: `%s`\n' "$TARGET_REF"
+            printf -- '- Trusted control commit: `%s`\n' "$TRUSTED_CONTROL_SHA"
             printf -- '- Target: protected `staging` environment\n'
             printf -- '- Mode: complete migration history, dry run only\n'
             printf -- '- Worker: disabled\n'

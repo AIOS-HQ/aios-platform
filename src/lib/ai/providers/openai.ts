@@ -2,13 +2,14 @@ import type { AIProvider } from "../types";
 import { aiLimits, clampPrompt } from "../limits";
 import { resilientFetch, sseDataLines } from "../http";
 import { recordProviderCall } from "../health";
+import { PROVIDER_DEFAULT_MODELS } from "@/lib/runtime-identity/model";
 
 /** OpenAI Chat Completions provider (opt-in via AI_PROVIDER=openai). */
 export class OpenAIProvider implements AIProvider {
   readonly name = "openai";
 
   async generate(prompt: string, system?: string): Promise<string> {
-    const model = process.env.AI_MODEL || "gpt-4o-mini";
+    const model = process.env.AI_MODEL || PROVIDER_DEFAULT_MODELS.openai;
     const { maxPromptChars, maxOutputTokens } = aiLimits();
     const started = Date.now();
     try {
@@ -51,7 +52,7 @@ export class OpenAIProvider implements AIProvider {
    * timeout; errors throw so callers fall back to `generate`.
    */
   async *generateStream(prompt: string, system?: string): AsyncGenerator<string> {
-    const model = process.env.AI_MODEL || "gpt-4o-mini";
+    const model = process.env.AI_MODEL || PROVIDER_DEFAULT_MODELS.openai;
     const { maxPromptChars, maxOutputTokens } = aiLimits();
     const started = Date.now();
     try {

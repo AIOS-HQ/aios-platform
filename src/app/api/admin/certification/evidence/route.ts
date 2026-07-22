@@ -4,6 +4,11 @@ import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getRuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 import { createCertificationResult } from "@/lib/evidence/certification";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
+import { getOperationalRuntimeFoundation } from "@/lib/operational-runtime/certification";
+import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
+import { certifyAgentRuntimes } from "@/lib/runtime-identity/agent-certification";
+import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
+import { resolveRuntimeIdentity } from "@/lib/runtime-identity/resolver";
 import {
   AIOS_WORKFORCE,
   AIOS_WORKFORCE_REGISTRY_VERSION,
@@ -11,6 +16,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
  * Founder-only, read-only Evidence Layer certification.
@@ -20,7 +26,7 @@ export const dynamic = "force-dynamic";
  * identity, tokens, credentials, cookies, headers, prompts, memory, or customer
  * data.
  */
-export async function GET() {
+export async function GET(request?: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   if (!(await currentUserIsAdmin())) {
@@ -29,6 +35,23 @@ export async function GET() {
 
   const now = new Date();
   const deployment = getRuntimeDeploymentIdentity(now);
+  const probeMode = request
+    ? new URL(request.url).searchParams.get("probe")
+    : null;
+  const inferenceProbeRequested = probeMode === "1" || probeMode === "workforce";
+  const workforceProbeRequested = probeMode === "workforce";
+  const runtimeIdentity = inferenceProbeRequested
+    ? await probeRuntimeIdentity({ observedAt: now })
+    : resolveRuntimeIdentity(process.env, now);
+  const workforceRuntime = workforceProbeRequested
+    ? await certifyAgentRuntimes({
+        providerIdentity: runtimeIdentity,
+        observedAt: now,
+        deploymentEnvironment: deployment.environment,
+        deploymentSha: deployment.commitSha,
+      })
+    : null;
+  const agentRuntimeMappings = workforceRuntime?.mappings ?? getAgentRuntimeMappings(runtimeIdentity, now);
   const certification = createCertificationResult({
     outcome: true,
     evidenceType: "authenticated_runtime_proof",
@@ -37,9 +60,28 @@ export async function GET() {
     observedAt: now,
     details: {
       scope: "evidence_layer" as const,
-      schemaVersion: "1.0.0",
+      schemaVersion: "1.4.0",
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
+      runtimeIdentity,
+      inferenceProbeRequested,
+      workforceProbeRequested,
+      workforceRuntimeSummary: workforceRuntime
+        ? {
+            agentCount: workforceRuntime.agentCount,
+            healthy: workforceRuntime.healthy,
+            degraded: workforceRuntime.degraded,
+            blocked: workforceRuntime.blocked,
+            unavailable: workforceRuntime.unavailable,
+            proofStrategy: workforceRuntime.proofStrategy,
+            agentSpecificProbeCount: workforceRuntime.agentSpecificProbeCount,
+            providerProbeCount: workforceRuntime.providerProbeCount,
+            runtimeCondition: workforceRuntime.runtimeCondition,
+            outcomeId: workforceRuntime.outcomeId,
+          }
+        : null,
+      agentRuntimeMappings,
+      operationalRuntimeFoundation: getOperationalRuntimeFoundation(now),
       workforceRegistry: {
         version: AIOS_WORKFORCE_REGISTRY_VERSION,
         agentCount: AIOS_WORKFORCE.length,
