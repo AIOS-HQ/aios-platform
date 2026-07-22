@@ -6,44 +6,33 @@ import {
   type AgentRuntimeProofs,
 } from "@/lib/runtime-identity/agent-mappings";
 import type { RuntimeIdentity } from "@/lib/runtime-identity/model";
-import {
-  probeRuntimeIdentity,
-  type RuntimeProbeOptions,
-} from "@/lib/runtime-identity/probe";
+import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
 import {
   resolveRuntimeIdentity,
   type RuntimeEnvironment,
 } from "@/lib/runtime-identity/resolver";
 import {
-  AIOS_WORKFORCE,
-  type AiosAgentKey,
-} from "@/lib/workforce/registry";
+  createRuntimeOutcomeId,
+  createRuntimeConditionSnapshot,
+  type RuntimeConditionSnapshot,
+} from "@/lib/operational-runtime/certification";
+import { AIOS_WORKFORCE } from "@/lib/workforce/registry";
 
-const FIXED_AGENT_REQUEST =
-  "Confirm only that this fixed, non-writing agent runtime probe can receive a response. Reply with OK.";
-
-export const AGENT_RUNTIME_PROBE_SYSTEMS: Record<AiosAgentKey, string> = {
-  harmony: "AIOS Harmony shared-runtime certification. Do not route work, call tools, or persist data. Reply only OK.",
-  auditor: "AIOS Auditor shared-runtime certification. Do not inspect systems, call tools, or persist findings. Reply only OK.",
-  mason: "AIOS Mason web-runtime certification. Do not plan engineering work, call tools, modify repositories, or create approvals. Reply only OK.",
-  catalyst: "AIOS Catalyst shared-runtime certification. Do not create or publish content, call providers, or persist drafts. Reply only OK.",
-  ambassador: "AIOS Ambassador shared-runtime certification. Do not contact people, call channels, or persist messages. Reply only OK.",
-  atlas: "AIOS Atlas shared-runtime certification. Do not read or write Julius, memory, documents, or company data. Reply only OK.",
-  pulse: "AIOS Pulse shared-runtime certification. Do not poll connectors, inspect telemetry, or emit alerts. Reply only OK.",
-  horizon: "AIOS Horizon shared-runtime certification. Do not create plans, goals, scenarios, or work items. Reply only OK.",
-  aegis: "AIOS Aegis shared-runtime certification. Do not inspect secrets, systems, permissions, or threats. Reply only OK.",
-  ledger: "AIOS Ledger shared-runtime certification. Do not read or write approvals, audit trails, or activity records. Reply only OK.",
-};
-
-type ProbeFunction = (options: RuntimeProbeOptions) => Promise<RuntimeIdentity>;
+/**
+ * Versioned independently from deployment SHAs so Preview and Production can
+ * prove that they executed the same certification semantics after squash merge.
+ */
+export const WORKFORCE_RUNTIME_CERTIFICATION_VERSION =
+  "shared-runtime-snapshot-v1" as const;
 
 export interface AgentRuntimeCertificationOptions {
   environment?: RuntimeEnvironment;
   providerIdentity?: RuntimeIdentity;
   observedAt?: string | Date;
   timeoutMs?: number;
-  concurrency?: number;
-  probe?: ProbeFunction;
+  deploymentEnvironment?: string | null;
+  deploymentSha?: string | null;
+  probe?: typeof probeRuntimeIdentity;
 }
 
 export interface AgentRuntimeCertificationResult {
@@ -53,64 +42,93 @@ export interface AgentRuntimeCertificationResult {
   degraded: number;
   blocked: number;
   unavailable: number;
+  proofStrategy: "shared_runtime_snapshot";
+  agentSpecificProbeCount: 0;
+  providerProbeCount: 0 | 1;
+  runtimeCondition: RuntimeConditionSnapshot;
+  outcomeId: string;
   mappings: AgentRuntimeMapping[];
 }
 
-async function mapWithConcurrency<T, R>(
-  entries: readonly T[],
-  concurrency: number,
-  mapper: (entry: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(entries.length);
-  let cursor = 0;
-  async function worker() {
-    for (;;) {
-      const index = cursor;
-      cursor += 1;
-      if (index >= entries.length) return;
-      results[index] = await mapper(entries[index]);
-    }
-  }
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, entries.length) }, () => worker()),
-  );
-  return results;
-}
-
 /**
- * Runs fixed, non-writing model-transport probes for every canonical AIOS agent.
- * This does not execute tools or deterministic capabilities and never persists
- * prompts/responses. Those boundaries remain separately identified in mappings.
+ * Certifies every canonical agent against one authenticated observation of the
+ * shared provider runtime. Individual agent prompts cannot prove capability
+ * registration because they exercise the same model transport; repeating that
+ * request per agent only creates stochastic, environment-dependent results.
+ *
+ * Deterministic handlers, connectors, approvals, and tools remain separately
+ * identified as source proof until their own operational probes exist.
  */
 export async function certifyAgentRuntimes(
   options: AgentRuntimeCertificationOptions = {},
 ): Promise<AgentRuntimeCertificationResult> {
   const environment = options.environment ?? process.env;
   const observedAt = options.observedAt ?? new Date();
-  const providerIdentity = options.providerIdentity ?? resolveRuntimeIdentity(environment, observedAt);
-  const probe = options.probe ?? probeRuntimeIdentity;
-  const concurrency = Math.min(3, Math.max(1, options.concurrency ?? 2));
-  const proofs = await mapWithConcurrency(
-    AIOS_WORKFORCE,
-    concurrency,
-    async (agent) => [
-      agent.key,
-      await probe({
-        environment,
-        observedAt,
-        timeoutMs: Math.min(10_000, Math.max(250, options.timeoutMs ?? 5_000)),
-        maxAttempts: 1,
-        fixedProbe: {
-          request: FIXED_AGENT_REQUEST,
-          system: AGENT_RUNTIME_PROBE_SYSTEMS[agent.key],
-          observedBy: `runtime_identity.agent_probe.${agent.key}`,
-        },
-      }),
-    ] as const,
-  );
-  const runtimeProofs = Object.fromEntries(proofs) as AgentRuntimeProofs;
-  const mappings = getAgentRuntimeMappings(providerIdentity, observedAt, runtimeProofs);
+  const configured = resolveRuntimeIdentity(environment, observedAt);
+  const providerProbeCount = options.providerIdentity ? 0 : 1;
+  const providerIdentity = options.providerIdentity ?? await (options.probe ?? probeRuntimeIdentity)({
+    environment,
+    observedAt,
+    timeoutMs: Math.min(15_000, Math.max(250, options.timeoutMs ?? 5_000)),
+    maxAttempts: 2,
+  });
+  const runtimeCondition = createRuntimeConditionSnapshot({
+    identity: configured,
+    logicVersion: WORKFORCE_RUNTIME_CERTIFICATION_VERSION,
+    deploymentEnvironment: options.deploymentEnvironment ?? null,
+    deploymentSha: options.deploymentSha ?? null,
+  });
+  const proofs = Object.fromEntries(
+    AIOS_WORKFORCE.map((agent) => [agent.key, providerIdentity]),
+  ) as AgentRuntimeProofs;
+  const mappings = getAgentRuntimeMappings(providerIdentity, observedAt, proofs, {
+    proofStrategy: "shared_runtime_snapshot",
+    runtimeConditionId: runtimeCondition.conditionId,
+  });
 
+  // `configured` is deliberately resolved even when a proof is supplied. This
+  // fail-closed check prevents callers from attaching proof from another safe
+  // provider/deployment identity to the current environment.
+  if (
+    configured.provider !== providerIdentity.provider ||
+    configured.model !== providerIdentity.model ||
+    configured.deploymentName !== providerIdentity.deploymentName ||
+    configured.endpointHostname !== providerIdentity.endpointHostname
+  ) {
+    const mismatchProof = {
+      ...providerIdentity,
+      status: "degraded" as const,
+      inferenceStatus: "failed" as const,
+      safeErrorCode: "runtime_configuration_identity_mismatch",
+      safeMessage: "runtime_configuration_identity_mismatch",
+    };
+    const mismatchProofs = Object.fromEntries(
+      AIOS_WORKFORCE.map((agent) => [agent.key, mismatchProof]),
+    ) as AgentRuntimeProofs;
+    const mismatchMappings = getAgentRuntimeMappings(configured, observedAt, mismatchProofs, {
+      proofStrategy: "shared_runtime_snapshot",
+      runtimeConditionId: runtimeCondition.conditionId,
+    });
+    return summarize(mismatchMappings, providerProbeCount, runtimeCondition);
+  }
+
+  return summarize(mappings, providerProbeCount, runtimeCondition);
+}
+
+function summarize(
+  mappings: AgentRuntimeMapping[],
+  providerProbeCount: 0 | 1,
+  runtimeCondition: RuntimeConditionSnapshot,
+): AgentRuntimeCertificationResult {
+  const status: AgentRuntimeMapping["status"] = mappings.every(
+    (mapping) => mapping.status === "healthy",
+  )
+    ? "healthy"
+    : mappings.some((mapping) => mapping.status === "blocked")
+      ? "blocked"
+      : mappings.some((mapping) => mapping.status === "unavailable")
+        ? "unavailable"
+        : "degraded";
   return {
     requested: true,
     agentCount: mappings.length,
@@ -118,6 +136,20 @@ export async function certifyAgentRuntimes(
     degraded: mappings.filter((mapping) => mapping.status === "degraded").length,
     blocked: mappings.filter((mapping) => mapping.status === "blocked").length,
     unavailable: mappings.filter((mapping) => mapping.status === "unavailable").length,
+    proofStrategy: "shared_runtime_snapshot",
+    agentSpecificProbeCount: 0,
+    providerProbeCount,
+    runtimeCondition,
+    outcomeId: createRuntimeOutcomeId({
+      conditionId: runtimeCondition.conditionId,
+      status,
+      safeErrorCode: mappings.find((mapping) => mapping.safeErrorCode)?.safeErrorCode ?? null,
+      consumerOutcomes: mappings.map((mapping) => ({
+        key: mapping.agentKey,
+        status: mapping.status,
+        safeErrorCode: mapping.safeErrorCode,
+      })),
+    }),
     mappings,
   };
 }

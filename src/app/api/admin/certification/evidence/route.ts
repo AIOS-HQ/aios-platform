@@ -4,6 +4,7 @@ import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getRuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 import { createCertificationResult } from "@/lib/evidence/certification";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
+import { getOperationalRuntimeFoundation } from "@/lib/operational-runtime/certification";
 import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
 import { certifyAgentRuntimes } from "@/lib/runtime-identity/agent-certification";
 import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
@@ -43,7 +44,12 @@ export async function GET(request?: Request) {
     ? await probeRuntimeIdentity({ observedAt: now })
     : resolveRuntimeIdentity(process.env, now);
   const workforceRuntime = workforceProbeRequested
-    ? await certifyAgentRuntimes({ providerIdentity: runtimeIdentity, observedAt: now })
+    ? await certifyAgentRuntimes({
+        providerIdentity: runtimeIdentity,
+        observedAt: now,
+        deploymentEnvironment: deployment.environment,
+        deploymentSha: deployment.commitSha,
+      })
     : null;
   const agentRuntimeMappings = workforceRuntime?.mappings ?? getAgentRuntimeMappings(runtimeIdentity, now);
   const certification = createCertificationResult({
@@ -54,7 +60,7 @@ export async function GET(request?: Request) {
     observedAt: now,
     details: {
       scope: "evidence_layer" as const,
-      schemaVersion: "1.3.0",
+      schemaVersion: "1.4.0",
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
       runtimeIdentity,
@@ -67,9 +73,15 @@ export async function GET(request?: Request) {
             degraded: workforceRuntime.degraded,
             blocked: workforceRuntime.blocked,
             unavailable: workforceRuntime.unavailable,
+            proofStrategy: workforceRuntime.proofStrategy,
+            agentSpecificProbeCount: workforceRuntime.agentSpecificProbeCount,
+            providerProbeCount: workforceRuntime.providerProbeCount,
+            runtimeCondition: workforceRuntime.runtimeCondition,
+            outcomeId: workforceRuntime.outcomeId,
           }
         : null,
       agentRuntimeMappings,
+      operationalRuntimeFoundation: getOperationalRuntimeFoundation(now),
       workforceRegistry: {
         version: AIOS_WORKFORCE_REGISTRY_VERSION,
         agentCount: AIOS_WORKFORCE.length,
