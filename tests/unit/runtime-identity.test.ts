@@ -136,27 +136,50 @@ describe("canonical provider runtime identity", () => {
     expect(JSON.stringify(identity)).not.toContain("secret-provider-value");
   });
 
-  it("normalizes endpoint hostnames and never returns URL credentials or queries", () => {
+  it("normalizes endpoint hostnames and resolves Azure configuration without live proof", () => {
     expect(safeEndpointHostname("https://user:secret@safe.example.com/path?sig=private")).toBe("safe.example.com");
     expect(safeEndpointHostname("not a URL")).toBeNull();
 
     const identity = resolveRuntimeIdentity({
-      AI_PROVIDER: "azure_openai",
-      AI_MODEL: "gpt-safe",
-      AZURE_OPENAI_ENDPOINT: "https://user:secret@safe.openai.azure.com/path?sig=private",
-      AZURE_OPENAI_DEPLOYMENT: "deployment-safe",
-      AZURE_OPENAI_MODEL_VERSION: "2026-01-01",
+      AI_PROVIDER: "azure",
+      AI_MODEL: "gpt-5.6-sol",
+      AZURE_OPENAI_ENDPOINT: "https://safe.openai.azure.com",
       AZURE_OPENAI_API_KEY: "never-return-this-azure-key",
     }, observedAt);
 
     expect(identity).toMatchObject({
+      status: "degraded",
+      runtimeId: "aios.runtime.shared.azure",
       runtimeType: "azure_openai",
-      provider: "azure_openai",
+      provider: "azure",
+      model: "gpt-5.6-sol",
       endpointHostname: "safe.openai.azure.com",
-      deploymentName: "deployment-safe",
-      modelVersion: "2026-01-01",
-      configurationStatus: "unsupported",
+      deploymentName: "gpt-5.6-sol",
+      modelVersion: null,
+      sharedOrDedicated: "shared",
+      configurationStatus: "complete",
+      inferenceStatus: "not_probed",
+      evidenceType: "configuration_proof",
+    });
+    const serialized = JSON.stringify(identity);
+    for (const forbidden of ["never-return-this-azure-key"]) {
+      expect(serialized).not.toContain(forbidden);
+    }
+  });
+
+  it("fails closed for malformed Azure endpoints without echoing them", () => {
+    const identity = resolveRuntimeIdentity({
+      AI_PROVIDER: "azure",
+      AI_MODEL: "gpt-5.6-sol",
+      AZURE_OPENAI_ENDPOINT: "https://user:secret@safe.openai.azure.com?sig=private",
+      AZURE_OPENAI_API_KEY: "never-return-this-azure-key",
+    }, observedAt);
+
+    expect(identity).toMatchObject({
+      provider: "azure",
+      configurationStatus: "misconfigured",
       inferenceStatus: "unavailable",
+      safeErrorCode: "azure_configuration_invalid_endpoint",
       evidenceType: "configuration_proof",
     });
     const serialized = JSON.stringify(identity);
@@ -218,6 +241,65 @@ describe("minimal provider inference probe", () => {
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain("probe-secret");
     expect(serialized).not.toContain("OK");
+  });
+
+  it("returns Azure authenticated runtime proof without response content", async () => {
+    const azureEnvironment = {
+      AI_PROVIDER: "azure",
+      AI_MODEL: "gpt-5.6-sol",
+      AZURE_OPENAI_ENDPOINT: "https://aios-harmony.openai.azure.com",
+      AZURE_OPENAI_API_KEY: "azure-probe-secret",
+    };
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      output: [{ content: [{ type: "output_text", text: "DO_NOT_RETURN" }] }],
+    }), { status: 200 })) as typeof fetch;
+    const result = await probeRuntimeIdentity({
+      environment: azureEnvironment,
+      fetchImpl,
+      observedAt,
+      maxAttempts: 1,
+    });
+
+    expect(result).toMatchObject({
+      status: "healthy",
+      runtimeId: "aios.runtime.shared.azure",
+      provider: "azure",
+      model: "gpt-5.6-sol",
+      deploymentName: "gpt-5.6-sol",
+      endpointHostname: "aios-harmony.openai.azure.com",
+      configurationStatus: "complete",
+      inferenceStatus: "healthy",
+      evidenceType: "authenticated_runtime_proof",
+    });
+    expect(JSON.stringify(result)).not.toContain("DO_NOT_RETURN");
+    expect(JSON.stringify(result)).not.toContain("azure-probe-secret");
+  });
+
+  it.each([
+    [401, "provider_unauthorized"],
+    [403, "provider_forbidden"],
+    [404, "provider_deployment_not_found"],
+    [400, "provider_configuration_mismatch"],
+  ])("classifies Azure probe HTTP %s as misconfigured", async (status, safeErrorCode) => {
+    const result = await probeRuntimeIdentity({
+      environment: {
+        AI_PROVIDER: "azure",
+        AI_MODEL: "gpt-5.6-sol",
+        AZURE_OPENAI_ENDPOINT: "https://aios-harmony.openai.azure.com",
+        AZURE_OPENAI_API_KEY: "azure-probe-secret",
+      },
+      fetchImpl: vi.fn(async () => new Response("hidden", { status })) as typeof fetch,
+      observedAt,
+      maxAttempts: 1,
+    });
+    expect(result).toMatchObject({
+      status: "degraded",
+      configurationStatus: "misconfigured",
+      inferenceStatus: "failed",
+      evidenceType: "authenticated_runtime_proof",
+      safeErrorCode,
+    });
+    expect(JSON.stringify(result)).not.toContain("hidden");
   });
 
   it("reports provider failure truthfully without returning response content", async () => {
@@ -333,5 +415,31 @@ describe("canonical agent runtime mappings", () => {
     });
     expect(mason?.deterministicCapabilities).toContain("runtime_readiness");
     expect(mason?.modelBackedCapabilities).toEqual(["agent_conversation"]);
+  });
+
+  it("maps all canonical agents to the shared Azure runtime only when Azure resolves", () => {
+    const identity = resolveRuntimeIdentity({
+      AI_PROVIDER: "azure",
+      AI_MODEL: "gpt-5.6-sol",
+      AZURE_OPENAI_ENDPOINT: "https://aios-harmony.openai.azure.com",
+      AZURE_OPENAI_API_KEY: "configured",
+    }, observedAt);
+    const mappings = getAgentRuntimeMappings(identity, observedAt);
+    expect(mappings).toHaveLength(10);
+    expect(new Set(mappings.map((mapping) => mapping.sharedProviderRuntimeId))).toEqual(
+      new Set(["aios.runtime.shared.azure"]),
+    );
+    const mason = mappings.find((mapping) => mapping.agentKey === "mason");
+    expect(mason).toMatchObject({
+      runtimeMode: "hybrid_shared_deterministic_runtime",
+      primaryExecution: "deterministic",
+      sharedProviderRuntimeId: "aios.runtime.shared.azure",
+      externalRuntimeStatus: "externally_configured_unverified",
+    });
+
+    const incomplete = resolveRuntimeIdentity({ AI_PROVIDER: "azure" }, observedAt);
+    expect(getAgentRuntimeMappings(incomplete, observedAt).every(
+      (mapping) => mapping.sharedProviderRuntimeId === null,
+    )).toBe(true);
   });
 });

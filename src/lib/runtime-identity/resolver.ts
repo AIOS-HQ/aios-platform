@@ -1,5 +1,7 @@
 import "server-only";
 
+import { resolveAzureProviderConfig } from "@/lib/ai/providers/azure";
+
 import {
   PROVIDER_DEFAULT_MODELS,
   createRuntimeIdentity,
@@ -15,8 +17,9 @@ const PROVIDER_NAMES = new Map<string, string>([
   ["openai", "openai"],
   ["anthropic", "anthropic"],
   ["mock", "mock"],
-  ["azure_openai", "azure_openai"],
-  ["azure-openai", "azure_openai"],
+  ["azure", "azure"],
+  ["azure_openai", "azure"],
+  ["azure-openai", "azure"],
   ["azure_foundry", "azure_foundry"],
   ["azure-foundry", "azure_foundry"],
   ["foundry", "azure_foundry"],
@@ -119,24 +122,65 @@ function sharedProviderIdentity(input: {
   });
 }
 
-function azureIdentity(input: {
+function azureProviderIdentity(input: {
   environment: RuntimeEnvironment;
-  provider: "azure_openai" | "azure_foundry";
   observedAt?: string | Date;
 }): RuntimeIdentity {
-  const isFoundry = input.provider === "azure_foundry";
-  const endpointValue = isFoundry
-    ? input.environment.AZURE_AI_FOUNDRY_ENDPOINT
-    : input.environment.AZURE_OPENAI_ENDPOINT;
-  const deploymentValue = isFoundry
-    ? input.environment.AZURE_AI_FOUNDRY_DEPLOYMENT
-    : input.environment.AZURE_OPENAI_DEPLOYMENT;
-  const versionValue = isFoundry
-    ? input.environment.AZURE_AI_FOUNDRY_MODEL_VERSION
-    : input.environment.AZURE_OPENAI_MODEL_VERSION;
-  const keyPresent = isFoundry
-    ? Boolean(input.environment.AZURE_AI_FOUNDRY_API_KEY)
-    : Boolean(input.environment.AZURE_OPENAI_API_KEY);
+  const resolved = resolveAzureProviderConfig(input.environment);
+  const state = resolved.ok ? resolved.config : resolved.state;
+  const complete = resolved.ok;
+  const misconfigured = !resolved.ok && [
+    "azure_configuration_invalid_endpoint",
+    "azure_configuration_invalid_deployment",
+  ].includes(resolved.code);
+
+  return createRuntimeIdentity({
+    fields: baseFields({
+      runtimeId: "aios.runtime.shared.azure",
+      runtimeType: "azure_openai",
+      provider: "azure",
+      model: state.deploymentName,
+      deploymentName: state.deploymentName,
+      modelVersion: null,
+      endpointHostname: state.endpointHostname,
+      sharedOrDedicated: complete ? "shared" : "unavailable",
+      configurationStatus: complete
+        ? "complete"
+        : misconfigured
+          ? "misconfigured"
+          : "incomplete",
+      inferenceStatus: complete ? "not_probed" : "unavailable",
+      safeErrorCode: resolved.ok ? null : resolved.code,
+      safeMessage: complete
+        ? "azure_provider_configured_inference_not_probed"
+        : misconfigured
+          ? "azure_provider_configuration_malformed"
+          : "azure_provider_configuration_incomplete",
+    }),
+    status: complete || misconfigured ? "degraded" : "unavailable",
+    evidenceType: "configuration_proof",
+    observedAt: input.observedAt,
+    observedBy: "runtime_identity.configuration_resolver",
+    confidence: 1,
+    details: {
+      scope: "provider_runtime_identity",
+      providerExplicit: true,
+      modelSource: state.deploymentName ? "deployment" : "none",
+      authenticationConfigured: state.authenticationConfigured,
+      endpointConfigured: state.endpointConfigured,
+      inferenceAttempted: false,
+    },
+  });
+}
+
+function externalFoundryIdentity(input: {
+  environment: RuntimeEnvironment;
+  observedAt?: string | Date;
+}): RuntimeIdentity {
+  const endpointValue = input.environment.AZURE_AI_FOUNDRY_ENDPOINT;
+  const deploymentValue = input.environment.AZURE_AI_FOUNDRY_DEPLOYMENT;
+  const versionValue = input.environment.AZURE_AI_FOUNDRY_MODEL_VERSION;
+  const keyPresent = Boolean(input.environment.AZURE_AI_FOUNDRY_API_KEY);
   const endpointHostname = safeEndpointHostname(endpointValue);
   const deploymentName = safeIdentifier(deploymentValue);
   const model = safeIdentifier(input.environment.AI_MODEL);
@@ -146,9 +190,9 @@ function azureIdentity(input: {
 
   return createRuntimeIdentity({
     fields: baseFields({
-      runtimeId: `aios.runtime.${input.provider}.unverified`,
-      runtimeType: input.provider as RuntimeType,
-      provider: input.provider,
+      runtimeId: "aios.runtime.azure_foundry.unverified",
+      runtimeType: "azure_foundry" as RuntimeType,
+      provider: "azure_foundry",
       model,
       deploymentName,
       modelVersion,
@@ -261,9 +305,9 @@ export function resolveRuntimeIdentity(
     return sharedProviderIdentity({ environment, provider, observedAt });
   }
 
-  return azureIdentity({
-    environment,
-    provider: provider as "azure_openai" | "azure_foundry",
-    observedAt,
-  });
+  if (provider === "azure") {
+    return azureProviderIdentity({ environment, observedAt });
+  }
+
+  return externalFoundryIdentity({ environment, observedAt });
 }

@@ -32,7 +32,11 @@ export interface OperatorResult {
  */
 export interface AIProvider {
   readonly name: string;
-  generate(prompt: string, system?: string): Promise<string>;
+  generate(
+    prompt: string,
+    system?: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<string>;
   /**
    * Optional streaming completion: yields incremental text deltas where the
    * concatenation of all deltas equals the full reply. Providers (or runtimes)
