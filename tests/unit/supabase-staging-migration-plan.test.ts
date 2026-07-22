@@ -1,4 +1,6 @@
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   PASSWORD_PLACEHOLDER,
@@ -9,19 +11,37 @@ import {
   assembleStagingDatabaseUri,
   encodeDatabasePassword,
   sanitizePlanOutput,
+  stagingSecretPresence,
   validateStagingTemplate,
 } from "../../scripts/ci/supabase-staging-plan.mjs";
 
 const template = `postgresql://${STAGING_USERNAME}:${PASSWORD_PLACEHOLDER}@${STAGING_HOST}:${STAGING_PORT}/${STAGING_DATABASE}`;
+const validatorPath = resolve("scripts/ci/supabase-staging-plan.mjs");
+
+function runValidator(command: string, environment: Record<string, string>) {
+  return spawnSync(process.execPath, [validatorPath, command], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...environment,
+    },
+  });
+}
 
 describe("Supabase staging migration plan", () => {
   it("accepts only the exact staging Session pooler structure", () => {
     expect(validateStagingTemplate(template)).toEqual({ ok: true, reason: "ok" });
+    expect(validateStagingTemplate(`${template}\r\n`)).toEqual({ ok: true, reason: "ok" });
+    expect(validateStagingTemplate(template.replace("postgres.", "postgres%2E"))).toEqual({ ok: true, reason: "ok" });
     expect(validateStagingTemplate(template.replace(STAGING_USERNAME, "postgres.productionref123"))).toMatchObject({ reason: "invalid_username" });
     expect(validateStagingTemplate(template.replace(STAGING_HOST, "db.production.supabase.co"))).toMatchObject({ reason: "invalid_host" });
     expect(validateStagingTemplate(template.replace(`:${STAGING_PORT}/`, ":6543/"))).toMatchObject({ reason: "invalid_port" });
     expect(validateStagingTemplate(template.replace(`:${STAGING_PORT}/${STAGING_DATABASE}`, `:${STAGING_PORT}/production`))).toMatchObject({ reason: "invalid_database" });
     expect(validateStagingTemplate(template.replace(PASSWORD_PLACEHOLDER, "missing"))).toMatchObject({ reason: "missing_placeholder" });
+    expect(validateStagingTemplate(template.replace(STAGING_USERNAME, `${STAGING_USERNAME}%20`))).toMatchObject({ reason: "invalid_username" });
+    expect(validateStagingTemplate(template.replace(STAGING_HOST, STAGING_HOST.toUpperCase()))).toMatchObject({ reason: "invalid_host" });
+    expect(validateStagingTemplate(`${template}?sslmode=require`)).toMatchObject({ reason: "invalid_database" });
   });
 
   it("encodes reserved and Unicode password characters without changing the target", () => {
@@ -40,6 +60,47 @@ describe("Supabase staging migration plan", () => {
       expect(parsed.pathname).toBe(`/${STAGING_DATABASE}`);
     }
     expect(encodeDatabasePassword("a b")).toBe("a%20b");
+  });
+
+  it("reproduces an absent password safely before masking or encoding", () => {
+    expect(stagingSecretPresence(template, "")).toEqual({
+      uriTemplatePresent: true,
+      passwordPresent: false,
+    });
+    expect(stagingSecretPresence("", "configured")).toEqual({
+      uriTemplatePresent: false,
+      passwordPresent: true,
+    });
+    expect(() => encodeDatabasePassword("")).toThrow("missing_password");
+  });
+
+  it("executes the exact workflow-to-validator preparation path offline", () => {
+    const password = "offline $() ` ; & | ! ' \" \\ / spaces / % / ü / 雪";
+    const encodedUsernameTemplate = `${template.replace("postgres.", "postgres%2E")}\r\n`;
+    const environment = {
+      SUPABASE_STAGING_DB_URI_TEMPLATE: encodedUsernameTemplate,
+      SUPABASE_STAGING_DB_PASSWORD: password,
+    };
+
+    const preflight = runValidator("preflight", environment);
+    expect(preflight.status).toBe(0);
+    expect(preflight.stdout).toBe("uri_template_present=true\npassword_present=true\n");
+    expect(preflight.stderr).toBe("");
+
+    const encoded = runValidator("encode-password", environment);
+    expect(encoded.status).toBe(0);
+    expect(encoded.stderr).toBe("");
+    expect(encoded.stdout).toBe(encodeDatabasePassword(password));
+
+    const assembled = runValidator("assemble", environment);
+    expect(assembled.status).toBe(0);
+    expect(assembled.stderr).toBe("");
+    const parsed = new URL(assembled.stdout);
+    expect(decodeURIComponent(parsed.username)).toBe(STAGING_USERNAME);
+    expect(decodeURIComponent(parsed.password)).toBe(password);
+    expect(parsed.hostname).toBe(STAGING_HOST);
+    expect(parsed.port).toBe(STAGING_PORT);
+    expect(parsed.pathname).toBe(`/${STAGING_DATABASE}`);
   });
 
   it("redacts raw, encoded, assembled, and unexpected PostgreSQL connection strings", () => {
@@ -61,7 +122,7 @@ describe("Supabase staging migration plan", () => {
     expect(workflow).toMatch(/^name: Supabase Staging Migration Plan$/m);
     expect(workflow).toMatch(/^on:\n  workflow_dispatch:\n    inputs:\n      target_ref:/m);
     expect(workflow).not.toMatch(/^\s+(push|pull_request|schedule|workflow_call):/m);
-    expect(workflow).toContain("environment: staging");
+    expect(workflow).toMatch(/environment:\n\s+name: staging/);
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("timeout-minutes: 15");
@@ -81,5 +142,16 @@ describe("Supabase staging migration plan", () => {
     expect(workflow.match(/ db push /g)).toHaveLength(2); // help capability check + one guarded dry run
     expect(workflow).not.toMatch(/supabase(?:@[^ ]+)?\s+link|migration\s+up|db\s+(reset|seed)|--linked|az\s+containerapp|vercel\s+deploy|worker:social/i);
     expect(workflow).not.toContain("upload-artifact");
+
+    const preflight = workflow.indexOf("Preflight staging environment secret presence");
+    const emptyGuard = workflow.indexOf('if [[ -z "$template" || -z "$password" ]]');
+    const firstMask = workflow.indexOf("::add-mask::");
+    const dryRun = workflow.indexOf("--dry-run", firstMask);
+    expect(preflight).toBeGreaterThan(0);
+    expect(emptyGuard).toBeGreaterThan(preflight);
+    expect(firstMask).toBeGreaterThan(emptyGuard);
+    expect(dryRun).toBeGreaterThan(firstMask);
+    expect(workflow).toContain("node \"$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs\" preflight");
+    expect(workflow).not.toContain("workflow_call:");
   });
 });
