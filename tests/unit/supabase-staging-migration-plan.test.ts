@@ -129,7 +129,8 @@ describe("Supabase staging migration plan", () => {
     expect(workflow).toContain('node-version: "22"');
     expect(workflow).toContain('SUPABASE_CLI_VERSION: "2.109.1"');
     expect(workflow).toContain("ref: ${{ inputs.target_ref }}");
-    expect(workflow).toContain("ref: ${{ github.workflow_sha }}");
+    expect(workflow).toContain("ref: refs/heads/main");
+    expect(workflow).not.toContain("github.workflow_sha");
     expect(workflow).toContain('[[ "$TARGET_REF" =~ ^[0-9a-f]{40}$ ]]');
     expect(workflow).toContain('test "$(git -C "$GITHUB_WORKSPACE/target" rev-parse HEAD)" = "$TARGET_REF"');
     expect(workflow).toContain("$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs");
@@ -151,7 +152,28 @@ describe("Supabase staging migration plan", () => {
     expect(emptyGuard).toBeGreaterThan(preflight);
     expect(firstMask).toBeGreaterThan(emptyGuard);
     expect(dryRun).toBeGreaterThan(firstMask);
-    expect(workflow).toContain("node \"$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs\" preflight");
+    expect(workflow).toContain('node "$validator" preflight');
     expect(workflow).not.toContain("workflow_call:");
+  });
+
+  it("cannot silently execute an obsolete validator from a rerun workflow SHA", async () => {
+    const workflow = await readFile(".github/workflows/supabase-staging-migration-plan.yml", "utf8");
+    const trustedCheckout = workflow.slice(
+      workflow.indexOf("Checkout trusted workflow controls"),
+      workflow.indexOf("Checkout exact migration target"),
+    );
+
+    expect(workflow).toContain("if: github.ref == 'refs/heads/main'");
+    expect(trustedCheckout).toContain("repository: AIOS-HQ/aios-platform");
+    expect(trustedCheckout).toContain("ref: refs/heads/main");
+    expect(trustedCheckout).not.toContain("github.workflow_sha");
+    expect(workflow).toContain('current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"');
+    expect(workflow).toContain('test "$control_sha" = "$current_main_sha"');
+    expect(workflow).toContain("TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}");
+    expect(workflow.match(/sha256sum "\$validator"/g)).toHaveLength(4);
+    expect(workflow.match(/git -C "\$GITHUB_WORKSPACE\/control" rev-parse HEAD/g)).toHaveLength(4);
+    expect(workflow).toContain('test "$(git -C "$GITHUB_WORKSPACE/target" rev-parse HEAD)" = "$TARGET_REF"');
+    expect(workflow).toContain('validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"');
+    expect(workflow).not.toContain('$GITHUB_WORKSPACE/target/scripts/ci/supabase-staging-plan.mjs');
   });
 });
