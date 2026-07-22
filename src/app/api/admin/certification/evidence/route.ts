@@ -4,6 +4,9 @@ import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getRuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 import { createCertificationResult } from "@/lib/evidence/certification";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
+import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
+import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
+import { resolveRuntimeIdentity } from "@/lib/runtime-identity/resolver";
 import {
   AIOS_WORKFORCE,
   AIOS_WORKFORCE_REGISTRY_VERSION,
@@ -20,7 +23,7 @@ export const dynamic = "force-dynamic";
  * identity, tokens, credentials, cookies, headers, prompts, memory, or customer
  * data.
  */
-export async function GET() {
+export async function GET(request?: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   if (!(await currentUserIsAdmin())) {
@@ -29,6 +32,13 @@ export async function GET() {
 
   const now = new Date();
   const deployment = getRuntimeDeploymentIdentity(now);
+  const probeRequested = request
+    ? new URL(request.url).searchParams.get("probe") === "1"
+    : false;
+  const runtimeIdentity = probeRequested
+    ? await probeRuntimeIdentity({ observedAt: now })
+    : resolveRuntimeIdentity(process.env, now);
+  const agentRuntimeMappings = getAgentRuntimeMappings(runtimeIdentity, now);
   const certification = createCertificationResult({
     outcome: true,
     evidenceType: "authenticated_runtime_proof",
@@ -37,9 +47,12 @@ export async function GET() {
     observedAt: now,
     details: {
       scope: "evidence_layer" as const,
-      schemaVersion: "1.0.0",
+      schemaVersion: "1.1.0",
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
+      runtimeIdentity,
+      inferenceProbeRequested: probeRequested,
+      agentRuntimeMappings,
       workforceRegistry: {
         version: AIOS_WORKFORCE_REGISTRY_VERSION,
         agentCount: AIOS_WORKFORCE.length,
