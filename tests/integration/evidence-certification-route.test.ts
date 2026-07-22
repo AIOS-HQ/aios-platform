@@ -29,6 +29,8 @@ describe("Founder Evidence Layer certification endpoint", () => {
     process.env.AI_PROVIDER = "openai";
     process.env.AI_MODEL = "gpt-safe";
     process.env.OPENAI_API_KEY = "endpoint-test-secret";
+    delete process.env.AZURE_OPENAI_ENDPOINT;
+    delete process.env.AZURE_OPENAI_API_KEY;
     runtimeProbe.mockReset();
   });
 
@@ -65,7 +67,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
       confidence: 1,
       details: {
         scope: "evidence_layer",
-        schemaVersion: "1.1.0",
+        schemaVersion: "1.2.0",
         deployment: {
           commitSha: "safe-commit-sha",
           environment: "production",
@@ -102,6 +104,37 @@ describe("Founder Evidence Layer certification endpoint", () => {
       expect(serialized).not.toContain(forbidden);
     }
     expect(serialized).not.toContain("founder-1");
+  });
+
+  it("returns allowlisted Azure configuration identity without implying live proof", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+    process.env.AI_PROVIDER = "azure";
+    process.env.AI_MODEL = "gpt-5.6-sol";
+    process.env.AZURE_OPENAI_ENDPOINT = "https://aios-harmony.openai.azure.com";
+    process.env.AZURE_OPENAI_API_KEY = "azure-endpoint-test-secret";
+
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.certification.details.runtimeIdentity).toMatchObject({
+      status: "degraded",
+      provider: "azure",
+      model: "gpt-5.6-sol",
+      deploymentName: "gpt-5.6-sol",
+      endpointHostname: "aios-harmony.openai.azure.com",
+      configurationStatus: "complete",
+      inferenceStatus: "not_probed",
+      evidenceType: "configuration_proof",
+      details: { authenticationConfigured: true },
+    });
+    expect(body.certification.details.agentRuntimeMappings).toHaveLength(10);
+    expect(body.certification.details.agentRuntimeMappings.every(
+      (mapping: { sharedProviderRuntimeId: string | null }) =>
+        mapping.sharedProviderRuntimeId === "aios.runtime.shared.azure",
+    )).toBe(true);
+    expect(JSON.stringify(body)).not.toContain("azure-endpoint-test-secret");
   });
 
   it("runs the non-writing inference probe only when a Founder explicitly requests it", async () => {

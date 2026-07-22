@@ -1,6 +1,12 @@
 import "server-only";
 
 import {
+  createAzureResponsesRequest,
+  extractAzureResponseText,
+  resolveAzureProviderConfig,
+} from "@/lib/ai/providers/azure";
+
+import {
   createRuntimeIdentity,
   runtimeIdentityFields,
   type RuntimeIdentity,
@@ -35,8 +41,13 @@ function latencyBucket(durationMs: number): RuntimeLatencyBucket {
 }
 
 function safeErrorCode(status: number): string {
-  if (status === 401 || status === 403) return "provider_unauthorized";
+  if (status === 401) return "provider_unauthorized";
+  if (status === 403) return "provider_forbidden";
+  if (status === 404) return "provider_deployment_not_found";
   if (status === 429) return "provider_rate_limited";
+  if (status === 400 || status === 409 || status === 422) {
+    return "provider_configuration_mismatch";
+  }
   if (status >= 500) return "provider_unavailable";
   return "provider_request_rejected";
 }
@@ -86,6 +97,17 @@ function probeRequest(identity: RuntimeIdentity, environment: RuntimeEnvironment
       },
     };
   }
+  if (identity.provider === "azure") {
+    const resolved = resolveAzureProviderConfig(environment);
+    if (!resolved.ok) return null;
+    return createAzureResponsesRequest({
+      config: resolved.config,
+      prompt: FIXED_HEALTH_REQUEST,
+      system: FIXED_HEALTH_SYSTEM,
+      maxPromptChars: 256,
+      maxOutputTokens: 16,
+    });
+  }
   return null;
 }
 
@@ -103,6 +125,7 @@ function responseHasText(provider: string | null, payload: unknown): boolean {
     const text = (content[0] as { text?: unknown } | undefined)?.text;
     return typeof text === "string" && text.trim().length > 0;
   }
+  if (provider === "azure") return Boolean(extractAzureResponseText(payload));
   return false;
 }
 
@@ -115,6 +138,7 @@ function probeResult(input: {
   latency: RuntimeLatencyBucket;
   observedAt?: string | Date;
   inferenceAttempted: boolean;
+  configurationStatus?: RuntimeIdentity["configurationStatus"];
 }): RuntimeIdentity {
   return createRuntimeIdentity({
     fields: {
@@ -123,6 +147,9 @@ function probeResult(input: {
       latencyBucket: input.latency,
       safeErrorCode: input.safeErrorCode,
       safeMessage: input.safeMessage,
+      ...(input.configurationStatus
+        ? { configurationStatus: input.configurationStatus }
+        : {}),
     },
     status: input.status,
     evidenceType: input.inferenceAttempted
@@ -176,6 +203,14 @@ export async function probeRuntimeIdentity(
       if (!response.ok) {
         lastCode = safeErrorCode(response.status);
         if ((response.status === 429 || response.status >= 500) && attempt < maxAttempts) continue;
+        const configurationStatus = [
+          "provider_unauthorized",
+          "provider_forbidden",
+          "provider_deployment_not_found",
+          "provider_configuration_mismatch",
+        ].includes(lastCode)
+          ? "misconfigured" as const
+          : configured.configurationStatus;
         return probeResult({
           configured,
           inferenceStatus: "failed",
@@ -185,6 +220,7 @@ export async function probeRuntimeIdentity(
           latency: latencyBucket(clock() - startedAt),
           observedAt,
           inferenceAttempted: true,
+          configurationStatus,
         });
       }
 

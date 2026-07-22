@@ -47,7 +47,7 @@ export async function GET(request?: Request) {
     observedAt: now,
     details: {
       scope: "evidence_layer" as const,
-      schemaVersion: "1.1.0",
+      schemaVersion: "1.2.0",
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
       runtimeIdentity,
