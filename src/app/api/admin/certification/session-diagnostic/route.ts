@@ -2,12 +2,15 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
+import {
+  requestOriginMatchesTrustedAuthOrigin,
+  type OriginMatch,
+} from "@/lib/auth/origin";
 import { isSupabaseConfigured } from "@/lib/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type OriginMatch = boolean | "unknown";
 type FailureStage =
   | "supabase_not_configured"
   | "session_cookie_missing"
@@ -28,16 +31,6 @@ function diagnosticEnabled(): boolean {
   if (process.env.VERCEL_ENV === "preview") return true;
   return process.env.NODE_ENV !== "production" &&
     process.env.AIOS_SESSION_DIAGNOSTIC_ENABLED === "true";
-}
-
-function originMatches(request: Request): OriginMatch {
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!configuredSiteUrl) return "unknown";
-  try {
-    return new URL(request.url).origin === new URL(configuredSiteUrl).origin;
-  } catch {
-    return "unknown";
-  }
 }
 
 async function plausibleSupabaseSessionCookiePresent(): Promise<boolean> {
@@ -127,7 +120,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const requestOriginMatchesConfiguredSiteOrigin = originMatches(request);
+  const requestOriginMatchesConfiguredSiteOrigin = requestOriginMatchesTrustedAuthOrigin(request);
   const diagnostic = {
     supabaseConfigured,
     supabaseCookiePresent,

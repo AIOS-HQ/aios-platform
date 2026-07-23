@@ -32,11 +32,15 @@ const originalEnvironment = {
   NODE_ENV: process.env.NODE_ENV,
   AIOS_SESSION_DIAGNOSTIC_ENABLED: process.env.AIOS_SESSION_DIAGNOSTIC_ENABLED,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
+  VERCEL_URL: process.env.VERCEL_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 };
 
-async function diagnostic(url = "https://preview.example/api/admin/certification/session-diagnostic") {
+const PREVIEW_ORIGIN = "https://aios-platform-git-certification-air-bid.vercel.app";
+
+async function diagnostic(url = `${PREVIEW_ORIGIN}/api/admin/certification/session-diagnostic`) {
   const { GET } = await import("@/app/api/admin/certification/session-diagnostic/route");
   return GET(new Request(url));
 }
@@ -46,7 +50,9 @@ describe("Preview certification session diagnostic", () => {
     process.env.VERCEL_ENV = "preview";
     process.env.NODE_ENV = originalEnvironment.NODE_ENV ?? "test";
     delete process.env.AIOS_SESSION_DIAGNOSTIC_ENABLED;
-    process.env.NEXT_PUBLIC_SITE_URL = "https://preview.example";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://aios-platform-omega.vercel.app";
+    process.env.VERCEL_BRANCH_URL = "aios-platform-git-certification-air-bid.vercel.app";
+    process.env.VERCEL_URL = "aios-platform-unique-air-bid.vercel.app";
     state.supabaseConfigured = true;
     state.cookiePresent = false;
     state.user = null;
@@ -145,7 +151,8 @@ describe("Preview certification session diagnostic", () => {
     state.cookiePresent = true;
     state.user = { id: "founder-id", email: "founder@example.com" };
     state.founder = true;
-    process.env.NEXT_PUBLIC_SITE_URL = "https://different.example";
+    process.env.VERCEL_BRANCH_URL = "aios-platform-git-different-air-bid.vercel.app";
+    process.env.VERCEL_URL = "aios-platform-different-air-bid.vercel.app";
     const mismatch = await (await diagnostic()).json();
     expect(mismatch.diagnostic).toMatchObject({
       requestOriginMatchesConfiguredSiteOrigin: false,
@@ -153,21 +160,23 @@ describe("Preview certification session diagnostic", () => {
     });
 
     delete process.env.NEXT_PUBLIC_SITE_URL;
+    delete process.env.VERCEL_BRANCH_URL;
+    delete process.env.VERCEL_URL;
     const unknown = await (await diagnostic()).json();
     expect(unknown.diagnostic).toMatchObject({
       requestOriginMatchesConfiguredSiteOrigin: "unknown",
       likelyFailureStage: "unknown",
     });
     const serialized = JSON.stringify([mismatch, unknown]);
-    expect(serialized).not.toContain("different.example");
-    expect(serialized).not.toContain("preview.example");
+    expect(serialized).not.toContain("aios-platform-git-different-air-bid.vercel.app");
+    expect(serialized).not.toContain("aios-platform-git-certification-air-bid.vercel.app");
   });
 
   it("never returns cookie, credential, URL, key, identity, or environment values", async () => {
     state.cookiePresent = true;
     state.user = { id: "private-user-id", email: "private@example.com" };
     state.founder = true;
-    process.env.NEXT_PUBLIC_SITE_URL = "https://preview.example";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://aios-platform-omega.vercel.app";
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://private-project.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "private-publishable-key";
     const body = await (await diagnostic()).json();
@@ -179,7 +188,7 @@ describe("Preview certification session diagnostic", () => {
       "private@example.com",
       "private-project.supabase.co",
       "private-publishable-key",
-      "https://preview.example",
+      PREVIEW_ORIGIN,
     ]) {
       expect(serialized).not.toContain(forbidden);
     }

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { env, isSupabaseConfigured } from "@/lib/env";
+import { isSupabaseConfigured } from "@/lib/env";
+import { resolveAuthSiteOrigin } from "@/lib/auth/origin";
 import { safeRedirectPath } from "@/lib/auth/redirects";
 import type { ActionState } from "@/lib/types";
 
@@ -71,12 +72,13 @@ export async function signUp(
   }
 
   const supabase = await createClient();
+  const authSiteOrigin = await resolveAuthSiteOrigin();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${env.siteUrl}/auth/callback`,
+      emailRedirectTo: `${authSiteOrigin}/auth/callback`,
     },
   });
 
@@ -108,8 +110,9 @@ export async function requestPasswordReset(
   }
 
   const supabase = await createClient();
+  const authSiteOrigin = await resolveAuthSiteOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${env.siteUrl}/auth/callback?next=/update-password`,
+    redirectTo: `${authSiteOrigin}/auth/callback?next=/update-password`,
   });
 
   if (error) {
