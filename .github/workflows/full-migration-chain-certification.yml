@@ -1,0 +1,58 @@
+name: Full Migration Chain Certification
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/ci/full-migration-chain-certification.mjs"
+      - "tests/unit/marketplace-migration-foundation.test.ts"
+      - ".github/workflows/full-migration-chain-certification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-migration-chain-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: Replay all migrations and supported upgrades
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      MIGRATION_TEST_ALLOW_LOCAL_POSTGRES: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate migration certification tests
+        run: npm test -- tests/unit/marketplace-migration-foundation.test.ts tests/unit/integration-connections-migration.test.ts
+
+      - name: Replay complete repository migration history
+        run: node scripts/ci/full-migration-chain-certification.mjs
