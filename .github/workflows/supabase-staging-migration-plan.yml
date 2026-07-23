@@ -109,10 +109,9 @@ jobs:
           grep -F -- '--include-all' <<<"$help_output" >/dev/null
           unset help_output
 
-      - name: Preflight staging environment secret presence
+      - name: Preflight trusted staging target and password
         shell: bash
         env:
-          SUPABASE_STAGING_DB_URI_TEMPLATE: ${{ secrets.SUPABASE_STAGING_DB_URI_TEMPLATE }}
           SUPABASE_STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -127,7 +126,6 @@ jobs:
       - name: Validate staging target and generate migration plan only
         shell: bash
         env:
-          SUPABASE_STAGING_DB_URI_TEMPLATE: ${{ secrets.SUPABASE_STAGING_DB_URI_TEMPLATE }}
           SUPABASE_STAGING_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -137,22 +135,19 @@ jobs:
           validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
           test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
           test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
-          template="$SUPABASE_STAGING_DB_URI_TEMPLATE"
           password="$SUPABASE_STAGING_DB_PASSWORD"
-          if [[ -z "$template" || -z "$password" ]]; then
+          if [[ -z "$password" ]]; then
             printf 'secret_preflight_mismatch\n' >&2
             exit 1
           fi
-          printf '::add-mask::%s\n' "$template"
           printf '::add-mask::%s\n' "$password"
-          unset SUPABASE_STAGING_DB_URI_TEMPLATE SUPABASE_STAGING_DB_PASSWORD
+          unset SUPABASE_STAGING_DB_PASSWORD
 
           encoded_password="$(
             SUPABASE_STAGING_DB_PASSWORD="$password" \
               node "$validator" encode-password
           )"
           database_uri="$(
-            SUPABASE_STAGING_DB_URI_TEMPLATE="$template" \
             SUPABASE_STAGING_DB_PASSWORD="$password" \
               node "$validator" assemble
           )"
@@ -161,11 +156,10 @@ jobs:
 
           cleanup() {
             validator=""
-            template=""
             password=""
             encoded_password=""
             database_uri=""
-            unset validator template password encoded_password database_uri
+            unset validator password encoded_password database_uri
           }
           trap cleanup EXIT HUP INT TERM
 
@@ -177,7 +171,6 @@ jobs:
             --workdir "$GITHUB_WORKSPACE/target" \
             --agent no \
             --output-format text 2>&1 |
-            SUPABASE_STAGING_DB_URI_TEMPLATE="$template" \
             SUPABASE_STAGING_DB_PASSWORD="$password" \
             SUPABASE_STAGING_DB_PASSWORD_ENCODED="$encoded_password" \
             SUPABASE_STAGING_DB_URI="$database_uri" \

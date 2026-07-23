@@ -5,88 +5,12 @@ export const STAGING_USERNAME = `postgres.${STAGING_PROJECT_REF}`;
 export const STAGING_HOST = "aws-0-ca-central-1.pooler.supabase.com";
 export const STAGING_PORT = "5432";
 export const STAGING_DATABASE = "postgres";
-export const PASSWORD_PLACEHOLDER = "[YOUR-PASSWORD]";
 
-const STAGING_SCHEME = "postgresql://";
-const PASSWORD_SENTINEL = "validation-only-password";
-
-function normalizeTemplate(template) {
-  if (typeof template !== "string") return null;
-  const normalized = template.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function decodeUsername(username) {
-  try {
-    return decodeURIComponent(username);
-  } catch {
-    return null;
-  }
-}
-
-function parseStagingTemplate(template) {
-  const normalized = normalizeTemplate(template);
-  if (normalized === null) return { ok: false, reason: "missing_placeholder" };
-
-  const placeholderParts = normalized.split(PASSWORD_PLACEHOLDER);
-  if (placeholderParts.length !== 2) return { ok: false, reason: "missing_placeholder" };
-  if (/\s/.test(normalized)) return { ok: false, reason: "parse_failure" };
-  if (!normalized.startsWith(STAGING_SCHEME)) return { ok: false, reason: "parse_failure" };
-
-  const credentialSeparator = `:${PASSWORD_PLACEHOLDER}@`;
-  const credentialSeparatorIndex = normalized.indexOf(credentialSeparator);
-  if (credentialSeparatorIndex < STAGING_SCHEME.length) {
-    return { ok: false, reason: "parse_failure" };
-  }
-
-  const encodedUsername = normalized.slice(STAGING_SCHEME.length, credentialSeparatorIndex);
-  const username = decodeUsername(encodedUsername);
-  if (username === null) return { ok: false, reason: "parse_failure" };
-  if (username !== STAGING_USERNAME) return { ok: false, reason: "invalid_username" };
-
-  const target = normalized.slice(credentialSeparatorIndex + credentialSeparator.length);
-  const databaseSeparatorIndex = target.indexOf("/");
-  if (databaseSeparatorIndex < 1 || target.indexOf("/", databaseSeparatorIndex + 1) !== -1) {
-    return { ok: false, reason: "parse_failure" };
-  }
-
-  const authority = target.slice(0, databaseSeparatorIndex);
-  const database = target.slice(databaseSeparatorIndex + 1);
-  const portSeparatorIndex = authority.lastIndexOf(":");
-  if (portSeparatorIndex < 1) return { ok: false, reason: "parse_failure" };
-
-  const hostname = authority.slice(0, portSeparatorIndex);
-  const port = authority.slice(portSeparatorIndex + 1);
-  if (hostname !== STAGING_HOST) return { ok: false, reason: "invalid_host" };
-  if (port !== STAGING_PORT) return { ok: false, reason: "invalid_port" };
-  if (database !== STAGING_DATABASE) return { ok: false, reason: "invalid_database" };
-
-  const parseCandidate = normalized.replace(PASSWORD_PLACEHOLDER, PASSWORD_SENTINEL);
-  try {
-    const parsed = new URL(parseCandidate);
-    if (
-      parsed.protocol !== "postgresql:"
-      || decodeUsername(parsed.username) !== STAGING_USERNAME
-      || parsed.password !== PASSWORD_SENTINEL
-      || parsed.hostname !== STAGING_HOST
-      || parsed.port !== STAGING_PORT
-      || parsed.pathname !== `/${STAGING_DATABASE}`
-      || parsed.search !== ""
-      || parsed.hash !== ""
-    ) {
-      return { ok: false, reason: "parse_failure" };
-    }
-  } catch {
-    return { ok: false, reason: "parse_failure" };
-  }
-
-  return { ok: true, reason: "ok", normalized };
-}
-
-export function validateStagingTemplate(template) {
-  const result = parseStagingTemplate(template);
-  return { ok: result.ok, reason: result.reason };
-}
+const EXPECTED_STAGING_PROJECT_REF = "rorbiijpgahvwdrejpil";
+const EXPECTED_STAGING_USERNAME = "postgres.rorbiijpgahvwdrejpil";
+const EXPECTED_STAGING_HOST = "aws-0-ca-central-1.pooler.supabase.com";
+const EXPECTED_STAGING_PORT = "5432";
+const EXPECTED_STAGING_DATABASE = "postgres";
 
 export function encodeDatabasePassword(password) {
   if (typeof password !== "string" || password.length === 0) throw new Error("missing_password");
@@ -95,17 +19,50 @@ export function encodeDatabasePassword(password) {
   );
 }
 
-export function stagingSecretPresence(template, password) {
+export function trustedStagingPreflight(password) {
   return {
-    uriTemplatePresent: typeof template === "string" && template.length > 0,
     passwordPresent: typeof password === "string" && password.length > 0,
+    targetProjectRefMatchesExpected: STAGING_PROJECT_REF === EXPECTED_STAGING_PROJECT_REF,
+    targetUsernameMatchesExpected: STAGING_USERNAME === EXPECTED_STAGING_USERNAME,
+    targetHostMatchesExpected: STAGING_HOST === EXPECTED_STAGING_HOST,
+    targetPortMatchesExpected: STAGING_PORT === EXPECTED_STAGING_PORT,
+    targetDatabaseMatchesExpected: STAGING_DATABASE === EXPECTED_STAGING_DATABASE,
+    uriConstructedInternally: true,
   };
 }
 
-export function assembleStagingDatabaseUri(template, password) {
-  const validation = parseStagingTemplate(template);
-  if (!validation.ok) throw new Error(validation.reason);
-  return validation.normalized.replace(PASSWORD_PLACEHOLDER, encodeDatabasePassword(password));
+function assertTrustedStagingTarget() {
+  const preflight = trustedStagingPreflight("configured");
+  if (
+    !preflight.targetProjectRefMatchesExpected
+    || !preflight.targetUsernameMatchesExpected
+    || !preflight.targetHostMatchesExpected
+    || !preflight.targetPortMatchesExpected
+    || !preflight.targetDatabaseMatchesExpected
+    || !preflight.uriConstructedInternally
+  ) {
+    throw new Error("trusted_staging_target_mismatch");
+  }
+}
+
+export function assembleStagingDatabaseUri(password) {
+  assertTrustedStagingTarget();
+  const encodedPassword = encodeDatabasePassword(password);
+  const uri = `postgresql://${STAGING_USERNAME}:${encodedPassword}@${STAGING_HOST}:${STAGING_PORT}/${STAGING_DATABASE}`;
+  const parsed = new URL(uri);
+  if (
+    parsed.protocol !== "postgresql:"
+    || parsed.username !== STAGING_USERNAME
+    || decodeURIComponent(parsed.password) !== password
+    || parsed.hostname !== STAGING_HOST
+    || parsed.port !== STAGING_PORT
+    || parsed.pathname !== `/${STAGING_DATABASE}`
+    || parsed.search !== ""
+    || parsed.hash !== ""
+  ) {
+    throw new Error("trusted_staging_uri_construction_failed");
+  }
+  return uri;
 }
 
 export function sanitizePlanOutput(output, secrets = []) {
@@ -126,22 +83,14 @@ async function readStandardInput() {
 async function main() {
   const command = process.argv[2];
   if (command === "preflight") {
-    const presence = stagingSecretPresence(
-      process.env.SUPABASE_STAGING_DB_URI_TEMPLATE,
-      process.env.SUPABASE_STAGING_DB_PASSWORD,
-    );
-    console.info(`uri_template_present=${presence.uriTemplatePresent}`);
-    console.info(`password_present=${presence.passwordPresent}`);
-    if (!presence.uriTemplatePresent || !presence.passwordPresent) {
-      throw new Error("missing_staging_environment_secret");
-    }
+    const preflight = trustedStagingPreflight(process.env.SUPABASE_STAGING_DB_PASSWORD);
+    for (const [key, value] of Object.entries(preflight)) console.info(`${key}=${value}`);
+    if (!preflight.passwordPresent) throw new Error("missing_password");
+    assertTrustedStagingTarget();
     return;
   }
   if (command === "assemble") {
-    process.stdout.write(assembleStagingDatabaseUri(
-      process.env.SUPABASE_STAGING_DB_URI_TEMPLATE ?? "",
-      process.env.SUPABASE_STAGING_DB_PASSWORD ?? "",
-    ));
+    process.stdout.write(assembleStagingDatabaseUri(process.env.SUPABASE_STAGING_DB_PASSWORD ?? ""));
     return;
   }
   if (command === "encode-password") {
@@ -151,7 +100,6 @@ async function main() {
   if (command === "sanitize") {
     const output = await readStandardInput();
     process.stdout.write(sanitizePlanOutput(output, [
-      process.env.SUPABASE_STAGING_DB_URI_TEMPLATE,
       process.env.SUPABASE_STAGING_DB_PASSWORD,
       process.env.SUPABASE_STAGING_DB_PASSWORD_ENCODED,
       process.env.SUPABASE_STAGING_DB_URI,
