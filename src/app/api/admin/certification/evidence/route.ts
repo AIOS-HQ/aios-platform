@@ -5,6 +5,7 @@ import { getRuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 import { createCertificationResult } from "@/lib/evidence/certification";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
 import { getOperationalRuntimeFoundation } from "@/lib/operational-runtime/certification";
+import { certifyOperationalRuntimes } from "@/lib/operational-runtime/probe";
 import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
 import { certifyAgentRuntimes } from "@/lib/runtime-identity/agent-certification";
 import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
@@ -40,12 +41,22 @@ export async function GET(request?: Request) {
     : null;
   const inferenceProbeRequested = probeMode === "1" || probeMode === "workforce";
   const workforceProbeRequested = probeMode === "workforce";
+  const operationalProbeRequested = probeMode === "operational";
   const runtimeIdentity = inferenceProbeRequested
     ? await probeRuntimeIdentity({ observedAt: now })
     : resolveRuntimeIdentity(process.env, now);
   const workforceRuntime = workforceProbeRequested
     ? await certifyAgentRuntimes({
         providerIdentity: runtimeIdentity,
+        observedAt: now,
+        deploymentEnvironment: deployment.environment,
+        deploymentSha: deployment.commitSha,
+      })
+    : null;
+  const operationalRuntime = operationalProbeRequested
+    ? await certifyOperationalRuntimes({
+        providerIdentity: runtimeIdentity,
+        userId: user.id,
         observedAt: now,
         deploymentEnvironment: deployment.environment,
         deploymentSha: deployment.commitSha,
@@ -60,12 +71,13 @@ export async function GET(request?: Request) {
     observedAt: now,
     details: {
       scope: "evidence_layer" as const,
-      schemaVersion: "1.4.0",
+      schemaVersion: "1.5.0",
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
       runtimeIdentity,
       inferenceProbeRequested,
       workforceProbeRequested,
+      operationalProbeRequested,
       workforceRuntimeSummary: workforceRuntime
         ? {
             agentCount: workforceRuntime.agentCount,
@@ -81,7 +93,20 @@ export async function GET(request?: Request) {
           }
         : null,
       agentRuntimeMappings,
-      operationalRuntimeFoundation: getOperationalRuntimeFoundation(now),
+      operationalRuntimeSummary: operationalRuntime
+        ? {
+            componentCount: operationalRuntime.componentCount,
+            healthy: operationalRuntime.healthy,
+            degraded: operationalRuntime.degraded,
+            blocked: operationalRuntime.blocked,
+            unavailable: operationalRuntime.unavailable,
+            unknown: operationalRuntime.unknown,
+            runtimeCondition: operationalRuntime.runtimeCondition,
+            outcomeId: operationalRuntime.outcomeId,
+          }
+        : null,
+      operationalRuntimeFoundation: operationalRuntime?.components
+        ?? getOperationalRuntimeFoundation(now),
       workforceRegistry: {
         version: AIOS_WORKFORCE_REGISTRY_VERSION,
         agentCount: AIOS_WORKFORCE.length,

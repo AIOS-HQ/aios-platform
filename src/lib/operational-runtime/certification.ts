@@ -10,6 +10,7 @@ import type {
   EvidenceType,
 } from "@/lib/evidence/model";
 import type { RuntimeIdentity } from "@/lib/runtime-identity/model";
+import type { RuntimeLatencyBucket } from "@/lib/runtime-identity/model";
 
 export const OPERATIONAL_RUNTIME_COMPONENTS = [
   "harmony_orchestration",
@@ -73,9 +74,25 @@ export interface OperationalRuntimeCertification
   status: EvidenceStatus;
   runtimeMode: OperationalRuntimeMode;
   capabilities: readonly string[];
+  capabilityEvidence: readonly OperationalCapabilityEvidence[];
+  runtimeIdentity: OperationalRuntimeIdentity;
+  latencyBucket: RuntimeLatencyBucket;
   runtimeConditionId: string | null;
   safeErrorCode: string | null;
   safeMessage: string;
+}
+
+export interface OperationalCapabilityEvidence {
+  capability: string;
+  status: EvidenceStatus;
+  evidenceType: EvidenceType;
+  safeMessage: string;
+}
+
+export interface OperationalRuntimeIdentity {
+  runtimeId: string;
+  runtimeMode: OperationalRuntimeMode;
+  sharedProviderRuntimeId: string | null;
 }
 
 export interface OperationalRuntimeContract {
@@ -215,10 +232,14 @@ export function createOperationalRuntimeCertification(input: {
   observedAt?: string | Date;
   liveProbeRequired: boolean;
   liveProbeAttempted: boolean;
+  capabilityEvidence?: readonly OperationalCapabilityEvidence[];
+  sharedProviderRuntimeId?: string | null;
+  latencyBucket?: RuntimeLatencyBucket;
   runtimeConditionId?: string | null;
   safeErrorCode?: string | null;
   safeMessage: string;
 }): OperationalRuntimeCertification {
+  const contract = OPERATIONAL_RUNTIME_CONTRACTS[input.component];
   if (
     input.status === "healthy" &&
     (!input.liveProbeAttempted ||
@@ -226,7 +247,16 @@ export function createOperationalRuntimeCertification(input: {
   ) {
     throw new Error("Operational runtime health requires a successful live probe.");
   }
-  const contract = OPERATIONAL_RUNTIME_CONTRACTS[input.component];
+  if (
+    input.status === "healthy" &&
+    (!input.capabilityEvidence ||
+      input.capabilityEvidence.length !== contract.capabilities.length ||
+      input.capabilityEvidence.some((item) =>
+        item.status !== "healthy" ||
+        !["authenticated_runtime_proof", "live_runtime_proof"].includes(item.evidenceType)))
+  ) {
+    throw new Error("Operational runtime health requires live proof for every capability.");
+  }
   const evidence = createCertificationEvidence({
     status: input.status,
     evidenceType: input.evidenceType,
@@ -244,6 +274,18 @@ export function createOperationalRuntimeCertification(input: {
     component: input.component,
     runtimeMode: contract.runtimeMode,
     capabilities: contract.capabilities,
+    capabilityEvidence: input.capabilityEvidence ?? contract.capabilities.map((capability) => ({
+      capability,
+      status: "unknown" as const,
+      evidenceType: "source_code_proof" as const,
+      safeMessage: "operational_capability_not_live_probed",
+    })),
+    runtimeIdentity: {
+      runtimeId: `aios.operational.${input.component}`,
+      runtimeMode: contract.runtimeMode,
+      sharedProviderRuntimeId: input.sharedProviderRuntimeId ?? null,
+    },
+    latencyBucket: input.latencyBucket ?? null,
     runtimeConditionId: input.runtimeConditionId ?? null,
     safeErrorCode: input.safeErrorCode ?? null,
     safeMessage: input.safeMessage,
