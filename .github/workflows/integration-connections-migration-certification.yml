@@ -1,0 +1,52 @@
+name: Integration Connections Migration Certification
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/ci/integration-connections-migration-certification.mjs"
+      - "tests/unit/integration-connections-migration.test.ts"
+      - ".github/workflows/integration-connections-migration-certification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-connections-migration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: Certify disposable PostgreSQL upgrade paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      MIGRATION_TEST_ALLOW_LOCAL_POSTGRES: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Certify clean history and supported upgrades
+        run: node scripts/ci/integration-connections-migration-certification.mjs
