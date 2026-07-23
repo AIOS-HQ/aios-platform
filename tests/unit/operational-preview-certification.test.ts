@@ -157,7 +157,13 @@ describe("operational Preview live certification", () => {
         ? { state: "open", head: { sha: HEAD_SHA, repo: { full_name: "AIOS-HQ/aios-platform" } } }
         : url.includes("/statuses")
           ? [{ state: "success", environment_url: PREVIEW_URL }]
-          : [{ id: 10, sha: HEAD_SHA, environment: "Preview", created_at: "2026-07-23T12:00:00Z" }];
+          : [{
+              id: 10,
+              sha: HEAD_SHA,
+              environment: "Preview",
+              created_at: "2026-07-23T12:00:00Z",
+              performed_via_github_app: { slug: "vercel" },
+            }];
       return { ok: true, json: async () => payload } as Response;
     };
     await expect(discoverPreviewDeployment({
@@ -166,6 +172,21 @@ describe("operational Preview live certification", () => {
       token: "test-github-token",
       fetchImpl,
     })).resolves.toEqual({ previewUrl: PREVIEW_URL, deploymentId: 10, deploymentSha: HEAD_SHA });
+  });
+
+  it("rejects deployment metadata without Vercel GitHub App provenance", async () => {
+    const fetchImpl = async (url: string) => {
+      const payload = url.includes("/pulls/")
+        ? { state: "open", head: { sha: HEAD_SHA, repo: { full_name: "AIOS-HQ/aios-platform" } } }
+        : [{ id: 10, sha: HEAD_SHA, environment: "Preview", created_at: "2026-07-23T12:00:00Z" }];
+      return { ok: true, json: async () => payload } as Response;
+    };
+    await expect(discoverPreviewDeployment({
+      prNumber: 448,
+      expectedHeadSha: HEAD_SHA,
+      token: "test-github-token",
+      fetchImpl,
+    })).rejects.toThrowError("matching_preview_deployment_not_ready");
   });
 
   it("fails closed when dedicated credentials are missing", () => {
@@ -276,6 +297,8 @@ describe("operational Preview live certification", () => {
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("github.ref == 'refs/heads/main'");
     expect(workflow).toContain("ref: refs/heads/main");
+    expect(workflow).not.toContain("ref: ${{ inputs.expected_head_sha }}");
+    expect(workflow).not.toContain("ref: ${{ github.event.pull_request.head.sha }}");
     expect(workflow).toContain("name: staging");
     expect(workflow).toContain("AIOS_PREVIEW_FOUNDER_EMAIL");
     expect(workflow).toContain("AIOS_PREVIEW_FOUNDER_PASSWORD");

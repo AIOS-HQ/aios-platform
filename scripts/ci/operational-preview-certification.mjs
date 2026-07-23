@@ -345,7 +345,14 @@ export async function discoverPreviewDeployment({
     fetchImpl,
   );
   const candidates = Array.isArray(deployments)
-    ? deployments.filter((item) => item.sha === expected && /preview/i.test(item.environment ?? ""))
+    ? deployments.filter((item) => {
+        const appSlug = item.performed_via_github_app?.slug;
+        const creatorLogin = item.creator?.login;
+        const vercelProvenance = appSlug === "vercel" || creatorLogin === "vercel[bot]";
+        return item.sha === expected
+          && /preview/i.test(item.environment ?? "")
+          && vercelProvenance;
+      })
     : [];
   candidates.sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)));
   for (const deployment of candidates) {
