@@ -19,6 +19,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+function jsonNoStore(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 /**
  * Founder-only, read-only Evidence Layer certification.
  *
@@ -39,6 +46,11 @@ export async function GET(request?: Request) {
   const probeMode = request
     ? new URL(request.url).searchParams.get("probe")
     : null;
+  const compactOperationalResponse = Boolean(
+    request &&
+    probeMode === "operational" &&
+    new URL(request.url).searchParams.get("format") === "compact",
+  );
   const inferenceProbeRequested = probeMode === "1" || probeMode === "workforce";
   const workforceProbeRequested = probeMode === "workforce";
   const operationalProbeRequested = probeMode === "operational";
@@ -63,6 +75,29 @@ export async function GET(request?: Request) {
       })
     : null;
   const agentRuntimeMappings = workforceRuntime?.mappings ?? getAgentRuntimeMappings(runtimeIdentity, now);
+  const operationalRuntimeSummary = operationalRuntime
+    ? {
+        componentCount: operationalRuntime.componentCount,
+        healthy: operationalRuntime.healthy,
+        degraded: operationalRuntime.degraded,
+        blocked: operationalRuntime.blocked,
+        unavailable: operationalRuntime.unavailable,
+        unknown: operationalRuntime.unknown,
+        runtimeCondition: operationalRuntime.runtimeCondition,
+        outcomeId: operationalRuntime.outcomeId,
+      }
+    : null;
+  const operationalRuntimeFoundation = operationalRuntime?.components
+    ?? getOperationalRuntimeFoundation(now);
+
+  if (compactOperationalResponse) {
+    return jsonNoStore({
+      ok: true,
+      deployment,
+      operationalRuntimeSummary,
+      operationalRuntimeFoundation,
+    });
+  }
   const certification = createCertificationResult({
     outcome: true,
     evidenceType: "authenticated_runtime_proof",
@@ -93,20 +128,8 @@ export async function GET(request?: Request) {
           }
         : null,
       agentRuntimeMappings,
-      operationalRuntimeSummary: operationalRuntime
-        ? {
-            componentCount: operationalRuntime.componentCount,
-            healthy: operationalRuntime.healthy,
-            degraded: operationalRuntime.degraded,
-            blocked: operationalRuntime.blocked,
-            unavailable: operationalRuntime.unavailable,
-            unknown: operationalRuntime.unknown,
-            runtimeCondition: operationalRuntime.runtimeCondition,
-            outcomeId: operationalRuntime.outcomeId,
-          }
-        : null,
-      operationalRuntimeFoundation: operationalRuntime?.components
-        ?? getOperationalRuntimeFoundation(now),
+      operationalRuntimeSummary,
+      operationalRuntimeFoundation,
       workforceRegistry: {
         version: AIOS_WORKFORCE_REGISTRY_VERSION,
         agentCount: AIOS_WORKFORCE.length,
