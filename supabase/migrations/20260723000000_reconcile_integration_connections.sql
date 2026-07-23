@@ -53,7 +53,7 @@ begin
     'external_account', 'external_account_id', 'access_token', 'refresh_token'
   ] loop
     if exists (
-      select 1 from information_schema.columns
+      select 1
       from information_schema.columns c
       where c.table_schema = 'public'
         and c.table_name = 'integration_connections'

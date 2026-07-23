@@ -40,6 +40,13 @@ describe("integration_connections migration reconciliation", () => {
     expect(reconcile).toContain("add column if not exists refresh_token text");
   });
 
+  it("uses one valid information-schema source in the type-safety query", () => {
+    expect(reconcile).toContain("from information_schema.columns c");
+    expect(reconcile).not.toMatch(
+      /select\s+1\s+from\s+information_schema\.columns\s+from\s+information_schema\.columns/i,
+    );
+  });
+
   it("restores owner-read and service-role-write connection security", () => {
     expect(reconcile).toContain('create policy "owner_select"');
     expect(reconcile).toContain("revoke all privileges on table public.integration_connections from anon, authenticated");
