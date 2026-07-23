@@ -8,8 +8,11 @@ import {
   STAGING_PORT,
   STAGING_PROJECT_REF,
   STAGING_USERNAME,
+  MAX_PLAN_ATTEMPTS,
   assembleStagingDatabaseUri,
+  classifyPlanAttemptFailure,
   encodeDatabasePassword,
+  runPlanWithTransientRetry,
   sanitizePlanOutput,
   trustedStagingPreflight,
 } from "../../scripts/ci/supabase-staging-plan.mjs";
@@ -126,6 +129,84 @@ describe("Supabase staging migration plan", () => {
     expect(sanitized).toContain("[REDACTED_DB_URI]");
   });
 
+  it("succeeds on the first plan attempt without sleeping", async () => {
+    const attempts: number[] = [];
+    const delays: number[] = [];
+    const result = await runPlanWithTransientRetry(
+      async (attempt) => {
+        attempts.push(attempt);
+        return { status: 0, output: "migration plan complete" };
+      },
+      { sleep: async (delay) => { delays.push(delay); } },
+    );
+    expect(result).toMatchObject({ status: 0, attemptCount: 1, classification: null });
+    expect(attempts).toEqual([1]);
+    expect(delays).toEqual([]);
+  });
+
+  it("retries transient DNS failure and then succeeds", async () => {
+    const attempts: number[] = [];
+    const delays: number[] = [];
+    const result = await runPlanWithTransientRetry(
+      async (attempt) => {
+        attempts.push(attempt);
+        return attempt === 1
+          ? { status: 1, output: "SQLSTATE XX000 getaddrinfo ENOTFOUND trusted-host" }
+          : { status: 0, output: "migration plan complete" };
+      },
+      { sleep: async (delay) => { delays.push(delay); } },
+    );
+    expect(result).toMatchObject({ status: 0, attemptCount: 2, classification: null });
+    expect(attempts).toEqual([1, 2]);
+    expect(delays).toEqual([2_000]);
+  });
+
+  it("fails closed after the bounded transient DNS attempt limit", async () => {
+    const attempts: number[] = [];
+    const delays: number[] = [];
+    const result = await runPlanWithTransientRetry(
+      async (attempt) => {
+        attempts.push(attempt);
+        return { status: 1, output: "getaddrinfo EAI_AGAIN trusted-host" };
+      },
+      { sleep: async (delay) => { delays.push(delay); } },
+    );
+    expect(MAX_PLAN_ATTEMPTS).toBe(3);
+    expect(result).toMatchObject({
+      status: 1,
+      attemptCount: 3,
+      classification: { retryable: true, safeCode: "transient_dns_failure" },
+    });
+    expect(attempts).toEqual([1, 2, 3]);
+    expect(delays).toEqual([2_000, 4_000]);
+  });
+
+  it.each([
+    ["password authentication failed", "authentication_failed"],
+    ["SQLSTATE 42P01 migration plan failed", "migration_plan_failed"],
+    ["x509 certificate validation failed", "tls_validation_failed"],
+    ["tenant or user not found", "project_identity_mismatch"],
+  ])("does not retry non-transient failure: %s", async (output, safeCode) => {
+    let calls = 0;
+    const result = await runPlanWithTransientRetry(async () => {
+      calls += 1;
+      return { status: 1, output };
+    }, { sleep: async () => { throw new Error("unexpected_sleep"); } });
+    expect(calls).toBe(1);
+    expect(result.classification).toEqual({ retryable: false, safeCode });
+  });
+
+  it("returns safe classifications without echoing credentials or database URIs", () => {
+    const sensitiveOutput = "getaddrinfo ENOTFOUND postgresql://user:secret@trusted-host:5432/postgres";
+    expect(classifyPlanAttemptFailure(sensitiveOutput)).toEqual({
+      retryable: true,
+      safeCode: "transient_dns_failure",
+    });
+    const sanitized = sanitizePlanOutput(sensitiveOutput, ["secret"]);
+    expect(sanitized).not.toContain("secret");
+    expect(sanitized).not.toContain("postgresql://");
+  });
+
   it("defines a dispatch-only, protected, target-pinned and dry-run-only workflow", async () => {
     const workflow = await readFile(".github/workflows/supabase-staging-migration-plan.yml", "utf8");
     expect(workflow).toMatch(/^name: Supabase Staging Migration Plan$/m);
@@ -146,6 +227,11 @@ describe("Supabase staging migration plan", () => {
     expect(workflow).toContain("--dry-run");
     expect(workflow).toContain("--include-all");
     expect(workflow.match(/ db push /g)).toHaveLength(2);
+    expect(workflow).toContain("max_attempts=3");
+    expect(workflow).toContain('node "$validator" classify-attempt');
+    expect(workflow).toContain('[[ "$classification_status" -eq 75 && "$attempt" -lt "$max_attempts" ]]');
+    expect(workflow).toContain("retry_delay=$((2 ** attempt))");
+    expect(workflow).toContain('printf \'staging_plan_failed code=%s attempts=%s\\n\'');
     expect(workflow).not.toMatch(/supabase(?:@[^ ]+)?\s+link|migration\s+up|db\s+(reset|seed)|--linked|az\s+containerapp|vercel\s+deploy|worker:social/i);
     expect(workflow).not.toContain("upload-artifact");
     expect(workflow).not.toContain('printf "%s" "$database_uri"');

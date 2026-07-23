@@ -159,24 +159,56 @@ jobs:
             password=""
             encoded_password=""
             database_uri=""
-            unset validator password encoded_password database_uri
+            attempt_output=""
+            failure_code=""
+            unset validator password encoded_password database_uri attempt_output failure_code
           }
           trap cleanup EXIT HUP INT TERM
 
-          set +e
-          npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
-            --db-url "$database_uri" \
-            --dry-run \
-            --include-all \
-            --workdir "$GITHUB_WORKSPACE/target" \
-            --agent no \
-            --output-format text 2>&1 |
-            SUPABASE_STAGING_DB_PASSWORD="$password" \
-            SUPABASE_STAGING_DB_PASSWORD_ENCODED="$encoded_password" \
-            SUPABASE_STAGING_DB_URI="$database_uri" \
-              node "$validator" sanitize
-          dry_run_status=${PIPESTATUS[0]}
-          set -e
+          max_attempts=3
+          attempt=1
+          dry_run_status=1
+          while (( attempt <= max_attempts )); do
+            set +e
+            attempt_output="$(
+              npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
+                --db-url "$database_uri" \
+                --dry-run \
+                --include-all \
+                --workdir "$GITHUB_WORKSPACE/target" \
+                --agent no \
+                --output-format text 2>&1
+            )"
+            dry_run_status=$?
+            set -e
+
+            printf '%s\n' "$attempt_output" |
+              SUPABASE_STAGING_DB_PASSWORD="$password" \
+              SUPABASE_STAGING_DB_PASSWORD_ENCODED="$encoded_password" \
+              SUPABASE_STAGING_DB_URI="$database_uri" \
+                node "$validator" sanitize
+            if [[ "$dry_run_status" -eq 0 ]]; then
+              attempt_output=""
+              break
+            fi
+
+            set +e
+            failure_code="$(printf '%s' "$attempt_output" | node "$validator" classify-attempt)"
+            classification_status=$?
+            set -e
+            attempt_output=""
+            if [[ "$classification_status" -eq 75 && "$attempt" -lt "$max_attempts" ]]; then
+              retry_delay=$((2 ** attempt))
+              printf 'Transient staging network failure (%s); retrying attempt %s of %s after %ss.\n' \
+                "$failure_code" "$((attempt + 1))" "$max_attempts" "$retry_delay" >&2
+              sleep "$retry_delay"
+              attempt=$((attempt + 1))
+              continue
+            fi
+
+            printf 'staging_plan_failed code=%s attempts=%s\n' "$failure_code" "$attempt" >&2
+            exit 1
+          done
           test "$dry_run_status" -eq 0
 
       - name: Record sanitized plan result
