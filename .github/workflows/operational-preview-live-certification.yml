@@ -1,0 +1,142 @@
+name: Operational Preview Live Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open AIOS pull request number whose active Preview will be certified
+        required: true
+        type: string
+      expected_head_sha:
+        description: Full 40-character expected PR head SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  deployments: read
+  pull-requests: read
+
+concurrency:
+  group: operational-preview-live-certification-pr-${{ inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    name: Certify authenticated operational Preview
+    if: github.ref == 'refs/heads/main' && github.repository == 'AIOS-HQ/aios-platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+
+    steps:
+      - name: Validate immutable target inputs
+        shell: bash
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Checkout trusted current-main controls
+        uses: actions/checkout@v4
+        with:
+          repository: AIOS-HQ/aios-platform
+          ref: refs/heads/main
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Pin trusted certification controls
+        id: controls
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          control_sha="$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)"
+          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          test "$control_sha" = "$current_main_sha"
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/operational-preview-certification.mjs"
+          test -f "$validator"
+          validator_sha256="$(sha256sum "$validator" | cut -d ' ' -f 1)"
+          {
+            printf 'control_sha=%s\n' "$control_sha"
+            printf 'validator_sha256=%s\n' "$validator_sha256"
+          } >>"$GITHUB_OUTPUT"
+          unset control_sha current_main_sha validator validator_sha256
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: control/package-lock.json
+
+      - name: Install trusted dependencies
+        working-directory: control
+        run: npm ci
+
+      - name: Install Chromium runtime
+        working-directory: control
+        run: npx playwright install --with-deps chromium
+
+      - name: Discover exact successful PR Preview
+        id: preview
+        working-directory: control
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum scripts/ci/operational-preview-certification.mjs | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          node scripts/ci/operational-preview-certification.mjs discover
+
+      - name: Fail closed unless dedicated Preview identity is provisioned
+        working-directory: control
+        env:
+          AIOS_PREVIEW_FOUNDER_EMAIL: ${{ secrets.AIOS_PREVIEW_FOUNDER_EMAIL }}
+          AIOS_PREVIEW_FOUNDER_PASSWORD: ${{ secrets.AIOS_PREVIEW_FOUNDER_PASSWORD }}
+        run: node scripts/ci/operational-preview-certification.mjs credentials-preflight
+
+      - name: Run real password-login certification
+        working-directory: control
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.preview_url }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          AIOS_PREVIEW_FOUNDER_EMAIL: ${{ secrets.AIOS_PREVIEW_FOUNDER_EMAIL }}
+          AIOS_PREVIEW_FOUNDER_PASSWORD: ${{ secrets.AIOS_PREVIEW_FOUNDER_PASSWORD }}
+          CERTIFICATION_ARTIFACT_PATH: artifacts/operational-runtime-live-certification.json
+        run: node scripts/ci/operational-preview-certification.mjs certify
+
+      - name: Upload safe certification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-runtime-live-certification-pr-${{ inputs.pr_number }}
+          path: control/artifacts/operational-runtime-live-certification.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish safe result summary
+        shell: bash
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+        run: |
+          set -Eeuo pipefail
+          {
+            printf '## Operational Preview Live Certification\n\n'
+            printf -- '- PR: `%s`\n' "$PR_NUMBER"
+            printf -- '- Head SHA: `%s`\n' "$EXPECTED_HEAD_SHA"
+            printf -- '- Result: `passed`\n'
+            printf -- '- Artifact: `operational-runtime-live-certification-pr-%s`\n' "$PR_NUMBER"
+          } >>"$GITHUB_STEP_SUMMARY"
