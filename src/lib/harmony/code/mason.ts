@@ -8,6 +8,11 @@ import {
   isFounderOnlyAgent,
   type AiosAgentKey,
 } from "@/lib/workforce/registry";
+import {
+  createMasonEngineeringFoundation,
+  type MasonEngineeringFoundationResult,
+  type RepositoryEvidenceRecord,
+} from "@/lib/harmony/code/mason-engineering";
 
 export const MASON_AGENT_KEY = "mason" satisfies AiosAgentKey;
 
@@ -64,6 +69,7 @@ export interface MasonExecutionPlan {
   owner: typeof MASON_AGENT_KEY;
   classification: MasonTaskClassification;
   safeBoundary: typeof MASON_SAFE_EXECUTION_BOUNDARY;
+  engineeringFoundation: MasonEngineeringFoundationResult;
   implementationPlan: string[];
   patchPlan: string[];
   recommendedFiles: string[];
@@ -106,6 +112,7 @@ export interface MasonNativeRuntimePlan {
   objective: string;
   repository: string | null;
   classification: MasonTaskClassification;
+  engineeringFoundation: MasonEngineeringFoundationResult;
   executionPlan: MasonExecutionPlan;
   steps: MasonRuntimeStep[];
   automaticSteps: MasonRuntimeStep[];
@@ -440,47 +447,18 @@ function stepStatusFor(capability: MasonCapability, input: string): MasonRuntime
   return isMasonRuntimeCapabilityAutonomous(capability) ? "ready" : "pending_approval";
 }
 
-function recommendedFilesFor(categories: MasonTaskCategory[]): string[] {
-  const files = new Set<string>();
-  if (categories.some((category) => ["website", "web_app"].includes(category))) {
-    files.add("src/app/**");
-    files.add("src/components/**");
-  }
-  if (categories.includes("api")) files.add("src/app/api/**");
-  if (categories.includes("database")) {
-    files.add("src/lib/supabase/**");
-    files.add("supabase/migrations/**");
-  }
-  if (categories.includes("integration")) files.add("src/lib/integrations/**");
-  if (categories.includes("testing")) files.add("tests/**");
-  if (categories.includes("documentation")) files.add("docs/**");
-  if (categories.some((category) => ["infrastructure", "deployment"].includes(category))) {
-    files.add("next.config.*");
-    files.add("vercel.json");
-    files.add(".github/workflows/**");
-  }
-  if (files.size === 0) {
-    files.add("src/**");
-    files.add("tests/**");
-  }
-  return [...files];
-}
-
 export function createMasonExecutionPlan(input: {
   title: string;
   detail?: string | null;
+  repository?: string | null;
+  repositoryEvidence?: readonly RepositoryEvidenceRecord[];
+  rootCauseEvidence?: string | null;
+  alternatives?: readonly string[];
+  architectureNotes?: readonly string[];
+  historicalPatternMatches?: number;
 }): MasonExecutionPlan {
   const objective = `${input.title}\n${input.detail ?? ""}`.trim();
   const classification = classifyMasonEngineeringTask(objective);
-  const recommendedFiles = recommendedFilesFor(classification.categories);
-  const implementationPlan = [
-    "Inspect the repository context, existing architecture, related tests, and active branch state.",
-    "Classify the engineering task and confirm Mason is the correct founder-only owner.",
-    "Prepare a scoped implementation plan that preserves existing architecture and approval gates.",
-    "Implement only on an isolated branch when code mutation is explicitly authorized.",
-    "Prepare a pull request with validation evidence, Vercel preview review, and Founder approval before merge.",
-  ];
-  const patchPlan = recommendedFiles.map((file) => `Review and patch ${file} only if needed for the scoped objective.`);
   const validationSteps = [
     "npm run typecheck",
     "npm test",
@@ -490,6 +468,30 @@ export function createMasonExecutionPlan(input: {
     "npm run build",
     "Verify the Vercel preview before Founder approval.",
   ];
+  const engineeringFoundation = createMasonEngineeringFoundation({
+    objective,
+    repository: input.repository,
+    evidenceSnapshot: input.repositoryEvidence,
+    rootCauseEvidence: input.rootCauseEvidence,
+    alternatives: input.alternatives,
+    architectureNotes: input.architectureNotes,
+    validationTargets: validationSteps,
+    historicalPatternMatches: input.historicalPatternMatches,
+  });
+  const groundedPlan = engineeringFoundation.groundedPlan;
+  const recommendedFiles = groundedPlan.filesExpectedToChange.length > 0
+    ? groundedPlan.filesExpectedToChange
+    : engineeringFoundation.contextPackage.relatedFiles;
+  const implementationPlan = [
+    `Current state: ${groundedPlan.currentState}`,
+    `Desired state: ${groundedPlan.desiredState}`,
+    `Root cause: ${groundedPlan.rootCause}`,
+    `Chosen solution: ${groundedPlan.chosenSolution}`,
+    `Rollback strategy: ${groundedPlan.rollbackStrategy}`,
+  ];
+  const patchPlan = recommendedFiles.length > 0
+    ? recommendedFiles.map((file) => `Review and patch ${file} only if required by grounded repository evidence.`)
+    : ["No file mutation is planned until affected files are verified."];
   const approvalCheckpoints = [
     "Founder scopes the repository and objective before Mason begins execution.",
     "Risky code, database, infrastructure, security, production, or secret-adjacent work requires explicit approval.",
@@ -500,6 +502,7 @@ export function createMasonExecutionPlan(input: {
     owner: MASON_AGENT_KEY,
     classification,
     safeBoundary: MASON_SAFE_EXECUTION_BOUNDARY,
+    engineeringFoundation,
     implementationPlan,
     patchPlan,
     recommendedFiles,
@@ -509,7 +512,9 @@ export function createMasonExecutionPlan(input: {
     prReadySummary: [
       `Mason plan for "${input.title}".`,
       classification.reason,
-      `Recommended files: ${recommendedFiles.join(", ")}.`,
+      `Grounded plan status: ${groundedPlan.status}.`,
+      `Evidence confidence: ${groundedPlan.engineeringConfidenceScore.score}/100.`,
+      `Recommended files: ${recommendedFiles.join(", ") || "UNKNOWN"}.`,
       "Execution remains branch -> PR -> Vercel preview -> Founder approval -> merge.",
     ].join(" "),
   };
@@ -519,12 +524,23 @@ export function createMasonNativeRuntimePlan(input: {
   objective: string;
   detail?: string | null;
   repository?: string | null;
+  repositoryEvidence?: readonly RepositoryEvidenceRecord[];
+  rootCauseEvidence?: string | null;
+  alternatives?: readonly string[];
+  architectureNotes?: readonly string[];
+  historicalPatternMatches?: number;
 }): MasonNativeRuntimePlan {
   const objective = `${input.objective}\n${input.detail ?? ""}`.trim();
   const classification = classifyMasonEngineeringTask(objective);
   const executionPlan = createMasonExecutionPlan({
     title: input.objective,
     detail: input.detail,
+    repository: input.repository,
+    repositoryEvidence: input.repositoryEvidence,
+    rootCauseEvidence: input.rootCauseEvidence,
+    alternatives: input.alternatives,
+    architectureNotes: input.architectureNotes,
+    historicalPatternMatches: input.historicalPatternMatches,
   });
   const capabilities = getMasonCapabilityRegistry();
   const capability = (id: string) => capabilities.find((candidate) => candidate.id === id)!;
@@ -626,6 +642,7 @@ export function createMasonNativeRuntimePlan(input: {
     objective: input.objective,
     repository: input.repository?.trim() || null,
     classification,
+    engineeringFoundation: executionPlan.engineeringFoundation,
     executionPlan,
     steps,
     automaticSteps: steps.filter((step) => step.status === "ready"),
