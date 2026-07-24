@@ -70,6 +70,35 @@ export interface AppendMasonLedgerEventInput {
   idempotencyKey: string;
 }
 
+const SAFE_METADATA_ALLOWLIST = new Set([
+  "state",
+  "correlationId",
+  "taskVersion",
+  "currentState",
+  "completedStates",
+  "validationAttempts",
+  "ciAttempts",
+  "ciPollAttempts",
+  "ciExpectedHeadSha",
+  "updatedAt",
+  "validationLifecycle",
+  "safeEvidenceRefs",
+  "failure",
+  "evidenceRef",
+  "repository",
+  "prNumber",
+  "branch",
+  "expectedHeadSha",
+  "observedHeadSha",
+  "requiredValidationIds",
+  "observedCheckClassifications",
+  "validationState",
+  "terminalStatus",
+  "evidenceTimestamp",
+  "executionId",
+  "failedWithoutRemediation",
+]);
+
 function sanitizeMetadata(metadata?: Record<string, unknown>): Record<string, unknown> {
   if (!metadata) return {};
   const redacted = JSON.parse(JSON.stringify(metadata)) as Record<string, unknown>;
@@ -87,7 +116,12 @@ function sanitizeMetadata(metadata?: Record<string, unknown>): Record<string, un
     }
   };
   walk(redacted);
-  return redacted;
+  const safe: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(redacted)) {
+    if (!SAFE_METADATA_ALLOWLIST.has(key)) continue;
+    safe[key] = value;
+  }
+  return safe;
 }
 
 export function createMasonExecutionId(input: {

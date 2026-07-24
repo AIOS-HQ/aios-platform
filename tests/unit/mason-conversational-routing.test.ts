@@ -7,6 +7,11 @@ const state = {
 
 const masonMock = vi.fn();
 const recordMock = vi.fn(async () => true);
+const healthMock = vi.fn(async () => ({
+  healthStatus: "operational",
+  healthReason: "github_vercel_deployment_status",
+  vercelEvidenceTier: "github_vercel_deployment_status",
+}));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
@@ -15,6 +20,7 @@ vi.mock("@/lib/auth/roles", () => ({ currentUserIsAdmin: vi.fn(async () => true)
 vi.mock("@/lib/julius/wiring", () => ({ resolvePrimaryCompanyId: vi.fn(async () => state.companyId) }));
 vi.mock("@/lib/workforce/registry", () => ({ getAiosAgent: vi.fn((agent: string) => ({ key: agent })) }));
 vi.mock("@/lib/workforce/mason-action", () => ({ handleMasonEngineeringMessage: (...args: unknown[]) => masonMock(...args) }));
+vi.mock("@/lib/harmony/code/mason-production-runtime", () => ({ masonRuntimeHealth: (...args: unknown[]) => healthMock(...args) }));
 vi.mock("@/lib/workforce/chat", () => ({
   recordAgentChatExchange: (...args: unknown[]) => recordMock(...args),
   sendAgentChat: vi.fn(async () => true),
@@ -51,8 +57,22 @@ describe("Mason conversational routing", () => {
     expect(masonMock).not.toHaveBeenCalled();
     expect(recordMock).toHaveBeenCalledTimes(1);
     expect(recordMock.mock.calls[0]?.[0]).toMatchObject({
-      assistantMessage: "Mason runtime operational.",
+      assistantMessage: "Mason runtime operational with current evidence.",
       refs: expect.objectContaining({ conversation_mode: "read_only" }),
+    });
+  });
+
+  it("surfaces degraded read-only health truthfully", async () => {
+    healthMock.mockResolvedValueOnce({
+      healthStatus: "degraded",
+      healthReason: "stale_sha",
+      vercelEvidenceTier: "github_vercel_deployment_status",
+    });
+    const result = await submit("Explain runtime health read-only. Do not execute anything.");
+    expect(result.status).toBe("success");
+    expect(recordMock.mock.calls.at(-1)?.[0]).toMatchObject({
+      assistantMessage: "Mason runtime degraded: stale_sha.",
+      refs: expect.objectContaining({ runtime_health_status: "degraded", evidence_tier: "github_vercel_deployment_status" }),
     });
   });
 

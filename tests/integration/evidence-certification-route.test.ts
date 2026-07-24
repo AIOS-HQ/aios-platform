@@ -29,8 +29,11 @@ describe("Founder Evidence Layer certification endpoint", () => {
     authState.user = null;
     authState.admin = false;
     process.env.VERCEL_GIT_COMMIT_SHA = "safe-commit-sha";
-    process.env.VERCEL_ENV = "production";
+    process.env.VERCEL_ENV = "preview";
     process.env.VERCEL_DEPLOYMENT_ID = "dpl_safe";
+    process.env.VERCEL_PROJECT_ID = "prj_safe";
+    process.env.VERCEL_URL = "codex---mason-validation-intelligence.aios.vercel.app";
+    process.env.VERCEL_GIT_COMMIT_REF = "codex/mason-validation-intelligence";
     process.env.AI_PROVIDER = "openai";
     process.env.AI_MODEL = "gpt-safe";
     process.env.OPENAI_API_KEY = "endpoint-test-secret";
@@ -76,7 +79,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
         schemaVersion: "1.4.0",
         deployment: {
           commitSha: "safe-commit-sha",
-          environment: "production",
+        environment: "preview",
           vercelDeploymentId: "dpl_safe",
         },
         workforceRegistry: { version: "2.1", agentCount: 10 },
@@ -95,6 +98,28 @@ describe("Founder Evidence Layer certification endpoint", () => {
       },
     });
     expect(body.certification.details.supportedEvidenceTypes).toHaveLength(6);
+    expect(body.certification.details.validationEvidence).toMatchObject({
+      schemaVersion: "2.0.0",
+      binding: {
+        status: "bound",
+        reason: "ok",
+        expected: {
+          projectId: "prj_safe",
+          host: "codex---mason-validation-intelligence.aios.vercel.app",
+          branch: "codex/mason-validation-intelligence",
+          sha: "safe-commit-sha",
+          environment: "preview",
+          provenance: "vercel_preview",
+        },
+        observed: {
+          projectId: "prj_safe",
+          host: "codex---mason-validation-intelligence.aios.vercel.app",
+          branch: "codex/mason-validation-intelligence",
+          sha: "safe-commit-sha",
+          environment: "preview",
+        },
+      },
+    });
     expect(body.certification.details.workforceRegistry.agentKeys).toContain("harmony");
     expect(body.certification.details.agentRuntimeMappings).toHaveLength(10);
     expect(body.certification.details.operationalRuntimeFoundation).toHaveLength(6);
@@ -282,7 +307,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
     expect(agentCertification).toHaveBeenCalledTimes(1);
     expect(agentCertification).toHaveBeenCalledWith(expect.objectContaining({
       providerIdentity: providerProof,
-      deploymentEnvironment: "production",
+      deploymentEnvironment: "preview",
       deploymentSha: "safe-commit-sha",
     }));
     expect(agentCertification.mock.calls[0][0]).not.toHaveProperty("prompt");

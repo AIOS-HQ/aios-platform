@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { getRuntimeDeploymentIdentity } from "@/lib/deployment/identity";
 import { createCertificationResult } from "@/lib/evidence/certification";
+import { buildStrictValidationEvidence, redactValidationEvidenceAllowlist } from "@/lib/evidence/validation-evidence";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
 import { getOperationalRuntimeFoundation } from "@/lib/operational-runtime/certification";
 import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
@@ -61,6 +62,13 @@ export async function GET(request?: Request) {
     details: {
       scope: "evidence_layer" as const,
       schemaVersion: "1.4.0",
+      validationEvidence: redactValidationEvidenceAllowlist(buildStrictValidationEvidence({
+        deployment,
+        expectedProjectId: process.env.AIOS_VALIDATION_VERCEL_PROJECT_ID ?? process.env.VERCEL_PROJECT_ID ?? null,
+        expectedHost: process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST ?? process.env.VERCEL_URL ?? null,
+        expectedBranch: process.env.AIOS_VALIDATION_GIT_BRANCH ?? process.env.VERCEL_GIT_COMMIT_REF ?? null,
+        expectedSha: process.env.AIOS_VALIDATION_GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+      })),
       supportedEvidenceTypes: EVIDENCE_TYPES,
       deployment,
       runtimeIdentity,
