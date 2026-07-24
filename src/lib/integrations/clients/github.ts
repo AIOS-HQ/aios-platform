@@ -113,7 +113,41 @@ export async function runGithubRead(
         },
       };
     }
-    case "review_build_result":
+    case "review_build_result": {
+      if (!repo) return { ok: false, error: "repo_required" };
+      const prNumber = typeof params.prNumber === "number" ? params.prNumber : Number(params.prNumber);
+      if (!Number.isFinite(prNumber) || prNumber <= 0) {
+        return { ok: false, error: "pr_number_required" };
+      }
+      const branch = typeof params.branch === "string" ? params.branch.trim() : "";
+      if (!branch) return { ok: false, error: "branch_required" };
+      const j = (await gh(userId, `/repos/${repoEnc}/actions/runs?per_page=5`)) as
+        | {
+            workflow_runs?: {
+              name?: string;
+              status?: string;
+              conclusion?: string;
+              head_sha?: string;
+              head_branch?: string;
+              pull_requests?: { number?: number }[];
+            }[];
+          }
+        | null;
+      if (!j || !Array.isArray(j.workflow_runs)) return { ok: false, error: "unavailable" };
+      return {
+        ok: true,
+        data: {
+          runs: j.workflow_runs
+            .filter((r) => r.head_branch === branch && Array.isArray(r.pull_requests) && r.pull_requests.some((p) => p.number === prNumber))
+            .map((r) => ({
+            name: r.name,
+            status: r.status,
+            conclusion: r.conclusion,
+            head_sha: r.head_sha,
+            })),
+        },
+      };
+    }
     case "monitor_deployment": {
       if (!repo) return { ok: false, error: "repo_required" };
       const j = (await gh(userId, `/repos/${repoEnc}/actions/runs?per_page=5`)) as

@@ -8,6 +8,7 @@ import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { recordAgentChatExchange, sendAgentChat } from "@/lib/workforce/chat";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { handleMasonEngineeringMessage } from "@/lib/workforce/mason-action";
+import { masonRuntimeHealth } from "@/lib/harmony/code/mason-production-runtime";
 import { masonFounderApproved } from "@/lib/workforce/mason-approval";
 import {
   createMasonChatCorrelationId,
@@ -144,13 +145,24 @@ export async function sendAgentChatAction(
           functionName: "sendAgentChatAction",
         });
 
+        const health = await masonRuntimeHealth(userId);
+        const assistantMessage =
+          health.healthStatus === "operational"
+            ? "Mason runtime operational with current evidence."
+            : `Mason runtime ${health.healthStatus}: ${health.healthReason}.`;
+
         const ok = await recordAgentChatExchange({
           userId,
           companyId,
           agent,
           userMessage: message,
-          assistantMessage: "Mason runtime operational.",
-          refs: { conversation_mode: "read_only", correlationId },
+          assistantMessage,
+          refs: {
+            conversation_mode: "read_only",
+            correlationId,
+            runtime_health_status: health.healthStatus,
+            evidence_tier: health.vercelEvidenceTier,
+          },
         });
         if (!ok) return { status: "error", message: t("errors.generic") };
 

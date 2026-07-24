@@ -3,6 +3,12 @@ import "server-only";
 export interface RuntimeDeploymentIdentity {
   commitSha: string | null;
   environment: string;
+  vercelProjectId: string | null;
+  vercelProjectProductionUrl: string | null;
+  vercelBranchUrl: string | null;
+  vercelGitCommitRef: string | null;
+  vercelUrl: string | null;
+  host: string | null;
   buildTimestamp: string | null;
   requestTimestamp: string;
   vercelDeploymentId: string | null;
@@ -21,6 +27,12 @@ export function getRuntimeDeploymentIdentity(now = new Date()): RuntimeDeploymen
       process.env.NEXT_PUBLIC_GIT_SHA ??
       null,
     environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
+    vercelProjectId: process.env.VERCEL_PROJECT_ID ?? null,
+    vercelProjectProductionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
+    vercelBranchUrl: process.env.VERCEL_BRANCH_URL ?? null,
+    vercelGitCommitRef: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+    vercelUrl: process.env.VERCEL_URL ?? null,
+    host: process.env.VERCEL_URL ?? process.env.VERCEL_BRANCH_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
     buildTimestamp:
       process.env.BUILD_TIMESTAMP ??
       process.env.NEXT_PUBLIC_BUILD_TIMESTAMP ??

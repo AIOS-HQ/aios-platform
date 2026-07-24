@@ -32,6 +32,13 @@ export interface MasonProductionRuntimeResult {
   validationMode: "external_ci";
 }
 
+export type MasonRuntimeHealthStatus =
+  | "operational"
+  | "degraded"
+  | "unavailable"
+  | "not_certified"
+  | "infrastructure_blocked";
+
 async function runRequiredConnector(
   userId: string,
   connectorId: string,
@@ -69,22 +76,51 @@ export async function masonRuntimeHealth(userId: string) {
       process.env.NEXT_PUBLIC_APP_URL ??
       null,
   });
+  const githubReady = github
+    ? connected.has("github") &&
+      isConnectorConfigured(github) &&
+      ["create_branch", "commit_file_to_branch", "open_pull_request", "create_issue"].every((capability) =>
+        githubCapabilities.has(capability),
+      )
+    : false;
+
+  const vercelReady =
+    Boolean(vercel) &&
+    vercelCapabilities.has("deployment_status") &&
+    vercelDeployment.status === "healthy";
+
+  const staleOrFallbackEvidence =
+    vercelDeployment.evidenceTier === "runtime_deployment_identity" ||
+    vercelDeployment.evidenceTier === "unavailable" ||
+    vercelDeployment.gitShaMatches === false;
+
+  let healthStatus: MasonRuntimeHealthStatus;
+  if (vercelDeployment.status === "unavailable") {
+    healthStatus = vercelDeployment.errorCode?.startsWith("vercel_api_")
+      ? "infrastructure_blocked"
+      : "unavailable";
+  } else if (!githubReady || !connected.has("github")) {
+    healthStatus = "unavailable";
+  } else if (
+    vercelDeployment.evidenceTier === "runtime_deployment_identity" ||
+    vercelDeployment.evidenceTier === "unavailable"
+  ) {
+    healthStatus = "not_certified";
+  } else if (staleOrFallbackEvidence || vercelDeployment.status !== "healthy") {
+    healthStatus = "degraded";
+  } else {
+    healthStatus = "operational";
+  }
+
   return {
-    github: github
-      ? connected.has("github") &&
-        isConnectorConfigured(github) &&
-        ["create_branch", "commit_file_to_branch", "open_pull_request", "create_issue"].every((capability) =>
-          githubCapabilities.has(capability),
-        )
-      : false,
-    vercel:
-      Boolean(vercel) &&
-      vercelCapabilities.has("deployment_status") &&
-      vercelDeployment.status === "healthy",
+    github: githubReady,
+    vercel: vercelReady,
     vercelStatus: vercelDeployment.status,
     vercelEvidenceTier: vercelDeployment.evidenceTier,
     vercelEvidenceSources: vercelDeployment.evidenceSources,
     vercelGitShaMatches: vercelDeployment.gitShaMatches,
+    healthStatus,
+    healthReason: vercelDeployment.safeMessage,
     harmony: true,
   };
 }

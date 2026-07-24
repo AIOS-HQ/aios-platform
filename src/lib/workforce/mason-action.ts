@@ -16,6 +16,14 @@ import type { MasonLiveFileChange } from "@/lib/harmony/code/mason-live-executio
 import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
 import { runGithubRead } from "@/lib/integrations/clients/github";
 import { retrieveMasonExecutionContext } from "@/lib/julius/mason-retrieval";
+import { getGithubCheckAliasesForRequirements } from "@/lib/harmony/code/mason-validation-policy";
+import {
+  boundedCiPoll,
+  classifyCiEvidenceBinding,
+  createCiWatchState,
+  normalizeCiObservedChecksFromGithubRuns,
+  type CiWatchSample,
+} from "@/lib/workforce/mason-ci-watch";
 import { recordMasonEngineeringLearning } from "@/lib/workforce/mason-learning";
 import {
   runMasonClosedLoopExecution,
@@ -30,22 +38,22 @@ function parseRepo(repo: string): { owner: string; name: string } | null {
   return owner && name ? { owner, name } : null;
 }
 
-function normalizeCiRuns(data: Record<string, unknown> | undefined): Array<{ status: string; conclusion: string | null; headSha: string | null }> {
-  const runs = Array.isArray((data as { runs?: unknown[] } | undefined)?.runs)
-    ? ((data as { runs?: Array<Record<string, unknown>> }).runs ?? [])
-    : [];
-  return runs.map((run) => ({
-    status: String(run.status ?? "unknown"),
-    conclusion: run.conclusion == null ? null : String(run.conclusion),
-    headSha: typeof run.head_sha === "string" ? run.head_sha : null,
-  }));
-}
-
-function classifyCiEvidence(runs: ReturnType<typeof normalizeCiRuns>): MasonCiResult {
-  if (runs.length === 0) return { status: "pending", requiredChecksPassed: false, detail: "missing_required_check_evidence", headSha: null };
-  if (runs.some((run) => run.status !== "completed")) return { status: "pending", requiredChecksPassed: false, detail: "required_checks_pending", headSha: runs[0]?.headSha ?? null };
-  if (runs.some((run) => run.conclusion !== "success")) return { status: "failed", requiredChecksPassed: false, detail: "required_check_failed", headSha: runs[0]?.headSha ?? null };
-  return { status: "passed", requiredChecksPassed: true, detail: "required_checks_passed", headSha: runs[0]?.headSha ?? null };
+function mapCiWatchToMasonCiResult(sample: CiWatchSample): MasonCiResult {
+  if (sample.status === "passed") {
+    return { status: "passed", requiredChecksPassed: true, detail: sample.detail, headSha: sample.headSha ?? null };
+  }
+  if (sample.status === "pending") {
+    return { status: "pending", requiredChecksPassed: false, detail: sample.detail, headSha: sample.headSha ?? null };
+  }
+  if (sample.status === "timeout") {
+    return { status: "failed", requiredChecksPassed: false, detail: "ci_poll_timeout", headSha: sample.headSha ?? null };
+  }
+  return {
+    status: "failed",
+    requiredChecksPassed: false,
+    detail: sample.detail ?? "required_checks_not_passed",
+    headSha: sample.headSha ?? null,
+  };
 }
 
 function isNextRequestScopeError(error: unknown): boolean {
@@ -218,13 +226,86 @@ export async function handleMasonEngineeringMessage(input: MasonEngineeringMessa
     createCommit: async () => { throw new Error("commit_must_come_from_production_runtime"); },
     pushBranch: async () => { throw new Error("push_must_come_from_production_runtime"); },
     createPullRequest: async () => { throw new Error("pull_request_must_come_from_production_runtime"); },
-    readCiStatus: async () => {
+    readCiStatus: async ({ attempt }) => {
       const repoRef = parseRepo(repository);
       if (!repoRef || !productionResult?.pullRequestNumber) {
         return { status: "pending", requiredChecksPassed: false, detail: "missing_pull_request_identity", headSha: null };
       }
-      const ci = await runGithubRead(input.userId, "review_build_result", { repo: `${repoRef.owner}/${repoRef.name}` });
-      return ci.ok ? classifyCiEvidence(normalizeCiRuns(ci.data)) : { status: "failed", requiredChecksPassed: false, detail: "ci_evidence_fetch_failed", headSha: null };
+
+      const currentProductionResult = productionResult;
+      const currentPrNumber = currentProductionResult.pullRequestNumber;
+      if (!currentPrNumber) {
+        return { status: "pending", requiredChecksPassed: false, detail: "missing_pull_request_identity", headSha: null };
+      }
+      const currentBranch = currentProductionResult.branch;
+      const expectedHeadSha = currentProductionResult.commitSha ?? null;
+      if (!currentBranch) {
+        return { status: "pending", requiredChecksPassed: false, detail: "missing_pull_request_identity", headSha: null };
+      }
+
+      const requiredChecks = getGithubCheckAliasesForRequirements(task.validationRequirements);
+      const binding = {
+        repository,
+        prNumber: currentPrNumber,
+        branch: currentBranch,
+        expectedHeadSha,
+        requiredValidationIds: task.validationRequirements,
+        requiredChecks,
+        requiredCheckAliases: requiredChecks,
+      };
+
+      const watchState = createCiWatchState({
+        expectedHeadSha,
+        pollAttempts: Math.max(0, attempt - 1),
+      });
+
+      const watched = await boundedCiPoll(
+        { maxPollAttempts: 1, pollDelayMs: 0, backoffFactor: 1, timeoutMs: 60_000, pendingExhaustionStrategy: "return_latest_pending" },
+        watchState,
+        async () => {
+          const ci = await runGithubRead(input.userId, "review_build_result", {
+            repo: `${repoRef.owner}/${repoRef.name}`,
+            prNumber: currentPrNumber,
+            branch: currentBranch,
+          });
+
+          if (!ci.ok) {
+            return {
+              status: "evidence_fetch_failed",
+              requiredChecksPassed: false,
+              detail: "ci_evidence_fetch_failed",
+              repository,
+              prNumber: currentPrNumber,
+              branch: currentBranch || null,
+              headSha: expectedHeadSha,
+              observedAt: new Date().toISOString(),
+            };
+          }
+
+          const observedChecks = normalizeCiObservedChecksFromGithubRuns(ci.data, {
+            repository,
+            prNumber: currentPrNumber,
+            branch: currentBranch,
+          });
+
+          return classifyCiEvidenceBinding(
+            {
+              status: "pending",
+              requiredChecksPassed: false,
+              repository,
+              prNumber: currentPrNumber,
+              branch: currentBranch || null,
+              headSha: expectedHeadSha,
+              observedAt: new Date().toISOString(),
+            },
+            binding,
+            observedChecks,
+          );
+        },
+        async () => undefined,
+      );
+
+      return mapCiWatchToMasonCiResult(watched.final);
     },
     decideRemediation: async () => ({ run: false, detail: "self_repair_not_implemented" }),
     runRemediation: async () => ({ ok: false, detail: "self_repair_not_implemented" }),
@@ -232,8 +313,22 @@ export async function handleMasonEngineeringMessage(input: MasonEngineeringMessa
     refreshPrHeadSha: async () => {
       const repoRef = parseRepo(repository);
       if (!repoRef) return null;
-      const checks = await runGithubRead(input.userId, "review_build_result", { repo: `${repoRef.owner}/${repoRef.name}` });
-      return checks.ok ? normalizeCiRuns(checks.data)[0]?.headSha ?? null : null;
+      const currentPrNumber = productionResult?.pullRequestNumber;
+      const currentBranch = productionResult?.branch;
+      if (!currentPrNumber) return null;
+      if (!currentBranch) return null;
+      const checks = await runGithubRead(input.userId, "review_build_result", {
+        repo: `${repoRef.owner}/${repoRef.name}`,
+        prNumber: currentPrNumber,
+        branch: currentBranch,
+      });
+      if (!checks.ok) return null;
+      const observedChecks = normalizeCiObservedChecksFromGithubRuns(checks.data, {
+        repository,
+        prNumber: currentPrNumber,
+        branch: currentBranch,
+      });
+      return observedChecks[0]?.headSha ?? null;
     },
     sleep: async () => undefined,
     evaluateMergeGate: async ({ ci, expectedHeadSha }) => {

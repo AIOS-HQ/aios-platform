@@ -29,8 +29,15 @@ describe("Founder Evidence Layer certification endpoint", () => {
     authState.user = null;
     authState.admin = false;
     process.env.VERCEL_GIT_COMMIT_SHA = "safe-commit-sha";
-    process.env.VERCEL_ENV = "production";
+    process.env.VERCEL_ENV = "preview";
     process.env.VERCEL_DEPLOYMENT_ID = "dpl_safe";
+    process.env.VERCEL_PROJECT_ID = "prj_safe";
+    process.env.VERCEL_URL = "codex---mason-validation-intelligence.aios.vercel.app";
+    process.env.VERCEL_GIT_COMMIT_REF = "codex/mason-validation-intelligence";
+    process.env.AIOS_VALIDATION_VERCEL_PROJECT_ID = "prj_safe";
+    process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST = "codex---mason-validation-intelligence.aios.vercel.app";
+    process.env.AIOS_VALIDATION_GIT_BRANCH = "codex/mason-validation-intelligence";
+    process.env.AIOS_VALIDATION_GIT_SHA = "safe-commit-sha";
     process.env.AI_PROVIDER = "openai";
     process.env.AI_MODEL = "gpt-safe";
     process.env.OPENAI_API_KEY = "endpoint-test-secret";
@@ -38,6 +45,33 @@ describe("Founder Evidence Layer certification endpoint", () => {
     delete process.env.AZURE_OPENAI_API_KEY;
     runtimeProbe.mockReset();
     agentCertification.mockReset();
+  });
+
+  it("fails closed when trusted expected identity is missing", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+    delete process.env.AIOS_VALIDATION_VERCEL_PROJECT_ID;
+    delete process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST;
+    delete process.env.AIOS_VALIDATION_GIT_BRANCH;
+    delete process.env.AIOS_VALIDATION_GIT_SHA;
+
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.certification.details.validationEvidence).toMatchObject({
+      binding: {
+        status: "unbound",
+        reason: "missing_expected_identity",
+        expected: {
+          projectId: null,
+          host: null,
+          branch: null,
+          sha: null,
+        },
+      },
+    });
   });
 
   it("rejects unauthenticated requests", async () => {
@@ -76,7 +110,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
         schemaVersion: "1.4.0",
         deployment: {
           commitSha: "safe-commit-sha",
-          environment: "production",
+        environment: "preview",
           vercelDeploymentId: "dpl_safe",
         },
         workforceRegistry: { version: "2.1", agentCount: 10 },
@@ -95,6 +129,28 @@ describe("Founder Evidence Layer certification endpoint", () => {
       },
     });
     expect(body.certification.details.supportedEvidenceTypes).toHaveLength(6);
+    expect(body.certification.details.validationEvidence).toMatchObject({
+      schemaVersion: "2.0.0",
+      binding: {
+        status: "bound",
+        reason: "ok",
+        expected: {
+          projectId: "prj_safe",
+          host: "codex---mason-validation-intelligence.aios.vercel.app",
+          branch: "codex/mason-validation-intelligence",
+          sha: "safe-commit-sha",
+          environment: "preview",
+          provenance: "vercel_preview",
+        },
+        observed: {
+          projectId: "prj_safe",
+          host: "codex---mason-validation-intelligence.aios.vercel.app",
+          branch: "codex/mason-validation-intelligence",
+          sha: "safe-commit-sha",
+          environment: "preview",
+        },
+      },
+    });
     expect(body.certification.details.workforceRegistry.agentKeys).toContain("harmony");
     expect(body.certification.details.agentRuntimeMappings).toHaveLength(10);
     expect(body.certification.details.operationalRuntimeFoundation).toHaveLength(6);
@@ -282,7 +338,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
     expect(agentCertification).toHaveBeenCalledTimes(1);
     expect(agentCertification).toHaveBeenCalledWith(expect.objectContaining({
       providerIdentity: providerProof,
-      deploymentEnvironment: "production",
+      deploymentEnvironment: "preview",
       deploymentSha: "safe-commit-sha",
     }));
     expect(agentCertification.mock.calls[0][0]).not.toHaveProperty("prompt");

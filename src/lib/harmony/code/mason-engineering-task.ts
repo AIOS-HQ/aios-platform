@@ -7,6 +7,11 @@ import {
   protectedPathApprovalRequired,
   type MasonProtectedResource,
 } from "@/lib/harmony/code/mason-protected-paths";
+import {
+  getGithubCheckAliasesForRequirements,
+  normalizeMasonValidationRequirements,
+  type MasonValidationRequirementId,
+} from "@/lib/harmony/code/mason-validation-policy";
 
 export type MasonEngineeringRisk = "low" | "medium" | "high" | "critical";
 export type MasonRequesterAuthorization = {
@@ -30,7 +35,8 @@ export interface MasonEngineeringTaskContract {
   riskClassification: MasonEngineeringRisk;
   protectedResources: MasonProtectedResource[];
   expectedDeliverables: string[];
-  validationRequirements: string[];
+  validationRequirements: MasonValidationRequirementId[];
+  requiredCheckAliases: string[];
   approvalRequirements: {
     required: boolean;
     level: "founder" | null;
@@ -47,14 +53,6 @@ export interface MasonEngineeringTaskContract {
     issueLabels: string[];
   };
 }
-
-const DEFAULT_VALIDATION = [
-  "npm run lint",
-  "npm run typecheck",
-  "npm test",
-  "npm run i18n:check",
-  "npm run build",
-] as const;
 
 function riskFor(input: {
   protectedResources: readonly MasonProtectedResource[];
@@ -125,7 +123,10 @@ export function createMasonEngineeringTaskContract(input: {
     riskClassification,
     protectedResources,
     expectedDeliverables: deliverablesFor({ requestedOutcome, branchName, fileChanges }),
-    validationRequirements: [...new Set(input.validationRequirements ?? DEFAULT_VALIDATION)],
+    validationRequirements: normalizeMasonValidationRequirements(input.validationRequirements),
+    requiredCheckAliases: getGithubCheckAliasesForRequirements(
+      normalizeMasonValidationRequirements(input.validationRequirements),
+    ),
     approvalRequirements: {
       required: requestedOutcome !== "plan_only" || protectedPathApprovalRequired(protectedResources),
       level: requestedOutcome !== "plan_only" || protectedResources.length > 0 ? ("founder" as const) : null,

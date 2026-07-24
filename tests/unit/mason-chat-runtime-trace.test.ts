@@ -10,6 +10,17 @@ const failureCalls: Array<{ phase: string; context: Record<string, unknown>; err
 
 const masonMock = vi.fn();
 const recordMock = vi.fn(async () => true);
+const healthMock = vi.fn(async () => ({
+  github: true,
+  vercel: true,
+  vercelStatus: "healthy",
+  vercelEvidenceTier: "github_vercel_deployment_status",
+  vercelEvidenceSources: ["github_vercel_status"],
+  vercelGitShaMatches: true,
+  healthStatus: "operational",
+  healthReason: "current_evidence",
+  harmony: true,
+}));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
@@ -20,6 +31,7 @@ vi.mock("@/lib/workforce/registry", () => ({ getAiosAgent: vi.fn((agent: string)
 vi.mock("@/lib/workforce/mason-approval", () => ({ masonFounderApproved: vi.fn(() => false) }));
 vi.mock("@/lib/limits", () => ({ LIMITS: { noteContent: 5000 }, exceedsLimits: vi.fn(() => false) }));
 vi.mock("@/lib/workforce/mason-action", () => ({ handleMasonEngineeringMessage: (...args: unknown[]) => masonMock(...args) }));
+vi.mock("@/lib/harmony/code/mason-production-runtime", () => ({ masonRuntimeHealth: (...args: unknown[]) => healthMock(...args) }));
 vi.mock("@/lib/workforce/chat", () => ({
   recordAgentChatExchange: (...args: unknown[]) => recordMock(...args),
   sendAgentChat: vi.fn(async () => true),

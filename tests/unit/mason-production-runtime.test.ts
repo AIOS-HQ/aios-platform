@@ -63,6 +63,8 @@ describe("Mason production runtime", () => {
       vercelEvidenceTier: "github_vercel_deployment_status",
       vercelEvidenceSources: ["github_vercel_status"],
       vercelGitShaMatches: true,
+      healthStatus: "operational",
+      healthReason: undefined,
       harmony: true,
     });
   });
@@ -80,6 +82,35 @@ describe("Mason production runtime", () => {
       vercel: false,
       vercelStatus: "unavailable",
       vercelEvidenceTier: "unavailable",
+      healthStatus: "unavailable",
+    });
+  });
+
+  it("reports not_certified when only runtime identity fallback exists", async () => {
+    vercelStatusMock.mockResolvedValueOnce({
+      status: "healthy",
+      evidenceTier: "runtime_deployment_identity",
+      evidenceSources: ["runtime_deployment_identity"],
+      gitShaMatches: true,
+      safeMessage: "runtime_identity_fallback",
+    });
+    await expect(masonRuntimeHealth("founder-1")).resolves.toMatchObject({
+      healthStatus: "not_certified",
+      vercelEvidenceTier: "runtime_deployment_identity",
+    });
+  });
+
+  it("reports degraded for stale sha mismatch", async () => {
+    vercelStatusMock.mockResolvedValueOnce({
+      status: "healthy",
+      evidenceTier: "github_vercel_deployment_status",
+      evidenceSources: ["github_vercel_status"],
+      gitShaMatches: false,
+      safeMessage: "stale_sha",
+    });
+    await expect(masonRuntimeHealth("founder-1")).resolves.toMatchObject({
+      healthStatus: "degraded",
+      vercelGitShaMatches: false,
     });
   });
 

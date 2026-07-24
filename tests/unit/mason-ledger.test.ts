@@ -66,7 +66,7 @@ describe("Mason ledger", () => {
     expect(id).toContain("mason/fix-bridge");
   });
 
-  it("persists event append and redacts sensitive metadata keys", async () => {
+  it("persists event append and keeps only allowlisted safe metadata", async () => {
     const insert = vi.fn(() => ({
       select: vi.fn(() => ({
         maybeSingle: vi.fn(async () => ({ data: fakeRow(), error: null })),
@@ -83,14 +83,14 @@ describe("Mason ledger", () => {
       resultStatus: "ok",
       summary: "start",
       idempotencyKey: "k1",
-      metadata: { accessToken: "secret", nested: { apiKey: "hidden", safe: "ok" } },
+      metadata: { token: "secret", nested: { apiKey: "hidden", safe: "ok" }, correlationId: "corr-1" },
     });
 
     expect(saved?.id).toBe("evt-1");
     const payload = insert.mock.calls[0]?.[0]?.metadata;
-    expect(payload.accessToken).toBe("[REDACTED]");
-    expect(payload.nested.apiKey).toBe("[REDACTED]");
-    expect(payload.nested.safe).toBe("ok");
+    expect(payload.token).toBeUndefined();
+    expect(payload.nested).toBeUndefined();
+    expect(payload.correlationId).toBe("corr-1");
   });
 
   it("is idempotent when idempotency key already exists", async () => {
@@ -168,5 +168,42 @@ describe("Mason ledger", () => {
     expect(timeline).toHaveLength(1);
     expect(latest?.id).toBe("evt-latest");
     expect(history).toHaveLength(2);
+  });
+
+  it("preserves safe validation metadata and strips sensitive keys", async () => {
+    const insert = vi.fn(() => ({
+      select: vi.fn(() => ({
+        maybeSingle: vi.fn(async () => ({ data: fakeRow(), error: null })),
+      })),
+    }));
+
+    mocks.fromMock.mockReturnValue({ insert });
+
+    await appendMasonLedgerEvent({
+      executionId: "exec-1",
+      userId: "user-1",
+      companyId: "company-1",
+      eventType: "validation_started",
+      resultStatus: "blocked",
+      summary: "validation_running",
+      idempotencyKey: "validation-safe-k1",
+      metadata: {
+        validationLifecycle: { state: "running", terminalState: null },
+        observedCheckClassifications: [{ name: "lint", status: "pending" }],
+        validationState: "running",
+        requiredValidationIds: ["lint"],
+        safeEvidenceRefs: ["wf-1", "check-1"],
+        token: "redact-me",
+        authorization: "redact-me",
+      },
+    });
+
+    const payload = insert.mock.calls[0]?.[0]?.metadata;
+    expect(payload.validationLifecycle).toBeDefined();
+    expect(payload.observedCheckClassifications).toBeDefined();
+    expect(payload.validationState).toBe("running");
+    expect(payload.safeEvidenceRefs).toEqual(["wf-1", "check-1"]);
+    expect(payload.token).toBeUndefined();
+    expect(payload.authorization).toBeUndefined();
   });
 });

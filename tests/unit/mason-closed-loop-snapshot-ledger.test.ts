@@ -146,6 +146,29 @@ describe("mason closed-loop durable snapshot + ledger", () => {
     expect(result.report.unresolvedGate).toBe(true);
   });
 
+  it("snapshot keeps requested distinct from passed", async () => {
+    const requestedSnapshot = {
+      companyId: input.companyId,
+      correlationId: input.correlationId,
+      executionId: input.executionId,
+      terminalState: "completed" as const,
+      currentState: "ci_pending" as const,
+      completedStates: ["objective_received", "context_retrieved", "planning", "plan_ready", "execution_started", "ci_pending"],
+      irreversible: { commitCreated: false, branchPushed: false, pullRequestCreated: false, merged: false },
+      unresolvedGate: true,
+      validationAttempts: 0,
+      ciAttempts: 0,
+      ciPollAttempts: 2,
+      ciExpectedHeadSha: "sha-pending",
+      updatedAt: new Date().toISOString(),
+    };
+    const state = { snapshots: [] as unknown as Record<string, unknown>[], snapshot: requestedSnapshot };
+    const { adapters } = makeAdapters(state);
+    const loaded = await adapters.loadSnapshot(input.executionId);
+    expect(loaded?.currentState).toBe("ci_pending");
+    expect(loaded?.terminalState).not.toBe("merged");
+  });
+
   it("persists failed terminal truth instead of collapsing completion snapshots", async () => {
     const state = { snapshots: [] as unknown as Record<string, unknown>[] };
     const { adapters } = makeAdapters(state);
