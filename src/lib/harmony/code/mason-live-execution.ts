@@ -7,6 +7,7 @@ import {
   type MasonRequesterRole,
   type MasonValidationCommand,
 } from "@/lib/harmony/code/mason-execution-bridge";
+import type { MasonNativeRuntimePlan } from "@/lib/harmony/code/mason";
 import {
   classifyMasonOperation,
   resolveMasonOperationApproval,
@@ -15,6 +16,8 @@ import {
   normalizeMasonRuntimeState,
   toMasonBridgeStatus,
 } from "@/lib/harmony/code/mason-runtime-state";
+import type { MasonEngineeringTaskContract, MasonRequestedOutcome } from "@/lib/harmony/code/mason-engineering-task";
+import type { MasonExecutionIdentity } from "@/lib/harmony/code/mason-execution-identity";
 
 export interface MasonLiveFileChange {
   path: string;
@@ -48,7 +51,11 @@ export interface MasonLiveExecutionPlanInput {
   objective: string;
   repository: string;
   founderApproved: boolean;
-  requesterRole?: MasonRequesterRole;
+  requesterRole: MasonRequesterRole;
+  requestedOutcome: MasonRequestedOutcome;
+  executionIdentity?: MasonExecutionIdentity;
+  runtimePlan?: MasonNativeRuntimePlan;
+  taskContract?: MasonEngineeringTaskContract;
   baseBranch?: string | null;
   branchName?: string | null;
   fileChanges?: MasonLiveFileChange[];
@@ -86,14 +93,14 @@ function cleanFileChanges(fileChanges?: MasonLiveFileChange[]): MasonLiveFileCha
 }
 
 function wantsDirectIssue(input: MasonLiveExecutionPlanInput, fileChanges: MasonLiveFileChange[]): boolean {
-  return fileChanges.length === 0 && /\b(issue|ticket|github issue)\b/i.test(input.objective);
+  return fileChanges.length === 0 && input.requestedOutcome === "create_issue";
 }
 
 function wantsBranchOnly(input: MasonLiveExecutionPlanInput, fileChanges: MasonLiveFileChange[]): boolean {
   return (
     input.openPullRequest === false &&
     fileChanges.length === 0 &&
-    /\b(create|new)\s+(a\s+)?branch\b/i.test(input.objective)
+    input.requestedOutcome === "create_branch"
   );
 }
 
@@ -104,11 +111,7 @@ function shouldOpenPullRequest(input: MasonLiveExecutionPlanInput): boolean {
 function inferIssueTitle(input: MasonLiveExecutionPlanInput): string {
   const explicit = input.issueTitle?.trim();
   if (explicit) return explicit;
-
-  const quoted = input.objective.match(/title:\s*["“]?([^"”\n]+)["”]?/i)?.[1]?.trim();
-  if (quoted) return quoted.slice(0, 160);
-
-  return input.objective.replace(/^harmony,?\s*/i, "").replace(/^ask mason to\s*/i, "").slice(0, 160);
+  return input.objective.slice(0, 160);
 }
 
 function inferIssueBody(input: MasonLiveExecutionPlanInput): string {
@@ -175,6 +178,7 @@ function outcomeSummary(input: {
 function reportingOperations(input: {
   bridge: MasonExecutionBridge;
   summary: string;
+  executionIdentity?: MasonExecutionIdentity;
 }): MasonLiveConnectorOperation[] {
   const params = {
     repository: input.bridge.scopedPlan.repository,
@@ -182,6 +186,8 @@ function reportingOperations(input: {
     objective: input.bridge.scopedPlan.objective,
     summary: input.summary,
     targets: input.bridge.reporting.targets,
+    executionId: input.executionIdentity?.executionId ?? null,
+    correlationId: input.executionIdentity?.correlationId ?? null,
   };
 
   return [
@@ -200,30 +206,6 @@ function reportingOperations(input: {
       approved: true,
       params,
       summary: "Record Mason execution activity.",
-    },
-    {
-      kind: "review_queue_update",
-      connectorId: "harmony",
-      capabilityId: "update_review_queue",
-      approved: true,
-      params,
-      summary: "Update Founder Review Queue with PR, preview, validation, and merge gate status.",
-    },
-    {
-      kind: "julius_memory_update",
-      connectorId: "harmony",
-      capabilityId: "update_julius_memory",
-      approved: true,
-      params,
-      summary: "Store Mason execution memory in Julius.",
-    },
-    {
-      kind: "company_skill_update",
-      connectorId: "harmony",
-      capabilityId: "update_company_skills",
-      approved: true,
-      params,
-      summary: "Update Company Skills with reusable engineering execution learning.",
     },
   ];
 }
@@ -259,11 +241,13 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   const bridge = createMasonExecutionBridge({
     objective: input.objective,
     repository: input.repository,
-    requesterRole: input.requesterRole ?? "founder",
+    requesterRole: input.requesterRole,
     founderApproved: input.founderApproved,
     baseBranch: input.baseBranch,
     branchName: input.branchName,
     changedFiles: fileChanges.map((change) => change.path),
+    runtimePlan: input.runtimePlan,
+    taskContract: input.taskContract,
   });
   const validationCommands = MASON_REQUIRED_VALIDATION_COMMANDS;
   const body = prBody({ bridge, fileChanges, validationCommands });
@@ -319,6 +303,25 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
   const issueBody = inferIssueBody(input);
   const openPr = shouldOpenPullRequest(input);
 
+  if (input.requestedOutcome === "plan_only") {
+    const summary = outcomeSummary({
+      bridge,
+      status,
+      vercelPreviewUrl: input.vercelPreviewUrl,
+    });
+    return {
+      bridge,
+      status,
+      operations: governMasonOperations(reportingOperations({ bridge, summary, executionIdentity: input.executionIdentity })),
+      validationCommands,
+      validationRequest: validationRequest(validationCommands),
+      prBody: body,
+      reportingTargets,
+      outcomeSummary: summary,
+      blockedReason: null,
+    };
+  }
+
   if (wantsDirectIssue(input, fileChanges)) {
     const summary = outcomeSummary({
       bridge,
@@ -340,7 +343,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
         },
         summary: `Create GitHub issue: ${issueTitle}.`,
       },
-      ...reportingOperations({ bridge, summary }),
+      ...reportingOperations({ bridge, summary, executionIdentity: input.executionIdentity }),
     ];
 
     return {
@@ -376,7 +379,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
         },
         summary: `Create branch ${bridge.scopedPlan.branchName} from ${bridge.scopedPlan.baseBranch}.`,
       },
-      ...reportingOperations({ bridge, summary }),
+      ...reportingOperations({ bridge, summary, executionIdentity: input.executionIdentity }),
     ];
 
     return {
@@ -435,6 +438,8 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
         repo: bridge.scopedPlan.repository,
         branch: bridge.scopedPlan.branchName,
         commands: validationCommands,
+        executionId: input.executionIdentity?.executionId ?? null,
+        correlationId: input.executionIdentity?.correlationId ?? null,
       },
       summary: validationRequest(validationCommands),
     },
@@ -471,7 +476,7 @@ export function createMasonLiveExecutionPlan(input: MasonLiveExecutionPlanInput)
     });
   }
 
-  operations.push(...reportingOperations({ bridge, summary }));
+  operations.push(...reportingOperations({ bridge, summary, executionIdentity: input.executionIdentity }));
 
   return {
     bridge,

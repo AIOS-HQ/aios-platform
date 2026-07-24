@@ -48,7 +48,10 @@ describe("mason-action closed-loop integration", () => {
   });
 
   it("real Mason entrypoint invokes coordinator with deterministic identity", async () => {
-    runLoopMock.mockResolvedValue({ terminalState: "completed", report: { terminalState: "completed" }, states: [] });
+    runLoopMock.mockImplementation(async (input, adapters) => {
+      await adapters.runExecution({ ...input, plan: { summary: "grounded" } });
+      return { terminalState: "completed", report: { terminalState: "completed" }, states: [] };
+    });
     const { handleMasonEngineeringMessage } = await import("@/lib/workforce/mason-action");
 
     await handleMasonEngineeringMessage({
@@ -56,6 +59,9 @@ describe("mason-action closed-loop integration", () => {
       companyId: "co-1",
       message: "Create branch mason/test and open PR",
       founderApproved: true,
+      requesterAuthorization: { role: "admin", verified: true, source: "server_session" },
+      requestedOutcome: "create_branch",
+      branchName: "mason/test",
       repository: "AIOS-HQ/aios-platform",
     });
 
@@ -85,12 +91,20 @@ describe("mason-action closed-loop integration", () => {
       order.push("context");
       await adapters.createPlan(base);
       order.push("plan");
-      expect(order).toEqual(["context", "plan"]);
+      await adapters.runExecution({ ...base, plan: { summary: "grounded" } });
+      order.push("runtime");
+      expect(order).toEqual(["context", "plan", "runtime"]);
       return { terminalState: "completed", report: { terminalState: "completed" }, states: [] };
     });
 
     const { handleMasonEngineeringMessage } = await import("@/lib/workforce/mason-action");
-    await handleMasonEngineeringMessage({ userId: "founder-1", companyId: "co-1", message: "run", founderApproved: true });
+    await handleMasonEngineeringMessage({
+      userId: "founder-1",
+      companyId: "co-1",
+      message: "run",
+      founderApproved: true,
+      requesterAuthorization: { role: "admin", verified: true, source: "server_session" },
+    });
     expect(runLoopMock).toHaveBeenCalledTimes(1);
   });
 });

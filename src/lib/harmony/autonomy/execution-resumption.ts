@@ -38,6 +38,7 @@ export interface ResumeDeps {
     repository: string;
     founderApproved: boolean;
     openPullRequest?: boolean;
+    taskContract?: Record<string, unknown> | null;
   }) => Promise<{
     status: string;
     summary: string;
@@ -67,8 +68,33 @@ function defaultDeps(): ResumeDeps {
         params,
         options,
       ),
-    runMason: async (input) =>
-      (await import("@/lib/harmony/code/mason-production-runtime")).runMasonProductionRuntime(input),
+    runMason: async (input) => {
+      const task = input.taskContract ?? {};
+      const runtimeRequest = asOptionalObject(task.runtimeRequest) ?? {};
+      const executionIdentity = asOptionalObject(task.executionIdentity) ?? {};
+      const requestedOutcome = typeof task.requestedOutcome === "string" ? task.requestedOutcome : input.openPullRequest ? "open_pull_request" : "plan_only";
+      const allowedOutcomes = new Set(["plan_only", "create_issue", "create_branch", "commit_changes", "open_pull_request"]);
+      const fileChanges = Array.isArray(runtimeRequest.fileChanges)
+        ? runtimeRequest.fileChanges.filter((item): item is { path: string; content: string; message?: string | null } => Boolean(item) && typeof item === "object" && typeof (item as Record<string, unknown>).path === "string" && typeof (item as Record<string, unknown>).content === "string")
+        : [];
+      return (await import("@/lib/workforce/mason-action")).handleMasonEngineeringMessage({
+        userId: input.userId,
+        companyId: input.companyId,
+        message: input.objective,
+        repository: input.repository,
+        founderApproved: true,
+        requesterAuthorization: { role: "founder", verified: true, source: "approved_payload" },
+        correlationId: typeof executionIdentity.correlationId === "string" ? executionIdentity.correlationId : null,
+        causationId: typeof executionIdentity.causationId === "string" ? executionIdentity.causationId : null,
+        requestedOutcome: (allowedOutcomes.has(requestedOutcome) ? requestedOutcome : "plan_only") as "plan_only" | "create_issue" | "create_branch" | "commit_changes" | "open_pull_request",
+        baseBranch: typeof runtimeRequest.baseBranch === "string" ? runtimeRequest.baseBranch : null,
+        branchName: typeof runtimeRequest.branchName === "string" ? runtimeRequest.branchName : null,
+        fileChanges,
+        issueTitle: typeof runtimeRequest.issueTitle === "string" ? runtimeRequest.issueTitle : null,
+        issueBody: typeof runtimeRequest.issueBody === "string" ? runtimeRequest.issueBody : null,
+        issueLabels: Array.isArray(runtimeRequest.issueLabels) ? runtimeRequest.issueLabels.filter((item): item is string => typeof item === "string") : [],
+      });
+    },
     runWorkItem: async (userId, workItemId) => {
       const { createClient } = await import("@/lib/supabase/server");
       const supabase = await createClient();
@@ -315,6 +341,7 @@ export async function resumeApprovedExecution(
         repository,
         founderApproved: true,
         openPullRequest: params.openPullRequest === true,
+        taskContract: asOptionalObject(params.taskContract),
       });
       const status: ExecutionResult["status"] =
         masonRes.status === "completed" ? "completed" : masonRes.status === "blocked" ? "blocked" : "failed";

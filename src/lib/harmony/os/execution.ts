@@ -497,6 +497,11 @@ export async function executeWorkItem(
       repository: matchRepo(text),
       message: text,
       founderApproved: opts?.force === true,
+      requesterAuthorization: {
+        role: opts?.force === true ? "admin" : "system",
+        verified: true,
+        source: opts?.force === true ? "approved_payload" : "trusted_runtime",
+      },
     });
 
     const masonNote = [

@@ -135,10 +135,20 @@ async function runApprovedLiveExecution(input: MasonEngineeringRuntimeInput): Pr
     };
   }
 
+  const founderVerified = await currentUserIsAdmin();
+  const requestedOutcome = input.openPullRequest
+    ? "open_pull_request"
+    : input.fileChanges?.length
+      ? "commit_changes"
+      : input.branchName
+        ? "create_branch"
+        : "plan_only";
   const livePlan = createMasonLiveExecutionPlan({
     objective: input.objective,
     repository: input.repository,
     founderApproved: Boolean(input.approvedForMutation),
+    requesterRole: founderVerified ? "founder" : "subscriber",
+    requestedOutcome,
     baseBranch: input.baseBranch,
     branchName: input.branchName,
     fileChanges: input.fileChanges,

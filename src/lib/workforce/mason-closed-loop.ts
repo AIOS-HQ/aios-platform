@@ -6,6 +6,8 @@ export type MasonClosedLoopState =
   | "planning"
   | "plan_ready"
   | "execution_started"
+  | "approval_pending"
+  | "validation_requested"
   | "validation_running"
   | "validation_failed"
   | "correction_planned"
@@ -25,7 +27,7 @@ export type MasonClosedLoopState =
   | "failed"
   | "completed";
 
-export type MasonTerminalState = "merged" | "escalated" | "failed" | "completed";
+export type MasonTerminalState = "merged" | "awaiting_founder_approval" | "escalated" | "failed" | "completed";
 
 export type MasonClosedLoopStepRecord = {
   state: MasonClosedLoopState;
@@ -172,15 +174,17 @@ const LEGAL_TRANSITIONS: Record<MasonClosedLoopState, readonly MasonClosedLoopSt
   context_retrieved: ["planning", "failed"],
   planning: ["plan_ready", "failed"],
   plan_ready: ["execution_started", "failed"],
-  execution_started: ["validation_running", "failed"],
+  execution_started: ["approval_pending", "validation_requested", "validation_running", "failed"],
+  approval_pending: ["completed"],
+  validation_requested: ["commit_created", "branch_pushed", "pull_request_created", "ci_pending", "completed", "failed"],
   validation_running: ["validation_passed", "validation_failed", "failed"],
   validation_failed: ["correction_planned", "escalated", "failed"],
   correction_planned: ["correction_running", "escalated", "failed"],
   correction_running: ["validation_running", "escalated", "failed"],
   validation_passed: ["commit_created", "failed"],
-  commit_created: ["branch_pushed", "failed"],
-  branch_pushed: ["pull_request_created", "failed"],
-  pull_request_created: ["ci_pending", "failed"],
+  commit_created: ["branch_pushed", "pull_request_created", "ci_pending", "completed", "failed"],
+  branch_pushed: ["pull_request_created", "ci_pending", "completed", "failed"],
+  pull_request_created: ["ci_pending", "completed", "failed"],
   ci_pending: ["ci_failed", "ci_passed", "merge_blocked", "failed"],
   ci_failed: ["remediation_running", "escalated", "failed"],
   remediation_running: ["ci_pending", "escalated", "failed"],
@@ -211,7 +215,7 @@ export async function runMasonClosedLoopExecution(
 ): Promise<MasonClosedLoopResult> {
   const startedAt = nowIso();
   const existing = await adapters.loadSnapshot(input.executionId);
-  if (existing && ["merged", "completed", "failed", "escalated"].includes(existing.terminalState)) {
+  if (existing && ["merged", "awaiting_founder_approval", "completed", "failed", "escalated"].includes(existing.terminalState)) {
     const terminalState = existing.terminalState;
     const states = existing.completedStates.map((state) => ({ state, at: nowIso() }));
     const report = await adapters.buildFinalReport({
@@ -273,7 +277,17 @@ export async function runMasonClosedLoopExecution(
         companyId: input.companyId,
         correlationId: input.correlationId,
         executionId: input.executionId,
-        terminalState: (to === "completed" ? (merged ? "merged" : current === "escalated" ? "escalated" : current === "failed" ? "failed" : "completed") : (existing?.terminalState ?? "completed")) as MasonTerminalState,
+        terminalState: (to === "completed"
+          ? merged
+            ? "merged"
+            : done.has("escalated")
+              ? "escalated"
+              : done.has("approval_pending")
+                ? "awaiting_founder_approval"
+              : done.has("failed")
+                ? "failed"
+                : "completed"
+          : (existing?.terminalState ?? "completed")) as MasonTerminalState,
         currentState: to,
         completedStates: Array.from(done),
         irreversible: {
@@ -293,15 +307,82 @@ export async function runMasonClosedLoopExecution(
   };
 
   states.push({ state: "objective_received", at: nowIso() });
+  if (!done.has("objective_received")) {
+    done.add("objective_received");
+    await adapters.appendLedger({ ...input, state: "objective_received" });
+  }
 
   await transition("context_retrieved", (await adapters.retrieveContext(input)).status);
   await transition("planning");
   const plan = await adapters.createPlan(input);
   await transition("plan_ready", plan.summary);
   await transition("execution_started");
-  await adapters.runExecution({ ...input, plan });
+  const runtimeExecution = await adapters.runExecution({ ...input, plan });
+  const productionExecution = "status" in runtimeExecution ? runtimeExecution : null;
 
-  let validated = false;
+  if (productionExecution?.status === "blocked") {
+    await transition("approval_pending", productionExecution.summary);
+    await transition("completed");
+    const report = await adapters.buildFinalReport({
+      ...input,
+      terminalState: "awaiting_founder_approval",
+      states,
+      validationAttempts,
+      ciAttempts,
+      ciPassed,
+      merged,
+      unresolvedGate: true,
+    });
+    await adapters.writeJulius({ ...input, terminalState: "awaiting_founder_approval", report });
+    return { executionId: input.executionId, correlationId: input.correlationId, terminalState: "awaiting_founder_approval", states, report };
+  }
+
+  if (productionExecution?.status === "failed") {
+    await transition("failed", productionExecution.summary);
+    await transition("completed");
+    const report = await adapters.buildFinalReport({
+      ...input,
+      terminalState: "failed",
+      states,
+      validationAttempts,
+      ciAttempts,
+      ciPassed,
+      merged,
+      unresolvedGate: true,
+    });
+    await adapters.writeJulius({ ...input, terminalState: "failed", report });
+    return { executionId: input.executionId, correlationId: input.correlationId, terminalState: "failed", states, report };
+  }
+
+  if (productionExecution?.validationMode === "external_ci") {
+    await transition("validation_requested", "validation_deferred_to_exact_head_ci");
+    expectedHeadSha = productionExecution.commitSha;
+    if (productionExecution.commitSha) {
+      await transition("commit_created", productionExecution.commitSha);
+    }
+    if (productionExecution.branch) {
+      await transition("branch_pushed", productionExecution.branch);
+    }
+    if (productionExecution.pullRequestNumber) {
+      await transition("pull_request_created", String(productionExecution.pullRequestNumber));
+    } else {
+      await transition("completed", "runtime_completed_without_pull_request");
+      const report = await adapters.buildFinalReport({
+        ...input,
+        terminalState: "completed",
+        states,
+        validationAttempts,
+        ciAttempts,
+        ciPassed: false,
+        merged: false,
+        unresolvedGate: false,
+      });
+      await adapters.writeJulius({ ...input, terminalState: "completed", report });
+      return { executionId: input.executionId, correlationId: input.correlationId, terminalState: "completed", states, report };
+    }
+  }
+
+  let validated = productionExecution?.validationMode === "external_ci";
   while (!validated) {
     await transition("validation_running");
     const validation = await adapters.runValidation(input);
@@ -339,17 +420,17 @@ export async function runMasonClosedLoopExecution(
     await adapters.runCorrection({ ...input, attempt: validationAttempts });
   }
 
-  if (!done.has("commit_created")) {
+  if (!productionExecution && !done.has("commit_created")) {
     const commit = await adapters.createCommit(input);
     await transition("commit_created", commit.commitSha);
   }
 
-  if (!done.has("branch_pushed")) {
+  if (!productionExecution && !done.has("branch_pushed")) {
     const pushed = await adapters.pushBranch(input);
     await transition("branch_pushed", pushed.branch);
   }
 
-  if (!done.has("pull_request_created")) {
+  if (!productionExecution && !done.has("pull_request_created")) {
     const pr = await adapters.createPullRequest(input);
     await transition("pull_request_created", String(pr.prNumber));
   }

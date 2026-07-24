@@ -218,6 +218,13 @@ async function dispatchToWorkerRuntime(message: AgentMessage, event: EventDelive
         userId: message.user_id,
         companyId: message.company_id,
         message: `${message.subject}\n\n${message.body ?? ""}`.trim(),
+        requesterAuthorization: {
+          role: "system",
+          verified: true,
+          source: "trusted_runtime",
+        },
+        correlationId: event.correlationId,
+        causationId: event.causationId ?? event.eventId,
       });
       if (result.status === "completed") {
         return {

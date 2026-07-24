@@ -90,6 +90,8 @@ describe("Mason ↔ Unified Autonomy Policy Engine bridge", () => {
       objective: "Fix the AIOS GitHub integration bug and open a PR",
       repository: "AIOS-HQ/aios-platform",
       founderApproved: true,
+      requesterRole: "founder",
+      requestedOutcome: "open_pull_request",
       openPullRequest: true,
       branchName: "mason/fix-github-integration",
       fileChanges: [{ path: "src/lib/example.ts", content: "export const example = true;\n" }],

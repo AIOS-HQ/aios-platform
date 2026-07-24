@@ -275,9 +275,9 @@ describe("Mason V2 engineering foundation", () => {
 
     const actionSource = await readFile("src/lib/workforce/mason-action.ts", "utf8");
     expect(actionSource).not.toContain("Plan for:");
-    expect(actionSource).toContain("createMasonEngineeringFoundation");
-    expect(actionSource.indexOf("createMasonEngineeringFoundation")).toBeLessThan(
-      actionSource.indexOf("runMasonProductionRuntime({"),
+    expect(actionSource).toContain("createMasonNativeRuntimePlan");
+    expect(actionSource.indexOf("createMasonNativeRuntimePlan")).toBeLessThan(
+      actionSource.indexOf("runMasonProductionRuntime(runtimeInput)"),
     );
   });
 });

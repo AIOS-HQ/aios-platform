@@ -101,6 +101,15 @@ vi.mock("@/lib/julius/writeback", () => ({
     entryId: "entry-1",
   })),
 }));
+vi.mock("@/lib/workforce/mason-learning", () => ({
+  recordMasonEngineeringLearning: vi.fn(async () => ({ julius: { status: "written" }, companySkill: null })),
+}));
+vi.mock("@/lib/workforce/mason-closed-loop", () => ({
+  runMasonClosedLoopExecution: vi.fn(async (input, adapters) => {
+    await adapters.runExecution({ ...input, plan: { summary: "grounded" } });
+    return { terminalState: "completed", states: [], report: { terminalState: "completed" } };
+  }),
+}));
 
 describe("Mason action Julius retrieval integration", () => {
   beforeEach(() => {
@@ -117,11 +126,11 @@ describe("Mason action Julius retrieval integration", () => {
       companyId: "company-1",
       message: "Implement API hardening",
       founderApproved: true,
+      requesterAuthorization: { role: "admin", verified: true, source: "server_session" },
     });
 
     expect(state.runtimeCalls).toHaveLength(1);
     expect(result.summary).toContain("Julius retrieval: found");
-    await result.juliusWriteback;
   });
 
   it("continues on degraded retrieval (no fabricated context)", async () => {
@@ -133,11 +142,11 @@ describe("Mason action Julius retrieval integration", () => {
       companyId: "company-1",
       message: "Implement API hardening",
       founderApproved: true,
+      requesterAuthorization: { role: "admin", verified: true, source: "server_session" },
     });
 
     expect(state.runtimeCalls).toHaveLength(1);
     expect(result.summary).toContain("Julius retrieval: degraded");
-    await result.juliusWriteback;
   });
 
   it("blocks before runtime on failed retrieval", async () => {
@@ -150,6 +159,7 @@ describe("Mason action Julius retrieval integration", () => {
       companyId: "company-1",
       message: "Implement API hardening",
       founderApproved: true,
+      requesterAuthorization: { role: "admin", verified: true, source: "server_session" },
     });
 
     expect(state.runtimeCalls).toHaveLength(0);

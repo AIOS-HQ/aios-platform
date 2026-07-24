@@ -17,9 +17,9 @@ import {
 } from "@/lib/harmony/code/mason-rollback";
 import {
   appendMasonLedgerEvent,
-  createMasonExecutionId,
   type AppendMasonLedgerEventInput,
 } from "@/lib/harmony/code/mason-ledger";
+import type { MasonExecutionIdentity } from "@/lib/harmony/code/mason-execution-identity";
 
 export type MasonRuntimeExecutionStatus = "completed" | "blocked" | "failed";
 export type MasonRuntimeOperationStatus = "completed" | "blocked" | "failed" | "skipped";
@@ -45,7 +45,7 @@ export interface MasonVercelRuntimeAdapter {
 }
 
 export interface MasonHarmonyRuntimeAdapter {
-  requestValidation(input: { repository: string; branch: string; commands: string[] }): Promise<Record<string, unknown>>;
+  requestValidation(input: { repository: string; branch: string; commands: string[]; executionId?: string | null; correlationId?: string | null }): Promise<Record<string, unknown>>;
   reportOutcome(input: Record<string, unknown>): Promise<Record<string, unknown>>;
   recordActivity(input: Record<string, unknown>): Promise<Record<string, unknown>>;
   updateReviewQueue(input: Record<string, unknown>): Promise<Record<string, unknown>>;
@@ -65,6 +65,9 @@ export interface MasonRuntimeExecutionResult {
   results: MasonRuntimeOperationResult[];
   pullRequestUrl: string | null;
   previewUrl: string | null;
+  branch: string | null;
+  commitSha: string | null;
+  pullRequestNumber: number | null;
   summary: string;
   rollback?: MasonRollbackResult;
 }
@@ -192,7 +195,7 @@ async function executeOperation(operation: MasonLiveConnectorOperation, adapters
         output = await adapters.github.createIssue({ repository: requireString(params, "repo"), title: requireString(params, "title"), body: optionalString(params, "body"), labels: optionalStringArray(params, "labels") });
         break;
       case "validation_request":
-        output = await adapters.harmony.requestValidation({ repository: requireString(params, "repo"), branch: requireString(params, "branch"), commands: requireStringArray(params, "commands") });
+        output = await adapters.harmony.requestValidation({ repository: requireString(params, "repo"), branch: requireString(params, "branch"), commands: requireStringArray(params, "commands"), executionId: optionalString(params, "executionId"), correlationId: optionalString(params, "correlationId") });
         break;
       case "vercel_check_preview":
         output = await adapters.vercel.inspectPreview({ repository: requireString(params, "repo"), branch: requireString(params, "branch"), objective: requireString(params, "objective"), previewUrl: optionalString(params, "previewUrl") });
@@ -235,34 +238,31 @@ async function executeOperation(operation: MasonLiveConnectorOperation, adapters
 export async function executeMasonRuntimePlan(
   input: MasonLiveExecutionPlanInput,
   adapters: MasonRuntimeExecutorAdapters,
-  options?: { ledgerWriter?: MasonLedgerWriter },
+  options: { ledgerWriter?: MasonLedgerWriter; executionIdentity: MasonExecutionIdentity; recordLifecycle?: boolean },
 ): Promise<MasonRuntimeExecutionResult> {
   const ledgerWriter = options?.ledgerWriter ?? defaultMasonLedgerWriter;
-  const plan = createMasonLiveExecutionPlan(input);
-  const executionId = createMasonExecutionId({
-    userId: "unknown-user",
-    companyId: "unknown-company",
-    repository: input.repository,
-    objective: input.objective,
-    branch: plan.bridge.scopedPlan.branchName,
-  });
+  const identity = options.executionIdentity;
+  const plan = createMasonLiveExecutionPlan({ ...input, executionIdentity: input.executionIdentity ?? identity });
+  const executionId = identity.executionId;
 
-  await ledgerWriter({
-    executionId,
-    userId: "unknown-user",
-    companyId: "unknown-company",
-    eventType: "execution_started",
-    runtimeState: "executing",
-    operationType: "runtime_plan_execution",
-    resultStatus: "ok",
-    summary: "Mason execution started.",
-    metadata: {
-      repository: input.repository,
-      branch: plan.bridge.scopedPlan.branchName,
-      objective: input.objective,
-    },
-    idempotencyKey: `${executionId}:execution_started`,
-  });
+  if (options.recordLifecycle !== false) {
+    await ledgerWriter({
+      executionId,
+      userId: identity.userId,
+      companyId: identity.companyId,
+      eventType: "execution_started",
+      runtimeState: "executing",
+      operationType: "runtime_plan_execution",
+      resultStatus: "ok",
+      summary: "Mason execution started.",
+      metadata: {
+        repository: input.repository,
+        branch: plan.bridge.scopedPlan.branchName,
+        objective: input.objective,
+      },
+      idempotencyKey: `${executionId}:execution_started`,
+    });
+  }
   let runtimeState: MasonRuntimeState =
     plan.status === "ready"
       ? "ready"
@@ -271,7 +271,7 @@ export async function executeMasonRuntimePlan(
         : "blocked";
 
   if (plan.status !== "ready") {
-    return { plan, status: "blocked", results: [], pullRequestUrl: null, previewUrl: null, summary: plan.blockedReason ?? "Mason runtime execution is blocked." };
+    return { plan, status: "blocked", results: [], pullRequestUrl: null, previewUrl: null, branch: null, commitSha: null, pullRequestNumber: null, summary: plan.blockedReason ?? "Mason runtime execution is blocked." };
   }
 
   const startTransition = transitionMasonRuntimeState(runtimeState, "executing");
@@ -282,6 +282,9 @@ export async function executeMasonRuntimePlan(
       results: [],
       pullRequestUrl: null,
       previewUrl: null,
+      branch: null,
+      commitSha: null,
+      pullRequestNumber: null,
       summary: startTransition.reason,
     };
   }
@@ -291,8 +294,8 @@ export async function executeMasonRuntimePlan(
   for (const operation of plan.operations) {
     await ledgerWriter({
       executionId,
-      userId: "unknown-user",
-      companyId: "unknown-company",
+      userId: identity.userId,
+      companyId: identity.companyId,
       eventType: "connector_operation_started",
       runtimeState,
       operationType: operation.kind,
@@ -312,8 +315,8 @@ export async function executeMasonRuntimePlan(
 
     await ledgerWriter({
       executionId,
-      userId: "unknown-user",
-      companyId: "unknown-company",
+      userId: identity.userId,
+      companyId: identity.companyId,
       eventType:
         result.status === "completed"
           ? "connector_operation_completed"
@@ -340,6 +343,7 @@ export async function executeMasonRuntimePlan(
   }
 
   const pullRequestUrl = outputUrl(results.find((result) => result.operation.kind === "github_open_pull_request")?.output, ["url", "htmlUrl", "pullRequestUrl"]);
+  const pullRequestOutput = results.find((result) => result.operation.kind === "github_open_pull_request")?.output;
   const previewUrl = outputUrl(results.find((result) => result.operation.kind === "vercel_check_preview")?.output, ["url", "previewUrl", "deploymentUrl"]);
   const branchOutput = results.find((result) => result.operation.kind === "github_create_branch")?.output;
   const commitResults = results.filter((result) => result.operation.kind === "github_commit_file" && result.status === "completed");
@@ -349,6 +353,12 @@ export async function executeMasonRuntimePlan(
     .map((result) => outputString(result.output, ["path", "file", "filename"]) ?? outputString(result.operation.params, ["path"]))
     .filter((item): item is string => Boolean(item));
   const commitSha = outputString(latestCommitOutput, ["commitSha", "sha", "commit", "contentSha"]);
+  const pullRequestNumberValue = pullRequestOutput?.number ?? pullRequestOutput?.pullRequestNumber ?? pullRequestOutput?.id;
+  const pullRequestNumber = typeof pullRequestNumberValue === "number"
+    ? pullRequestNumberValue
+    : pullRequestUrl?.match(/\/pull\/(\d+)/i)?.[1]
+      ? Number(pullRequestUrl.match(/\/pull\/(\d+)/i)?.[1])
+      : null;
   const commitUrl = outputString(latestCommitOutput, ["url", "htmlUrl", "commitUrl"]);
   const incomplete = results.find((result) => result.status === "blocked" || result.status === "failed" || result.status === "skipped");
   const evidence = [
@@ -367,6 +377,9 @@ export async function executeMasonRuntimePlan(
     results,
     pullRequestUrl,
     previewUrl,
+    branch,
+    commitSha,
+    pullRequestNumber,
     summary: incomplete ? `${incomplete.summary} ${evidence}` : evidence,
   };
 

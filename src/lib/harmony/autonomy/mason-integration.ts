@@ -19,6 +19,11 @@ import type {
   ActionType,
   AutonomyLevel,
 } from "./types";
+import type { MasonEngineeringTaskContract } from "@/lib/harmony/code/mason-engineering-task";
+
+export interface MasonExecutionGovernanceContext {
+  taskContract: MasonEngineeringTaskContract;
+}
 
 /**
  * Map a Mason objective (e.g., "create PR", "merge") to an action type.
@@ -59,12 +64,36 @@ export async function evaluateMasonExecutionPolicy(
   repository: string,
   autonomyLevel: AutonomyLevel,
   founderApproved?: boolean,
+  governance?: MasonExecutionGovernanceContext,
 ): Promise<AutonomyPolicyDecision> {
   // Determine the action
-  const action = masonObjectiveToAction(objective);
+  const action = governance
+    ? governance.taskContract.requestedOutcome === "create_issue"
+      ? "create_issue"
+      : governance.taskContract.requestedOutcome === "create_branch"
+        ? "create_branch"
+        : governance.taskContract.requestedOutcome === "open_pull_request"
+          ? "open_pull_request"
+          : "commit_file"
+    : masonObjectiveToAction(objective);
 
   // Get active Founder directives for Mason in engineering domain
   const directives = await getActiveDirectives(userId, companyId, "mason", "engineering");
+
+  if (governance?.taskContract.requestedOutcome === "plan_only") {
+    return {
+      decision: "execute",
+      reason: "Read-only grounded planning does not request repository mutation.",
+      audit: {
+        policy_version: "1.0",
+        evaluated_at: new Date().toISOString(),
+        applicable_directives: directives.map((directive) => directive.id),
+        risk_factors: ["read_only_planning"],
+        autonomy_level: autonomyLevel,
+        actor_authority: "founder_read_only_request",
+      },
+    };
+  }
 
   // If already Founder-approved (e.g., from a previous approval), always allow
   if (founderApproved) {
@@ -88,11 +117,14 @@ export async function evaluateMasonExecutionPolicy(
     agent: "mason",
     domain: "engineering",
     action,
-    current_autonomy_level: autonomyLevel,
+    current_autonomy_level: governance?.taskContract.approvalRequirements.required ? 0 : autonomyLevel,
     applicable_directives: directives,
     params: {
       objective,
       repository,
+      executionIdentity: governance?.taskContract.executionIdentity ?? null,
+      taskContract: governance?.taskContract ?? null,
+      protectedResources: governance?.taskContract.protectedResources ?? [],
       context: {
         branch: undefined, // Will be known at execution time
         file_paths: undefined,
@@ -116,6 +148,7 @@ export async function determineMasonExecutionReadiness(
   repository: string,
   autonomyLevel: AutonomyLevel,
   founderApproved?: boolean,
+  governance?: MasonExecutionGovernanceContext,
 ): Promise<{
   ready_to_execute: boolean;
   ready_now: boolean;
@@ -131,6 +164,7 @@ export async function determineMasonExecutionReadiness(
     repository,
     autonomyLevel,
     founderApproved,
+    governance,
   );
 
   if (canExecute(decision)) {

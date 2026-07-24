@@ -344,11 +344,17 @@ if (
   // Falls back to legacy delegation on any error so the operator never regresses.
   if (masonOwnsEngineeringTask(text)) {
     try {
+      const founderVerified = await currentUserIsAdmin();
       const mason = await handleMasonEngineeringMessage({
         userId: user.id,
         companyId: company.id,
         message: text,
         founderApproved: false,
+        requesterAuthorization: {
+          role: founderVerified ? "admin" : "system",
+          verified: founderVerified,
+          source: "server_session",
+        },
       });
       return persistOperatorReply(supabase, user.id, conversationId, {
         intent: "execution_request",
