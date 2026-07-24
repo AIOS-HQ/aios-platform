@@ -58,12 +58,38 @@ describe("operational runtime certification foundation", () => {
       liveProbeAttempted: true,
       runtimeConditionId: "safe-condition",
       safeMessage: "approval_runtime_probe_succeeded",
+      capabilityEvidence: ["read_visibility", "policy_gate", "decision_enforcement"].map((capability) => ({
+        capability,
+        status: "healthy" as const,
+        evidenceType: "authenticated_runtime_proof" as const,
+        safeMessage: `${capability}_verified`,
+      })),
     })).toMatchObject({
       component: "approval_runtime",
       status: "healthy",
       evidenceType: "authenticated_runtime_proof",
       runtimeConditionId: "safe-condition",
     });
+  });
+
+  it("forbids healthy component status when a capability remains unverified", () => {
+    expect(() => createOperationalRuntimeCertification({
+      component: "approval_runtime",
+      status: "healthy",
+      evidenceType: "authenticated_runtime_proof",
+      observedBy: "test.approval.probe",
+      confidence: 0.95,
+      observedAt,
+      liveProbeRequired: true,
+      liveProbeAttempted: true,
+      safeMessage: "approval_runtime_probe_succeeded",
+      capabilityEvidence: [{
+        capability: "decision_enforcement",
+        status: "unknown",
+        evidenceType: "source_code_proof",
+        safeMessage: "not_live_probed",
+      }],
+    })).toThrow("Operational runtime health requires live proof for every capability.");
   });
 
   it("creates stable condition IDs from allowlisted runtime identity fields", () => {

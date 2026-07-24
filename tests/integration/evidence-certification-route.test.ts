@@ -7,6 +7,7 @@ const authState = vi.hoisted(() => ({
 
 const runtimeProbe = vi.hoisted(() => vi.fn());
 const agentCertification = vi.hoisted(() => vi.fn());
+const operationalCertification = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/user", () => ({
   getCurrentUser: vi.fn(async () => authState.user),
@@ -24,6 +25,10 @@ vi.mock("@/lib/runtime-identity/agent-certification", () => ({
   certifyAgentRuntimes: agentCertification,
 }));
 
+vi.mock("@/lib/operational-runtime/probe", () => ({
+  certifyOperationalRuntimes: operationalCertification,
+}));
+
 describe("Founder Evidence Layer certification endpoint", () => {
   beforeEach(() => {
     authState.user = null;
@@ -38,6 +43,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
     delete process.env.AZURE_OPENAI_API_KEY;
     runtimeProbe.mockReset();
     agentCertification.mockReset();
+    operationalCertification.mockReset();
   });
 
   it("rejects unauthenticated requests", async () => {
@@ -46,6 +52,16 @@ describe("Founder Evidence Layer certification endpoint", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ ok: false, error: "unauthorized" });
+  });
+
+  it("rejects unauthenticated compact operational requests", async () => {
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET(new Request(
+      "https://aios.example/api/admin/certification/evidence?probe=operational&format=compact",
+    ));
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ ok: false, error: "unauthorized" });
+    expect(operationalCertification).not.toHaveBeenCalled();
   });
 
   it("rejects authenticated non-Founder requests", async () => {
@@ -57,6 +73,17 @@ describe("Founder Evidence Layer certification endpoint", () => {
     expect(await response.json()).toEqual({ ok: false, error: "forbidden" });
   });
 
+  it("rejects authenticated non-Founder compact operational requests", async () => {
+    authState.user = { id: "subscriber-1" };
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET(new Request(
+      "https://aios.example/api/admin/certification/evidence?probe=operational&format=compact",
+    ));
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ ok: false, error: "forbidden" });
+    expect(operationalCertification).not.toHaveBeenCalled();
+  });
+
   it("returns only canonical safe evidence metadata to a Founder", async () => {
     authState.user = { id: "founder-1" };
     authState.admin = true;
@@ -66,6 +93,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
 
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
+    expect(Object.keys(body)).toEqual(["ok", "certification"]);
     expect(body.certification).toMatchObject({
       status: "healthy",
       evidenceType: "authenticated_runtime_proof",
@@ -73,7 +101,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
       confidence: 1,
       details: {
         scope: "evidence_layer",
-        schemaVersion: "1.4.0",
+        schemaVersion: "1.5.0",
         deployment: {
           commitSha: "safe-commit-sha",
           environment: "production",
@@ -92,6 +120,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
         },
         inferenceProbeRequested: false,
         workforceProbeRequested: false,
+        operationalProbeRequested: false,
       },
     });
     expect(body.certification.details.supportedEvidenceTypes).toHaveLength(6);
@@ -111,6 +140,7 @@ describe("Founder Evidence Layer certification endpoint", () => {
     ]));
     expect(runtimeProbe).not.toHaveBeenCalled();
     expect(agentCertification).not.toHaveBeenCalled();
+    expect(operationalCertification).not.toHaveBeenCalled();
 
     const serialized = JSON.stringify(body).toLowerCase();
     for (const forbidden of ["access_token", "authorization", "cookie", "credential", "prompt_content", "memory_contents", "customer_data", "endpoint-test-secret"]) {
@@ -307,5 +337,103 @@ describe("Founder Evidence Layer certification endpoint", () => {
       agentRuntimeMappings: mappings,
     });
     expect(JSON.stringify(body)).not.toContain("ignored");
+  });
+
+  it("runs operational probes only through the explicit Founder-only mode", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+    operationalCertification.mockResolvedValue({
+      requested: true,
+      componentCount: 6,
+      healthy: 1,
+      degraded: 5,
+      blocked: 0,
+      unavailable: 0,
+      unknown: 0,
+      runtimeCondition: {
+        conditionId: "safe-operational-condition",
+        logicVersion: "operational-live-probe-v1",
+      },
+      outcomeId: "safe-operational-outcome",
+      components: [{ component: "harmony_orchestration", status: "healthy" }],
+    });
+
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET(new Request(
+      "https://aios.example/api/admin/certification/evidence?probe=operational&secret=ignored",
+    ));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(runtimeProbe).not.toHaveBeenCalled();
+    expect(agentCertification).not.toHaveBeenCalled();
+    expect(operationalCertification).toHaveBeenCalledWith(expect.objectContaining({
+      userId: "founder-1",
+      deploymentEnvironment: "production",
+      deploymentSha: "safe-commit-sha",
+    }));
+    expect(body.certification.details.operationalProbeRequested).toBe(true);
+    expect(body.certification.details.operationalRuntimeSummary).toMatchObject({
+      componentCount: 6,
+      healthy: 1,
+      degraded: 5,
+      runtimeCondition: { conditionId: "safe-operational-condition" },
+      outcomeId: "safe-operational-outcome",
+    });
+    expect(body.certification.details.operationalRuntimeFoundation).toEqual([
+      { component: "harmony_orchestration", status: "healthy" },
+    ]);
+    expect(JSON.stringify(body)).not.toContain("ignored");
+  });
+
+  it("returns only approved operational sections in compact Founder mode", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+    const components = [{
+      component: "harmony_orchestration",
+      status: "healthy",
+      evidenceType: "live_runtime_proof",
+    }];
+    operationalCertification.mockResolvedValue({
+      requested: true,
+      componentCount: 6,
+      healthy: 1,
+      degraded: 5,
+      blocked: 0,
+      unavailable: 0,
+      unknown: 0,
+      runtimeCondition: {
+        conditionId: "safe-operational-condition",
+        logicVersion: "operational-live-probe-v1",
+      },
+      outcomeId: "safe-operational-outcome",
+      components,
+    });
+
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET(new Request(
+      "https://aios.example/api/admin/certification/evidence?probe=operational&format=compact",
+    ));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(Object.keys(body).sort()).toEqual([
+      "deployment",
+      "ok",
+      "operationalRuntimeFoundation",
+      "operationalRuntimeSummary",
+    ]);
+    expect(body.operationalRuntimeSummary).toMatchObject({
+      componentCount: 6,
+      healthy: 1,
+      degraded: 5,
+      outcomeId: "safe-operational-outcome",
+    });
+    expect(body.operationalRuntimeFoundation).toEqual(components);
+    expect(body).not.toHaveProperty("certification");
+    expect(body).not.toHaveProperty("runtimeIdentity");
+    expect(body).not.toHaveProperty("agentRuntimeMappings");
+    expect(operationalCertification).toHaveBeenCalledTimes(1);
   });
 });
