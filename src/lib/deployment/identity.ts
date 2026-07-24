@@ -6,6 +6,7 @@ export interface RuntimeDeploymentIdentity {
   vercelProjectId: string | null;
   vercelProjectProductionUrl: string | null;
   vercelBranchUrl: string | null;
+  vercelGitCommitRef: string | null;
   vercelUrl: string | null;
   host: string | null;
   buildTimestamp: string | null;
@@ -29,6 +30,7 @@ export function getRuntimeDeploymentIdentity(now = new Date()): RuntimeDeploymen
     vercelProjectId: process.env.VERCEL_PROJECT_ID ?? null,
     vercelProjectProductionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
     vercelBranchUrl: process.env.VERCEL_BRANCH_URL ?? null,
+    vercelGitCommitRef: process.env.VERCEL_GIT_COMMIT_REF ?? null,
     vercelUrl: process.env.VERCEL_URL ?? null,
     host: process.env.VERCEL_URL ?? process.env.VERCEL_BRANCH_URL ?? process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
     buildTimestamp:

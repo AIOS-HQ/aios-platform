@@ -10,6 +10,7 @@ export type ValidationEvidenceStrictPayload = {
     status: "bound" | "unbound";
     reason:
       | "ok"
+      | "missing_expected_identity"
       | "missing_preview"
       | "project_mismatch"
       | "host_mismatch"
@@ -102,8 +103,14 @@ export function buildStrictValidationEvidence(
 
   let status: ValidationEvidenceStrictPayload["binding"]["status"] = "bound";
   let reason: ValidationEvidenceStrictPayload["binding"]["reason"] = "ok";
+  const expectedIdentityComplete = Boolean(
+    expected.projectId && expected.host && expected.branch && expected.sha,
+  );
 
-  if (!observed.deploymentId || !observed.host || !observed.projectId) {
+  if (!expectedIdentityComplete) {
+    status = "unbound";
+    reason = "missing_expected_identity";
+  } else if (!observed.deploymentId || !observed.host || !observed.projectId) {
     status = "unbound";
     reason = "missing_preview";
   } else if (expected.projectId && expected.projectId !== observed.projectId) {

@@ -237,8 +237,11 @@ export async function handleMasonEngineeringMessage(input: MasonEngineeringMessa
       if (!currentPrNumber) {
         return { status: "pending", requiredChecksPassed: false, detail: "missing_pull_request_identity", headSha: null };
       }
-      const currentBranch = currentProductionResult.branch ?? task.runtimeRequest.branchName ?? "";
+      const currentBranch = currentProductionResult.branch;
       const expectedHeadSha = currentProductionResult.commitSha ?? null;
+      if (!currentBranch) {
+        return { status: "pending", requiredChecksPassed: false, detail: "missing_pull_request_identity", headSha: null };
+      }
 
       const requiredChecks = getGithubCheckAliasesForRequirements(task.validationRequirements);
       const binding = {
@@ -262,6 +265,8 @@ export async function handleMasonEngineeringMessage(input: MasonEngineeringMessa
         async () => {
           const ci = await runGithubRead(input.userId, "review_build_result", {
             repo: `${repoRef.owner}/${repoRef.name}`,
+            prNumber: currentPrNumber,
+            branch: currentBranch,
           });
 
           if (!ci.ok) {
@@ -309,9 +314,14 @@ export async function handleMasonEngineeringMessage(input: MasonEngineeringMessa
       const repoRef = parseRepo(repository);
       if (!repoRef) return null;
       const currentPrNumber = productionResult?.pullRequestNumber;
-      const currentBranch = productionResult?.branch ?? task.runtimeRequest.branchName ?? "";
+      const currentBranch = productionResult?.branch;
       if (!currentPrNumber) return null;
-      const checks = await runGithubRead(input.userId, "review_build_result", { repo: `${repoRef.owner}/${repoRef.name}` });
+      if (!currentBranch) return null;
+      const checks = await runGithubRead(input.userId, "review_build_result", {
+        repo: `${repoRef.owner}/${repoRef.name}`,
+        prNumber: currentPrNumber,
+        branch: currentBranch,
+      });
       if (!checks.ok) return null;
       const observedChecks = normalizeCiObservedChecksFromGithubRuns(checks.data, {
         repository,

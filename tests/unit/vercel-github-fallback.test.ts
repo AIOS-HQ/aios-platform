@@ -61,17 +61,54 @@ describe("GitHub Vercel deployment fallback", () => {
     expect(JSON.stringify(result)).not.toContain("github-test-token");
   });
 
-  it("preserves workflow head SHA for existing CI compatibility", async () => {
+  it("returns sanitized review_build_result runs bound to repo/pr/branch identity", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => response({
-      workflow_runs: [{ name: "Launch Validation", status: "completed", conclusion: "success", head_sha: "sha-1" }],
+      workflow_runs: [{
+        id: 111,
+        name: "Launch Validation",
+        status: "completed",
+        conclusion: "success",
+        head_sha: "sha-1",
+        head_branch: "mason/runtime-evidence-founder-1",
+        run_started_at: "2026-07-21T05:00:00.000Z",
+        pull_requests: [{ number: 77 }],
+      }],
     })));
     const { runGithubRead } = await import("@/lib/integrations/clients/github");
     const result = await runGithubRead("founder-1", "review_build_result", {
       repo: "AIOS-HQ/aios-platform",
+      prNumber: 77,
+      branch: "mason/runtime-evidence-founder-1",
     });
+
+    expect(result.ok).toBe(true);
     expect(result.data?.runs).toEqual([
-      { name: "Launch Validation", status: "completed", conclusion: "success", head_sha: "sha-1" },
+      {
+        name: "Launch Validation",
+        status: "completed",
+        conclusion: "success",
+        head_sha: "sha-1",
+      },
     ]);
+  });
+
+  it("fails closed when review_build_result identity is incomplete", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => response({ workflow_runs: [] })));
+    const { runGithubRead } = await import("@/lib/integrations/clients/github");
+
+    const missingPr = await runGithubRead("founder-1", "review_build_result", {
+      repo: "AIOS-HQ/aios-platform",
+      branch: "mason/runtime-evidence-founder-1",
+    });
+    expect(missingPr.ok).toBe(false);
+    expect(missingPr.error).toBe("pr_number_required");
+
+    const missingBranch = await runGithubRead("founder-1", "review_build_result", {
+      repo: "AIOS-HQ/aios-platform",
+      prNumber: 77,
+    });
+    expect(missingBranch.ok).toBe(false);
+    expect(missingBranch.error).toBe("branch_required");
   });
 
   it("does not treat a generic Vercel status as production deployment proof", async () => {

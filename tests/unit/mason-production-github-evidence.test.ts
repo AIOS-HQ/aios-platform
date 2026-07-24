@@ -172,6 +172,8 @@ describe("mason production GitHub evidence binding", () => {
     });
     expect(runGithubReadMock).toHaveBeenCalledWith("founder-1", "review_build_result", {
       repo: "AIOS-HQ/aios-platform",
+      prNumber: FIXTURE_PR_NUMBER,
+      branch: FIXTURE_BRANCH,
     });
   });
 

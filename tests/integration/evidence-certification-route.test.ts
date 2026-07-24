@@ -34,6 +34,10 @@ describe("Founder Evidence Layer certification endpoint", () => {
     process.env.VERCEL_PROJECT_ID = "prj_safe";
     process.env.VERCEL_URL = "codex---mason-validation-intelligence.aios.vercel.app";
     process.env.VERCEL_GIT_COMMIT_REF = "codex/mason-validation-intelligence";
+    process.env.AIOS_VALIDATION_VERCEL_PROJECT_ID = "prj_safe";
+    process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST = "codex---mason-validation-intelligence.aios.vercel.app";
+    process.env.AIOS_VALIDATION_GIT_BRANCH = "codex/mason-validation-intelligence";
+    process.env.AIOS_VALIDATION_GIT_SHA = "safe-commit-sha";
     process.env.AI_PROVIDER = "openai";
     process.env.AI_MODEL = "gpt-safe";
     process.env.OPENAI_API_KEY = "endpoint-test-secret";
@@ -41,6 +45,33 @@ describe("Founder Evidence Layer certification endpoint", () => {
     delete process.env.AZURE_OPENAI_API_KEY;
     runtimeProbe.mockReset();
     agentCertification.mockReset();
+  });
+
+  it("fails closed when trusted expected identity is missing", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+    delete process.env.AIOS_VALIDATION_VERCEL_PROJECT_ID;
+    delete process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST;
+    delete process.env.AIOS_VALIDATION_GIT_BRANCH;
+    delete process.env.AIOS_VALIDATION_GIT_SHA;
+
+    const { GET } = await import("@/app/api/admin/certification/evidence/route");
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.certification.details.validationEvidence).toMatchObject({
+      binding: {
+        status: "unbound",
+        reason: "missing_expected_identity",
+        expected: {
+          projectId: null,
+          host: null,
+          branch: null,
+          sha: null,
+        },
+      },
+    });
   });
 
   it("rejects unauthenticated requests", async () => {
