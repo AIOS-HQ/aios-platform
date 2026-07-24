@@ -9,6 +9,7 @@ import {
   toMasonBridgeStatus,
   type MasonRuntimeState,
 } from "@/lib/harmony/code/mason-runtime-state";
+import type { MasonEngineeringTaskContract } from "@/lib/harmony/code/mason-engineering-task";
 
 export type MasonRequesterRole = "founder" | "subscriber";
 export type MasonBridgeStatus = "ready" | "paused_for_founder_approval" | "blocked";
@@ -22,6 +23,8 @@ export interface MasonExecutionBridgeRequest {
   branchName?: string | null;
   changedFiles?: string[];
   validationResults?: Partial<Record<MasonValidationCommand, "passed" | "failed" | "not_run">>;
+  runtimePlan?: MasonNativeRuntimePlan;
+  taskContract?: MasonEngineeringTaskContract;
 }
 
 export type MasonValidationCommand =
@@ -132,11 +135,13 @@ function bridgeStatus(input: {
 }
 
 export function createMasonExecutionBridge(input: MasonExecutionBridgeRequest): MasonExecutionBridge {
-  const routesToMason = masonOwnsEngineeringTask(input.objective);
+  const routesToMason = input.taskContract?.version === "mason.engineering-task.v1"
+    ? true
+    : masonOwnsEngineeringTask(input.objective);
   const accessAllowed = input.requesterRole === "founder";
   const baseBranch = input.baseBranch?.trim() || "main";
   const branchName = input.branchName?.trim() || defaultBranchName(input.objective);
-  const runtimePlan = createMasonNativeRuntimePlan({
+  const runtimePlan = input.runtimePlan ?? createMasonNativeRuntimePlan({
     objective: input.objective,
     repository: input.repository,
   });

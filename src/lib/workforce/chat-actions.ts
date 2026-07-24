@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
+import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { recordAgentChatExchange, sendAgentChat } from "@/lib/workforce/chat";
 import { getAiosAgent } from "@/lib/workforce/registry";
@@ -173,7 +174,11 @@ export async function sendAgentChatAction(
         return { status: "success", message: "" };
       }
 
-      const founderApproved = masonFounderApproved(formData.get("founder_approved") ?? message);
+      const founderVerified = await currentUserIsAdmin();
+      if (!founderVerified) {
+        return { status: "error", message: t("errors.generic") };
+      }
+      const founderApproved = masonFounderApproved(formData.get("founder_approved"));
 
       await logMasonChatPhase("mason_chat_path_selected", {
         correlationId,
@@ -204,11 +209,17 @@ export async function sendAgentChatAction(
         companyId,
         message,
         founderApproved,
+        correlationId,
+        requesterAuthorization: {
+          role: "admin",
+          verified: true,
+          source: "server_session",
+        },
       });
 
       executionId =
-        typeof result.diagnostics?.retrievalExecutionId === "string"
-          ? result.diagnostics.retrievalExecutionId
+        typeof result.diagnostics?.executionId === "string"
+          ? result.diagnostics.executionId
           : null;
 
       await logMasonChatPhase("mason_chat_runtime_called", {

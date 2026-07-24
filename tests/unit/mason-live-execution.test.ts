@@ -4,6 +4,8 @@ import { createMasonLiveExecutionPlan } from "@/lib/harmony/code/mason-live-exec
 const baseInput = {
   objective: "Fix the AIOS GitHub integration bug and open a PR",
   repository: "AIOS-HQ/aios-platform",
+  requesterRole: "founder" as const,
+  requestedOutcome: "open_pull_request" as const,
   branchName: "mason/fix-github-integration",
   fileChanges: [
     {
@@ -47,9 +49,6 @@ describe("Mason live execution planner", () => {
       "vercel_check_preview",
       "harmony_report_outcome",
       "activity_record",
-      "review_queue_update",
-      "julius_memory_update",
-      "company_skill_update",
     ]);
     expect(plan.operations[0].params).toMatchObject({
       repo: "AIOS-HQ/aios-platform",
@@ -89,7 +88,7 @@ describe("Mason live execution planner", () => {
     expect(plan.bridge.mutation.destructiveActionsAllowed).toBe(false);
   });
 
-  it("reports outcomes to Activity, Review Queue, Outcomes, Julius, and Company Skills", () => {
+  it("reports Activity/Outcomes while policy and closed-loop own Review Queue and learning", () => {
     const plan = createMasonLiveExecutionPlan({
       ...baseInput,
       founderApproved: true,
@@ -102,13 +101,10 @@ describe("Mason live execution planner", () => {
     expect(plan.outcomeSummary).toContain("PR-999");
     expect(plan.outcomeSummary).toContain("preview-ready");
     expect(plan.operations.map((operation) => operation.capabilityId)).toEqual(
-      expect.arrayContaining([
-        "report_mason_execution_outcome",
-        "emit_activity",
-        "update_review_queue",
-        "update_julius_memory",
-        "update_company_skills",
-      ]),
+      expect.arrayContaining(["report_mason_execution_outcome", "emit_activity"]),
+    );
+    expect(plan.operations.map((operation) => operation.capabilityId)).not.toEqual(
+      expect.arrayContaining(["update_review_queue", "update_julius_memory", "update_company_skills"]),
     );
   });
 });

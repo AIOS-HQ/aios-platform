@@ -8,14 +8,16 @@ import { getConnector } from "@/lib/integrations/connectors";
 import { isConnectorConfigured } from "@/lib/integrations/connector-config";
 import { getConnections } from "@/lib/integrations/connections";
 import { emitActivity } from "@/lib/harmony/os/events";
-import { juliusRemember } from "@/lib/julius/wiring";
-import { learnCompanySkill } from "@/lib/company-skills/library";
-import { appendMasonLedgerEvent, createMasonExecutionId } from "@/lib/harmony/code/mason-ledger";
+import { appendMasonLedgerEvent } from "@/lib/harmony/code/mason-ledger";
 import { getCanonicalVercelDeploymentStatus } from "@/lib/integrations/clients/vercel";
+import { assertMasonExecutionIdentity, type MasonExecutionIdentity } from "@/lib/harmony/code/mason-execution-identity";
+import type { MasonEngineeringTaskContract } from "@/lib/harmony/code/mason-engineering-task";
 
 export interface MasonProductionRuntimeInput extends MasonLiveExecutionPlanInput {
   userId: string;
   companyId?: string | null;
+  executionIdentity: MasonExecutionIdentity;
+  taskContract: MasonEngineeringTaskContract;
 }
 
 export interface MasonProductionRuntimeResult {
@@ -23,6 +25,11 @@ export interface MasonProductionRuntimeResult {
   summary: string;
   pullRequestUrl: string | null;
   previewUrl: string | null;
+  executionId: string;
+  branch: string | null;
+  commitSha: string | null;
+  pullRequestNumber: number | null;
+  validationMode: "external_ci";
 }
 
 async function runRequiredConnector(
@@ -147,7 +154,7 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
           kind: "agent_action",
           summary: `Mason requested validation for ${args.branch}: ${args.commands.join(", ")}`,
           refType: "mason_validation",
-          refId: args.branch,
+          refId: args.executionId ?? input.executionIdentity.executionId,
         });
         return { requested: true, commands: args.commands };
       },
@@ -160,7 +167,7 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
           kind: "agent_action",
           summary: String(payload.summary ?? "Mason runtime outcome"),
           refType: "mason_runtime",
-          refId: String(payload.branch ?? "mason"),
+          refId: String(payload.executionId ?? input.executionIdentity.executionId),
         });
         return { reported: true };
       },
@@ -173,52 +180,24 @@ export function createMasonProductionAdapters(input: MasonProductionRuntimeInput
           kind: "agent_action",
           summary: String(payload.summary ?? "Mason runtime activity"),
           refType: "mason_runtime",
-          refId: String(payload.branch ?? "mason"),
+          refId: String(payload.executionId ?? input.executionIdentity.executionId),
         });
         return { recorded: true };
       },
       async updateReviewQueue(payload) {
-        await emitActivity({
-          userId: input.userId,
-          companyId: input.companyId ?? null,
-          actorType: "agent",
-          actorId: "mason",
-          kind: "approval",
-          summary: String(payload.summary ?? "Mason runtime awaiting Founder review"),
-          refType: "mason_review_queue",
-          refId: String(payload.branch ?? "mason"),
-        });
-        return { queued: true };
+        return {
+          queued: false,
+          source: "approval_payloads",
+          detail: "review_queue_is_written_only_by_governance_policy",
+          executionId: input.executionIdentity.executionId,
+          summary: String(payload.summary ?? "Mason runtime review state"),
+        };
       },
-      async updateJuliusMemory(payload) {
-        if (input.companyId) {
-          await juliusRemember({
-            userId: input.userId,
-            companyId: input.companyId,
-            agent: "mason",
-            kind: "activity",
-            title: "Mason runtime execution",
-            content: String(payload.summary ?? "Mason runtime memory"),
-            refs: { source: "mason_runtime", payload },
-            importance: 4,
-          });
-        }
-        return { remembered: Boolean(input.companyId) };
+      async updateJuliusMemory() {
+        return { remembered: false, detail: "julius_write_deferred_to_closed_loop" };
       },
-      async updateCompanySkills(payload) {
-        await learnCompanySkill({
-          userId: input.userId,
-          companyId: input.companyId ?? null,
-          ownerAgent: "mason",
-          title: "Mason runtime execution",
-          summary: String(payload.summary ?? "Reusable Mason execution pattern"),
-          outcome: String(payload.summary ?? "Mason completed runtime reporting"),
-          category: "engineering",
-          success: true,
-          source: "manual",
-          sourceId: String(payload.branch ?? "mason"),
-        });
-        return { learned: Boolean(input.companyId) };
+      async updateCompanySkills() {
+        return { learned: false, detail: "company_skill_write_deferred_to_closed_loop" };
       },
     },
   };
@@ -237,30 +216,13 @@ export async function runMasonProductionRuntime(
   input: MasonProductionRuntimeInput,
   adapters: MasonRuntimeExecutorAdapters = createMasonProductionAdapters(input),
 ): Promise<MasonProductionRuntimeResult> {
-  const executionId = createMasonExecutionId({
-    userId: input.userId,
-    companyId: input.companyId ?? "no-company",
-    repository: input.repository,
-    objective: input.objective,
-    branch: input.branchName ?? null,
-  });
+  const companyId = input.companyId ?? "no-company";
+  assertMasonExecutionIdentity(input.executionIdentity, { userId: input.userId, companyId });
+  if (input.taskContract.executionIdentity.executionId !== input.executionIdentity.executionId) {
+    throw new Error("mason_task_execution_identity_mismatch");
+  }
+  const executionId = input.executionIdentity.executionId;
 
-  await appendMasonLedgerEvent({
-    executionId,
-    userId: input.userId,
-    companyId: input.companyId ?? "no-company",
-    eventType: "intake_received",
-    runtimeState: "ready",
-    operationType: "mason_runtime_intake",
-    resultStatus: "ok",
-    summary: "Mason execution request received.",
-    metadata: {
-      repository: input.repository,
-      objective: input.objective,
-      requesterRole: input.requesterRole ?? "founder",
-    },
-    idempotencyKey: `${executionId}:intake_received`,
-  });
   // Route the execute/pause decision through the Unified Autonomy Policy Engine.
   // Approval-required work persists a resumable approval_payload (surfaced in the
   // Review Queue) instead of silently blocking.
@@ -271,6 +233,7 @@ export async function runMasonProductionRuntime(
     input.repository,
     MASON_DEFAULT_AUTONOMY_LEVEL,
     input.founderApproved,
+    { taskContract: input.taskContract },
   );
   await appendMasonLedgerEvent({
     executionId,
@@ -309,6 +272,11 @@ export async function runMasonProductionRuntime(
       summary: `Awaiting Founder approval.${readiness.approval_id ? ` Approval ID: ${readiness.approval_id}.` : ""} ${readiness.reason}`,
       pullRequestUrl: null,
       previewUrl: null,
+      executionId,
+      branch: null,
+      commitSha: null,
+      pullRequestNumber: null,
+      validationMode: "external_ci",
     };
   }
   if (readiness.is_blocked) {
@@ -330,6 +298,11 @@ export async function runMasonProductionRuntime(
       summary: `Execution blocked: ${readiness.reason}`,
       pullRequestUrl: null,
       previewUrl: null,
+      executionId,
+      branch: null,
+      commitSha: null,
+      pullRequestNumber: null,
+      validationMode: "external_ci",
     };
   }
 
@@ -353,6 +326,11 @@ export async function runMasonProductionRuntime(
       summary: `Mason runtime blocked. GitHub=${health.github}, Vercel=${health.vercelStatus} (${health.vercelEvidenceTier}), Harmony=${health.harmony}.`,
       pullRequestUrl: null,
       previewUrl: null,
+      executionId,
+      branch: null,
+      commitSha: null,
+      pullRequestNumber: null,
+      validationMode: "external_ci",
     };
   }
 
@@ -361,42 +339,19 @@ export async function runMasonProductionRuntime(
   const authorizedInput: MasonProductionRuntimeInput = input.founderApproved
     ? input
     : { ...input, founderApproved: true };
-  const result = await executeMasonRuntimePlan(authorizedInput, adapters);
-  await appendMasonLedgerEvent({
-    executionId,
-    userId: input.userId,
-    companyId: input.companyId ?? "no-company",
-    eventType:
-      result.status === "completed"
-        ? "execution_completed"
-        : result.status === "blocked"
-          ? "execution_cancelled"
-          : "execution_failed",
-    runtimeState:
-      result.status === "completed"
-        ? "completed"
-        : result.rollback?.toState ?? "failed",
-    operationType: "runtime_execution",
-    resultStatus:
-      result.status === "completed"
-        ? "ok"
-        : result.status === "blocked"
-          ? "blocked"
-          : "failed",
-    failureClassification: result.status === "failed" ? "runtime_failure" : null,
-    summary: result.summary,
-    pullRequestUrl: result.pullRequestUrl,
-    previewUrl: result.previewUrl,
-    rollbackRef: result.rollback?.executionId ?? null,
-    metadata: {
-      rollback: result.rollback ?? null,
-    },
-    idempotencyKey: `${executionId}:execution_final`,
+  const result = await executeMasonRuntimePlan(authorizedInput, adapters, {
+    executionIdentity: input.executionIdentity,
+    recordLifecycle: false,
   });
   return {
     status: result.status,
     summary: result.summary,
     pullRequestUrl: noRequestLabel(result.pullRequestUrl, result.summary, "PR"),
     previewUrl: noRequestLabel(result.previewUrl, result.summary, "Preview"),
+    executionId,
+    branch: result.branch,
+    commitSha: result.commitSha,
+    pullRequestNumber: result.pullRequestNumber,
+    validationMode: "external_ci",
   };
 }

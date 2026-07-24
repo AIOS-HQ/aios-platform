@@ -29,6 +29,8 @@ const baseInput = {
   objective: "Fix the AIOS GitHub integration bug and open a PR",
   repository: "AIOS-HQ/aios-platform",
   founderApproved: true,
+  requesterRole: "founder" as const,
+  requestedOutcome: "open_pull_request" as const,
   branchName: "mason/fix-runtime",
   fileChanges: [
     {
@@ -37,6 +39,16 @@ const baseInput = {
       message: "Mason scoped runtime update",
     },
   ],
+};
+
+const executionIdentity = {
+  executionId: "mason:founder-1:co-1:aios:runtime",
+  correlationId: "correlation-1",
+  causationId: null,
+  userId: "founder-1",
+  companyId: "co-1",
+  actorId: "founder-1",
+  source: "founder_session" as const,
 };
 
 describe("Mason runtime executor", () => {
@@ -49,7 +61,7 @@ describe("Mason runtime executor", () => {
     const result = await executeMasonRuntimePlan(
       { ...baseInput, openPullRequest: true },
       runtimeAdapters,
-      { ledgerWriter },
+      { ledgerWriter, executionIdentity },
     );
 
     expect(result.status).toBe("completed");
@@ -61,9 +73,6 @@ describe("Mason runtime executor", () => {
       "vercel_check_preview",
       "harmony_report_outcome",
       "activity_record",
-      "review_queue_update",
-      "julius_memory_update",
-      "company_skill_update",
     ]);
     expect(runtimeAdapters.github.createBranch).toHaveBeenCalledWith({
       repository: "AIOS-HQ/aios-platform",
@@ -81,6 +90,8 @@ describe("Mason runtime executor", () => {
       repository: "AIOS-HQ/aios-platform",
       branch: "mason/fix-runtime",
       commands: ["npm run lint", "npm run typecheck", "npm test", "npm run i18n:check", "npm run build"],
+      executionId: executionIdentity.executionId,
+      correlationId: executionIdentity.correlationId,
     });
     expect(result.pullRequestUrl).toBe("https://github.com/AIOS-HQ/aios-platform/pull/999");
     expect(result.previewUrl).toBe("https://preview.example.vercel.app");
@@ -91,7 +102,7 @@ describe("Mason runtime executor", () => {
     const result = await executeMasonRuntimePlan(
       { ...baseInput, founderApproved: false },
       runtimeAdapters,
-      { ledgerWriter },
+      { ledgerWriter, executionIdentity },
     );
 
     expect(result.status).toBe("blocked");
@@ -105,7 +116,7 @@ describe("Mason runtime executor", () => {
     const result = await executeMasonRuntimePlan(
       { ...baseInput, requesterRole: "subscriber" },
       runtimeAdapters,
-      { ledgerWriter },
+      { ledgerWriter, executionIdentity },
     );
 
     expect(result.status).toBe("blocked");
@@ -117,7 +128,7 @@ describe("Mason runtime executor", () => {
     const runtimeAdapters = adapters();
     vi.mocked(runtimeAdapters.github.commitFile).mockRejectedValueOnce(new Error("GitHub file write failed"));
 
-    const result = await executeMasonRuntimePlan(baseInput, runtimeAdapters, { ledgerWriter });
+    const result = await executeMasonRuntimePlan(baseInput, runtimeAdapters, { ledgerWriter, executionIdentity });
 
     expect(result.status).toBe("failed");
     expect(result.results.map((item) => item.operation.kind)).toEqual(["github_create_branch", "github_commit_file"]);
@@ -126,7 +137,7 @@ describe("Mason runtime executor", () => {
   });
 
   it("never exposes merge execution through the runtime plan", async () => {
-    const result = await executeMasonRuntimePlan(baseInput, adapters(), { ledgerWriter });
+    const result = await executeMasonRuntimePlan(baseInput, adapters(), { ledgerWriter, executionIdentity });
 
     expect(result.results.map((item) => item.operation.capabilityId)).not.toContain("merge_pull_request");
     expect(result.plan.bridge.mergePolicy.mergeAllowedNow).toBe(false);

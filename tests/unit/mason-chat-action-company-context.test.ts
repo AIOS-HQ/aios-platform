@@ -9,6 +9,7 @@ const state = {
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth/user", () => ({ requireUser: vi.fn(async () => ({ id: state.userId })) }));
+vi.mock("@/lib/auth/roles", () => ({ currentUserIsAdmin: vi.fn(async () => true) }));
 vi.mock("@/lib/julius/wiring", () => ({ resolvePrimaryCompanyId: vi.fn(async () => state.companyId) }));
 vi.mock("@/lib/workforce/registry", () => ({ getAiosAgent: vi.fn(() => ({ key: "mason" })) }));
 vi.mock("@/lib/workforce/mason-approval", () => ({ masonFounderApproved: vi.fn(() => true) }));

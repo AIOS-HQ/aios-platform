@@ -145,4 +145,50 @@ describe("mason closed-loop durable snapshot + ledger", () => {
     expect(result.report.terminalState).toBe("escalated");
     expect(result.report.unresolvedGate).toBe(true);
   });
+
+  it("persists failed terminal truth instead of collapsing completion snapshots", async () => {
+    const state = { snapshots: [] as unknown as Record<string, unknown>[] };
+    const { adapters } = makeAdapters(state);
+    adapters.runExecution = vi.fn(async () => ({
+      status: "failed",
+      summary: "production runtime failed",
+      pullRequestUrl: null,
+      previewUrl: null,
+      executionId: input.executionId,
+      branch: null,
+      commitSha: null,
+      pullRequestNumber: null,
+      validationMode: "external_ci",
+    }));
+
+    const result = await runMasonClosedLoopExecution(input, adapters, config);
+    expect(result.terminalState).toBe("failed");
+    expect(state.snapshots.at(-1)).toMatchObject({
+      terminalState: "failed",
+      currentState: "completed",
+    });
+  });
+
+  it("preserves approval-pending truth without running validation or mutation adapters", async () => {
+    const state = { snapshots: [] as unknown as Record<string, unknown>[] };
+    const { adapters } = makeAdapters(state);
+    adapters.runExecution = vi.fn(async () => ({
+      status: "blocked",
+      summary: "Awaiting Founder approval. Approval ID: approval-1.",
+      pullRequestUrl: null,
+      previewUrl: null,
+      executionId: input.executionId,
+      branch: null,
+      commitSha: null,
+      pullRequestNumber: null,
+      validationMode: "external_ci",
+    }));
+
+    const result = await runMasonClosedLoopExecution(input, adapters, config);
+    expect(result.terminalState).toBe("awaiting_founder_approval");
+    expect(result.states.map((state) => state.state)).toContain("approval_pending");
+    expect(adapters.runValidation).not.toHaveBeenCalled();
+    expect(adapters.createCommit).not.toHaveBeenCalled();
+    expect(state.snapshots.at(-1)).toMatchObject({ terminalState: "awaiting_founder_approval" });
+  });
 });

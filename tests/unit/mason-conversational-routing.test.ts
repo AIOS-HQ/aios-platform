@@ -11,6 +11,7 @@ const recordMock = vi.fn(async () => true);
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next-intl/server", () => ({ getTranslations: vi.fn(async () => (key: string) => key) }));
 vi.mock("@/lib/auth/user", () => ({ requireUser: vi.fn(async () => ({ id: state.userId })) }));
+vi.mock("@/lib/auth/roles", () => ({ currentUserIsAdmin: vi.fn(async () => true) }));
 vi.mock("@/lib/julius/wiring", () => ({ resolvePrimaryCompanyId: vi.fn(async () => state.companyId) }));
 vi.mock("@/lib/workforce/registry", () => ({ getAiosAgent: vi.fn((agent: string) => ({ key: agent })) }));
 vi.mock("@/lib/workforce/mason-action", () => ({ handleMasonEngineeringMessage: (...args: unknown[]) => masonMock(...args) }));
@@ -75,4 +76,3 @@ describe("Mason conversational routing", () => {
     expect(result.status).toBe("error");
   });
 });
-
