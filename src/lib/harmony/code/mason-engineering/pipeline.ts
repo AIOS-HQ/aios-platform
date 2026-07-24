@@ -5,6 +5,12 @@ import { loadMasonEngineeringConstitution } from "./constitution";
 import { createEngineeringContextPackage } from "./context-package";
 import { createGroundedEngineeringPlan } from "./grounded-planning";
 import { analyzeArchitectureImpact } from "./impact-analysis";
+import {
+  createKnowledgeContextPackage,
+  identifyKnowledgeOpportunities,
+  retrieveEngineeringKnowledge,
+} from "./engineering-memory";
+import { getDefaultEngineeringKnowledgeCatalog } from "./knowledge-manifest";
 import { identifyEngineeringOpportunities } from "./opportunities";
 import { getDefaultMasonRepositoryEvidence } from "./repository-manifest";
 import { createRepositoryIntelligence } from "./repository-intelligence";
@@ -14,8 +20,10 @@ export const MASON_ENGINEERING_PIPELINE_ORDER = Object.freeze([
   "constitution_loaded",
   "repository_intelligence_created",
   "architectural_intelligence_created",
+  "engineering_memory_retrieved",
   "engineering_context_package_created",
   "architecture_context_package_created",
+  "knowledge_context_package_created",
   "grounded_plan_created",
 ] as const);
 
@@ -32,6 +40,8 @@ export function createMasonEngineeringFoundation(
   });
   const architectureEvidence = input.architectureEvidence ?? getDefaultMasonArchitectureEvidence(input.repository);
   const architecturalIntelligence = createArchitecturalIntelligence(architectureEvidence);
+  const knowledgeCatalog = input.knowledgeCatalog ?? getDefaultEngineeringKnowledgeCatalog(input.repository);
+  const engineeringMemory = retrieveEngineeringKnowledge(input.objective, knowledgeCatalog, architecturalIntelligence);
   const contextPackage = createEngineeringContextPackage({
     objective: input.objective,
     constitutionVersion: constitution.version,
@@ -54,7 +64,14 @@ export function createMasonEngineeringFoundation(
     impactAnalysis,
   });
   const engineeringOpportunities = identifyEngineeringOpportunities(architecturalIntelligence);
-  const groundedPlan = createGroundedEngineeringPlan(contextPackage, architectureContextPackage);
+  const knowledgeContextPackage = createKnowledgeContextPackage({
+    engineeringContextId: contextPackage.contextId,
+    retrieval: engineeringMemory,
+    catalog: knowledgeCatalog,
+    architectureEvidence: architectureContextPackage.repositoryEvidence,
+  });
+  const knowledgeOpportunities = identifyKnowledgeOpportunities({ architecture: architecturalIntelligence, retrieval: engineeringMemory });
+  const groundedPlan = createGroundedEngineeringPlan(contextPackage, architectureContextPackage, knowledgeContextPackage);
 
   return {
     pipelineOrder: MASON_ENGINEERING_PIPELINE_ORDER,
@@ -63,7 +80,9 @@ export function createMasonEngineeringFoundation(
     architecturalIntelligence,
     contextPackage,
     architectureContextPackage,
-    engineeringOpportunities,
+    engineeringMemory,
+    knowledgeContextPackage,
+    engineeringOpportunities: [...engineeringOpportunities, ...knowledgeOpportunities],
     groundedPlan,
   };
 }

@@ -1,5 +1,6 @@
 import { contextPackageIsComplete } from "./context-package";
 import type { ArchitectureContextPackage, EngineeringContextPackage, GroundedEngineeringPlan } from "./types";
+import type { KnowledgeContextPackage } from "./knowledge-types";
 
 function planId(contextId: string): string {
   return contextId.replace("mason-context-", "mason-plan-");
@@ -12,8 +13,9 @@ function approvalLevel(context: EngineeringContextPackage): GroundedEngineeringP
 export function createGroundedEngineeringPlan(
   context: EngineeringContextPackage,
   architectureContext: ArchitectureContextPackage,
+  knowledgeContext: KnowledgeContextPackage,
 ): GroundedEngineeringPlan {
-  const complete = contextPackageIsComplete(context) && architectureContext.repositoryEvidence.length > 0;
+  const complete = contextPackageIsComplete(context) && architectureContext.repositoryEvidence.length > 0 && knowledgeContext.evidence.length > 0;
   const evidencePaths = [...new Set([
     ...context.repositoryEvidence.evidenceRecords.map((record) => record.path),
     ...architectureContext.repositoryEvidence,
@@ -24,6 +26,7 @@ export function createGroundedEngineeringPlan(
       planId: planId(context.contextId),
       contextId: context.contextId,
       architectureContextId: architectureContext.contextId,
+      knowledgeContextId: knowledgeContext.contextId,
       status: "blocked_context_incomplete",
       currentState: "Repository context contains unresolved UNKNOWN evidence.",
       desiredState: context.objective,
@@ -44,6 +47,7 @@ export function createGroundedEngineeringPlan(
     planId: planId(context.contextId),
     contextId: context.contextId,
     architectureContextId: architectureContext.contextId,
+    knowledgeContextId: knowledgeContext.contextId,
     status: "ready_for_founder_review",
     currentState: `Verified repository evidence covers ${context.relatedFiles.length} related file(s), ${context.relatedTests.length} test file(s), and ${architectureContext.impactAnalysis.affectedSubsystems.length} affected subsystem(s).`,
     desiredState: context.objective,
