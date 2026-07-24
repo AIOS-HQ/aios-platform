@@ -2,6 +2,7 @@
 
 import { runMasonProductionRuntime } from "@/lib/harmony/code/mason-production-runtime";
 import type { MasonLiveFileChange } from "@/lib/harmony/code/mason-live-execution";
+import { createMasonEngineeringFoundation } from "@/lib/harmony/code/mason-engineering";
 import { retrieveMasonExecutionContext } from "@/lib/julius/mason-retrieval";
 import { writeVerifiedJuliusOutcome } from "@/lib/julius/writeback";
 import { runMasonClosedLoopExecution, type MasonClosedLoopAdapters } from "@/lib/workforce/mason-closed-loop";
@@ -299,6 +300,21 @@ export async function handleMasonEngineeringMessage(input: {
     process.env.GITHUB_DEFAULT_REPO ??
     "AIOS-HQ/aios-platform";
 
+  const engineeringFoundation = createMasonEngineeringFoundation({
+    objective: input.message,
+    repository,
+    architectureNotes: [
+      "Existing Mason execution, approval, and merge governance remains unchanged by engineering planning.",
+    ],
+    validationTargets: [
+      "npm run typecheck",
+      "npm test",
+      "npm run lint",
+      "npm run i18n:check",
+      "npm run build",
+    ],
+  });
+
   const result = await runMasonProductionRuntime({
     companyId,
     userId: input.userId,
@@ -318,7 +334,13 @@ export async function handleMasonEngineeringMessage(input: {
 
   const adapters: MasonClosedLoopAdapters = {
     retrieveContext: async () => ({ found: retrieval.status === "found", status: retrieval.status }),
-    createPlan: async () => ({ summary: `Plan for: ${input.message.slice(0, 120)}` }),
+    createPlan: async () => ({
+      summary: [
+        `Grounded plan ${engineeringFoundation.groundedPlan.status}.`,
+        `Context ${engineeringFoundation.contextPackage.contextId}.`,
+        engineeringFoundation.groundedPlan.chosenSolution,
+      ].join(" "),
+    }),
     runExecution: async () => ({ ok: true }),
     runValidation: async () => ({ ok: true }),
     planCorrection: async ({ attempt }) => ({ detail: `correction_plan_${attempt}` }),
