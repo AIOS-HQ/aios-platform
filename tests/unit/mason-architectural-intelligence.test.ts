@@ -210,12 +210,15 @@ describe("Mason V2 Architectural Intelligence", () => {
       "constitution_loaded",
       "repository_intelligence_created",
       "architectural_intelligence_created",
+      "engineering_memory_retrieved",
       "engineering_context_package_created",
       "architecture_context_package_created",
+      "knowledge_context_package_created",
       "grounded_plan_created",
     ]);
     expect(foundation.pipelineOrder).toEqual(MASON_ENGINEERING_PIPELINE_ORDER);
     expect(foundation.groundedPlan.architectureContextId).toBe(foundation.architectureContextPackage.contextId);
+    expect(foundation.groundedPlan.knowledgeContextId).toBe(foundation.knowledgeContextPackage.contextId);
     expect(foundation.engineeringOpportunities.length).toBeGreaterThan(0);
 
     const runtime = createMasonNativeRuntimePlan({ objective: "Inspect architecture", repository });

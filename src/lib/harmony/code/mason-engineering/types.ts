@@ -1,3 +1,9 @@
+import type {
+  EngineeringKnowledgeCatalog,
+  EngineeringMemoryRetrieval,
+  KnowledgeContextPackage,
+} from "./knowledge-types";
+
 export type RepositoryEvidenceKind =
   | "source"
   | "test"
@@ -228,7 +234,12 @@ export type EngineeringOpportunityCategory =
   | "reliability"
   | "developer_experience"
   | "ai_runtime"
-  | "mason_capability";
+  | "mason_capability"
+  | "missing_reusable_pattern"
+  | "missing_adr_coverage"
+  | "knowledge_gap"
+  | "validation_gap"
+  | "engineering_documentation_gap";
 
 export interface EngineeringOpportunity {
   category: EngineeringOpportunityCategory;
@@ -344,6 +355,7 @@ export interface GroundedEngineeringPlan {
   planId: string;
   contextId: string;
   architectureContextId: string;
+  knowledgeContextId: string;
   status: GroundedPlanStatus;
   currentState: string;
   desiredState: string;
@@ -369,6 +381,7 @@ export interface MasonEngineeringFoundationInput {
   historicalPatternMatches?: number;
   limits?: Partial<RepositoryIntelligenceLimits>;
   architectureEvidence?: readonly ArchitectureSubsystemEvidence[];
+  knowledgeCatalog?: EngineeringKnowledgeCatalog;
 }
 
 export interface MasonEngineeringFoundationResult {
@@ -376,8 +389,10 @@ export interface MasonEngineeringFoundationResult {
     "constitution_loaded",
     "repository_intelligence_created",
     "architectural_intelligence_created",
+    "engineering_memory_retrieved",
     "engineering_context_package_created",
     "architecture_context_package_created",
+    "knowledge_context_package_created",
     "grounded_plan_created",
   ];
   constitution: MasonEngineeringConstitution;
@@ -385,6 +400,8 @@ export interface MasonEngineeringFoundationResult {
   architecturalIntelligence: ArchitecturalIntelligence;
   contextPackage: EngineeringContextPackage;
   architectureContextPackage: ArchitectureContextPackage;
+  engineeringMemory: EngineeringMemoryRetrieval;
+  knowledgeContextPackage: KnowledgeContextPackage;
   engineeringOpportunities: EngineeringOpportunity[];
   groundedPlan: GroundedEngineeringPlan;
 }
