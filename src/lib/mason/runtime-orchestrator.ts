@@ -81,6 +81,10 @@ export interface MasonRetryPolicy {
   >;
 }
 
+export type MasonSideEffectOwnership =
+  | "orchestrator_owned"
+  | "runtime_owned";
+
 const DEFAULT_RETRY_POLICY: MasonRetryPolicy = {
   maxAttempts: 2,
   baseDelayMs: 10,
@@ -116,6 +120,7 @@ export interface MasonOrchestratorDependencies {
   ) => Promise<MasonStructuredEvidenceRecord[]>;
   updateLedger: (context: MasonExecutionContext) => Promise<void>;
   publishCompletion: (event: MasonRuntimeEvent) => Promise<void>;
+  sideEffectOwnership?: MasonSideEffectOwnership;
   rollback?: (context: MasonExecutionContext) => Promise<void>;
   retryPolicy?: MasonRetryPolicy;
   now?: () => Date;
@@ -168,9 +173,10 @@ function withState(
 export async function runMasonRuntimeOrchestrator(
   request: MasonExecutionRequest,
   dependencies: MasonOrchestratorDependencies,
-): Promise<{ context: MasonExecutionContext; events: MasonRuntimeEvent[] }> {
+): Promise<{ context: MasonExecutionContext; events: MasonRuntimeEvent[]; executePlanResult: Record<string, unknown> }> {
   const now = dependencies.now ?? (() => new Date());
   const retryPolicy = dependencies.retryPolicy ?? DEFAULT_RETRY_POLICY;
+  const sideEffectOwnership = dependencies.sideEffectOwnership ?? "orchestrator_owned";
   const executionId = dependencies.createExecutionId?.() ?? `exec-${request.requestId}`;
   let context: MasonExecutionContext = {
     executionId,
@@ -194,6 +200,7 @@ export async function runMasonRuntimeOrchestrator(
   };
 
   const events: MasonRuntimeEvent[] = [createTransition(context, null, "PENDING", "execution_request_received", "success")];
+  let executePlanResult: Record<string, unknown> = {};
 
   const transition = (
     state: MasonRuntimeState,
@@ -210,40 +217,40 @@ export async function runMasonRuntimeOrchestrator(
   const capabilityExists = await dependencies.resolveCapability(request.agent, request.capability);
   if (!capabilityExists) {
     transition("FAILED", "missing_capability", "failure");
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 
   const runtimeHealthy = await dependencies.checkRuntimeHealth();
   if (!runtimeHealthy) {
     transition("FAILED", "runtime_unavailable", "failure");
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 
   const connectorHealthy = await dependencies.checkConnectorHealth(request.capability);
   if (!connectorHealthy) {
     context = { ...context, connectorState: "unavailable" };
     transition("FAILED", "connector_unavailable", "failure");
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 
   const credentialsValid = await dependencies.checkCredentials(request.capability);
   if (!credentialsValid) {
     context = { ...context, credentialState: "invalid" };
     transition("FAILED", "credential_failure", "failure");
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 
   const governanceAllowed = await dependencies.checkGovernance(request);
   if (!governanceAllowed) {
     context = { ...context, governanceState: "rejected" };
     transition("FAILED", "governance_rejection", "failure");
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 
   if (request.requiresApproval && !request.approved) {
     context = { ...context, approvalState: "missing" };
     transition("WAITING_FOR_APPROVAL", "approval_required", "waiting");
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 
   transition("READY", "validation_complete");
@@ -259,13 +266,14 @@ export async function runMasonRuntimeOrchestrator(
     const plan = context.executionPlan;
     if (!plan) {
       transition("FAILED", "execution_plan_missing", "failure");
-      return { context, events };
+      return { context, events, executePlanResult };
     }
     let attempt = 0;
     let result: Record<string, unknown>;
     while (true) {
       try {
         result = await dependencies.executePlan(context, plan);
+        executePlanResult = result;
         break;
       } catch (error) {
         attempt += 1;
@@ -278,25 +286,29 @@ export async function runMasonRuntimeOrchestrator(
       }
     }
 
-    transition("CAPTURING_EVIDENCE", "capturing_evidence");
-    const evidence = await dependencies.captureEvidence(context, result!);
-    context = {
-      ...context,
-      evidence: [...context.evidence, ...evidence],
-    };
+    if (sideEffectOwnership === "orchestrator_owned") {
+      transition("CAPTURING_EVIDENCE", "capturing_evidence");
+      const evidence = await dependencies.captureEvidence(context, result!);
+      context = {
+        ...context,
+        evidence: [...context.evidence, ...evidence],
+      };
 
-    transition("RECORDING_LEDGER", "recording_ledger");
-    await dependencies.updateLedger(context);
+      transition("RECORDING_LEDGER", "recording_ledger");
+      await dependencies.updateLedger(context);
+    }
 
     transition("COMPLETED", "execution_completed");
-    await dependencies.publishCompletion(events[events.length - 1]);
-    return { context, events };
+    if (sideEffectOwnership === "orchestrator_owned") {
+      await dependencies.publishCompletion(events[events.length - 1]);
+    }
+    return { context, events, executePlanResult };
   } catch (error) {
     transition("FAILED", "execution_failure", "failure");
     if (dependencies.rollback) {
       await dependencies.rollback(context);
       transition("ROLLED_BACK", "rollback_completed");
     }
-    return { context, events };
+    return { context, events, executePlanResult };
   }
 }

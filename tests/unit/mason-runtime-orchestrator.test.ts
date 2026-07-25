@@ -74,6 +74,7 @@ describe("mason runtime orchestrator", () => {
       "COMPLETED",
     ]);
     expect(result.context.executionPlan?.planId).toBe("plan-1");
+    expect(result.executePlanResult).toEqual({ ok: true });
     expect(result.context.evidence[0]).toMatchObject({
       evidenceId: "ev-1",
       evidenceType: "live_runtime_proof",
@@ -140,6 +141,7 @@ describe("mason runtime orchestrator", () => {
     expect(result.context.runtimeState).toBe("COMPLETED");
     expect(executePlan).toHaveBeenCalledTimes(2);
     expect(result.events.some((event) => event.reason === "retrying_transient_failure")).toBe(true);
+    expect(result.executePlanResult).toEqual({ ok: true });
   });
 
   it("does not retry non-retryable failures", async () => {
@@ -150,6 +152,7 @@ describe("mason runtime orchestrator", () => {
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("ROLLED_BACK");
     expect(executePlan).toHaveBeenCalledTimes(1);
+    expect(result.executePlanResult).toEqual({});
   });
 
   it("fails execution and rolls back", async () => {
@@ -164,6 +167,7 @@ describe("mason runtime orchestrator", () => {
     expect(result.context.runtimeState).toBe("ROLLED_BACK");
     expect(rollback).toHaveBeenCalledTimes(1);
     expect(result.events.map((event) => event.nextState)).toContain("ROLLED_BACK");
+    expect(result.executePlanResult).toEqual({});
   });
 
   it("emits standardized event schema for transitions", async () => {
@@ -182,5 +186,68 @@ describe("mason runtime orchestrator", () => {
       result: "success",
     });
     expect(typeof event.timestamp).toBe("string");
+  });
+
+  it("runtime_owned skips captureEvidence/updateLedger/publishCompletion", async () => {
+    const captureEvidence = vi.fn(async () => ([{
+      evidenceId: "ev-runtime",
+      source: "runtime",
+      evidenceType: "live_runtime_proof",
+      confidence: 1,
+      verificationStatus: "verified" as const,
+      immutableReference: "runtime://owned",
+      capturedAt: "2026-07-25T00:00:00.000Z",
+    }]));
+    const updateLedger = vi.fn(async () => undefined);
+    const publishCompletion = vi.fn(async () => undefined);
+
+    const deps = createDeps({
+      sideEffectOwnership: "runtime_owned",
+      captureEvidence,
+      updateLedger,
+      publishCompletion,
+    });
+
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+    expect(result.context.runtimeState).toBe("COMPLETED");
+    expect(captureEvidence).not.toHaveBeenCalled();
+    expect(updateLedger).not.toHaveBeenCalled();
+    expect(publishCompletion).not.toHaveBeenCalled();
+  });
+
+  it("runtime_owned omits CAPTURING_EVIDENCE and RECORDING_LEDGER transitions", async () => {
+    const deps = createDeps({ sideEffectOwnership: "runtime_owned" });
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+
+    expect(result.context.runtimeState).toBe("COMPLETED");
+    expect(result.events.some((event) => event.nextState === "CAPTURING_EVIDENCE")).toBe(false);
+    expect(result.events.some((event) => event.nextState === "RECORDING_LEDGER")).toBe(false);
+    expect(result.events.some((event) => event.nextState === "COMPLETED")).toBe(true);
+  });
+
+  it("returns executePlanResult unchanged in runtime_owned mode", async () => {
+    const executePlanResult = {
+      status: "completed",
+      summary: "ok",
+      pullRequestUrl: "https://pr",
+      previewUrl: "https://preview",
+    };
+    const deps = createDeps({ sideEffectOwnership: "runtime_owned", executePlan: vi.fn(async () => executePlanResult) });
+
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+    expect(result.executePlanResult).toEqual(executePlanResult);
+  });
+
+  it("returns executePlanResult unchanged in orchestrator_owned mode", async () => {
+    const executePlanResult = {
+      status: "completed",
+      summary: "ok",
+      pullRequestUrl: "https://pr",
+      previewUrl: "https://preview",
+    };
+    const deps = createDeps({ executePlan: vi.fn(async () => executePlanResult) });
+
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+    expect(result.executePlanResult).toEqual(executePlanResult);
   });
 });
