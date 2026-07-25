@@ -24,6 +24,21 @@ export interface ResumeDeps {
     companyId: string | null,
     result: ExecutionResult,
   ) => Promise<ExecutionResult | null>;
+  findExecutionResultByExecutionId: (
+    userId: string,
+    companyId: string | null,
+    executionId: string,
+  ) => Promise<ExecutionResult | null>;
+  findExecutionResultByRequestId: (
+    userId: string,
+    companyId: string | null,
+    requestId: string,
+  ) => Promise<ExecutionResult | null>;
+  findExecutionResultByCorrelationId: (
+    userId: string,
+    companyId: string | null,
+    correlationId: string,
+  ) => Promise<ExecutionResult | null>;
   runConnector: (
     userId: string,
     connectorId: string,
@@ -60,6 +75,12 @@ function defaultDeps(): ResumeDeps {
       (await import("./data-access")).getApprovedApprovalPayload(userId, approvalId),
     recordExecutionResult: async (userId, companyId, result) =>
       (await import("./data-access")).recordExecutionResult(userId, companyId, result),
+    findExecutionResultByExecutionId: async (userId, companyId, executionId) =>
+      (await import("./data-access")).findExecutionResultByExecutionId(userId, companyId, executionId),
+    findExecutionResultByRequestId: async (userId, companyId, requestId) =>
+      (await import("./data-access")).findExecutionResultByRequestId(userId, companyId, requestId),
+    findExecutionResultByCorrelationId: async (userId, companyId, correlationId) =>
+      (await import("./data-access")).findExecutionResultByCorrelationId(userId, companyId, correlationId),
     runConnector: async (userId, connectorId, capabilityId, params, options) =>
       (await import("@/lib/integrations/connector-runtime")).runConnectorCapability(
         userId,
@@ -126,6 +147,75 @@ function asOptionalObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function extractExecutionIdentity(params: Record<string, unknown>): {
+  executionId: string | null;
+  requestId: string | null;
+  correlationId: string | null;
+} {
+  const taskContract = asOptionalObject(params.taskContract);
+  const executionIdentity = asOptionalObject(taskContract?.executionIdentity);
+  const context = asOptionalObject(params.context);
+
+  const executionId =
+    asNonEmptyString(params.executionId) ??
+    asNonEmptyString(params.execution_id) ??
+    asNonEmptyString(executionIdentity?.executionId) ??
+    asNonEmptyString(executionIdentity?.execution_id) ??
+    asNonEmptyString(context?.executionId) ??
+    asNonEmptyString(context?.execution_id);
+
+  const requestId =
+    asNonEmptyString(params.requestId) ??
+    asNonEmptyString(params.request_id) ??
+    asNonEmptyString(executionIdentity?.requestId) ??
+    asNonEmptyString(executionIdentity?.request_id) ??
+    asNonEmptyString(context?.requestId) ??
+    asNonEmptyString(context?.request_id);
+
+  const correlationId =
+    asNonEmptyString(params.correlationId) ??
+    asNonEmptyString(params.correlation_id) ??
+    asNonEmptyString(executionIdentity?.correlationId) ??
+    asNonEmptyString(executionIdentity?.correlation_id) ??
+    asNonEmptyString(context?.correlationId) ??
+    asNonEmptyString(context?.correlation_id);
+
+  return { executionId, requestId, correlationId };
+}
+
+function isLegacyMasonResumePayload(params: Record<string, unknown>): boolean {
+  const taskContract = asOptionalObject(params.taskContract);
+  const executionIdentity = asOptionalObject(taskContract?.executionIdentity);
+  const context = asOptionalObject(params.context);
+  const hasAnyCanonicalIdentityContainer = Boolean(taskContract) || Boolean(executionIdentity) || Boolean(context);
+  if (hasAnyCanonicalIdentityContainer) return false;
+
+  const objective = asNonEmptyString(params.objective);
+  const repository = asNonEmptyString(params.repository);
+  return Boolean(objective && repository);
+}
+
+async function findPriorCanonicalExecution(
+  d: ResumeDeps,
+  userId: string,
+  companyId: string | null,
+  identity: { executionId: string | null; requestId: string | null; correlationId: string | null },
+): Promise<ExecutionResult | null> {
+  if (identity.executionId) {
+    const existing = await d.findExecutionResultByExecutionId(userId, companyId, identity.executionId);
+    if (existing) return existing;
+  }
+  if (identity.requestId) {
+    const existing = await d.findExecutionResultByRequestId(userId, companyId, identity.requestId);
+    if (existing) return existing;
+  }
+  if (identity.correlationId) {
+    const existing = await d.findExecutionResultByCorrelationId(userId, companyId, identity.correlationId);
+    if (existing) return existing;
+  }
+  return null;
 }
 
 function parsePullRequestIdentity(params: Record<string, unknown>): {
@@ -234,6 +324,7 @@ async function recordResult(
   userId: string,
   companyId: string | null,
   approval: ApprovalPayload,
+  identity: { executionId: string | null; requestId: string | null; correlationId: string | null },
   status: ExecutionResult["status"],
   error?: ExecutionResult["error"],
   resultData?: Record<string, unknown>,
@@ -241,7 +332,9 @@ async function recordResult(
   const now = d.now();
   const rejected = status === "blocked" && error?.code === "rejected";
   const result: ExecutionResult = {
-    execution_id: executionId(),
+    execution_id: identity.executionId ?? executionId(),
+    request_id: identity.requestId ?? undefined,
+    correlation_id: identity.correlationId ?? undefined,
     agent: approval.original_agent,
     domain: approval.original_domain,
     action: approval.original_action,
@@ -283,7 +376,8 @@ export async function resumeApprovedExecution(
   // Expired approvals can never resume.
   const expiresAt = new Date(approval.expires_at).getTime();
   if (Number.isFinite(expiresAt) && expiresAt < d.now().getTime()) {
-    const result = await recordResult(d, userId, companyId, approval, "blocked", {
+    const expiredIdentity = extractExecutionIdentity((approval.original_params ?? {}) as Record<string, unknown>);
+    const result = await recordResult(d, userId, companyId, approval, expiredIdentity, "blocked", {
       code: "expired",
       message: `Approval ${approvalId} expired at ${approval.expires_at}; cannot resume.`,
       recoverable: false,
@@ -292,15 +386,39 @@ export async function resumeApprovedExecution(
   }
 
   const params = (approval.original_params ?? {}) as Record<string, unknown>;
+  const identity = extractExecutionIdentity(params);
+
+  if (
+    approval.original_agent === "mason" &&
+    !identity.executionId &&
+    !identity.requestId &&
+    !identity.correlationId &&
+    !isLegacyMasonResumePayload(params)
+  ) {
+    return {
+      ok: false,
+      error: "missing_execution_identity",
+      execution_result: undefined,
+    };
+  }
 
   const mergeValidation = validateMergeResumePayload(approval, params);
   if (!mergeValidation.ok) {
-    const result = await recordResult(d, userId, companyId, approval, "blocked", {
+    const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
       code: "invalid_merge_resume_context",
       message: mergeValidation.reason,
       recoverable: true,
     });
     return { ok: false, error: "invalid_merge_resume_context", execution_result: result ?? undefined };
+  }
+
+  const prior = await findPriorCanonicalExecution(d, userId, companyId, identity);
+  if (prior) {
+    return {
+      ok: prior.status === "completed",
+      error: prior.status === "completed" ? undefined : prior.error?.message,
+      execution_result: prior,
+    };
   }
 
   try {
@@ -323,6 +441,7 @@ export async function resumeApprovedExecution(
         userId,
         companyId,
         approval,
+        identity,
         status,
         run.ok ? undefined : { code: run.status, message: run.message, recoverable: true },
         run.data,
@@ -350,6 +469,7 @@ export async function resumeApprovedExecution(
         userId,
         companyId,
         approval,
+        identity,
         status,
         masonRes.status === "completed"
           ? undefined
@@ -377,6 +497,7 @@ export async function resumeApprovedExecution(
         userId,
         companyId,
         approval,
+        identity,
         status,
         outcome === "completed"
           ? undefined
@@ -395,7 +516,7 @@ export async function resumeApprovedExecution(
     }
 
     // No handler for this actor/agent.
-    const result = await recordResult(d, userId, companyId, approval, "blocked", {
+    const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
       code: "unsupported_agent",
       message: `No resumption handler for ${approval.original_agent}/${approval.original_domain}.`,
       recoverable: false,
@@ -403,7 +524,7 @@ export async function resumeApprovedExecution(
     return { ok: false, error: "unsupported_agent", execution_result: result ?? undefined };
   } catch (err) {
     const message = err instanceof Error ? err.message : "resume_failed";
-    const result = await recordResult(d, userId, companyId, approval, "failed", {
+    const result = await recordResult(d, userId, companyId, approval, identity, "failed", {
       code: "resume_exception",
       message,
       recoverable: true,
@@ -424,7 +545,8 @@ export async function recordRejectedExecution(
   deps: Partial<ResumeDeps> = {},
 ): Promise<ExecutionResult | null> {
   const d: ResumeDeps = { ...defaultDeps(), ...deps };
-  return recordResult(d, userId, companyId, approval, "blocked", {
+  const identity = extractExecutionIdentity((approval.original_params ?? {}) as Record<string, unknown>);
+  return recordResult(d, userId, companyId, approval, identity, "blocked", {
     code: "rejected",
     message: reason || "Founder rejected the action.",
     recoverable: false,
