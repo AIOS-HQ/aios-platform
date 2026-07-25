@@ -126,7 +126,74 @@ describe("Autonomy Execution Spine", () => {
     );
     expect(runConnector).not.toHaveBeenCalled();
     expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.request_id).toBeUndefined();
+    expect(rec.calls[0]?.correlation_id).toBeUndefined();
     expect(rec.calls[0]).toMatchObject({ status: "completed", required_approval: true, approval_id: "approval_1" });
+  });
+
+  it("persists request_id and correlation_id when supplied", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "company-1", {
+      execution_id: "exec_id_1",
+      request_id: "request_id_1",
+      correlation_id: "correlation_id_1",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.execution_id).toBe("exec_id_1");
+    expect(rec.calls[0]?.request_id).toBe("request_id_1");
+    expect(rec.calls[0]?.correlation_id).toBe("correlation_id_1");
+  });
+
+  it("persists request_id when supplied without correlation_id", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "company-1", {
+      execution_id: "exec_id_2",
+      request_id: "request_only",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls[0]?.execution_id).toBe("exec_id_2");
+    expect(rec.calls[0]?.request_id).toBe("request_only");
+    expect(rec.calls[0]?.correlation_id).toBeUndefined();
+  });
+
+  it("persists correlation_id when supplied without request_id", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "company-1", {
+      execution_id: "exec_id_3",
+      correlation_id: "correlation_only",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls[0]?.execution_id).toBe("exec_id_3");
+    expect(rec.calls[0]?.request_id).toBeUndefined();
+    expect(rec.calls[0]?.correlation_id).toBe("correlation_only");
   });
 
   it("scenario 3b — approve resumes a connector execution with approved=true", async () => {

@@ -331,6 +331,8 @@ export async function recordExecutionResult(
       user_id: userId,
       company_id: companyId,
       execution_id: result.execution_id,
+      request_id: result.request_id ?? null,
+      correlation_id: result.correlation_id ?? null,
       agent: result.agent,
       domain: result.domain,
       action: result.action,
