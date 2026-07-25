@@ -126,7 +126,74 @@ describe("Autonomy Execution Spine", () => {
     );
     expect(runConnector).not.toHaveBeenCalled();
     expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.request_id).toBeUndefined();
+    expect(rec.calls[0]?.correlation_id).toBeUndefined();
     expect(rec.calls[0]).toMatchObject({ status: "completed", required_approval: true, approval_id: "approval_1" });
+  });
+
+  it("persists request_id and correlation_id when supplied", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "company-1", {
+      execution_id: "exec_id_1",
+      request_id: "request_id_1",
+      correlation_id: "correlation_id_1",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.execution_id).toBe("exec_id_1");
+    expect(rec.calls[0]?.request_id).toBe("request_id_1");
+    expect(rec.calls[0]?.correlation_id).toBe("correlation_id_1");
+  });
+
+  it("persists request_id when supplied without correlation_id", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "company-1", {
+      execution_id: "exec_id_2",
+      request_id: "request_only",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls[0]?.execution_id).toBe("exec_id_2");
+    expect(rec.calls[0]?.request_id).toBe("request_only");
+    expect(rec.calls[0]?.correlation_id).toBeUndefined();
+  });
+
+  it("persists correlation_id when supplied without request_id", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "company-1", {
+      execution_id: "exec_id_3",
+      correlation_id: "correlation_only",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls[0]?.execution_id).toBe("exec_id_3");
+    expect(rec.calls[0]?.request_id).toBeUndefined();
+    expect(rec.calls[0]?.correlation_id).toBe("correlation_only");
   });
 
   it("scenario 3b — approve resumes a connector execution with approved=true", async () => {
@@ -316,5 +383,434 @@ describe("Autonomy Execution Spine", () => {
       status: "blocked",
       error: { code: "invalid_merge_resume_context" },
     });
+  });
+
+  it("returns prior result when duplicate executionId exists", async () => {
+    const rec = recorder();
+    const runMason = vi.fn();
+    const prior: ExecutionResult = {
+      execution_id: "exec-dup",
+      request_id: "req-dup",
+      correlation_id: "corr-dup",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+      result_data: { summary: "persisted" },
+    };
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { executionId: "exec-dup", requestId: "req-x", correlationId: "corr-x" },
+        }),
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { executionId: "exec-dup", requestId: "req-x", correlationId: "corr-x" },
+        }),
+      findExecutionResultByExecutionId: async () => prior,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(true);
+    expect(outcome.execution_result).toEqual(prior);
+    expect(runMason).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
+  });
+
+  it("probes requestId when executionId does not match", async () => {
+    const rec = recorder();
+    const runMason = vi.fn();
+    const prior: ExecutionResult = {
+      execution_id: "exec-found",
+      request_id: "req-dup",
+      correlation_id: "corr-dup",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    };
+
+    const findByExec = vi.fn(async () => null);
+    const findByReq = vi.fn(async () => prior);
+    const findByCorr = vi.fn(async () => null);
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { executionId: "exec-none", requestId: "req-dup", correlationId: "corr-dup" },
+        }),
+      findExecutionResultByExecutionId: findByExec,
+      findExecutionResultByRequestId: findByReq,
+      findExecutionResultByCorrelationId: findByCorr,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.execution_result).toEqual(prior);
+    expect(findByExec).toHaveBeenCalledTimes(1);
+    expect(findByReq).toHaveBeenCalledTimes(1);
+    expect(findByCorr).not.toHaveBeenCalled();
+    expect(runMason).not.toHaveBeenCalled();
+  });
+
+  it("probes correlationId after executionId/requestId miss", async () => {
+    const rec = recorder();
+    const runMason = vi.fn();
+    const prior: ExecutionResult = {
+      execution_id: "exec-found",
+      request_id: "req-found",
+      correlation_id: "corr-dup",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    };
+
+    const findByExec = vi.fn(async () => null);
+    const findByReq = vi.fn(async () => null);
+    const findByCorr = vi.fn(async () => prior);
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { executionId: "exec-none", requestId: "req-none", correlationId: "corr-dup" },
+        }),
+      findExecutionResultByExecutionId: findByExec,
+      findExecutionResultByRequestId: findByReq,
+      findExecutionResultByCorrelationId: findByCorr,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.execution_result).toEqual(prior);
+    expect(findByExec).toHaveBeenCalledTimes(1);
+    expect(findByReq).toHaveBeenCalledTimes(1);
+    expect(findByCorr).toHaveBeenCalledTimes(1);
+    expect(runMason).not.toHaveBeenCalled();
+  });
+
+  it("keeps compatibility for legacy Mason resume payloads with objective+repository only", async () => {
+    const rec = recorder();
+    const runMason = vi.fn(async () => ({
+      status: "completed",
+      summary: "Merged",
+      pullRequestUrl: "https://github.com/AIOS-HQ/aios-platform/pull/legacy",
+      previewUrl: null,
+    }));
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: { objective: "Open", repository: "AIOS-HQ/aios-platform" },
+        }),
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(true);
+    expect(runMason).toHaveBeenCalledTimes(1);
+    expect(rec.calls).toHaveLength(1);
+  });
+
+  it("fails closed for canonical Mason payload without required identity", async () => {
+    const rec = recorder();
+    const runMason = vi.fn();
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: {
+            objective: "Open",
+            repository: "AIOS-HQ/aios-platform",
+            taskContract: { requestedOutcome: "open_pull_request" },
+          },
+        }),
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toBe("missing_execution_identity");
+    expect(runMason).not.toHaveBeenCalled();
+    expect(rec.calls).toHaveLength(0);
+  });
+
+  it("continues normal Mason execution when identities are present and no match exists", async () => {
+    const rec = recorder();
+    const runMason = vi.fn(async () => ({
+      status: "completed",
+      summary: "Merged",
+      pullRequestUrl: "https://github.com/AIOS-HQ/aios-platform/pull/99",
+      previewUrl: null,
+    }));
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: {
+            executionId: "exec-new",
+            requestId: "req-new",
+            correlationId: "corr-new",
+            objective: "Open",
+            repository: "AIOS-HQ/aios-platform",
+          },
+        }),
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(true);
+    expect(runMason).toHaveBeenCalledTimes(1);
+    expect(rec.calls).toHaveLength(1);
+  });
+
+  it("keeps connector path behavior unchanged", async () => {
+    const rec = recorder();
+    const runConnector = vi.fn(async () => ({ ok: true, status: "executed", message: "ok" }));
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_agent: "harmony",
+          original_action: "create_issue",
+          original_params: {
+            executionId: "exec-connector",
+            requestId: "req-connector",
+            correlationId: "corr-connector",
+            connectorId: "github",
+            capabilityId: "create_issue",
+            params: { repo: "AIOS-HQ/aios-platform" },
+          },
+        }),
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runConnector,
+      runMason: vi.fn(),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(true);
+    expect(runConnector).toHaveBeenCalledTimes(1);
+    expect(rec.calls).toHaveLength(1);
+  });
+
+  it("persists explicit executionId unchanged with requestId and correlationId", async () => {
+    const rec = recorder();
+    const runMason = vi.fn(async () => ({
+      status: "completed",
+      summary: "Merged",
+      pullRequestUrl: "https://github.com/AIOS-HQ/aios-platform/pull/555",
+      previewUrl: null,
+    }));
+
+    await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: {
+            executionId: "exec-explicit",
+            requestId: "req-explicit",
+            correlationId: "corr-explicit",
+            objective: "Open",
+            repository: "AIOS-HQ/aios-platform",
+          },
+        }),
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.execution_id).toBe("exec-explicit");
+    expect(rec.calls[0]?.request_id).toBe("req-explicit");
+    expect(rec.calls[0]?.correlation_id).toBe("corr-explicit");
+  });
+
+  it("legacy non-Mason path still generates execution_id when none is supplied", async () => {
+    const rec = recorder();
+    const runConnector = vi.fn(async () => ({ ok: true, status: "executed", message: "ok" }));
+
+    await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_agent: "harmony",
+          original_action: "create_issue",
+          original_params: {
+            connectorId: "github",
+            capabilityId: "create_issue",
+            params: { repo: "AIOS-HQ/aios-platform" },
+          },
+        }),
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runConnector,
+      runMason: vi.fn(),
+      now: () => T0,
+    });
+
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.execution_id).toMatch(/^exec_/);
+  });
+
+  it("duplicate lookup can find resulting identity", async () => {
+    const rec = recorder();
+    const runMason = vi.fn(async () => ({
+      status: "completed",
+      summary: "Merged",
+      pullRequestUrl: "https://github.com/AIOS-HQ/aios-platform/pull/777",
+      previewUrl: null,
+    }));
+
+    const persisted: ExecutionResult = {
+      execution_id: "exec-dupe",
+      request_id: "req-dupe",
+      correlation_id: "corr-dupe",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    };
+
+    const first = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: {
+            executionId: "exec-dupe",
+            requestId: "req-dupe",
+            correlationId: "corr-dupe",
+            objective: "Open",
+            repository: "AIOS-HQ/aios-platform",
+          },
+        }),
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    const second = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "open_pull_request",
+          original_params: {
+            executionId: "exec-dupe",
+            requestId: "req-dupe",
+            correlationId: "corr-dupe",
+            objective: "Open",
+            repository: "AIOS-HQ/aios-platform",
+          },
+        }),
+      findExecutionResultByExecutionId: async () => persisted,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
+      recordExecutionResult: rec.fn,
+      runMason,
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(first.ok).toBe(true);
+    expect(second.execution_result?.execution_id).toBe("exec-dupe");
+    expect(second.execution_result?.request_id).toBe("req-dupe");
+    expect(second.execution_result?.correlation_id).toBe("corr-dupe");
+  });
+
+  it("keeps governance validation before prior-result lookup", async () => {
+    const rec = recorder();
+    const findByExec = vi.fn(async () => ({
+      execution_id: "exec-should-not-return",
+      request_id: "req-should-not-return",
+      correlation_id: "corr-should-not-return",
+      agent: "mason",
+      domain: "engineering",
+      action: "merge_pull_request",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_1",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    }));
+
+    const outcome = await resumeApprovedExecution("user-1", "approval_1", "company-1", {
+      getApprovedApprovalPayload: async () =>
+        payload({
+          original_action: "merge_pull_request",
+          original_params: {
+            executionId: "exec-gov",
+            requestId: "req-gov",
+            correlationId: "corr-gov",
+          },
+        }),
+      findExecutionResultByExecutionId: findByExec,
+      findExecutionResultByRequestId: vi.fn(async () => null),
+      findExecutionResultByCorrelationId: vi.fn(async () => null),
+      recordExecutionResult: rec.fn,
+      runMason: vi.fn(),
+      runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
+      now: () => T0,
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toBe("invalid_merge_resume_context");
+    expect(findByExec).not.toHaveBeenCalled();
   });
 });

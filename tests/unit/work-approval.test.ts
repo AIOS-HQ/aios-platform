@@ -39,7 +39,32 @@ describe("Work-item approval bridge (execution spine)", () => {
     expect(runWorkItem).toHaveBeenCalledWith("user-1", "wi_9");
     expect(outcome.ok).toBe(true);
     expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.request_id).toBeUndefined();
+    expect(rec.calls[0]?.correlation_id).toBeUndefined();
     expect(rec.calls[0]).toMatchObject({ status: "completed", required_approval: true });
+  });
+
+  it("preserves execution_id behavior when request/correlation ids are present", async () => {
+    const rec = recorder();
+    await rec.fn("user-1", "c1", {
+      execution_id: "exec_work_1",
+      request_id: "req_work_1",
+      correlation_id: "corr_work_1",
+      agent: "harmony",
+      domain: "operations",
+      action: "assign_work",
+      status: "completed",
+      required_approval: true,
+      approval_id: "approval_wi_x",
+      created_at: T0.toISOString(),
+      expires_at: new Date(T0.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      emitted_to: ["activity_feed", "review_queue"],
+    });
+
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]?.execution_id).toBe("exec_work_1");
+    expect(rec.calls[0]?.request_id).toBe("req_work_1");
+    expect(rec.calls[0]?.correlation_id).toBe("corr_work_1");
   });
 
   it("Review Queue label uses the work item title", async () => {

@@ -69,7 +69,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies all 44 main migrations plus both PR 450 and marketplace migrations locally", () => {
-    expect(certification).toContain("migrations.length !== 48");
+    expect(certification).toContain("migrations.length !== 49");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");

@@ -331,6 +331,8 @@ export async function recordExecutionResult(
       user_id: userId,
       company_id: companyId,
       execution_id: result.execution_id,
+      request_id: result.request_id ?? null,
+      correlation_id: result.correlation_id ?? null,
       agent: result.agent,
       domain: result.domain,
       action: result.action,
@@ -379,4 +381,74 @@ export async function listExecutionResults(
   }
 
   return (data as ExecutionResult[]) ?? [];
+}
+
+function nonEmptyIdentity(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+async function findExecutionResultByIdentity(input: {
+  userId: string;
+  companyId: string | null;
+  column: "execution_id" | "request_id" | "correlation_id";
+  value: string;
+}): Promise<ExecutionResult | null> {
+  const identity = nonEmptyIdentity(input.value);
+  if (!identity) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("execution_results")
+    .select("*")
+    .eq("user_id", input.userId)
+    .eq("company_id", input.companyId)
+    .eq(input.column, identity)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[autonomy/db] findExecutionResultBy${input.column}`, error.message);
+    return null;
+  }
+
+  return (data as ExecutionResult | null) ?? null;
+}
+
+export async function findExecutionResultByExecutionId(
+  userId: string,
+  companyId: string | null,
+  executionId: string,
+): Promise<ExecutionResult | null> {
+  return findExecutionResultByIdentity({
+    userId,
+    companyId,
+    column: "execution_id",
+    value: executionId,
+  });
+}
+
+export async function findExecutionResultByRequestId(
+  userId: string,
+  companyId: string | null,
+  requestId: string,
+): Promise<ExecutionResult | null> {
+  return findExecutionResultByIdentity({
+    userId,
+    companyId,
+    column: "request_id",
+    value: requestId,
+  });
+}
+
+export async function findExecutionResultByCorrelationId(
+  userId: string,
+  companyId: string | null,
+  correlationId: string,
+): Promise<ExecutionResult | null> {
+  return findExecutionResultByIdentity({
+    userId,
+    companyId,
+    column: "correlation_id",
+    value: correlationId,
+  });
 }

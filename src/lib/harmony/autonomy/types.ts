@@ -245,6 +245,8 @@ export interface AutonomyPolicyDecision {
  */
 export interface ExecutionResult {
   execution_id: string;
+  request_id?: string;
+  correlation_id?: string;
   agent: AutonomyAgent;
   domain: AutonomyDomain;
   action: ActionType;
