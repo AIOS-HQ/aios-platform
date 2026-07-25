@@ -5,7 +5,7 @@ import {
 } from "@/lib/evidence/certification";
 import type { EvidenceMetadata, EvidenceStatus, EvidenceType } from "@/lib/evidence/model";
 import type { RuntimeIdentity } from "@/lib/runtime-identity/model";
-import { WORKFORCE_RUNTIME_CONTRACTS } from "@/lib/workforce/certification";
+import { WORKFORCE_RUNTIME_CONTRACTS } from "@/lib/workforce/runtime-contracts";
 import {
   AIOS_WORKFORCE,
   type AiosAgentKey,
