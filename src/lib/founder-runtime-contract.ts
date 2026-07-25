@@ -7,7 +7,7 @@ export type FounderRuntimeSource =
   | "founder_reporting"
   | "unknown";
 
-export type FounderRuntimeApprovalRequirement = "required" | "not_required";
+export type FounderRuntimeApprovalRequirement = "required" | "not_required" | "unknown";
 
 export interface FounderOperationalRequest {
   requestId: string;
@@ -25,6 +25,7 @@ export interface FounderOperationalRequest {
 
 export type FounderRuntimeExecutionState =
   | "pending"
+  | "validating"
   | "waiting_for_approval"
   | "ready"
   | "executing"
@@ -87,7 +88,8 @@ function normalizeApprovalRequirement(
   requirement: FounderRuntimeConversionInput["approvalRequirement"],
 ): FounderRuntimeApprovalRequirement {
   if (requirement === "required" || requirement === true) return "required";
-  return "not_required";
+  if (requirement === "not_required" || requirement === false) return "not_required";
+  return "unknown";
 }
 
 function nowIso(): string {
@@ -112,11 +114,22 @@ export function toFounderOperationalRequest(input: FounderRuntimeConversionInput
 
 export function validateFounderOperationalRequest(request: FounderOperationalRequest):
   | { ok: true }
-  | { ok: false; error: "missing_request_id" | "missing_founder_id" | "missing_capability_id" | "missing_correlation_id" } {
+  | {
+      ok: false;
+      error:
+        | "missing_request_id"
+        | "missing_founder_id"
+        | "missing_capability_id"
+        | "missing_correlation_id"
+        | "missing_approval_requirement";
+    } {
   if (!asNonEmpty(request.requestId)) return { ok: false, error: "missing_request_id" };
   if (!asNonEmpty(request.correlationId)) return { ok: false, error: "missing_correlation_id" };
   if (!asNonEmpty(request.founderId)) return { ok: false, error: "missing_founder_id" };
   if (!asNonEmpty(request.capabilityId)) return { ok: false, error: "missing_capability_id" };
+  if (request.approvalRequirement === "unknown") {
+    return { ok: false, error: "missing_approval_requirement" };
+  }
   return { ok: true };
 }
 

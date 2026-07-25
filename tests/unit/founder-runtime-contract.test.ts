@@ -97,10 +97,105 @@ describe("founder runtime contract", () => {
       capabilityId: "runtime_contract.mason",
       approvalRequirement: false,
     });
+    const missing = toFounderOperationalRequest({
+      requestId: "req-4",
+      correlationId: "corr-4",
+      founderId: "founder-1",
+      capabilityId: "runtime_contract.mason",
+    });
+    const malformed = toFounderOperationalRequest({
+      requestId: "req-5",
+      correlationId: "corr-5",
+      founderId: "founder-1",
+      capabilityId: "runtime_contract.mason",
+      approvalRequirement: "bad-value" as "required",
+    });
 
     expect(fromBoolean.approvalRequirement).toBe("required");
     expect(fromString.approvalRequirement).toBe("required");
     expect(notRequired.approvalRequirement).toBe("not_required");
+    expect(missing.approvalRequirement).toBe("unknown");
+    expect(malformed.approvalRequirement).toBe("unknown");
+  });
+
+  it("rejects unknown approval requirement", () => {
+    const req = toFounderOperationalRequest({
+      requestId: "req-1",
+      correlationId: "corr-1",
+      founderId: "founder-1",
+      capabilityId: "runtime_contract.mason",
+    });
+    expect(validateFounderOperationalRequest(req)).toEqual({
+      ok: false,
+      error: "missing_approval_requirement",
+    });
+  });
+
+  it("accepts explicit false as not_required and explicit true as required", () => {
+    const reqFalse = toFounderOperationalRequest({
+      requestId: "req-false",
+      correlationId: "corr-false",
+      founderId: "founder-1",
+      capabilityId: "runtime_contract.mason",
+      approvalRequirement: false,
+    });
+    const reqTrue = toFounderOperationalRequest({
+      requestId: "req-true",
+      correlationId: "corr-true",
+      founderId: "founder-1",
+      capabilityId: "runtime_contract.mason",
+      approvalRequirement: true,
+    });
+
+    expect(reqFalse.approvalRequirement).toBe("not_required");
+    expect(reqTrue.approvalRequirement).toBe("required");
+    expect(validateFounderOperationalRequest(reqFalse)).toEqual({ ok: true });
+    expect(validateFounderOperationalRequest(reqTrue)).toEqual({ ok: true });
+  });
+
+  it("accepts validating state in status envelope", () => {
+    const status = createFounderRuntimeStatusEnvelope({
+      executionId: "exec-validating",
+      requestId: "req-validating",
+      correlationId: "corr-validating",
+      state: "validating",
+      approvalState: "approved",
+      governanceState: "allowed",
+      runtimeState: "healthy",
+      evidenceStatus: "pending",
+      ledgerStatus: "pending",
+    });
+    expect(status.state).toBe("validating");
+  });
+
+  it("represents all canonical orchestrator states", () => {
+    const states = [
+      "pending",
+      "validating",
+      "waiting_for_approval",
+      "ready",
+      "executing",
+      "capturing_evidence",
+      "recording_ledger",
+      "completed",
+      "failed",
+      "rolled_back",
+    ] as const;
+
+    for (const state of states) {
+      const status = createFounderRuntimeStatusEnvelope({
+        executionId: `exec-${state}`,
+        requestId: `req-${state}`,
+        correlationId: `corr-${state}`,
+        state,
+        approvalState: "approved",
+        governanceState: "allowed",
+        runtimeState: "healthy",
+        evidenceStatus: "pending",
+        ledgerStatus: "pending",
+      });
+      expect(status.state).toBe(state);
+    }
   });
 
   it("creates shared status envelope shape", () => {
