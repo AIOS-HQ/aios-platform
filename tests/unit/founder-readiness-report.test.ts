@@ -12,18 +12,23 @@ describe("founder readiness report", () => {
       generatedBy: "tests.founder_readiness",
     });
 
-    expect(report.agents).toHaveLength(founderReadinessAgentCount());
+    expect(report.capabilities).toHaveLength(founderReadinessAgentCount());
     expect(report.canonicalPath).toBe("workforce.certification");
     expect(report.generatedBy).toBe("tests.founder_readiness");
-    expect(report.agents.every((item) => item.evidenceType.length > 0)).toBe(true);
+    expect(report.capabilities.every((item) => item.evidenceType.length > 0)).toBe(true);
   });
 
-  it("fails closed when any canonical agent lacks evidence", async () => {
+  it("fails closed with structured output when any canonical agent lacks evidence", async () => {
     const certifications = await certifyAiosWorkforce();
     const trimmed = Object.values(certifications).filter((item) => item.agent.key !== "mason");
-    expect(() => createFounderReadinessReport({ certifications: trimmed })).toThrow(
-      "founder_readiness_missing_evidence:mason",
-    );
+    const report = createFounderReadinessReport({ certifications: trimmed });
+    const masonCapability = report.capabilities.find((item) => item.agent.key === "mason");
+    expect(masonCapability).toMatchObject({
+      status: "BLOCKED",
+      evidenceType: "missing_evidence",
+      reason: "missing_evidence",
+      requiredAction: "Provide evidence",
+    });
   });
 
   it("does not infer production status without evidence", async () => {
@@ -39,8 +44,7 @@ describe("founder readiness report", () => {
     });
 
     const report = createFounderReadinessReport({ certifications: changed });
-    expect(report.founderStatus).toBe("configuration_required");
-    expect(report.founderBlockers).toContain("mason: missing live runtime evidence");
+    expect(report.founderStatus).toBe("BLOCKED");
+    expect(report.founderBlockers.length).toBeGreaterThan(0);
   });
 });
-

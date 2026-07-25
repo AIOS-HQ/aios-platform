@@ -3,22 +3,30 @@ import "server-only";
 import type { AiosAgent, AiosAgentKey } from "@/lib/workforce/registry";
 import { AIOS_WORKFORCE, isFounderOnlyAgent } from "@/lib/workforce/registry";
 import {
-  WORKFORCE_STATUS_LABELS,
   type WorkforceAgentCertification,
   type WorkforceCertificationStatus,
 } from "@/lib/workforce/certification";
-import { classifyMasonEvidenceType, listMasonCapabilityRecords } from "@/lib/mason/capability-registry";
+import {
+  classifyMasonEvidenceType,
+  listMasonCapabilities,
+  type MasonCapabilityDescriptor,
+  type MasonEvidenceClass,
+} from "@/lib/mason/capability-registry";
 
-export interface FounderReadinessAgentReport {
+type FounderCapabilityStatus = "READY" | "BLOCKED" | "PARTIAL" | "OPERATIONAL_WITH_APPROVAL";
+
+export interface FounderReadinessCapabilityReport {
+  capabilityId: string;
   agent: AiosAgent;
   founderOnly: boolean;
-  status: WorkforceCertificationStatus;
-  statusLabel: string;
+  capability: MasonCapabilityDescriptor;
+  status: FounderCapabilityStatus;
   evidenceType: string;
-  evidenceClass: "simulated" | "mocked" | "source_derived" | "live";
+  evidenceClass: MasonEvidenceClass;
   observedAt: string;
   observedBy: string;
-  blockers: string[];
+  reason: string | null;
+  requiredAction: string;
 }
 
 export interface FounderReadinessReport {
@@ -26,50 +34,56 @@ export interface FounderReadinessReport {
   generatedBy: string;
   capabilityRegistryVersion: string;
   canonicalPath: "workforce.certification";
-  founderStatus: WorkforceCertificationStatus;
+  founderStatus: FounderCapabilityStatus;
   founderStatusLabel: string;
   founderBlockers: string[];
-  agents: FounderReadinessAgentReport[];
+  capabilities: FounderReadinessCapabilityReport[];
 }
 
-function toReportItem(input: WorkforceAgentCertification): FounderReadinessAgentReport {
+const FOUNDER_STATUS_LABELS: Record<FounderCapabilityStatus, string> = {
+  READY: "Ready",
+  OPERATIONAL_WITH_APPROVAL: "Operational with approval",
+  PARTIAL: "Partial",
+  BLOCKED: "Blocked",
+};
+
+function toFounderStatus(status: WorkforceCertificationStatus): FounderCapabilityStatus {
+  if (status === "production_ready") return "READY";
+  if (status === "operational_with_approval") return "OPERATIONAL_WITH_APPROVAL";
+  if (status === "partial") return "PARTIAL";
+  return "BLOCKED";
+}
+
+function toReportItem(input: WorkforceAgentCertification, capability: MasonCapabilityDescriptor): FounderReadinessCapabilityReport {
   return {
+    capabilityId: capability.capabilityId,
     agent: input.agent,
     founderOnly: isFounderOnlyAgent(input.agent.key),
-    status: input.status,
-    statusLabel: WORKFORCE_STATUS_LABELS[input.status],
+    capability,
+    status: toFounderStatus(input.status),
     evidenceType: input.evidenceType,
     evidenceClass: classifyMasonEvidenceType(input.evidenceType),
     observedAt: input.observedAt,
     observedBy: input.observedBy,
-    blockers: [...input.blockers],
+    reason: input.blockers.length > 0 ? input.blockers[0] : null,
+    requiredAction: input.blockers.length > 0 ? "Resolve blockers and provide required evidence" : capability.nextRequiredAction,
   };
 }
 
-function summarizeFounderStatus(items: FounderReadinessAgentReport[]): {
-  status: WorkforceCertificationStatus;
+function summarizeFounderStatus(items: FounderReadinessCapabilityReport[]): {
+  status: FounderCapabilityStatus;
   blockers: string[];
 } {
   const founderItems = items.filter((item) => item.founderOnly);
-  const status: WorkforceCertificationStatus = founderItems.every((item) => item.status === "production_ready")
-    ? "production_ready"
-    : founderItems.some((item) => item.status === "blocked")
-      ? "blocked"
-      : founderItems.some((item) => item.status === "configuration_required")
-        ? "configuration_required"
-        : founderItems.some((item) => item.status === "operational_with_approval")
-          ? "operational_with_approval"
-          : founderItems.some((item) => item.status === "partial")
-            ? "partial"
-            : founderItems.some((item) => item.status === "metadata_only")
-              ? "metadata_only"
-              : founderItems.some((item) => item.status === "advisory_only")
-                ? "advisory_only"
-                : founderItems.some((item) => item.status === "unsupported")
-                  ? "unsupported"
-                  : "partial";
+  const status: FounderCapabilityStatus = founderItems.every((item) => item.status === "READY")
+    ? "READY"
+    : founderItems.some((item) => item.status === "BLOCKED")
+      ? "BLOCKED"
+      : founderItems.some((item) => item.status === "OPERATIONAL_WITH_APPROVAL")
+        ? "OPERATIONAL_WITH_APPROVAL"
+        : "PARTIAL";
 
-  const blockers = founderItems.flatMap((item) => item.blockers);
+  const blockers = founderItems.map((item) => item.reason).filter((reason): reason is string => Boolean(reason));
   return {
     status,
     blockers: Array.from(new Set(blockers)),
@@ -84,14 +98,26 @@ export function createFounderReadinessReport(input: {
   const agentMap = new Map<AiosAgentKey, WorkforceAgentCertification>(
     input.certifications.map((item) => [item.agent.key, item]),
   );
-  const canonicalAgents = listMasonCapabilityRecords().map((record) => record.agentKey);
+  const canonicalCapabilities = listMasonCapabilities();
 
-  const evidenceBackedReports: FounderReadinessAgentReport[] = canonicalAgents.map((agentKey) => {
-    const certification = agentMap.get(agentKey);
+  const evidenceBackedReports: FounderReadinessCapabilityReport[] = canonicalCapabilities.map((capability) => {
+    const certification = agentMap.get(capability.agent);
     if (!certification) {
-      throw new Error(`founder_readiness_missing_evidence:${agentKey}`);
+      return {
+        capabilityId: capability.capabilityId,
+        agent: AIOS_WORKFORCE.find((agent) => agent.key === capability.agent)!,
+        founderOnly: isFounderOnlyAgent(capability.agent),
+        capability,
+        status: "BLOCKED",
+        evidenceType: "missing_evidence",
+        evidenceClass: "unknown",
+        observedAt: new Date(input.generatedAt ?? Date.now()).toISOString(),
+        observedBy: "mason.founder_readiness_report",
+        reason: "missing_evidence",
+        requiredAction: "Provide evidence",
+      };
     }
-    return toReportItem(certification);
+    return toReportItem(certification, capability);
   });
 
   const founderSummary = summarizeFounderStatus(evidenceBackedReports);
@@ -105,13 +131,12 @@ export function createFounderReadinessReport(input: {
     capabilityRegistryVersion: "1.0",
     canonicalPath: "workforce.certification",
     founderStatus: founderSummary.status,
-    founderStatusLabel: WORKFORCE_STATUS_LABELS[founderSummary.status],
+    founderStatusLabel: FOUNDER_STATUS_LABELS[founderSummary.status],
     founderBlockers: founderSummary.blockers,
-    agents: evidenceBackedReports,
+    capabilities: evidenceBackedReports,
   };
 }
 
 export function founderReadinessAgentCount(): number {
   return AIOS_WORKFORCE.length;
 }
-

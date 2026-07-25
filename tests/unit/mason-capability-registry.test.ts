@@ -16,6 +16,10 @@ describe("mason capability registry", () => {
       expect(record.agentKey).toBe(agent.key);
       expect(Array.isArray(record.connectors)).toBe(true);
       expect(record.runtime.key).toBe(agent.key);
+      expect(record.capabilities[0]).toMatchObject({
+        capabilityId: `runtime_contract.${agent.key}`,
+        agent: agent.key,
+      });
     }
   });
 
@@ -25,7 +29,7 @@ describe("mason capability registry", () => {
     expect(classifyMasonEvidenceType("configuration_proof")).toBe("source_derived");
     expect(classifyMasonEvidenceType("source_code_proof")).toBe("source_derived");
     expect(classifyMasonEvidenceType("unknown")).toBe("simulated");
-    expect(classifyMasonEvidenceType("mystery")).toBe("mocked");
+    expect(classifyMasonEvidenceType("mock_proof")).toBe("mocked");
+    expect(classifyMasonEvidenceType("mystery")).toBe("unknown");
   });
 });
-
