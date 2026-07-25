@@ -23,9 +23,32 @@ function createDeps(overrides: Partial<MasonOrchestratorDependencies> = {}): Mas
     checkConnectorHealth: vi.fn(async () => true),
     checkCredentials: vi.fn(async () => true),
     checkGovernance: vi.fn(async () => true),
-    generatePlan: vi.fn(async () => ["step-1", "step-2"]),
+    generatePlan: vi.fn(async () => ({
+      planId: "plan-1",
+      intent: "execute runtime capability",
+      capability: "runtime_contract.mason",
+      requestedAction: "execute",
+      preconditions: ["capability_exists"],
+      governanceChecks: ["governance_allowed"],
+      approvalChecks: ["founder_approval"],
+      connectorRequirements: ["github"],
+      credentialRequirements: ["github_credentials"],
+      executionSteps: ["step-1", "step-2"],
+      rollbackPlan: ["rollback-step"],
+      successCriteria: ["completed"],
+      evidenceRequirements: ["runtime_proof"],
+      generatedAt: "2026-07-25T00:00:00.000Z",
+    })),
     executePlan: vi.fn(async () => ({ ok: true })),
-    captureEvidence: vi.fn(async () => ({ proof: "ok" })),
+    captureEvidence: vi.fn(async () => ([{
+      evidenceId: "ev-1",
+      source: "runtime",
+      evidenceType: "live_runtime_proof",
+      confidence: 1,
+      verificationStatus: "verified",
+      immutableReference: "ledger://entry/1",
+      capturedAt: "2026-07-25T00:00:00.000Z",
+    }])),
     updateLedger: vi.fn(async () => undefined),
     publishCompletion: vi.fn(async () => undefined),
     rollback: vi.fn(async () => undefined),
@@ -41,7 +64,7 @@ describe("mason runtime orchestrator", () => {
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
 
     expect(result.context.runtimeState).toBe("COMPLETED");
-    expect(result.events.map((event) => event.state)).toEqual([
+    expect(result.events.map((event) => event.nextState)).toEqual([
       "PENDING",
       "VALIDATING",
       "READY",
@@ -50,6 +73,12 @@ describe("mason runtime orchestrator", () => {
       "RECORDING_LEDGER",
       "COMPLETED",
     ]);
+    expect(result.context.executionPlan?.planId).toBe("plan-1");
+    expect(result.context.evidence[0]).toMatchObject({
+      evidenceId: "ev-1",
+      evidenceType: "live_runtime_proof",
+      immutableReference: "ledger://entry/1",
+    });
   });
 
   it("moves to waiting_for_approval when Founder approval is required", async () => {
@@ -60,21 +89,21 @@ describe("mason runtime orchestrator", () => {
     );
 
     expect(result.context.runtimeState).toBe("WAITING_FOR_APPROVAL");
-    expect(result.events.at(-1)?.state).toBe("WAITING_FOR_APPROVAL");
+    expect(result.events.at(-1)?.nextState).toBe("WAITING_FOR_APPROVAL");
   });
 
   it("fails when capability is missing", async () => {
     const deps = createDeps({ resolveCapability: vi.fn(async () => false) });
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("FAILED");
-    expect(result.events.at(-1)?.metadata?.reason).toBe("missing_capability");
+    expect(result.events.at(-1)?.reason).toBe("missing_capability");
   });
 
   it("fails when runtime is unavailable", async () => {
     const deps = createDeps({ checkRuntimeHealth: vi.fn(async () => false) });
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("FAILED");
-    expect(result.events.at(-1)?.metadata?.reason).toBe("runtime_unavailable");
+    expect(result.events.at(-1)?.reason).toBe("runtime_unavailable");
   });
 
   it("fails when connector is unavailable", async () => {
@@ -82,7 +111,7 @@ describe("mason runtime orchestrator", () => {
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("FAILED");
     expect(result.context.connectorState).toBe("unavailable");
-    expect(result.events.at(-1)?.metadata?.reason).toBe("connector_unavailable");
+    expect(result.events.at(-1)?.reason).toBe("connector_unavailable");
   });
 
   it("fails when credential verification fails", async () => {
@@ -90,7 +119,7 @@ describe("mason runtime orchestrator", () => {
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("FAILED");
     expect(result.context.credentialState).toBe("invalid");
-    expect(result.events.at(-1)?.metadata?.reason).toBe("credential_failure");
+    expect(result.events.at(-1)?.reason).toBe("credential_failure");
   });
 
   it("fails when governance rejects execution", async () => {
@@ -98,7 +127,29 @@ describe("mason runtime orchestrator", () => {
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("FAILED");
     expect(result.context.governanceState).toBe("rejected");
-    expect(result.events.at(-1)?.metadata?.reason).toBe("governance_rejection");
+    expect(result.events.at(-1)?.reason).toBe("governance_rejection");
+  });
+
+  it("retries transient execution failures based on policy", async () => {
+    const executePlan = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network_interruption"))
+      .mockResolvedValueOnce({ ok: true });
+    const deps = createDeps({ executePlan, retryPolicy: { maxAttempts: 2, baseDelayMs: 1, retryableReasons: ["network_interruption"] } });
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+    expect(result.context.runtimeState).toBe("COMPLETED");
+    expect(executePlan).toHaveBeenCalledTimes(2);
+    expect(result.events.some((event) => event.reason === "retrying_transient_failure")).toBe(true);
+  });
+
+  it("does not retry non-retryable failures", async () => {
+    const executePlan = vi
+      .fn()
+      .mockRejectedValue(new Error("policy_violation"));
+    const deps = createDeps({ executePlan, retryPolicy: { maxAttempts: 2, baseDelayMs: 1, retryableReasons: ["network_interruption"] } });
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+    expect(result.context.runtimeState).toBe("ROLLED_BACK");
+    expect(executePlan).toHaveBeenCalledTimes(1);
   });
 
   it("fails execution and rolls back", async () => {
@@ -112,7 +163,24 @@ describe("mason runtime orchestrator", () => {
     const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
     expect(result.context.runtimeState).toBe("ROLLED_BACK");
     expect(rollback).toHaveBeenCalledTimes(1);
-    expect(result.events.map((event) => event.state)).toContain("ROLLED_BACK");
+    expect(result.events.map((event) => event.nextState)).toContain("ROLLED_BACK");
+  });
+
+  it("emits standardized event schema for transitions", async () => {
+    const deps = createDeps();
+    const result = await runMasonRuntimeOrchestrator(baseRequest, deps);
+    const event = result.events[0];
+    expect(event).toMatchObject({
+      executionId: "exec-1",
+      correlationId: "req-1",
+      previousState: null,
+      nextState: "PENDING",
+      reason: "execution_request_received",
+      actor: "founder-1",
+      agent: "mason",
+      capability: "runtime_contract.mason",
+      result: "success",
+    });
+    expect(typeof event.timestamp).toBe("string");
   });
 });
-

@@ -14,11 +14,42 @@ export type MasonRuntimeState =
 
 export interface MasonRuntimeEvent {
   executionId: string;
-  requestId: string;
-  state: MasonRuntimeState;
-  at: string;
-  message: string;
-  metadata?: Record<string, unknown>;
+  correlationId: string;
+  previousState: MasonRuntimeState | null;
+  nextState: MasonRuntimeState;
+  reason: string;
+  actor: string;
+  agent: string;
+  capability: string;
+  timestamp: string;
+  result: "success" | "failure" | "waiting" | "retrying";
+}
+
+export interface MasonStructuredEvidenceRecord {
+  evidenceId: string;
+  source: string;
+  evidenceType: string;
+  confidence: number;
+  verificationStatus: "verified" | "unverified" | "pending";
+  immutableReference: string;
+  capturedAt: string;
+}
+
+export interface MasonExecutionPlan {
+  planId: string;
+  intent: string;
+  capability: string;
+  requestedAction: string;
+  preconditions: string[];
+  governanceChecks: string[];
+  approvalChecks: string[];
+  connectorRequirements: string[];
+  credentialRequirements: string[];
+  executionSteps: string[];
+  rollbackPlan: string[];
+  successCriteria: string[];
+  evidenceRequirements: string[];
+  generatedAt: string;
 }
 
 export interface MasonExecutionContext {
@@ -33,14 +64,33 @@ export interface MasonExecutionContext {
   connectorState: "healthy" | "unavailable";
   credentialState: "valid" | "invalid";
   runtimeState: MasonRuntimeState;
-  executionPlan: string[];
-  evidence: Array<Record<string, unknown>>;
+  executionPlan: MasonExecutionPlan | null;
+  evidence: MasonStructuredEvidenceRecord[];
   timestamps: {
     createdAt: string;
     updatedAt: string;
     completedAt: string | null;
   };
 }
+
+export interface MasonRetryPolicy {
+  maxAttempts: number;
+  baseDelayMs: number;
+  retryableReasons: Array<
+    "connector_timeout" | "runtime_temporarily_unavailable" | "network_interruption" | "rate_limited"
+  >;
+}
+
+const DEFAULT_RETRY_POLICY: MasonRetryPolicy = {
+  maxAttempts: 2,
+  baseDelayMs: 10,
+  retryableReasons: [
+    "connector_timeout",
+    "runtime_temporarily_unavailable",
+    "network_interruption",
+    "rate_limited",
+  ],
+};
 
 export interface MasonExecutionRequest {
   requestId: string;
@@ -58,12 +108,16 @@ export interface MasonOrchestratorDependencies {
   checkConnectorHealth: (capability: string) => Promise<boolean>;
   checkCredentials: (capability: string) => Promise<boolean>;
   checkGovernance: (request: MasonExecutionRequest) => Promise<boolean>;
-  generatePlan: (request: MasonExecutionRequest) => Promise<string[]>;
-  executePlan: (context: MasonExecutionContext) => Promise<Record<string, unknown>>;
-  captureEvidence: (context: MasonExecutionContext, executionResult: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  generatePlan: (request: MasonExecutionRequest) => Promise<MasonExecutionPlan>;
+  executePlan: (context: MasonExecutionContext, plan: MasonExecutionPlan) => Promise<Record<string, unknown>>;
+  captureEvidence: (
+    context: MasonExecutionContext,
+    executionResult: Record<string, unknown>,
+  ) => Promise<MasonStructuredEvidenceRecord[]>;
   updateLedger: (context: MasonExecutionContext) => Promise<void>;
   publishCompletion: (event: MasonRuntimeEvent) => Promise<void>;
   rollback?: (context: MasonExecutionContext) => Promise<void>;
+  retryPolicy?: MasonRetryPolicy;
   now?: () => Date;
   createExecutionId?: () => string;
 }
@@ -74,17 +128,22 @@ function toIso(now: Date): string {
 
 function createTransition(
   context: MasonExecutionContext,
-  state: MasonRuntimeState,
-  message: string,
-  metadata?: Record<string, unknown>,
+  previousState: MasonRuntimeState | null,
+  nextState: MasonRuntimeState,
+  reason: string,
+  result: "success" | "failure" | "waiting" | "retrying",
 ): MasonRuntimeEvent {
   return {
     executionId: context.executionId,
-    requestId: context.requestId,
-    state,
-    at: context.timestamps.updatedAt,
-    message,
-    metadata,
+    correlationId: context.requestId,
+    previousState,
+    nextState,
+    reason,
+    actor: context.actor,
+    agent: context.agent,
+    capability: context.capability,
+    timestamp: context.timestamps.updatedAt,
+    result,
   };
 }
 
@@ -111,6 +170,7 @@ export async function runMasonRuntimeOrchestrator(
   dependencies: MasonOrchestratorDependencies,
 ): Promise<{ context: MasonExecutionContext; events: MasonRuntimeEvent[] }> {
   const now = dependencies.now ?? (() => new Date());
+  const retryPolicy = dependencies.retryPolicy ?? DEFAULT_RETRY_POLICY;
   const executionId = dependencies.createExecutionId?.() ?? `exec-${request.requestId}`;
   let context: MasonExecutionContext = {
     executionId,
@@ -124,7 +184,7 @@ export async function runMasonRuntimeOrchestrator(
     connectorState: "healthy",
     credentialState: "valid",
     runtimeState: "PENDING",
-    executionPlan: [],
+    executionPlan: null,
     evidence: [],
     timestamps: {
       createdAt: toIso(now()),
@@ -133,89 +193,110 @@ export async function runMasonRuntimeOrchestrator(
     },
   };
 
-  const events: MasonRuntimeEvent[] = [createTransition(context, "PENDING", "Execution request received")];
+  const events: MasonRuntimeEvent[] = [createTransition(context, null, "PENDING", "execution_request_received", "success")];
 
-  const transition = (state: MasonRuntimeState, message: string, metadata?: Record<string, unknown>) => {
+  const transition = (
+    state: MasonRuntimeState,
+    reason: string,
+    result: "success" | "failure" | "waiting" | "retrying" = "success",
+  ) => {
+    const previousState = context.runtimeState;
     context = withState(context, state, now());
-    events.push(createTransition(context, state, message, metadata));
+    events.push(createTransition(context, previousState, state, reason, result));
   };
 
-  transition("VALIDATING", "Starting validation pipeline");
+  transition("VALIDATING", "validation_started");
 
   const capabilityExists = await dependencies.resolveCapability(request.agent, request.capability);
   if (!capabilityExists) {
-    transition("FAILED", "Capability not found", { reason: "missing_capability" });
+    transition("FAILED", "missing_capability", "failure");
     return { context, events };
   }
 
   const runtimeHealthy = await dependencies.checkRuntimeHealth();
   if (!runtimeHealthy) {
-    transition("FAILED", "Runtime unavailable", { reason: "runtime_unavailable" });
+    transition("FAILED", "runtime_unavailable", "failure");
     return { context, events };
   }
 
   const connectorHealthy = await dependencies.checkConnectorHealth(request.capability);
   if (!connectorHealthy) {
     context = { ...context, connectorState: "unavailable" };
-    transition("FAILED", "Connector unavailable", { reason: "connector_unavailable" });
+    transition("FAILED", "connector_unavailable", "failure");
     return { context, events };
   }
 
   const credentialsValid = await dependencies.checkCredentials(request.capability);
   if (!credentialsValid) {
     context = { ...context, credentialState: "invalid" };
-    transition("FAILED", "Credential verification failed", { reason: "credential_failure" });
+    transition("FAILED", "credential_failure", "failure");
     return { context, events };
   }
 
   const governanceAllowed = await dependencies.checkGovernance(request);
   if (!governanceAllowed) {
     context = { ...context, governanceState: "rejected" };
-    transition("FAILED", "Governance rejected execution", { reason: "governance_rejection" });
+    transition("FAILED", "governance_rejection", "failure");
     return { context, events };
   }
 
   if (request.requiresApproval && !request.approved) {
     context = { ...context, approvalState: "missing" };
-    transition("WAITING_FOR_APPROVAL", "Founder approval required", { reason: "approval_required" });
+    transition("WAITING_FOR_APPROVAL", "approval_required", "waiting");
     return { context, events };
   }
 
-  transition("READY", "Validation complete; execution ready");
+  transition("READY", "validation_complete");
 
   context = {
     ...context,
     executionPlan: await dependencies.generatePlan(request),
   };
 
-  transition("EXECUTING", "Executing runtime plan", { steps: context.executionPlan.length });
+  transition("EXECUTING", "execution_started");
 
   try {
-    const result = await dependencies.executePlan(context);
+    const plan = context.executionPlan;
+    if (!plan) {
+      transition("FAILED", "execution_plan_missing", "failure");
+      return { context, events };
+    }
+    let attempt = 0;
+    let result: Record<string, unknown>;
+    while (true) {
+      try {
+        result = await dependencies.executePlan(context, plan);
+        break;
+      } catch (error) {
+        attempt += 1;
+        const reason = error instanceof Error ? error.message : String(error);
+        const retryable = retryPolicy.retryableReasons.includes(reason as MasonRetryPolicy["retryableReasons"][number]);
+        if (!retryable || attempt > retryPolicy.maxAttempts) {
+          throw error;
+        }
+        transition("EXECUTING", "retrying_transient_failure", "retrying");
+      }
+    }
 
-    transition("CAPTURING_EVIDENCE", "Capturing execution evidence");
-    const evidence = await dependencies.captureEvidence(context, result);
+    transition("CAPTURING_EVIDENCE", "capturing_evidence");
+    const evidence = await dependencies.captureEvidence(context, result!);
     context = {
       ...context,
-      evidence: [...context.evidence, evidence],
+      evidence: [...context.evidence, ...evidence],
     };
 
-    transition("RECORDING_LEDGER", "Recording execution outcome to ledger");
+    transition("RECORDING_LEDGER", "recording_ledger");
     await dependencies.updateLedger(context);
 
-    transition("COMPLETED", "Execution completed successfully");
+    transition("COMPLETED", "execution_completed");
     await dependencies.publishCompletion(events[events.length - 1]);
     return { context, events };
   } catch (error) {
-    transition("FAILED", "Execution failed", {
-      reason: "execution_failure",
-      error: error instanceof Error ? error.message : String(error),
-    });
+    transition("FAILED", "execution_failure", "failure");
     if (dependencies.rollback) {
       await dependencies.rollback(context);
-      transition("ROLLED_BACK", "Rollback completed");
+      transition("ROLLED_BACK", "rollback_completed");
     }
     return { context, events };
   }
 }
-
