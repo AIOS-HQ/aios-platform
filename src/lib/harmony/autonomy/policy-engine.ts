@@ -25,6 +25,11 @@ import type {
   AutonomyAuditMetadata,
 } from "./types";
 import { DEFAULT_APPROVAL_SLAS } from "./types";
+import { resolveMasonCapability } from "@/lib/harmony/autonomy/mason-integration";
+import {
+  validateFounderOperationalRequest,
+  type FounderOperationalRequest,
+} from "@/lib/founder-runtime-contract";
 import { actionRiskClass, requiresApprovalOrHigher, isDestructive } from "./risk-mapping";
 import {
   canExecuteRoutineAtLevel,
@@ -203,6 +208,7 @@ export function evaluateAutonomyPolicy(request: AutonomyPolicyRequest): Autonomy
 function buildApprovalPayload(request: AutonomyPolicyRequest): ApprovalPayload {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 72 * 60 * 60 * 1000); // 72 hours
+  const founderRuntimeRequest = buildFounderRuntimeRequest(request, now);
 
   return {
     approval_id: `approval_${Date.now()}_${Math.random().toString(36).substring(7)}`,
@@ -212,9 +218,86 @@ function buildApprovalPayload(request: AutonomyPolicyRequest): ApprovalPayload {
     original_action: request.action,
     original_params: request.params ?? {},
     required_context: request.params?.context ?? {},
+    ...(founderRuntimeRequest ? { founderRuntimeRequest } : {}),
     created_at: now.toISOString(),
     expires_at: expiresAt.toISOString(),
   };
+}
+
+function buildFounderRuntimeRequest(
+  request: AutonomyPolicyRequest,
+  createdAt: Date,
+): FounderOperationalRequest | undefined {
+  if (request.agent !== "mason" || request.actor !== "harmony" || request.domain !== "engineering") {
+    return undefined;
+  }
+
+  const taskContract = request.params?.taskContract as
+    | {
+        requestedOutcome?: unknown;
+        objective?: unknown;
+        executionIdentity?: { requestId?: unknown; executionId?: unknown; correlationId?: unknown };
+      }
+    | undefined;
+  if (!taskContract) {
+    return undefined;
+  }
+
+  const requestedOutcome = taskContract.requestedOutcome;
+  const resolution = resolveMasonCapability(requestedOutcome);
+  if (resolution.status === "non_execution") {
+    return undefined;
+  }
+  if (resolution.status !== "executable") {
+    throw new Error("Mason executable approval requires an executable capability resolution");
+  }
+
+  const requestId =
+    typeof taskContract.executionIdentity?.requestId === "string" && taskContract.executionIdentity.requestId.trim()
+      ? taskContract.executionIdentity.requestId.trim()
+      : typeof taskContract.executionIdentity?.executionId === "string"
+        ? taskContract.executionIdentity.executionId.trim()
+        : "";
+  if (!requestId) {
+    throw new Error("Mason executable approval requires executionIdentity.requestId");
+  }
+
+  const correlationId = typeof taskContract.executionIdentity?.correlationId === "string"
+    ? taskContract.executionIdentity.correlationId.trim()
+    : "";
+  if (!correlationId) {
+    throw new Error("Mason executable approval requires executionIdentity.correlationId");
+  }
+
+  const founderId = typeof (request.params as { executionIdentity?: { userId?: unknown } } | undefined)?.executionIdentity?.userId === "string"
+    ? (
+        ((request.params as { executionIdentity?: { userId?: string } }).executionIdentity?.userId ?? "").trim()
+      )
+    : "";
+  if (!founderId) {
+    throw new Error("Mason executable approval requires policy-flow userId");
+  }
+
+  const intent = typeof taskContract.objective === "string" ? taskContract.objective : "";
+  const founderRequest: FounderOperationalRequest = {
+    requestId,
+    correlationId,
+    founderId,
+    source: "approval_center",
+    intent,
+    requestedAction: String(requestedOutcome),
+    targetAgent: "mason",
+    capabilityId: resolution.capabilityId,
+    payload: request.params ?? {},
+    approvalRequirement: "required",
+    submittedAt: createdAt.toISOString(),
+  };
+
+  const validation = validateFounderOperationalRequest(founderRequest);
+  if (!validation.ok) {
+    throw new Error(`FounderOperationalRequest validation failed: ${validation.error}`);
+  }
+  return founderRequest;
 }
 
 /**
