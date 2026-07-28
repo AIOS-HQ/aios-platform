@@ -21,6 +21,82 @@ import type {
 } from "./types";
 import type { MasonEngineeringTaskContract } from "@/lib/harmony/code/mason-engineering-task";
 
+export type MasonRequestedOutcome = MasonEngineeringTaskContract["requestedOutcome"];
+
+export type MasonCapabilityResolution =
+  | {
+      status: "executable";
+      outcome: Exclude<MasonRequestedOutcome, "plan_only">;
+      capabilityId: string;
+    }
+  | {
+      status: "non_execution";
+      outcome: "plan_only";
+      reason: "planning_only";
+    }
+  | {
+      status: "blocked";
+      outcome: MasonRequestedOutcome | "unknown";
+      reason: "unknown_outcome" | "capability_not_found";
+      capabilityId?: string;
+    };
+
+const MASON_OUTCOME_TO_CAPABILITY: Readonly<Record<Exclude<MasonRequestedOutcome, "plan_only">, string>> = {
+  create_issue: "github.issue.create",
+  create_branch: "github.branch.create",
+  commit_changes: "github.commit.create",
+  open_pull_request: "github.pull_request.open",
+};
+
+function hasCapabilityRecord(capabilityId: string): boolean {
+  const known = new Set<string>([
+    "github.issue.create",
+    "github.branch.create",
+    "github.commit.create",
+    "github.pull_request.open",
+  ]);
+  return known.has(capabilityId);
+}
+
+export function resolveMasonCapability(outcome: unknown): MasonCapabilityResolution {
+  if (outcome === "plan_only") {
+    return {
+      status: "non_execution",
+      outcome: "plan_only",
+      reason: "planning_only",
+    };
+  }
+
+  if (
+    outcome !== "create_issue" &&
+    outcome !== "create_branch" &&
+    outcome !== "commit_changes" &&
+    outcome !== "open_pull_request"
+  ) {
+    return {
+      status: "blocked",
+      outcome: "unknown",
+      reason: "unknown_outcome",
+    };
+  }
+
+  const capabilityId = MASON_OUTCOME_TO_CAPABILITY[outcome];
+  if (!hasCapabilityRecord(capabilityId)) {
+    return {
+      status: "blocked",
+      outcome,
+      reason: "capability_not_found",
+      capabilityId,
+    };
+  }
+
+  return {
+    status: "executable",
+    outcome,
+    capabilityId,
+  };
+}
+
 export interface MasonExecutionGovernanceContext {
   taskContract: MasonEngineeringTaskContract;
 }
