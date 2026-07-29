@@ -5,6 +5,18 @@ import { getCompany } from "@/lib/data/os/companies";
 import type { ProbeScope, RuntimeProbeResult } from "@/lib/runtime/probes/types";
 
 const SECRET_PATTERN = /(token|secret|password|credential|authorization|cookie|bearer|refresh)/i;
+const STACK_PATTERN = /\b(at\s+[^\n]+\(|Error:\s|\n\s*at\s+)/i;
+const UNIX_PATH_PATTERN = /\/(Users|home|var|tmp|private|opt|etc)\/[\w./-]+/;
+const WIN_PATH_PATTERN = /[A-Za-z]:\\[\w .\\/-]+/;
+
+function hasInfrastructureDetail(input: string): boolean {
+  return (
+    STACK_PATTERN.test(input) ||
+    UNIX_PATH_PATTERN.test(input) ||
+    WIN_PATH_PATTERN.test(input) ||
+    /[\r\n]/.test(input)
+  );
+}
 
 export class ProbeAuthorizationError extends Error {
   code: "unauthorized" | "forbidden";
@@ -38,6 +50,9 @@ export function sanitizeProbeReason(reason: string | undefined): string | undefi
   if (!compact) return undefined;
   if (SECRET_PATTERN.test(compact)) {
     return "Probe source failed with a restricted error payload.";
+  }
+  if (hasInfrastructureDetail(compact) || hasInfrastructureDetail(reason)) {
+    return "Probe source failed with redacted internal diagnostics.";
   }
   return compact.length > 240 ? `${compact.slice(0, 240)}…` : compact;
 }

@@ -53,4 +53,36 @@ describe("runtime probe auth/scope hardening", () => {
     expect(safe.recommendedAction).toBe("Review source diagnostics in authorized tools.");
     expect(safe.evidence[0]?.ref).toBe("[redacted]");
   });
+
+  it("sanitizes JavaScript stack traces", async () => {
+    const { sanitizeProbeReason } = await import("@/lib/runtime/probes/auth");
+    const value = sanitizeProbeReason("Error: boom\\n    at run (/app/src/file.ts:10:4)");
+    expect(value).toBe("Probe source failed with redacted internal diagnostics.");
+  });
+
+  it("sanitizes Node stack traces", async () => {
+    const { sanitizeProbeReason } = await import("@/lib/runtime/probes/auth");
+    const value = sanitizeProbeReason("TypeError: x\\n    at Module._compile (node:internal/modules/cjs/loader:1234:1)");
+    expect(value).toBe("Probe source failed with redacted internal diagnostics.");
+  });
+
+  it("sanitizes unix/macOS paths", async () => {
+    const { sanitizeProbeReason } = await import("@/lib/runtime/probes/auth");
+    const value = sanitizeProbeReason("failed at /Users/alex/project/src/runtime.ts");
+    expect(value).toBe("Probe source failed with redacted internal diagnostics.");
+  });
+
+  it("sanitizes windows paths", async () => {
+    const { sanitizeProbeReason } = await import("@/lib/runtime/probes/auth");
+    const value = sanitizeProbeReason("failed at C:\\repo\\project\\src\\runtime.ts");
+    expect(value).toBe("Probe source failed with redacted internal diagnostics.");
+  });
+
+  it("sanitizes multiline exception dumps", async () => {
+    const { sanitizeProbeReason } = await import("@/lib/runtime/probes/auth");
+    const value = sanitizeProbeReason(`line1
+line2
+line3`);
+    expect(value).toBe("Probe source failed with redacted internal diagnostics.");
+  });
 });

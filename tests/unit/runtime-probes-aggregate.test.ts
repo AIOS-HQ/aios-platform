@@ -6,12 +6,23 @@ import {
   type RuntimeProbeAdapters,
 } from "@/lib/runtime/probes/aggregate";
 import type { ProbeScope, RuntimeProbeResult } from "@/lib/runtime/probes/types";
+import type { ProbeAuthorizationError } from "@/lib/runtime/probes/auth";
 
 vi.mock("@/lib/runtime/probes/auth", () => ({
   authorizeProbeScope: vi.fn(async (scope) => scope),
   sanitizeProbe: vi.fn((p) => p),
   sanitizeProbeReason: vi.fn((r) => r),
+  ProbeAuthorizationError: class extends Error {
+    code: "unauthorized" | "forbidden";
+    constructor(code: "unauthorized" | "forbidden", message: string) {
+      super(message);
+      this.code = code;
+      this.name = "ProbeAuthorizationError";
+    }
+  },
 }));
+
+const authModule = await import("@/lib/runtime/probes/auth");
 
 const scope: ProbeScope = { userId: "u1", companyId: "c1" };
 
@@ -132,6 +143,22 @@ describe("runtime probe aggregation", () => {
       adaptersWith({ runtimeExecutionProbe: probe({ scope: wrong }) }),
     );
     expect(probes.find((p) => p.source === "runtime_execution")?.scope).toEqual(scope);
+  });
+
+  it("rejects unauthenticated access at public entrypoint", async () => {
+    vi.mocked(authModule.authorizeProbeScope).mockRejectedValueOnce(
+      new (authModule.ProbeAuthorizationError as typeof ProbeAuthorizationError)("unauthorized", "No active session."),
+    );
+
+    await expect(listRuntimeProbes(scope, adaptersWith({}))).rejects.toBeInstanceOf(authModule.ProbeAuthorizationError);
+  });
+
+  it("rejects inaccessible company scope at public entrypoint", async () => {
+    vi.mocked(authModule.authorizeProbeScope).mockRejectedValueOnce(
+      new (authModule.ProbeAuthorizationError as typeof ProbeAuthorizationError)("forbidden", "Company is not accessible for the authenticated user."),
+    );
+
+    await expect(getRuntimeProbeSummary(scope, adaptersWith({}))).rejects.toBeInstanceOf(authModule.ProbeAuthorizationError);
   });
 
   it("handles adapter failures explicitly as unavailable unknown probes", async () => {
