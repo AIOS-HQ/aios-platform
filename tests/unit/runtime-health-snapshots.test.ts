@@ -20,8 +20,11 @@ function makeSummary(scope: ProbeScope, generatedAt: string): RuntimeProbeSummar
 
 describe("runtime health snapshots", () => {
   it("builds deterministic cache keys", () => {
-    expect(cacheKeyForScope({ userId: "u", companyId: null })).toBe("u:none");
-    expect(cacheKeyForScope({ userId: "u", companyId: "c" })).toBe("u:c");
+    expect(cacheKeyForScope({ userId: "u", companyId: null })).toBe('["u",null]');
+    expect(cacheKeyForScope({ userId: "u", companyId: "c" })).toBe('["u","c"]');
+    expect(cacheKeyForScope({ userId: "u:1", companyId: "none" })).not.toBe(
+      cacheKeyForScope({ userId: "u", companyId: "1:none" }),
+    );
   });
 
   it("creates snapshot on cache miss and reuses on cache hit", async () => {
@@ -108,6 +111,74 @@ describe("runtime health snapshots", () => {
     const [s1, s2] = await Promise.all([p1, p2]);
     expect(getSummary).toHaveBeenCalledTimes(1);
     expect(s1.generatedAt).toBe(s2.generatedAt);
+  });
+
+  it("isolates concurrent generations across different keys", async () => {
+    const getSummary = vi.fn(async (scope: ProbeScope) =>
+      makeSummary(scope, scope.userId === "u1" ? "2026-07-29T00:00:00.000Z" : "2026-07-29T00:01:00.000Z"),
+    );
+    const service = createRuntimeHealthSnapshotService({ getSummary } as never, { ttlMs: 60_000 });
+
+    const [a, b] = await Promise.all([service.getSnapshot(scopeA), service.getSnapshot(scopeB)]);
+    expect(a.scope).toEqual(scopeA);
+    expect(b.scope).toEqual(scopeB);
+    expect(getSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it("cleans up rejected in-flight generation and does not cache failures", async () => {
+    const getSummary = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce(makeSummary(scopeA, "2026-07-29T00:00:30.000Z"));
+    const service = createRuntimeHealthSnapshotService({ getSummary } as never, { ttlMs: 60_000 });
+
+    await expect(service.getSnapshot(scopeA)).rejects.toThrow("boom");
+    expect(service.getSnapshotMetadata(scopeA).present).toBe(false);
+
+    const recovered = await service.getSnapshot(scopeA);
+    expect(recovered.generatedAt).toBe("2026-07-29T00:00:30.000Z");
+    expect(getSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidation during in-flight build prevents stale write-back", async () => {
+    const deferred: { resolve?: (v: RuntimeProbeSummary) => void } = {};
+    const getSummary = vi.fn(
+      () =>
+        new Promise<RuntimeProbeSummary>((resolve) => {
+          deferred.resolve = resolve;
+        }),
+    );
+    const service = createRuntimeHealthSnapshotService({ getSummary } as never, { ttlMs: 60_000 });
+
+    const pending = service.getSnapshot(scopeA);
+    service.invalidateSnapshot(scopeA);
+    deferred.resolve?.(makeSummary(scopeA, "2026-07-29T00:00:00.000Z"));
+    await pending;
+
+    expect(service.getSnapshotMetadata(scopeA).present).toBe(false);
+  });
+
+  it("returns mutation-safe snapshot copies", async () => {
+    const getSummary = vi.fn(async (scope: ProbeScope) => makeSummary(scope, "2026-07-29T00:00:00.000Z"));
+    const service = createRuntimeHealthSnapshotService({ getSummary } as never, { ttlMs: 60_000 });
+
+    const first = await service.getSnapshot(scopeA);
+    first.summary.status = "failed";
+
+    const second = await service.getSnapshot(scopeA);
+    expect(second.summary.status).toBe("healthy");
+  });
+
+  it("normalizes non-finite ttl values safely", async () => {
+    const getSummary = vi.fn(async (scope: ProbeScope) => makeSummary(scope, "2026-07-29T00:00:00.000Z"));
+    const nanService = createRuntimeHealthSnapshotService({ getSummary } as never, { ttlMs: Number.NaN });
+    const infService = createRuntimeHealthSnapshotService({ getSummary } as never, { ttlMs: Number.POSITIVE_INFINITY });
+
+    await nanService.getSnapshot(scopeA);
+    await infService.getSnapshot(scopeA);
+
+    expect(nanService.getSnapshotMetadata(scopeA).ttlMs).toBe(30_000);
+    expect(infService.getSnapshotMetadata(scopeA).ttlMs).toBe(30_000);
   });
 
   it("exposes metadata freshness", async () => {

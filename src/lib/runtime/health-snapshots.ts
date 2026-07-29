@@ -49,16 +49,35 @@ export interface RuntimeHealthSnapshotOptions {
 const DEFAULT_TTL_MS = 30_000;
 
 export function cacheKeyForScope(scope: ProbeScope): string {
-  return `${scope.userId}:${scope.companyId ?? "none"}`;
+  return JSON.stringify([scope.userId, scope.companyId]);
 }
 
 export function createRuntimeHealthSnapshotService(
   orchestrator: RuntimeHealthOrchestrator = runtimeHealthOrchestrator,
   options: RuntimeHealthSnapshotOptions = {},
 ): RuntimeHealthSnapshotService {
-  const ttlMs = Math.max(1, options.ttlMs ?? DEFAULT_TTL_MS);
+  const rawTtlMs = options.ttlMs ?? DEFAULT_TTL_MS;
+  const ttlMs = Number.isFinite(rawTtlMs) ? Math.max(1, rawTtlMs) : DEFAULT_TTL_MS;
   const cache = new Map<string, CacheEntry>();
   const pending = new Map<string, PendingEntry>();
+  const generations = new Map<string, number>();
+
+  function cloneSnapshot(snapshot: RuntimeHealthSnapshot): RuntimeHealthSnapshot {
+    return {
+      scope: { ...snapshot.scope },
+      generatedAt: snapshot.generatedAt,
+      summary: {
+        ...snapshot.summary,
+        scope: { ...snapshot.summary.scope },
+        probes: snapshot.summary.probes.map((p) => ({
+          ...p,
+          scope: { ...p.scope },
+          evidence: p.evidence.map((e) => ({ ...e })),
+        })),
+        categories: snapshot.summary.categories.map((c) => ({ ...c })),
+      },
+    };
+  }
 
   function readValid(key: string): RuntimeHealthSnapshot | null {
     const now = Date.now();
@@ -71,12 +90,16 @@ export function createRuntimeHealthSnapshotService(
     return entry.snapshot;
   }
 
-  async function generate(scope: ProbeScope, key: string): Promise<RuntimeHealthSnapshot> {
+  async function generate(scope: ProbeScope, key: string, generation: number): Promise<RuntimeHealthSnapshot> {
     const summary = await orchestrator.getSummary(scope);
     const generatedAt = summary.generatedAt;
     const snapshot: RuntimeHealthSnapshot = { scope, summary, generatedAt };
-    cache.set(key, { snapshot, expiresAtMs: Date.now() + ttlMs });
-    return snapshot;
+    if (generations.get(key) !== generation) {
+      return snapshot;
+    }
+    const frozen = Object.freeze(cloneSnapshot(snapshot));
+    cache.set(key, { snapshot: frozen, expiresAtMs: Date.now() + ttlMs });
+    return cloneSnapshot(frozen);
   }
 
   async function getOrGenerate(scope: ProbeScope, forceRefresh = false): Promise<RuntimeHealthSnapshot> {
@@ -84,13 +107,16 @@ export function createRuntimeHealthSnapshotService(
 
     if (!forceRefresh) {
       const cached = readValid(key);
-      if (cached) return cached;
+      if (cached) return cloneSnapshot(cached);
     }
 
     const inFlight = pending.get(key);
     if (inFlight) return inFlight.promise;
 
-    const promise = generate(scope, key)
+    const generation = (generations.get(key) ?? 0) + 1;
+    generations.set(key, generation);
+
+    const promise = generate(scope, key, generation)
       .finally(() => {
         pending.delete(key);
       });
@@ -109,7 +135,9 @@ export function createRuntimeHealthSnapshotService(
     },
 
     invalidateSnapshot(scope: ProbeScope): boolean {
-      return cache.delete(cacheKeyForScope(scope));
+      const key = cacheKeyForScope(scope);
+      generations.set(key, (generations.get(key) ?? 0) + 1);
+      return cache.delete(key);
     },
 
     getSnapshotMetadata(scope: ProbeScope): RuntimeHealthSnapshotMetadata {
@@ -137,9 +165,9 @@ export function createRuntimeHealthSnapshotService(
         cache.delete(key);
       }
 
-      return {
+      const safe: RuntimeHealthSnapshotMetadata = {
         cacheKey: key,
-        scope,
+        scope: { ...scope },
         generatedAt: entry.snapshot.generatedAt,
         expiresAt: new Date(entry.expiresAtMs).toISOString(),
         ageMs,
@@ -147,6 +175,7 @@ export function createRuntimeHealthSnapshotService(
         stale,
         present: !stale,
       };
+      return safe;
     },
   };
 }
