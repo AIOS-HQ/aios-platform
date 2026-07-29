@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getRuntimeProbeSummary,
   listRuntimeProbes,
@@ -6,6 +6,12 @@ import {
   type RuntimeProbeAdapters,
 } from "@/lib/runtime/probes/aggregate";
 import type { ProbeScope, RuntimeProbeResult } from "@/lib/runtime/probes/types";
+
+vi.mock("@/lib/runtime/probes/auth", () => ({
+  authorizeProbeScope: vi.fn(async (scope) => scope),
+  sanitizeProbe: vi.fn((p) => p),
+  sanitizeProbeReason: vi.fn((r) => r),
+}));
 
 const scope: ProbeScope = { userId: "u1", companyId: "c1" };
 
@@ -117,6 +123,15 @@ describe("runtime probe aggregation", () => {
     const live = await getRuntimeProbeSummary(scope, adaptersWith({}));
     expect(live.scope).toEqual(scope);
     expect(() => new Date(live.generatedAt).toISOString()).not.toThrow();
+  });
+
+  it("does not leak cross-scope probe scope values", async () => {
+    const wrong: ProbeScope = { userId: "other", companyId: "other-company" };
+    const probes = await listRuntimeProbes(
+      scope,
+      adaptersWith({ runtimeExecutionProbe: probe({ scope: wrong }) }),
+    );
+    expect(probes.find((p) => p.source === "runtime_execution")?.scope).toEqual(scope);
   });
 
   it("handles adapter failures explicitly as unavailable unknown probes", async () => {
