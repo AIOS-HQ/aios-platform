@@ -9,6 +9,7 @@ import {
   type RuntimeProbeResult,
   type RuntimeProbeSummary,
 } from "@/lib/runtime/probes/types";
+import { authorizeProbeScope, sanitizeProbe, sanitizeProbeReason } from "@/lib/runtime/probes/auth";
 import { activityProbe } from "@/lib/runtime/probes/adapters/activity";
 import { connectorHealthProbe } from "@/lib/runtime/probes/adapters/connector-health";
 import { diagnosticsProbe } from "@/lib/runtime/probes/adapters/diagnostics";
@@ -64,27 +65,30 @@ export async function listRuntimeProbes(
   scope: ProbeScope,
   adapters: RuntimeProbeAdapters = DEFAULT_ADAPTERS,
 ): Promise<RuntimeProbeResult[]> {
+  const authorizedScope = await authorizeProbeScope(scope);
   const probes: RuntimeProbeResult[] = [];
 
   for (const item of ADAPTER_ORDER) {
     try {
-      const probe = await item.run(adapters, scope);
-      probes.push(probe);
+      const probe = await item.run(adapters, authorizedScope);
+      probes.push(sanitizeProbe({ ...probe, scope: authorizedScope }));
     } catch (error) {
       probes.push(
-        createRuntimeProbeResult({
-          probeId: `${item.source}:${item.category}:${scope.userId}:${scope.companyId ?? "none"}:adapter_error`,
+        sanitizeProbe(
+          createRuntimeProbeResult({
+          probeId: `${item.source}:${item.category}:${authorizedScope.userId}:${authorizedScope.companyId ?? "none"}:adapter_error`,
           source: item.source,
           category: item.category,
           status: "unknown",
           summary: `${item.source} adapter failed to produce a probe result.`,
           observedAt: null,
           freshness: "unknown",
-          scope,
+          scope: authorizedScope,
           unavailable: true,
-          reason: error instanceof Error ? error.message : "Adapter threw a non-Error value",
+          reason: sanitizeProbeReason(error instanceof Error ? error.message : "Adapter threw a non-Error value"),
           evidence: [],
         }),
+        ),
       );
     }
   }
@@ -135,5 +139,5 @@ export async function getRuntimeProbeSummary(
   adapters: RuntimeProbeAdapters = DEFAULT_ADAPTERS,
 ): Promise<RuntimeProbeSummary> {
   const probes = await listRuntimeProbes(scope, adapters);
-  return summarizeRuntimeProbes(probes, scope);
+  return summarizeRuntimeProbes(probes, probes[0]?.scope ?? scope);
 }
