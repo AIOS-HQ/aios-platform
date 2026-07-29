@@ -28,6 +28,7 @@ export function buildWorkItemApprovalPayload(
   now: Date = new Date(),
 ): ApprovalPayload {
   const suffix = Math.random().toString(36).slice(2, 9);
+
   return {
     approval_id: `approval_wi_${now.getTime()}_${suffix}`,
     original_actor: "harmony",

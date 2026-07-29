@@ -6,6 +6,7 @@ import {
   resolveMasonOperationApproval,
 } from "@/lib/harmony/autonomy/mason-policy";
 import { createMasonLiveExecutionPlan } from "@/lib/harmony/code/mason-live-execution";
+import { evaluateAutonomyPolicy } from "@/lib/harmony/autonomy/policy-engine";
 
 describe("Mason ↔ Unified Autonomy Policy Engine bridge", () => {
   it("maps Mason runtime operations to engine action types", () => {
@@ -116,4 +117,215 @@ describe("Mason ↔ Unified Autonomy Policy Engine bridge", () => {
     ).toBe(true);
     expect(plan.operations.some((o) => o.capabilityId.includes("delete"))).toBe(false);
   });
+
+  it("persists executable Mason founder envelope with canonical capability id", () => {
+    const decision = evaluateAutonomyPolicy({
+      actor: "harmony",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      current_autonomy_level: 0,
+      params: {
+        executionIdentity: { userId: "founder_1" },
+        taskContract: {
+          objective: "Open PR for patch",
+          requestedOutcome: "open_pull_request",
+          executionIdentity: { requestId: "req_1", correlationId: "corr_1" },
+          originalParams: { repository: "AIOS-HQ/aios-platform", branchName: "mason/fix" },
+        },
+      },
+    });
+
+    expect(decision.decision).toBe("approval_required");
+    expect(decision.approval_payload?.founderRuntimeRequest).toBeTruthy();
+    expect(decision.approval_payload?.founderRuntimeRequest?.capabilityId).toBe("github.pull_request.open");
+    expect(decision.approval_payload?.founderRuntimeRequest?.payload).toMatchObject({
+      executionIdentity: { userId: "founder_1" },
+      taskContract: {
+        objective: "Open PR for patch",
+        requestedOutcome: "open_pull_request",
+        executionIdentity: { requestId: "req_1", correlationId: "corr_1" },
+        originalParams: {
+          repository: "AIOS-HQ/aios-platform",
+          branchName: "mason/fix",
+        },
+      },
+    });
+    expect(
+      (decision.approval_payload?.founderRuntimeRequest?.payload as { taskContract?: { originalParams?: { branchName?: string } } })
+        .taskContract?.originalParams?.branchName,
+    ).toBe("mason/fix");
+  });
+
+  it("uses canonical requestId when both requestId and executionId exist", () => {
+    const decision = evaluateAutonomyPolicy({
+      actor: "harmony",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      current_autonomy_level: 0,
+      params: {
+        executionIdentity: { userId: "founder_1" },
+        taskContract: {
+          objective: "Open PR",
+          requestedOutcome: "open_pull_request",
+          executionIdentity: {
+            requestId: "req_canonical_1",
+            executionId: "exec_legacy_1",
+            correlationId: "corr_1",
+          },
+          originalParams: {},
+        },
+      },
+    });
+
+    expect(decision.approval_payload?.founderRuntimeRequest?.requestId).toBe("req_canonical_1");
+  });
+
+  it("falls back to executionId when requestId is absent", () => {
+    const decision = evaluateAutonomyPolicy({
+      actor: "harmony",
+      agent: "mason",
+      domain: "engineering",
+      action: "open_pull_request",
+      current_autonomy_level: 0,
+      params: {
+        executionIdentity: { userId: "founder_1" },
+        taskContract: {
+          objective: "Open PR",
+          requestedOutcome: "open_pull_request",
+          executionIdentity: {
+            executionId: "exec_legacy_only_1",
+            correlationId: "corr_1",
+          },
+          originalParams: {},
+        },
+      },
+    });
+
+    expect(decision.approval_payload?.founderRuntimeRequest?.requestId).toBe("exec_legacy_only_1");
+  });
+
+  it("fails closed when both requestId and executionId are missing", () => {
+    expect(() =>
+      evaluateAutonomyPolicy({
+        actor: "harmony",
+        agent: "mason",
+        domain: "engineering",
+        action: "open_pull_request",
+        current_autonomy_level: 0,
+        params: {
+          executionIdentity: { userId: "founder_1" },
+          taskContract: {
+            objective: "Open PR",
+            requestedOutcome: "open_pull_request",
+            executionIdentity: { correlationId: "corr_1" },
+            originalParams: {},
+          },
+        },
+      }),
+    ).toThrow(/requestId/i);
+  });
+
+  it("fails closed for executable Mason approval missing requestId", () => {
+    expect(() =>
+      evaluateAutonomyPolicy({
+        actor: "harmony",
+        agent: "mason",
+        domain: "engineering",
+        action: "open_pull_request",
+        current_autonomy_level: 0,
+        params: {
+          executionIdentity: { userId: "founder_1" },
+          taskContract: {
+            objective: "Open PR",
+            requestedOutcome: "open_pull_request",
+            executionIdentity: { correlationId: "corr_1" },
+            originalParams: {},
+          },
+        },
+      }),
+    ).toThrow(/requestId/i);
+  });
+
+  it("fails closed for executable Mason approval missing correlationId", () => {
+    expect(() =>
+      evaluateAutonomyPolicy({
+        actor: "harmony",
+        agent: "mason",
+        domain: "engineering",
+        action: "open_pull_request",
+        current_autonomy_level: 0,
+        params: {
+          executionIdentity: { userId: "founder_1" },
+          taskContract: {
+            objective: "Open PR",
+            requestedOutcome: "open_pull_request",
+            executionIdentity: { requestId: "req_1" },
+            originalParams: {},
+          },
+        },
+      }),
+    ).toThrow(/correlationId/i);
+  });
+
+  it("fails closed for executable Mason approval missing founderId", () => {
+    expect(() =>
+      evaluateAutonomyPolicy({
+        actor: "harmony",
+        agent: "mason",
+        domain: "engineering",
+        action: "open_pull_request",
+        current_autonomy_level: 0,
+        params: {
+          executionIdentity: {},
+          taskContract: {
+            objective: "Open PR",
+            requestedOutcome: "open_pull_request",
+            executionIdentity: { requestId: "req_1", correlationId: "corr_1" },
+            originalParams: {},
+          },
+        },
+      }),
+    ).toThrow(/userId/i);
+  });
+
+  it("keeps plan_only unchanged without founder runtime envelope", () => {
+    const decision = evaluateAutonomyPolicy({
+      actor: "harmony",
+      agent: "mason",
+      domain: "engineering",
+      action: "commit_file",
+      current_autonomy_level: 0,
+      params: {
+        executionIdentity: { userId: "founder_1" },
+        taskContract: {
+          objective: "Plan only",
+          requestedOutcome: "plan_only",
+          executionIdentity: { requestId: "req_1", correlationId: "corr_1" },
+          originalParams: { repository: "AIOS-HQ/aios-platform" },
+        },
+      },
+    });
+
+    expect(decision.decision).toBe("approval_required");
+    expect(decision.approval_payload?.founderRuntimeRequest).toBeUndefined();
+  });
+
+  it("keeps generic work approvals unchanged", () => {
+    const decision = evaluateAutonomyPolicy({
+      actor: "harmony",
+      agent: "harmony",
+      domain: "operations",
+      action: "assign_work",
+      current_autonomy_level: 0,
+      params: {
+        context: {},
+      },
+    });
+
+    expect(decision.decision).toBe("approval_required");
+    expect(decision.approval_payload?.founderRuntimeRequest).toBeUndefined();
+  });
+
 });

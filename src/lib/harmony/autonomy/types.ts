@@ -1,3 +1,5 @@
+import type { FounderOperationalRequest } from "@/lib/founder-runtime-contract";
+
 /**
  * Unified Autonomy Policy Engine — Type definitions.
  *
@@ -195,6 +197,9 @@ export interface ApprovalPayload {
 
   created_at: string;
   expires_at: string;
+
+  // Optional founder-runtime request retained for approval-center execution.
+  founderRuntimeRequest?: FounderOperationalRequest;
 }
 
 /**
