@@ -25,6 +25,7 @@ export type RuntimeRecommendationExpectedImpact = "NONE" | "LOW" | "MEDIUM" | "H
 export type RuntimeRecommendationEstimatedFounderEffort = "NONE" | "<5_MIN" | "5_TO_15_MIN" | "15_PLUS_MIN";
 
 export interface RuntimeFounderRecommendation {
+  id: string;
   title: string;
   priority: RuntimeRecommendationPriority;
   rationale: string;
@@ -252,6 +253,7 @@ export function composeRuntimeFounderRecommendations(
   if (viewModel.status === "healthy" && viewModel.available && viewModel.counts.total > 0 && viewModel.freshness === "fresh") {
     return [
       {
+        id: "no-action-required",
         title:
           "No action required. Harmony has not identified any operational conditions requiring Founder intervention.",
         priority: "INFO",
@@ -272,6 +274,7 @@ export function composeRuntimeFounderRecommendations(
 
   if (!viewModel.available) {
     recommendations.push({
+      id: "restore-runtime-visibility",
       title: "Restore runtime visibility",
       priority: "HIGH",
       rationale: "Runtime telemetry is unavailable, limiting operational decision quality.",
@@ -290,6 +293,7 @@ export function composeRuntimeFounderRecommendations(
 
   if (viewModel.counts.failed > 0) {
     recommendations.push({
+      id: "escalate-failed-runtime-probes",
       title: "Escalate failed runtime probes",
       priority: "CRITICAL",
       rationale: "Failed probes indicate active runtime conditions that can block operations.",
@@ -307,6 +311,7 @@ export function composeRuntimeFounderRecommendations(
 
   if (viewModel.counts.degraded > 0) {
     recommendations.push({
+      id: "stabilize-degraded-runtime-probes",
       title: "Stabilize degraded runtime probes",
       priority: viewModel.counts.failed > 0 ? "HIGH" : "MEDIUM",
       rationale: "Degraded probes represent runtime reliability risk before hard failures.",
@@ -324,6 +329,7 @@ export function composeRuntimeFounderRecommendations(
 
   if (viewModel.freshness === "stale" || viewModel.counts.stale > 0) {
     recommendations.push({
+      id: "refresh-stale-runtime-evidence",
       title: "Refresh stale runtime health evidence",
       priority: "MEDIUM",
       rationale: "Stale evidence can understate current operational risk posture.",
@@ -342,6 +348,7 @@ export function composeRuntimeFounderRecommendations(
   if (viewModel.counts.unknown > 0 || viewModel.counts.total === 0) {
     const emptyState = viewModel.counts.total === 0;
     recommendations.push({
+      id: emptyState ? "establish-runtime-probe-coverage" : "reduce-unknown-runtime-outcomes",
       title: emptyState ? "Establish runtime probe coverage" : "Reduce unknown runtime probe outcomes",
       priority: emptyState ? "HIGH" : "LOW",
       rationale: emptyState
@@ -365,6 +372,7 @@ export function composeRuntimeFounderRecommendations(
 
   if (recommendations.length === 0) {
     recommendations.push({
+      id: "continue-runtime-monitoring",
       title: "Continue active runtime monitoring",
       priority: "INFO",
       rationale: "Current evidence does not indicate a specific founder intervention action.",
@@ -396,4 +404,56 @@ export function composeRuntimeFounderRecommendations(
       return freshnessWeight(viewModel.freshness) - freshnessWeight(viewModel.freshness);
     })
     .slice(0, 3);
+}
+
+export interface RuntimeFounderDecisionCenter {
+  operationalState: string;
+  founderAttention: string;
+  topDecision: string;
+  rationale: string;
+  expectedImpact: RuntimeRecommendationExpectedImpact;
+  actionRequired: boolean;
+  supportingRecommendationIds: string[];
+}
+
+function mapOperationalState(summary: RuntimeExecutiveSummary): string {
+  if (summary.severity === "critical") return "CRITICAL";
+  if (summary.severity === "attention") return "ATTENTION";
+  if (summary.severity === "healthy") return "HEALTHY";
+  return "UNKNOWN";
+}
+
+export function composeRuntimeFounderDecisionCenter(
+  executiveSummary: RuntimeExecutiveSummary,
+  executiveIntelligence: RuntimeExecutiveIntelligence,
+  recommendations: RuntimeFounderRecommendation[],
+): RuntimeFounderDecisionCenter {
+  const actionable = recommendations.filter((recommendation) => recommendation.actionRequired);
+  const topRecommendation = actionable[0] ?? null;
+
+  if (!topRecommendation) {
+    return {
+      operationalState: mapOperationalState(executiveSummary),
+      founderAttention: "Runtime is operating within expected parameters.",
+      topDecision: "No immediate Founder decision required.",
+      rationale: executiveSummary.headline,
+      expectedImpact: "NONE",
+      actionRequired: false,
+      supportingRecommendationIds: recommendations.slice(0, 3).map((recommendation) => recommendation.id),
+    };
+  }
+
+  const founderAttentionInsight =
+    executiveIntelligence.sections.find((section) => section.title === "Founder Attention Queue")?.insights[0] ??
+    topRecommendation.rationale;
+
+  return {
+    operationalState: mapOperationalState(executiveSummary),
+    founderAttention: founderAttentionInsight,
+    topDecision: topRecommendation.title,
+    rationale: topRecommendation.rationale,
+    expectedImpact: topRecommendation.expectedImpact,
+    actionRequired: topRecommendation.actionRequired,
+    supportingRecommendationIds: [topRecommendation.id],
+  };
 }
