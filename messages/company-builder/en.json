@@ -2,6 +2,48 @@
   "companyBuilder": {
     "title": "Company Builder",
     "subtitle": "Describe the company you want AIOS to build and review an execution preview before any action.",
+    "phase2": {
+      "title": "Executive Strategy Session",
+      "subtitle": "Harmony guides a focused conversation to understand your company direction.",
+      "guidance": "Share short answers; Harmony progressively refines your company strategy.",
+      "progress": "Question {current} of {total} · {percent}% complete",
+      "summaryTitle": "Current understanding",
+      "previewTitle": "Executive Strategic Briefing",
+      "previewSubtitle": "A strategic assessment of how AIOS would approach your company build.",
+      "emptyPreview": "Complete the strategy conversation to generate Harmony's executive briefing.",
+      "actions": {
+        "preview": "Generate Strategic Briefing"
+      },
+      "prompts": {
+        "vision": "What kind of business should Harmony help you build?",
+        "industry": "Which industry context should we prioritize?",
+        "services": "What products or services should this company deliver first?",
+        "customers": "Who are the priority customer segments?",
+        "goals": "Which outcomes are most important in phase 1?",
+        "scale": "What scale target matters most in the near term?",
+        "geography": "Which regions or markets should this company reach first?",
+        "differentiation": "How should this business outperform alternatives?",
+        "operations": "What operating preferences should guide execution?"
+      },
+      "placeholders": {
+        "vision": "Example: Build a recurring-revenue operations consultancy for SMB growth leaders.",
+        "industry": "Example: Legal, Healthcare, SaaS",
+        "list": "Comma-separated list",
+        "scale": "Example: Reach 100 active customers in year one",
+        "geography": "Example: US and LATAM",
+        "differentiation": "Example: Premium strategic support with faster turnaround"
+      },
+      "briefing": {
+        "understandingTitle": "Business vision summary",
+        "intentSignalsTitle": "Key assumptions and strategic context",
+        "marketplaceTitle": "Marketplace Intelligence opportunities",
+        "reusable": "Reusable capabilities identified",
+        "newLikely": "Capabilities likely requiring future creation",
+        "phasesTitle": "Recommended execution sequence",
+        "approvalBoundary": "Execution remains blocked at approval boundary: {state}.",
+        "none": "No strong signal yet"
+      }
+    },
     "phase1": {
       "requestTitle": "Describe Your Company Intent",
       "requestSubtitle": "Capture customer intent in a structured company build request.",

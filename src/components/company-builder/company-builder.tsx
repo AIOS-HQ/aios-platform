@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, MessageCircle, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,23 @@ export interface BuilderTemplate {
   deploymentMinutes: number;
 }
 
+type ConversationStepKey =
+  | "vision"
+  | "industry"
+  | "services"
+  | "customers"
+  | "goals"
+  | "scale"
+  | "geography"
+  | "differentiation"
+  | "operations";
+
+interface ConversationStep {
+  key: ConversationStepKey;
+  prompt: string;
+  placeholder: string;
+}
+
 function parseList(value: string): string[] {
   return value
     .split(",")
@@ -42,113 +59,209 @@ export function CompanyBuilder({
   initialTemplateId?: string;
 }) {
   const t = useTranslations("companyBuilder");
-  const [description, setDescription] = useState("");
-  const [goalsText, setGoalsText] = useState("");
-  const [industry, setIndustry] = useState("");
-  const [servicesText, setServicesText] = useState("");
-  const [customersText, setCustomersText] = useState("");
-  const [preferencesText, setPreferencesText] = useState("");
-  const [request, setRequest] = useState<CompanyBuildRequest | null>(null);
-  const [preview, setPreview] = useState<CompanyBuildExecutionPreview | null>(null);
-
   const initialTemplate = useMemo(
     () => (initialTemplateId ? templates.find((template) => template.id === initialTemplateId) : null),
     [initialTemplateId, templates],
   );
 
-  function createRequest() {
+  const steps: ConversationStep[] = [
+    { key: "vision", prompt: t("phase2.prompts.vision"), placeholder: t("phase2.placeholders.vision") },
+    {
+      key: "industry",
+      prompt: t("phase2.prompts.industry"),
+      placeholder: initialTemplate?.industry ?? t("phase2.placeholders.industry"),
+    },
+    { key: "services", prompt: t("phase2.prompts.services"), placeholder: t("phase2.placeholders.list") },
+    { key: "customers", prompt: t("phase2.prompts.customers"), placeholder: t("phase2.placeholders.list") },
+    { key: "goals", prompt: t("phase2.prompts.goals"), placeholder: t("phase2.placeholders.list") },
+    { key: "scale", prompt: t("phase2.prompts.scale"), placeholder: t("phase2.placeholders.scale") },
+    {
+      key: "geography",
+      prompt: t("phase2.prompts.geography"),
+      placeholder: t("phase2.placeholders.geography"),
+    },
+    {
+      key: "differentiation",
+      prompt: t("phase2.prompts.differentiation"),
+      placeholder: t("phase2.placeholders.differentiation"),
+    },
+    {
+      key: "operations",
+      prompt: t("phase2.prompts.operations"),
+      placeholder: t("phase2.placeholders.list"),
+    },
+  ];
+
+  const [answers, setAnswers] = useState<Record<ConversationStepKey, string>>({
+    vision: "",
+    industry: initialTemplate?.industry ?? "",
+    services: "",
+    customers: "",
+    goals: "",
+    scale: "",
+    geography: "",
+    differentiation: "",
+    operations: "",
+  });
+  const [currentStep, setCurrentStep] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [request, setRequest] = useState<CompanyBuildRequest | null>(null);
+  const [preview, setPreview] = useState<CompanyBuildExecutionPreview | null>(null);
+
+  const activeStep = steps[currentStep] ?? null;
+
+  function saveCurrentStep() {
+    if (!activeStep) return;
+    setAnswers((previous) => ({
+      ...previous,
+      [activeStep.key]: draft.trim(),
+    }));
+  }
+
+  function nextStep() {
+    saveCurrentStep();
+    if (currentStep < steps.length - 1) {
+      const nextIndex = currentStep + 1;
+      const next = steps[nextIndex];
+      setCurrentStep(nextIndex);
+      setDraft(next ? answers[next.key] ?? "" : "");
+    }
+  }
+
+  function previousStep() {
+    saveCurrentStep();
+    if (currentStep > 0) {
+      const previousIndex = currentStep - 1;
+      const previous = steps[previousIndex];
+      setCurrentStep(previousIndex);
+      setDraft(previous ? answers[previous.key] ?? "" : "");
+    }
+  }
+
+  function createPreview() {
+    saveCurrentStep();
+    const input = {
+      ...answers,
+      [activeStep?.key ?? "vision"]: draft.trim(),
+    } as Record<ConversationStepKey, string>;
+
     const computedRequest = buildCompanyRequest({
-      description,
-      goals: parseList(goalsText),
-      industry: industry || initialTemplate?.industry || "",
-      servicesOrProducts: parseList(servicesText),
-      targetCustomers: parseList(customersText),
-      operationalPreferences: parseList(preferencesText),
+      description: input.vision,
+      goals: parseList(input.goals),
+      industry: input.industry,
+      servicesOrProducts: parseList(input.services),
+      targetCustomers: parseList(input.customers),
+      operationalPreferences: parseList([input.operations, input.scale, input.geography, input.differentiation].join(",")),
     });
     const computedPreview = buildCompanyExecutionPreview(computedRequest, storefront);
+    setAnswers(input);
     setRequest(computedRequest);
     setPreview(computedPreview);
   }
+
+  const completion = Math.round(((currentStep + 1) / steps.length) * 100);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="rounded-2xl border bg-card p-6">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <Sparkles className="size-4 text-primary" aria-hidden="true" />
-          {t("phase1.requestTitle")}
+          <MessageCircle className="size-4 text-primary" aria-hidden="true" />
+          {t("phase2.title")}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("phase1.requestSubtitle")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("phase2.subtitle")}</p>
 
-        <div className="mt-5 grid gap-3">
-          <label className="text-sm font-medium" htmlFor="builder-description">{t("phase1.fields.description")}</label>
-          <Input id="builder-description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder={t("phase1.placeholders.description")} />
+        <div className="mt-4 rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+          <p>{t("phase2.progress", { current: currentStep + 1, total: steps.length, percent: completion })}</p>
+          <p className="mt-1">{t("phase2.guidance")}</p>
+        </div>
 
-          <label className="text-sm font-medium" htmlFor="builder-goals">{t("phase1.fields.goals")}</label>
-          <Input id="builder-goals" value={goalsText} onChange={(event) => setGoalsText(event.target.value)} placeholder={t("phase1.placeholders.list")} />
+        {activeStep ? (
+          <div className="mt-5 grid gap-3">
+            <p className="text-sm font-medium">{activeStep.prompt}</p>
+            <Input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder={activeStep.placeholder}
+              aria-label={activeStep.prompt}
+            />
 
-          <label className="text-sm font-medium" htmlFor="builder-industry">{t("phase1.fields.industry")}</label>
-          <Input id="builder-industry" value={industry} onChange={(event) => setIndustry(event.target.value)} placeholder={initialTemplate?.industry ?? t("phase1.placeholders.industry")} />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={previousStep} disabled={currentStep === 0}>
+                {t("back")}
+              </Button>
+              {currentStep < steps.length - 1 ? (
+                <Button type="button" onClick={nextStep}>
+                  {t("next")} <ArrowRight className="ml-1 size-3.5" aria-hidden="true" />
+                </Button>
+              ) : (
+                <Button type="button" onClick={createPreview}>
+                  {t("phase2.actions.preview")}
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : null}
 
-          <label className="text-sm font-medium" htmlFor="builder-services">{t("phase1.fields.services")}</label>
-          <Input id="builder-services" value={servicesText} onChange={(event) => setServicesText(event.target.value)} placeholder={t("phase1.placeholders.list")} />
-
-          <label className="text-sm font-medium" htmlFor="builder-customers">{t("phase1.fields.customers")}</label>
-          <Input id="builder-customers" value={customersText} onChange={(event) => setCustomersText(event.target.value)} placeholder={t("phase1.placeholders.list")} />
-
-          <label className="text-sm font-medium" htmlFor="builder-preferences">{t("phase1.fields.preferences")}</label>
-          <Input id="builder-preferences" value={preferencesText} onChange={(event) => setPreferencesText(event.target.value)} placeholder={t("phase1.placeholders.list")} />
-
-          <Button type="button" className="mt-2" onClick={createRequest}>
-            {t("phase1.actions.createRequest")}
-          </Button>
+        <div className="mt-6 rounded-md border bg-muted/20 p-3">
+          <p className="text-sm font-medium">{t("phase2.summaryTitle")}</p>
+          <ul className="mt-2 grid gap-1 text-xs text-muted-foreground">
+            {steps.map((step) => (
+              <li key={step.key}>
+                <span className="font-medium text-foreground/80">{step.prompt}</span>
+                <span>: {answers[step.key] || "—"}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
       <div className="rounded-2xl border bg-card p-6">
-        <h2 className="text-lg font-semibold">{t("phase1.previewTitle")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("phase1.previewSubtitle")}</p>
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <Sparkles className="size-4 text-primary" aria-hidden="true" />
+          {t("phase2.previewTitle")}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("phase2.previewSubtitle")}</p>
 
         {!request || !preview ? (
-          <p className="mt-5 text-sm text-muted-foreground">{t("phase1.emptyPreview")}</p>
+          <p className="mt-5 text-sm text-muted-foreground">{t("phase2.emptyPreview")}</p>
         ) : (
           <div className="mt-5 grid gap-4 text-sm">
             <div className="rounded-md border bg-muted/20 p-3">
-              <p className="font-medium">{t("phase1.structuredRequest")}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{request.description}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{t("phase1.labels.industry")}: {request.industry || "—"}</p>
+              <p className="font-medium">{t("phase2.briefing.understandingTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preview.strategicAssessment.businessVisionSummary}</p>
             </div>
 
             <div className="rounded-md border bg-muted/20 p-3">
-              <p className="font-medium">{t("phase1.executionPreview")}</p>
+              <p className="font-medium">{t("phase2.briefing.intentSignalsTitle")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {t("phase1.labels.mode")}: {preview.mode} · {t("phase1.labels.actionRequired")}: {preview.actionRequired ? "yes" : "no"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("phase1.labels.approval")}: {preview.approvalState}
+                {preview.strategicAssessment.keyAssumptions.join(" • ") || t("phase2.briefing.none")}
               </p>
             </div>
 
             <div className="rounded-md border bg-muted/20 p-3">
-              <p className="font-medium">{t("phase1.labels.marketplaceSignals")}</p>
-              <ul className="mt-1 grid gap-1 text-xs text-muted-foreground">
-                <li>{t("phase1.labels.workers")}: {preview.recommendations.workers.length}</li>
-                <li>{t("phase1.labels.departments")}: {preview.recommendations.departments.length}</li>
-                <li>{t("phase1.labels.connectors")}: {preview.recommendations.connectors.length}</li>
-                <li>{t("phase1.labels.templates")}: {preview.recommendations.templates.length}</li>
-                <li>{t("phase1.labels.bundles")}: {preview.recommendations.bundles.length}</li>
-              </ul>
+              <p className="font-medium">{t("phase2.briefing.marketplaceTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("phase2.briefing.reusable")}: {preview.strategicAssessment.requiredBusinessCapabilities.slice(0, 6).join(" • ") || t("phase2.briefing.none")}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("phase2.briefing.newLikely")}: {preview.strategicAssessment.marketplaceIntelligenceOpportunities.join(" • ") || t("phase2.briefing.none")}
+              </p>
             </div>
 
             <div className="rounded-md border bg-muted/20 p-3">
-              <p className="font-medium">{t("phase1.labels.notes")}</p>
+              <p className="font-medium">{t("phase2.briefing.phasesTitle")}</p>
               <ul className="mt-1 grid gap-1 text-xs text-muted-foreground">
-                {preview.notes.map((note) => (
-                  <li key={note} className="flex items-start gap-1.5">
-                    <Check className="mt-0.5 size-3" aria-hidden="true" />
-                    {note}
+                {preview.strategicAssessment.recommendedExecutionSequence.map((phase) => (
+                  <li key={phase} className="flex items-start gap-1.5">
+                    <CheckCircle2 className="mt-0.5 size-3" aria-hidden="true" />
+                    {phase}
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <p>{t("phase2.briefing.approvalBoundary", { state: preview.approvalState })}</p>
             </div>
           </div>
         )}
