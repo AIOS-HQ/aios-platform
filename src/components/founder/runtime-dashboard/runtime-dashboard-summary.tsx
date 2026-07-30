@@ -1,6 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FounderRuntimeDashboardViewModel } from "@/lib/founder/runtime-dashboard/view-model";
-import { composeRuntimeExecutiveIntelligence, composeRuntimeExecutiveSummary } from "@/lib/founder/runtime-dashboard/executive-summary";
+import {
+  composeRuntimeExecutiveIntelligence,
+  composeRuntimeExecutiveSummary,
+  composeRuntimeFounderRecommendations,
+} from "@/lib/founder/runtime-dashboard/executive-summary";
 
 interface RuntimeDashboardSummaryProps {
   viewModel: FounderRuntimeDashboardViewModel;
@@ -9,6 +13,7 @@ interface RuntimeDashboardSummaryProps {
 export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryProps) {
   const executiveSummary = composeRuntimeExecutiveSummary(viewModel);
   const executiveIntelligence = composeRuntimeExecutiveIntelligence(viewModel);
+  const recommendations = composeRuntimeFounderRecommendations(viewModel, executiveSummary, executiveIntelligence);
 
   return (
     <Card>
@@ -28,6 +33,21 @@ export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryPr
               <div key={section.title}>
                 <p className="text-xs font-medium text-foreground">{section.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{section.insights.join(" • ")}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-md border bg-muted/20 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Founder Recommendations</p>
+          <div className="mt-2 space-y-3">
+            {recommendations.map((recommendation) => (
+              <div key={`${recommendation.title}-${recommendation.priority}-${recommendation.confidence}`}>
+                <p className="text-xs font-medium text-foreground">{recommendation.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{recommendation.rationale}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Priority: {recommendation.priority} • Impact: {recommendation.expectedImpact} • Effort: {recommendation.estimatedFounderEffort} • Confidence: {recommendation.confidence}% • Action required: {recommendation.actionRequired ? "Yes" : "No"}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Evidence: {recommendation.evidence.join(" • ")}</p>
               </div>
             ))}
           </div>
