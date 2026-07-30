@@ -60,6 +60,9 @@ export interface StorefrontViewModel {
     kinds: MarketplaceItem["kind"][];
     tags: string[];
   };
+  companyTemplates: MarketplaceItem[];
+  installedItems: MarketplaceItem[];
+  availableItems: MarketplaceItem[];
   summary: StorefrontSummary;
 }
 
@@ -120,6 +123,9 @@ function uniqueTags(items: MarketplaceItem[]): string[] {
 export function composeStorefrontViewModel(context: StorefrontContext): StorefrontViewModel {
   const visibleItems = Object.values(context.catalog);
   const displayItems = visibleItems.map(toDisplayItem);
+  const companyTemplates = visibleItems.filter((item) => item.kind === "company_template");
+  const installedItems = visibleItems.filter((item) => context.installedIds.has(item.id));
+  const availableItems = visibleItems.filter((item) => !context.installedIds.has(item.id));
   const recommendations = recommendForProfile(context.signal, context.catalog, 6);
   const collections = buildCollections({
     catalog: context.catalog,
@@ -145,6 +151,9 @@ export function composeStorefrontViewModel(context: StorefrontContext): Storefro
       kinds: uniqueKinds(visibleItems),
       tags: uniqueTags(visibleItems),
     },
+    companyTemplates,
+    installedItems,
+    availableItems,
     summary: {
       totalVisibleItems: visibleItems.length,
       installedItems: context.installedIds.size,

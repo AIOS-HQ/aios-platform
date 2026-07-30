@@ -6,14 +6,9 @@ import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import {
   MARKETPLACE_CATEGORIES,
   COMPANY_TEMPLATES,
-  averageRating,
-  latestVersion,
-  categoryForKind,
   getTemplateVisuals,
-  type MarketplaceItem,
-  type MarketplaceItemKind,
 } from "@/lib/marketplace";
-import { loadCatalog, loadInstallState } from "@/lib/marketplace/persistence";
+import { loadStorefrontViewModel, toDisplayItem } from "@/lib/marketplace/storefront";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,50 +26,30 @@ export default async function MarketplacePage() {
   const t = await getTranslations("marketplace");
   const user = await requireUser();
   const companyId = await resolvePrimaryCompanyId();
+  const storefront = await loadStorefrontViewModel(user.id, companyId);
 
-  const [catalog, installState] = await Promise.all([
-    loadCatalog(),
-    companyId ? loadInstallState(user.id, companyId) : Promise.resolve({}),
-  ]);
-  const installedIds = new Set(Object.keys(installState));
-
-  // Group live catalog items by kind.
-  const byKind: Partial<Record<MarketplaceItemKind, MarketplaceItem[]>> = {};
-  for (const item of Object.values(catalog)) {
-    (byKind[item.kind] ??= []).push(item);
-  }
-
-  function itemToDisplay(it: MarketplaceItem): DisplayItem {
-    const r = averageRating(it);
-    const lv = latestVersion(it);
-    const ver = it.versions.find((v) => v.version === lv);
-    const isWorker = it.kind === "workforce" && it.slug.startsWith("worker-");
-    return {
-      id: it.id,
-      icon: categoryForKind(it.kind)?.icon ?? "Sparkles",
-      name: it.name,
-      description: it.description,
-      version: lv,
-      ratingAvg: r.count ? r.average : null,
-      ratingCount: r.count,
-      verification: it.verification,
-      license: it.license,
-      workers: [],
-      connectors: [],
-      dependencies: (ver?.dependencies ?? []).map((d) => d.itemId),
-      deploymentMinutes: 3,
-      changelog: it.versions
-        .slice(0, 5)
-        .map((v) => `v${v.version}${v.changelog ? ` — ${v.changelog}` : ` — ${t("changelogInitial")}`}`),
-      detailHref: isWorker ? `/harmony/marketplace/workers/${it.slug.slice("worker-".length)}` : undefined,
-      workerKey: isWorker ? it.slug.slice("worker-".length) : undefined,
-      reviewable: true,
-      reviews: it.ratings
-        .filter((rt) => rt.comment && rt.comment.trim().length > 0)
-        .slice(0, 10)
-        .map((rt) => ({ stars: rt.stars, comment: rt.comment as string })),
-    };
-  }
+  const byKind = MARKETPLACE_CATEGORIES.reduce<Record<string, DisplayItem[]>>((acc, category) => {
+    acc[category.kind] = storefront.visibleItems
+      .filter((item) => item.kind === category.kind)
+      .map((item) => {
+        const mapped = toDisplayItem(item);
+        return {
+          ...mapped,
+          license: item.license,
+          workerKey:
+            item.kind === "workforce" && item.slug.startsWith("worker-")
+              ? item.slug.slice("worker-".length)
+              : undefined,
+          reviewable: true,
+          reviews: item.ratings
+            .filter((rt) => rt.comment && rt.comment.trim().length > 0)
+            .slice(0, 10)
+            .map((rt) => ({ stars: rt.stars, comment: rt.comment as string })),
+          changelog: mapped.changelog.length > 0 ? mapped.changelog : [`v${mapped.version} — ${t("changelogInitial")}`],
+        };
+      });
+    return acc;
+  }, {});
 
   return (
     <>
@@ -104,9 +79,12 @@ export default async function MarketplacePage() {
           ))}
         </nav>
 
-        <p className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-          {t("trust")}
-        </p>
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+          <p>{t("trust")}</p>
+          <p className="mt-1 text-xs">
+            {t("browse")}: {storefront.summary.totalVisibleItems} · Installed: {storefront.summary.installedItems} · Collections: {storefront.summary.collections}
+          </p>
+        </div>
 
         {MARKETPLACE_CATEGORIES.map((cat) => {
           const templateItems =
@@ -140,7 +118,7 @@ export default async function MarketplacePage() {
                 })
               : [];
           const dbItems = (byKind[cat.kind] ?? []).map((it) => ({
-            display: itemToDisplay(it),
+            display: it,
             isTemplate: false,
             slug: null as string | null,
           }));
@@ -172,11 +150,7 @@ export default async function MarketplacePage() {
                             <Link href={`/harmony/build?template=${slug ?? ""}`}>{t("actions.deploy")}</Link>
                           </Button>
                         ) : (
-                          <MarketplaceActions
-                            companyId={companyId}
-                            itemId={display.id}
-                            installed={installedIds.has(display.id)}
-                          />
+                          <MarketplaceActions companyId={companyId} itemId={display.id} installed={storefront.installedIds.has(display.id)} />
                         )
                       }
                     />
