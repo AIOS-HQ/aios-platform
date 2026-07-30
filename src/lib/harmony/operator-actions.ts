@@ -19,7 +19,8 @@ import {
 import { LIMITS } from "@/lib/limits";
 import { requiresApproval, type AutonomyLevel } from "@/lib/harmony/os/autonomy";
 import { delegateToHarmony } from "@/lib/harmony/os/delegate-actions";
-import { masonRuntimeHealth } from "@/lib/harmony/code/mason-production-runtime";
+import { internalRuntimeHealthApi } from "@/lib/runtime/health-api";
+import type { ProbeScope } from "@/lib/runtime/probes/types";
 import { createWorkItem } from "@/lib/workforce/work-queue";
 import {
   isOversizedOperatorInput,
@@ -284,7 +285,13 @@ if (
   lowerText.includes("show mason health") ||
   lowerText.includes("mason health")
 ) {
-  const health = await masonRuntimeHealth(user.id);
+  const companyId = await resolvePrimaryCompanyId();
+  const scope: ProbeScope = {
+    userId: user.id,
+    companyId: companyId ?? null,
+  };
+  const summary = await internalRuntimeHealthApi.getRuntimeHealthSummary(scope);
+  const metadata = internalRuntimeHealthApi.getRuntimeHealthMetadata(scope);
 
   return persistOperatorReply(
     supabase,
@@ -295,10 +302,11 @@ if (
       reply: [
         "Mason Runtime Health",
         "",
-        `GitHub: ${health.github ? "✅ true" : "❌ false"}`,
-        `Vercel: ${health.vercelStatus} (${health.vercelEvidenceTier})`,
-        `Vercel SHA match: ${health.vercelGitShaMatches == null ? "unknown" : String(health.vercelGitShaMatches)}`,
-        `Harmony: ${health.harmony ? "✅ true" : "❌ false"}`,
+        `Status: ${summary.status}`,
+        `Generated: ${summary.generatedAt}`,
+        `Freshness: ${metadata.stale ? "stale" : "fresh"}`,
+        `Expires: ${metadata.expiresAt}`,
+        `Probes: total=${summary.probes.length}, healthy=${summary.categories.reduce((acc, category) => acc + category.healthy, 0)}, degraded=${summary.categories.reduce((acc, category) => acc + category.degraded, 0)}, failed=${summary.categories.reduce((acc, category) => acc + category.failed, 0)}, unknown=${summary.categories.reduce((acc, category) => acc + category.unknown, 0)}, stale=${summary.categories.reduce((acc, category) => acc + category.stale, 0)}`,
       ].join("\n"),
     },
   );
