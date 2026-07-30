@@ -1,17 +1,26 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FounderRuntimeDashboardViewModel } from "@/lib/founder/runtime-dashboard/view-model";
+import { composeRuntimeExecutiveSummary } from "@/lib/founder/runtime-dashboard/executive-summary";
 
 interface RuntimeDashboardSummaryProps {
   viewModel: FounderRuntimeDashboardViewModel;
 }
 
 export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryProps) {
+  const executiveSummary = composeRuntimeExecutiveSummary(viewModel);
+
   return (
     <Card>
       <CardHeader className="space-y-0 pb-2">
         <CardTitle className="text-base">Operational Runtime Health</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+      <CardContent className="space-y-4">
+        <div className="rounded-md border bg-muted/30 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Executive Summary</p>
+          <p className="mt-1 text-sm font-medium">{executiveSummary.headline}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{executiveSummary.details.join(" • ")}</p>
+        </div>
+        <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div><span className="text-muted-foreground">Overall status</span><p className="font-medium">{viewModel.status}</p></div>
         <div><span className="text-muted-foreground">Generated</span><p className="font-medium">{viewModel.generatedAt ?? "—"}</p></div>
         <div><span className="text-muted-foreground">Freshness</span><p className="font-medium">{viewModel.freshness}</p></div>
@@ -22,6 +31,7 @@ export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryPr
         <div><span className="text-muted-foreground">Failed</span><p className="font-medium">{viewModel.counts.failed}</p></div>
         <div><span className="text-muted-foreground">Unknown</span><p className="font-medium">{viewModel.counts.unknown}</p></div>
         <div><span className="text-muted-foreground">Stale</span><p className="font-medium">{viewModel.counts.stale}</p></div>
+        </div>
       </CardContent>
     </Card>
   );
