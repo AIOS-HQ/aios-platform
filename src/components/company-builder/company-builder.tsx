@@ -272,6 +272,43 @@ export function CompanyBuilder({
             </div>
 
             <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.strategicOptionsTitle")}</p>
+              <ul className="mt-1 grid gap-2 text-xs text-muted-foreground">
+                {preview.decisionAnalysis.options.map((option) => (
+                  <li key={option.strategyName} className="rounded border bg-background/70 p-2">
+                    <p className="font-medium text-foreground">{option.strategyName}</p>
+                    <p className="mt-0.5">{option.executiveSummary}</p>
+                    <p className="mt-1">
+                      {t("phase2.briefing.optionComplexity")}: {option.estimatedComplexity} • {t("phase2.briefing.optionHorizon")}: {option.estimatedTimeHorizon} • {t("phase2.briefing.optionConfidence")}: {option.confidenceLevel}
+                    </p>
+                    <p className="mt-1">{option.rationale}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.comparativeAnalysisTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preview.executiveBriefing.comparativeAnalysis}</p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.recommendedStrategyTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preview.executiveBriefing.recommendedStrategy}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {preview.decisionAnalysis.recommendedStrategy.selectionRationale}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {preview.decisionAnalysis.recommendedStrategy.alternativeRankingRationale}
+              </p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.executiveDecisionSummaryTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preview.executiveBriefing.executiveDecisionSummary}</p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
               <p className="font-medium">{t("phase2.briefing.marketplaceFindingsTitle")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {preview.executiveBriefing.marketplaceIntelligenceFindings.join(" • ") || t("phase2.briefing.none")}
