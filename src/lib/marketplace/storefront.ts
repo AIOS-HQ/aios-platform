@@ -5,7 +5,10 @@ import { loadCatalog, loadInstallState, loadGlobalInstallCounts } from "./persis
 import { averageRating, latestVersion } from "./registry";
 import { categoryForKind } from "./categories";
 import type { Catalog, MarketplaceItem } from "./types";
-import type { CompanyProfileSignal } from "./intelligence";
+import { recommendForProfile, type CompanyProfileSignal, type ProfileRecommendations } from "./intelligence";
+import { buildCollections, type Collection } from "./collections";
+import { BUNDLES, type Bundle } from "./bundles";
+import { searchMarketplace, type DiscoveryResult } from "./discovery";
 import type { DisplayItem } from "@/components/marketplace/marketplace-item-card";
 
 /**
@@ -22,6 +25,42 @@ export interface StorefrontContext {
   installedIds: Set<string>;
   /** itemId → distinct-company install count (global, counts only). */
   installCounts: Record<string, number>;
+}
+
+export interface StorefrontSummary {
+  totalVisibleItems: number;
+  installedItems: number;
+  totalInstallCount: number;
+  recommendations: {
+    workers: number;
+    departments: number;
+    skills: number;
+    connectors: number;
+    dashboards: number;
+    workflowPacks: number;
+    bundles: number;
+    companiesLikeYours: number;
+  };
+  collections: number;
+  bundles: number;
+}
+
+export interface StorefrontViewModel {
+  catalog: Catalog;
+  visibleItems: MarketplaceItem[];
+  displayItems: DisplayItem[];
+  signal: CompanyProfileSignal;
+  installedIds: Set<string>;
+  installCounts: Record<string, number>;
+  recommendations: ProfileRecommendations;
+  collections: Collection[];
+  bundles: readonly Bundle[];
+  discovery: {
+    defaultResult: DiscoveryResult[];
+    kinds: MarketplaceItem["kind"][];
+    tags: string[];
+  };
+  summary: StorefrontSummary;
 }
 
 export async function loadStorefrontContext(
@@ -68,4 +107,65 @@ export function toDisplayItem(it: MarketplaceItem): DisplayItem {
         ? `/harmony/marketplace/workers/${it.slug.slice("worker-".length)}`
         : undefined,
   };
+}
+
+function uniqueKinds(items: MarketplaceItem[]): MarketplaceItem["kind"][] {
+  return Array.from(new Set(items.map((item) => item.kind)));
+}
+
+function uniqueTags(items: MarketplaceItem[]): string[] {
+  return Array.from(new Set(items.flatMap((item) => item.tags))).sort((left, right) => left.localeCompare(right));
+}
+
+export function composeStorefrontViewModel(context: StorefrontContext): StorefrontViewModel {
+  const visibleItems = Object.values(context.catalog);
+  const displayItems = visibleItems.map(toDisplayItem);
+  const recommendations = recommendForProfile(context.signal, context.catalog, 6);
+  const collections = buildCollections({
+    catalog: context.catalog,
+    signal: context.signal,
+    installCounts: context.installCounts,
+    limit: 12,
+  });
+  const defaultResult = searchMarketplace("", context.catalog, {});
+  const totalInstallCount = Object.values(context.installCounts).reduce((acc, count) => acc + count, 0);
+
+  return {
+    catalog: context.catalog,
+    visibleItems,
+    displayItems,
+    signal: context.signal,
+    installedIds: context.installedIds,
+    installCounts: context.installCounts,
+    recommendations,
+    collections,
+    bundles: BUNDLES,
+    discovery: {
+      defaultResult,
+      kinds: uniqueKinds(visibleItems),
+      tags: uniqueTags(visibleItems),
+    },
+    summary: {
+      totalVisibleItems: visibleItems.length,
+      installedItems: context.installedIds.size,
+      totalInstallCount,
+      recommendations: {
+        workers: recommendations.workers.length,
+        departments: recommendations.departments.length,
+        skills: recommendations.skills.length,
+        connectors: recommendations.connectors.length,
+        dashboards: recommendations.dashboards.length,
+        workflowPacks: recommendations.workflowPacks.length,
+        bundles: recommendations.bundles.length,
+        companiesLikeYours: recommendations.companiesLikeYours.length,
+      },
+      collections: collections.length,
+      bundles: BUNDLES.length,
+    },
+  };
+}
+
+export async function loadStorefrontViewModel(userId: string, companyId: string | null): Promise<StorefrontViewModel> {
+  const context = await loadStorefrontContext(userId, companyId);
+  return composeStorefrontViewModel(context);
 }
