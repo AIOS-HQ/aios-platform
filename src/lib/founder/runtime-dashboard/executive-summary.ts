@@ -20,6 +20,21 @@ export interface RuntimeExecutiveIntelligence {
   sections: RuntimeExecutiveIntelligenceSection[];
 }
 
+export type RuntimeRecommendationPriority = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+export type RuntimeRecommendationExpectedImpact = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type RuntimeRecommendationEstimatedFounderEffort = "NONE" | "<5_MIN" | "5_TO_15_MIN" | "15_PLUS_MIN";
+
+export interface RuntimeFounderRecommendation {
+  title: string;
+  priority: RuntimeRecommendationPriority;
+  rationale: string;
+  expectedImpact: RuntimeRecommendationExpectedImpact;
+  estimatedFounderEffort: RuntimeRecommendationEstimatedFounderEffort;
+  confidence: number;
+  evidence: string[];
+  actionRequired: boolean;
+}
+
 function summarizeTopSignals(viewModel: FounderRuntimeDashboardViewModel): string[] {
   const details: string[] = [];
 
@@ -201,4 +216,184 @@ export function composeRuntimeExecutiveIntelligence(
       { title: "Founder Attention Queue", insights: founderAttentionQueue },
     ],
   };
+}
+
+const PRIORITY_WEIGHT: Record<RuntimeRecommendationPriority, number> = {
+  CRITICAL: 5,
+  HIGH: 4,
+  MEDIUM: 3,
+  LOW: 2,
+  INFO: 1,
+};
+
+function freshnessWeight(freshness: FounderRuntimeDashboardViewModel["freshness"]): number {
+  if (freshness === "fresh") return 3;
+  if (freshness === "stale") return 2;
+  return 1;
+}
+
+function clampConfidence(confidence: number): number {
+  if (confidence < 0) return 0;
+  if (confidence > 100) return 100;
+  return Math.round(confidence);
+}
+
+export function composeRuntimeFounderRecommendations(
+  viewModel: FounderRuntimeDashboardViewModel,
+  executiveSummary: RuntimeExecutiveSummary,
+  executiveIntelligence: RuntimeExecutiveIntelligence,
+): RuntimeFounderRecommendation[] {
+  const recommendations: RuntimeFounderRecommendation[] = [];
+  const summaryEvidence = [executiveSummary.headline, ...executiveSummary.details].filter((item) => item.length > 0);
+  const intelligenceEvidence = executiveIntelligence.sections.flatMap((section) =>
+    section.insights.map((insight) => `${section.title}: ${insight}`),
+  );
+
+  if (viewModel.status === "healthy" && viewModel.available && viewModel.counts.total > 0 && viewModel.freshness === "fresh") {
+    return [
+      {
+        title:
+          "No action required. Harmony has not identified any operational conditions requiring Founder intervention.",
+        priority: "INFO",
+        rationale: "All observed runtime probes are healthy with fresh evidence.",
+        expectedImpact: "NONE",
+        estimatedFounderEffort: "NONE",
+        confidence: 96,
+        evidence: [
+          `overall status: ${viewModel.status}`,
+          `probe counts: healthy=${viewModel.counts.healthy}, degraded=${viewModel.counts.degraded}, failed=${viewModel.counts.failed}, unknown=${viewModel.counts.unknown}`,
+          `freshness: ${viewModel.freshness}`,
+          ...summaryEvidence,
+        ],
+        actionRequired: false,
+      },
+    ];
+  }
+
+  if (!viewModel.available) {
+    recommendations.push({
+      title: "Restore runtime visibility",
+      priority: "HIGH",
+      rationale: "Runtime telemetry is unavailable, limiting operational decision quality.",
+      expectedImpact: "HIGH",
+      estimatedFounderEffort: "5_TO_15_MIN",
+      confidence: 90,
+      evidence: [
+        `runtime available: ${viewModel.available}`,
+        `overall status: ${viewModel.status}`,
+        ...summaryEvidence,
+        ...intelligenceEvidence.filter((insight) => insight.toLowerCase().includes("insufficient runtime evidence")),
+      ],
+      actionRequired: true,
+    });
+  }
+
+  if (viewModel.counts.failed > 0) {
+    recommendations.push({
+      title: "Escalate failed runtime probes",
+      priority: "CRITICAL",
+      rationale: "Failed probes indicate active runtime conditions that can block operations.",
+      expectedImpact: "CRITICAL",
+      estimatedFounderEffort: "15_PLUS_MIN",
+      confidence: clampConfidence(80 + viewModel.counts.failed * 5),
+      evidence: [
+        `failed probes: ${viewModel.counts.failed}`,
+        `overall status: ${viewModel.status}`,
+        ...summaryEvidence.filter((item) => item.includes("failed probe") || item.includes("attention")),
+      ],
+      actionRequired: true,
+    });
+  }
+
+  if (viewModel.counts.degraded > 0) {
+    recommendations.push({
+      title: "Stabilize degraded runtime probes",
+      priority: viewModel.counts.failed > 0 ? "HIGH" : "MEDIUM",
+      rationale: "Degraded probes represent runtime reliability risk before hard failures.",
+      expectedImpact: viewModel.counts.failed > 0 ? "HIGH" : "MEDIUM",
+      estimatedFounderEffort: "5_TO_15_MIN",
+      confidence: clampConfidence(68 + viewModel.counts.degraded * 6),
+      evidence: [
+        `degraded probes: ${viewModel.counts.degraded}`,
+        `failed probes: ${viewModel.counts.failed}`,
+        ...summaryEvidence.filter((item) => item.includes("degraded probe") || item.includes("requires follow-up")),
+      ],
+      actionRequired: true,
+    });
+  }
+
+  if (viewModel.freshness === "stale" || viewModel.counts.stale > 0) {
+    recommendations.push({
+      title: "Refresh stale runtime health evidence",
+      priority: "MEDIUM",
+      rationale: "Stale evidence can understate current operational risk posture.",
+      expectedImpact: "MEDIUM",
+      estimatedFounderEffort: "<5_MIN",
+      confidence: 82,
+      evidence: [
+        `freshness: ${viewModel.freshness}`,
+        `stale probes: ${viewModel.counts.stale}`,
+        ...summaryEvidence.filter((item) => item.includes("stale")),
+      ],
+      actionRequired: true,
+    });
+  }
+
+  if (viewModel.counts.unknown > 0 || viewModel.counts.total === 0) {
+    const emptyState = viewModel.counts.total === 0;
+    recommendations.push({
+      title: emptyState ? "Establish runtime probe coverage" : "Reduce unknown runtime probe outcomes",
+      priority: emptyState ? "HIGH" : "LOW",
+      rationale: emptyState
+        ? "No probe evidence is currently available to support executive recommendations."
+        : "Unknown probe outcomes reduce confidence in operational decisions.",
+      expectedImpact: emptyState ? "HIGH" : "LOW",
+      estimatedFounderEffort: emptyState ? "15_PLUS_MIN" : "5_TO_15_MIN",
+      confidence: emptyState ? 92 : clampConfidence(60 + viewModel.counts.unknown * 7),
+      evidence: [
+        `total probes: ${viewModel.counts.total}`,
+        `unknown probes: ${viewModel.counts.unknown}`,
+        ...intelligenceEvidence.filter(
+          (insight) =>
+            insight.toLowerCase().includes("insufficient runtime evidence") ||
+            insight.toLowerCase().includes("unknown probe"),
+        ),
+      ],
+      actionRequired: true,
+    });
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push({
+      title: "Continue active runtime monitoring",
+      priority: "INFO",
+      rationale: "Current evidence does not indicate a specific founder intervention action.",
+      expectedImpact: "NONE",
+      estimatedFounderEffort: "NONE",
+      confidence: 70,
+      evidence: [
+        `overall status: ${viewModel.status}`,
+        `freshness: ${viewModel.freshness}`,
+        ...summaryEvidence,
+      ],
+      actionRequired: false,
+    });
+  }
+
+  return recommendations
+    .map((recommendation) => ({
+      ...recommendation,
+      confidence: clampConfidence(recommendation.confidence),
+      evidence: recommendation.evidence.filter((item) => item.length > 0),
+    }))
+    .sort((left, right) => {
+      const priorityDelta = PRIORITY_WEIGHT[right.priority] - PRIORITY_WEIGHT[left.priority];
+      if (priorityDelta !== 0) return priorityDelta;
+
+      const confidenceDelta = right.confidence - left.confidence;
+      if (confidenceDelta !== 0) return confidenceDelta;
+
+      return freshnessWeight(viewModel.freshness) - freshnessWeight(viewModel.freshness);
+    })
+    .slice(0, 3);
 }

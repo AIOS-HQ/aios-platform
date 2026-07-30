@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { composeRuntimeExecutiveIntelligence, composeRuntimeExecutiveSummary } from "@/lib/founder/runtime-dashboard/executive-summary";
+import {
+  composeRuntimeExecutiveIntelligence,
+  composeRuntimeExecutiveSummary,
+  composeRuntimeFounderRecommendations,
+} from "@/lib/founder/runtime-dashboard/executive-summary";
 import {
   createFounderRuntimeDashboardUnavailableViewModel,
   mapFounderRuntimeDashboardViewModel,
@@ -182,5 +186,150 @@ describe("founder runtime executive intelligence", () => {
     expect(second).toEqual(first);
     expect(frozenInput.counts.degraded).toBe(baseline.counts.degraded);
     expect(frozenInput.categories).toHaveLength(baseline.categories.length);
+  });
+});
+
+describe("founder runtime recommendations", () => {
+  it("returns healthy no-action-required recommendation with required fields", () => {
+    const healthy = mapFounderRuntimeDashboardViewModel(makeSummary("healthy"), metadata);
+    const summary = composeRuntimeExecutiveSummary(healthy);
+    const intelligence = composeRuntimeExecutiveIntelligence(healthy);
+
+    const recommendations = composeRuntimeFounderRecommendations(healthy, summary, intelligence);
+
+    expect(recommendations).toHaveLength(1);
+    expect(recommendations[0]?.title).toBe(
+      "No action required. Harmony has not identified any operational conditions requiring Founder intervention.",
+    );
+    expect(recommendations[0]?.actionRequired).toBe(false);
+    expect(recommendations[0]?.expectedImpact).toBe("NONE");
+    expect(recommendations[0]?.estimatedFounderEffort).toBe("NONE");
+    expect(typeof recommendations[0]?.confidence).toBe("number");
+    expect(recommendations[0]?.evidence.length).toBeGreaterThan(0);
+  });
+
+  it("caps recommendations at three and sorts by priority then confidence", () => {
+    const complex = mapFounderRuntimeDashboardViewModel(
+      {
+        scope: { userId: "u-1", companyId: "c-1" },
+        generatedAt: "2026-07-30T00:00:00.000Z",
+        status: "failed",
+        probes: [],
+        categories: [
+          {
+            category: "liveness",
+            total: 4,
+            healthy: 0,
+            degraded: 1,
+            failed: 2,
+            unknown: 1,
+            stale: 1,
+            status: "failed",
+          },
+        ],
+      },
+      { ...metadata, stale: true },
+    );
+    const summary = composeRuntimeExecutiveSummary(complex);
+    const intelligence = composeRuntimeExecutiveIntelligence(complex);
+
+    const recommendations = composeRuntimeFounderRecommendations(complex, summary, intelligence);
+
+    expect(recommendations.length).toBeLessThanOrEqual(3);
+    expect(recommendations[0]?.priority).toBe("CRITICAL");
+    for (let index = 1; index < recommendations.length; index += 1) {
+      const previous = recommendations[index - 1];
+      const current = recommendations[index];
+      expect(previous).toBeTruthy();
+      expect(current).toBeTruthy();
+      if (previous && current && previous.priority === current.priority) {
+        expect(previous.confidence).toBeGreaterThanOrEqual(current.confidence);
+      }
+    }
+  });
+
+  it("handles unavailable runtime explicitly", () => {
+    const unavailable = createFounderRuntimeDashboardUnavailableViewModel();
+    const summary = composeRuntimeExecutiveSummary(unavailable);
+    const intelligence = composeRuntimeExecutiveIntelligence(unavailable);
+    const recommendations = composeRuntimeFounderRecommendations(unavailable, summary, intelligence);
+
+    expect(recommendations.some((recommendation) => recommendation.title.includes("Restore runtime visibility"))).toBe(true);
+    expect(recommendations.every((recommendation) => recommendation.evidence.length > 0)).toBe(true);
+  });
+
+  it("handles stale runtime explicitly", () => {
+    const stale = mapFounderRuntimeDashboardViewModel(makeSummary("healthy"), { ...metadata, stale: true });
+    const summary = composeRuntimeExecutiveSummary(stale);
+    const intelligence = composeRuntimeExecutiveIntelligence(stale);
+    const recommendations = composeRuntimeFounderRecommendations(stale, summary, intelligence);
+
+    expect(recommendations.some((recommendation) => recommendation.title.includes("stale runtime health evidence"))).toBe(true);
+  });
+
+  it("handles empty and partial runtime evidence explicitly", () => {
+    const empty = mapFounderRuntimeDashboardViewModel(
+      {
+        scope: { userId: "u-1", companyId: "c-1" },
+        generatedAt: "2026-07-30T00:00:00.000Z",
+        status: "healthy",
+        probes: [],
+        categories: [],
+      },
+      metadata,
+    );
+    const emptyRecommendations = composeRuntimeFounderRecommendations(
+      empty,
+      composeRuntimeExecutiveSummary(empty),
+      composeRuntimeExecutiveIntelligence(empty),
+    );
+    expect(emptyRecommendations.some((recommendation) => recommendation.title.includes("probe coverage"))).toBe(true);
+
+    const partial = mapFounderRuntimeDashboardViewModel(
+      {
+        scope: { userId: "u-1", companyId: "c-1" },
+        generatedAt: "2026-07-30T00:00:00.000Z",
+        status: "degraded",
+        probes: [],
+        categories: [
+          {
+            category: "readiness",
+            total: 2,
+            healthy: 1,
+            degraded: 0,
+            failed: 0,
+            unknown: 1,
+            stale: 0,
+            status: "unknown",
+          },
+        ],
+      },
+      metadata,
+    );
+    const partialRecommendations = composeRuntimeFounderRecommendations(
+      partial,
+      composeRuntimeExecutiveSummary(partial),
+      composeRuntimeExecutiveIntelligence(partial),
+    );
+    expect(partialRecommendations.some((recommendation) => recommendation.title.includes("unknown runtime probe"))).toBe(true);
+  });
+
+  it("is deterministic and side-effect free", () => {
+    const degraded = mapFounderRuntimeDashboardViewModel(makeSummary("degraded"), metadata);
+    const summary = composeRuntimeExecutiveSummary(degraded);
+    const intelligence = composeRuntimeExecutiveIntelligence(degraded);
+
+    const frozenInput = Object.freeze({
+      ...degraded,
+      counts: Object.freeze({ ...degraded.counts }),
+      categories: Object.freeze(degraded.categories.map((category) => Object.freeze({ ...category }))),
+    });
+
+    const first = composeRuntimeFounderRecommendations(frozenInput, summary, intelligence);
+    const second = composeRuntimeFounderRecommendations(frozenInput, summary, intelligence);
+
+    expect(second).toEqual(first);
+    expect(first.every((recommendation) => recommendation.confidence >= 0 && recommendation.confidence <= 100)).toBe(true);
+    expect(frozenInput.counts.degraded).toBe(degraded.counts.degraded);
   });
 });
