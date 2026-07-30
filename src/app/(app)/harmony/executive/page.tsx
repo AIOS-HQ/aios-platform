@@ -9,9 +9,15 @@ import { buildDigitalTwin } from "@/lib/company/digital-twin";
 import { getCompanyFinancialSnapshot, type FinancialSnapshot } from "@/lib/ledger";
 import { internalRuntimeHealthApi } from "@/lib/runtime/health-api";
 import type { ProbeScope, RuntimeProbeSummary } from "@/lib/runtime/probes/types";
+import {
+  createFounderRuntimeDashboardUnavailableViewModel,
+  type FounderRuntimeDashboardMetadata,
+  mapFounderRuntimeDashboardViewModel,
+} from "@/lib/founder/runtime-dashboard/view-model";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RuntimeDashboardSummary } from "@/components/founder/runtime-dashboard/runtime-dashboard-summary";
 
 export const metadata: Metadata = { title: "Executive Dashboard · AIOS" };
 
@@ -69,26 +75,24 @@ export default async function ExecutiveDashboardPage() {
   };
 
   let runtimeSummary: RuntimeProbeSummary | null = null;
-  let runtimeMetadata: ReturnType<typeof internalRuntimeHealthApi.getRuntimeHealthMetadata> | null = null;
+  let runtimeMetadata: FounderRuntimeDashboardMetadata | null = null;
   try {
     runtimeSummary = await internalRuntimeHealthApi.getRuntimeHealthSummary(runtimeScope);
-    runtimeMetadata = internalRuntimeHealthApi.getRuntimeHealthMetadata(runtimeScope);
+    const metadata = internalRuntimeHealthApi.getRuntimeHealthMetadata(runtimeScope);
+    runtimeMetadata = {
+      generatedAt: metadata.generatedAt,
+      expiresAt: metadata.expiresAt,
+      stale: metadata.stale,
+      present: metadata.present,
+    };
   } catch {
     runtimeSummary = null;
     runtimeMetadata = null;
   }
 
-  const runtimeCounts = (runtimeSummary?.categories ?? []).reduce(
-    (acc, category) => ({
-      total: acc.total + category.total,
-      healthy: acc.healthy + category.healthy,
-      degraded: acc.degraded + category.degraded,
-      failed: acc.failed + category.failed,
-      unknown: acc.unknown + category.unknown,
-      stale: acc.stale + category.stale,
-    }),
-    { total: 0, healthy: 0, degraded: 0, failed: 0, unknown: 0, stale: 0 },
-  );
+  const runtimeViewModel = runtimeSummary
+    ? mapFounderRuntimeDashboardViewModel(runtimeSummary, runtimeMetadata)
+    : createFounderRuntimeDashboardUnavailableViewModel();
 
   return (
     <>
@@ -130,23 +134,7 @@ export default async function ExecutiveDashboardPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="space-y-0 pb-2">
-            <CardTitle className="text-base">Operational Runtime Health</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <div><span className="text-muted-foreground">Overall status</span><p className="font-medium">{runtimeSummary?.status ?? "unknown"}</p></div>
-            <div><span className="text-muted-foreground">Generated</span><p className="font-medium">{runtimeSummary?.generatedAt ?? "—"}</p></div>
-            <div><span className="text-muted-foreground">Freshness</span><p className="font-medium">{runtimeMetadata ? (runtimeMetadata.stale ? "stale" : "fresh") : "unknown"}</p></div>
-            <div><span className="text-muted-foreground">Expires</span><p className="font-medium">{runtimeMetadata?.expiresAt ?? "—"}</p></div>
-            <div><span className="text-muted-foreground">Total probes</span><p className="font-medium">{runtimeCounts.total}</p></div>
-            <div><span className="text-muted-foreground">Healthy</span><p className="font-medium">{runtimeCounts.healthy}</p></div>
-            <div><span className="text-muted-foreground">Degraded</span><p className="font-medium">{runtimeCounts.degraded}</p></div>
-            <div><span className="text-muted-foreground">Failed</span><p className="font-medium">{runtimeCounts.failed}</p></div>
-            <div><span className="text-muted-foreground">Unknown</span><p className="font-medium">{runtimeCounts.unknown}</p></div>
-            <div><span className="text-muted-foreground">Stale</span><p className="font-medium">{runtimeCounts.stale}</p></div>
-          </CardContent>
-        </Card>
+        <RuntimeDashboardSummary viewModel={runtimeViewModel} />
 
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Objectives */}
