@@ -71,6 +71,40 @@ export interface CompanyBuildExecutionPreview {
       keyDecisionAssumptions: string[];
     };
   };
+  capabilitySynthesis: {
+    capabilities: Array<{
+      capabilityName: string;
+      businessPurpose: string;
+      priority: "Critical" | "High" | "Medium" | "Low";
+      existingMarketplaceCapability: boolean;
+      reusableMarketplaceAssets: string[];
+      requiresNewCapability: boolean;
+      internalPlatformCapability: string;
+      externalIntegrationRequired: string[];
+      humanOwnership: string;
+      aiOwnership: string;
+      dependencies: string[];
+      estimatedImplementationPhase: string;
+      rationale: string;
+    }>;
+    capabilityMap: Record<
+      | "Core Business"
+      | "Customer Experience"
+      | "Operations"
+      | "Sales & Marketing"
+      | "Finance"
+      | "Compliance"
+      | "Analytics"
+      | "AI Workforce"
+      | "Platform Services",
+      {
+        existingCapabilities: string[];
+        missingCapabilities: string[];
+        marketplaceOpportunities: string[];
+        recommendedImplementationOrder: string[];
+      }
+    >;
+  };
   executiveBriefing: {
     executiveSummary: string;
     strategicInsights: string[];
@@ -85,6 +119,11 @@ export interface CompanyBuildExecutionPreview {
     comparativeAnalysis: string;
     recommendedStrategy: string;
     executiveDecisionSummary: string;
+    capabilitySummary: string;
+    capabilityMap: string[];
+    marketplaceReuseSummary: string;
+    capabilityGaps: string[];
+    recommendedBuildSequence: string[];
   };
 }
 
@@ -278,6 +317,131 @@ export function buildCompanyExecutionPreview(
     },
   };
 
+  const capabilitySynthesis: CompanyBuildExecutionPreview["capabilitySynthesis"] = {
+    capabilities: [
+      {
+        capabilityName: "Go-to-Market Orchestration",
+        businessPurpose: "Convert strategy into repeatable demand generation and customer acquisition execution.",
+        priority: "Critical",
+        existingMarketplaceCapability: true,
+        reusableMarketplaceAssets: storefront.recommendations.bundles.map((bundle) => bundle.name).slice(0, 2),
+        requiresNewCapability: false,
+        internalPlatformCapability: "Marketplace-aligned campaign and workflow orchestration",
+        externalIntegrationRequired: storefront.recommendations.connectors.map((connector) => connector.name).slice(0, 2),
+        humanOwnership: "Founder / GTM Lead",
+        aiOwnership: "Harmony + growth workers",
+        dependencies: ["Customer segmentation clarity", "Offer packaging"],
+        estimatedImplementationPhase: "Phase 1",
+        rationale:
+          "Required because the selected strategy depends on early market traction and repeatable acquisition signals.",
+      },
+      {
+        capabilityName: "Service Delivery Control",
+        businessPurpose: "Protect delivery quality and consistency while initial growth channels are activated.",
+        priority: "High",
+        existingMarketplaceCapability: true,
+        reusableMarketplaceAssets: storefront.recommendations.departments.map((department) => department.name).slice(0, 2),
+        requiresNewCapability: false,
+        internalPlatformCapability: "Operational governance and approval controls",
+        externalIntegrationRequired: [],
+        humanOwnership: "Operations Lead",
+        aiOwnership: "Delivery workers and quality monitors",
+        dependencies: ["Go-to-Market Orchestration"],
+        estimatedImplementationPhase: "Phase 1",
+        rationale:
+          "Required to ensure scale does not erode quality as new demand is captured.",
+      },
+      {
+        capabilityName: "Executive Performance Analytics",
+        businessPurpose: "Provide decision-grade visibility into growth, delivery reliability, and unit economics.",
+        priority: "High",
+        existingMarketplaceCapability: true,
+        reusableMarketplaceAssets: storefront.recommendations.dashboards.map((dashboard) => dashboard.name).slice(0, 2),
+        requiresNewCapability: false,
+        internalPlatformCapability: "Cross-functional KPI and outcome telemetry",
+        externalIntegrationRequired: storefront.recommendations.connectors.map((connector) => connector.name).slice(0, 2),
+        humanOwnership: "Founder / Finance Lead",
+        aiOwnership: "Analytics workers",
+        dependencies: ["Go-to-Market Orchestration", "Service Delivery Control"],
+        estimatedImplementationPhase: "Phase 1",
+        rationale:
+          "Required to validate assumptions and steer phased execution with measurable evidence.",
+      },
+      {
+        capabilityName: "Compliance and Risk Guardrails",
+        businessPurpose: "Maintain policy, contractual, and operational safeguards through growth.",
+        priority: "Medium",
+        existingMarketplaceCapability: request.industry.length > 0,
+        reusableMarketplaceAssets: storefront.recommendations.companiesLikeYours.map((template) => template.name).slice(0, 2),
+        requiresNewCapability: request.industry.length === 0,
+        internalPlatformCapability: "Approval boundary and control policies",
+        externalIntegrationRequired: [],
+        humanOwnership: "Compliance / Legal Owner",
+        aiOwnership: "Governance assistants",
+        dependencies: ["Service Delivery Control"],
+        estimatedImplementationPhase: "Phase 2",
+        rationale:
+          "Required to prevent governance gaps as execution complexity increases.",
+      },
+    ],
+    capabilityMap: {
+      "Core Business": {
+        existingCapabilities: ["Strategy framing", "Marketplace-aligned template recommendations"],
+        missingCapabilities: ["Codified service packaging playbooks"],
+        marketplaceOpportunities: storefront.recommendations.companiesLikeYours.map((template) => template.name).slice(0, 2),
+        recommendedImplementationOrder: ["Define offer", "Validate segment fit", "Standardize delivery"],
+      },
+      "Customer Experience": {
+        existingCapabilities: ["Executive conversation intake", "Narrative execution preview"],
+        missingCapabilities: ["Customer journey orchestration"],
+        marketplaceOpportunities: storefront.collections.map((collection) => collection.label).slice(0, 2),
+        recommendedImplementationOrder: ["Intake quality", "Experience instrumentation"],
+      },
+      Operations: {
+        existingCapabilities: ["Approval-gated preview mode", "Operational preference capture"],
+        missingCapabilities: ["Runbook automation layer"],
+        marketplaceOpportunities: storefront.recommendations.departments.map((department) => department.name).slice(0, 2),
+        recommendedImplementationOrder: ["Control points", "SOP hardening"],
+      },
+      "Sales & Marketing": {
+        existingCapabilities: ["Discovery signal capture", "Recommendation intelligence"],
+        missingCapabilities: ["Campaign optimization loops"],
+        marketplaceOpportunities: storefront.recommendations.bundles.map((bundle) => bundle.name).slice(0, 2),
+        recommendedImplementationOrder: ["Acquisition baseline", "Pipeline quality"],
+      },
+      Finance: {
+        existingCapabilities: ["Executive KPI orientation"],
+        missingCapabilities: ["Unit economics governance model"],
+        marketplaceOpportunities: storefront.recommendations.dashboards.map((dashboard) => dashboard.name).slice(0, 2),
+        recommendedImplementationOrder: ["Metric baseline", "Forecast discipline"],
+      },
+      Compliance: {
+        existingCapabilities: ["Approval boundary controls"],
+        missingCapabilities: ["Policy-specific compliance packs"],
+        marketplaceOpportunities: storefront.recommendations.companiesLikeYours.map((template) => template.name).slice(0, 2),
+        recommendedImplementationOrder: ["Risk controls", "Auditability"],
+      },
+      Analytics: {
+        existingCapabilities: ["Discovery match scoring", "Recommendation insights"],
+        missingCapabilities: ["Cross-domain decision analytics"],
+        marketplaceOpportunities: storefront.recommendations.dashboards.map((dashboard) => dashboard.name).slice(0, 2),
+        recommendedImplementationOrder: ["Signal capture", "Decision dashboards"],
+      },
+      "AI Workforce": {
+        existingCapabilities: ["Worker recommendations", "Department recommendations"],
+        missingCapabilities: ["Capability-to-worker operating matrix"],
+        marketplaceOpportunities: storefront.recommendations.workers.map((worker) => worker.name).slice(0, 3),
+        recommendedImplementationOrder: ["Worker alignment", "Ownership clarity"],
+      },
+      "Platform Services": {
+        existingCapabilities: ["Storefront intelligence foundation", "Approval-gated orchestration"],
+        missingCapabilities: ["Capability lifecycle governance"],
+        marketplaceOpportunities: storefront.bundles.map((bundle) => bundle.name).slice(0, 2),
+        recommendedImplementationOrder: ["Foundation reuse", "Capability lifecycle controls"],
+      },
+    },
+  };
+
   const executiveBriefing = {
     executiveSummary:
       `Harmony interprets your strategy as a ${request.industry || "focused"} business targeting ${customerSummary}, with near-term value anchored on ${offerSummary}. ` +
@@ -320,6 +484,31 @@ export function buildCompanyExecutionPreview(
       `${decisionAnalysis.recommendedStrategy.strategyName} is recommended because it best aligns with your current intent, risk posture, and requirement for approval-gated execution.`,
     executiveDecisionSummary:
       "Proceed with a focused beachhead strategy, validate assumptions rapidly, and sequence broader capability expansion only after repeatable outcomes are established.",
+    capabilitySummary:
+      `Harmony synthesized ${capabilitySynthesis.capabilities.length} foundational capabilities required to execute the selected strategy with control and measurable outcomes.`,
+    capabilityMap: Object.entries(capabilitySynthesis.capabilityMap).map(
+      ([section, details]) => `${section}: existing ${details.existingCapabilities.length}, missing ${details.missingCapabilities.length}`,
+    ),
+    marketplaceReuseSummary:
+      `Marketplace reuse is concentrated in ${capabilitySynthesis.capabilities
+        .filter((capability) => capability.existingMarketplaceCapability)
+        .map((capability) => capability.capabilityName)
+        .join(", ")}.`,
+    capabilityGaps: capabilitySynthesis.capabilities
+      .filter((capability) => capability.requiresNewCapability)
+      .map((capability) => capability.capabilityName),
+    recommendedBuildSequence: capabilitySynthesis.capabilities
+      .slice()
+      .sort((left, right) => {
+        const priorityRank: Record<"Critical" | "High" | "Medium" | "Low", number> = {
+          Critical: 0,
+          High: 1,
+          Medium: 2,
+          Low: 3,
+        };
+        return priorityRank[left.priority] - priorityRank[right.priority];
+      })
+      .map((capability) => `${capability.estimatedImplementationPhase}: ${capability.capabilityName}`),
   };
 
   return {
@@ -347,6 +536,7 @@ export function buildCompanyExecutionPreview(
     ],
     strategicAssessment,
     decisionAnalysis,
+    capabilitySynthesis,
     executiveBriefing,
   };
 }

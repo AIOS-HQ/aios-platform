@@ -309,6 +309,39 @@ export function CompanyBuilder({
             </div>
 
             <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.capabilitySummaryTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preview.executiveBriefing.capabilitySummary}</p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.capabilityMapTitle")}</p>
+              <ul className="mt-1 grid gap-1 text-xs text-muted-foreground">
+                {preview.executiveBriefing.capabilityMap.map((entry) => (
+                  <li key={entry}>{entry}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.marketplaceReuseSummaryTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{preview.executiveBriefing.marketplaceReuseSummary}</p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.capabilityGapsTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {preview.executiveBriefing.capabilityGaps.join(" • ") || t("phase2.briefing.none")}
+              </p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="font-medium">{t("phase2.briefing.recommendedBuildSequenceTitle")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {preview.executiveBriefing.recommendedBuildSequence.join(" • ") || t("phase2.briefing.none")}
+              </p>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
               <p className="font-medium">{t("phase2.briefing.marketplaceFindingsTitle")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {preview.executiveBriefing.marketplaceIntelligenceFindings.join(" • ") || t("phase2.briefing.none")}
