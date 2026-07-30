@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { requireUser } from "@/lib/auth/user";
+import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { COMPANY_TEMPLATES, templateBySlug } from "@/lib/marketplace/templates";
+import { loadStorefrontViewModel } from "@/lib/marketplace/storefront";
 import { PageHeader } from "@/components/shared/page-header";
 import { CompanyBuilder, type BuilderTemplate } from "@/components/company-builder/company-builder";
 
@@ -15,6 +18,9 @@ export default async function CompanyBuilderPage({
   searchParams: Promise<{ template?: string }>;
 }) {
   const t = await getTranslations("companyBuilder");
+  const user = await requireUser();
+  const companyId = await resolvePrimaryCompanyId();
+  const storefront = await loadStorefrontViewModel(user.id, companyId);
   const sp = await searchParams;
 
   const templates: BuilderTemplate[] = COMPANY_TEMPLATES.map((tpl) => ({
@@ -33,7 +39,7 @@ export default async function CompanyBuilderPage({
   return (
     <>
       <PageHeader title={t("title")} description={t("subtitle")} />
-      <CompanyBuilder templates={templates} initialTemplateId={initialTemplateId} />
+      <CompanyBuilder templates={templates} storefront={storefront} initialTemplateId={initialTemplateId} />
     </>
   );
 }
