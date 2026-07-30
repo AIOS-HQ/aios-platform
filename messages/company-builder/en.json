@@ -1,7 +1,45 @@
 {
   "companyBuilder": {
     "title": "Company Builder",
-    "subtitle": "Deploy a complete autonomous company in five guided steps.",
+    "subtitle": "Describe the company you want AIOS to build and review an execution preview before any action.",
+    "phase1": {
+      "requestTitle": "Describe Your Company Intent",
+      "requestSubtitle": "Capture customer intent in a structured company build request.",
+      "previewTitle": "Execution Preview",
+      "previewSubtitle": "Preview how AIOS would approach this request using Marketplace Intelligence.",
+      "emptyPreview": "Create a build request to see a preview. Execution is stopped pending approval.",
+      "structuredRequest": "Structured Company Build Request",
+      "executionPreview": "Execution approach (preview only)",
+      "fields": {
+        "description": "Company description",
+        "goals": "Goals",
+        "industry": "Industry",
+        "services": "Services / products",
+        "customers": "Target customers",
+        "preferences": "Operational preferences"
+      },
+      "placeholders": {
+        "description": "Example: Build a service business focused on recurring compliance operations.",
+        "industry": "Example: Healthcare, Legal, SaaS",
+        "list": "Comma-separated list"
+      },
+      "actions": {
+        "createRequest": "Create Build Request"
+      },
+      "labels": {
+        "industry": "Industry",
+        "mode": "Mode",
+        "actionRequired": "Action required",
+        "approval": "Approval",
+        "marketplaceSignals": "Marketplace intelligence signals",
+        "workers": "Recommended workers",
+        "departments": "Recommended departments",
+        "connectors": "Recommended connectors",
+        "templates": "Template matches",
+        "bundles": "Recommended bundles",
+        "notes": "Execution notes"
+      }
+    },
     "steps": ["Template", "Industry", "Tools", "Departments", "Review & Deploy"],
     "subsystems": [
       "Harmony",
