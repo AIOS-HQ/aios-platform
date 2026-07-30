@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FounderRuntimeDashboardViewModel } from "@/lib/founder/runtime-dashboard/view-model";
 import {
+  composeRuntimeFounderDecisionCenter,
   composeRuntimeExecutiveIntelligence,
   composeRuntimeExecutiveSummary,
   composeRuntimeFounderRecommendations,
@@ -14,6 +15,7 @@ export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryPr
   const executiveSummary = composeRuntimeExecutiveSummary(viewModel);
   const executiveIntelligence = composeRuntimeExecutiveIntelligence(viewModel);
   const recommendations = composeRuntimeFounderRecommendations(viewModel, executiveSummary, executiveIntelligence);
+  const decisionCenter = composeRuntimeFounderDecisionCenter(executiveSummary, executiveIntelligence, recommendations);
 
   return (
     <Card>
@@ -50,6 +52,25 @@ export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryPr
                 <p className="mt-1 text-[11px] text-muted-foreground">Evidence: {recommendation.evidence.join(" • ")}</p>
               </div>
             ))}
+          </div>
+        </div>
+        <div className="rounded-md border bg-muted/20 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Founder Decision Center</p>
+          <div className="mt-2 space-y-1.5">
+            <p className="text-xs text-muted-foreground">Operational state</p>
+            <p className="text-xs font-medium text-foreground">{decisionCenter.operationalState}</p>
+            <p className="text-xs text-muted-foreground">Founder attention</p>
+            <p className="text-xs font-medium text-foreground">{decisionCenter.founderAttention}</p>
+            <p className="text-xs text-muted-foreground">Top decision</p>
+            <p className="text-xs font-medium text-foreground">{decisionCenter.topDecision}</p>
+            <p className="text-xs text-muted-foreground">Rationale</p>
+            <p className="text-xs font-medium text-foreground">{decisionCenter.rationale}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Impact: {decisionCenter.expectedImpact} • Action required: {decisionCenter.actionRequired ? "Yes" : "No"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Supporting recommendation ids: {decisionCenter.supportingRecommendationIds.join(" • ") || "—"}
+            </p>
           </div>
         </div>
         <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">

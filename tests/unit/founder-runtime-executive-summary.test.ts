@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  composeRuntimeFounderDecisionCenter,
   composeRuntimeExecutiveIntelligence,
   composeRuntimeExecutiveSummary,
   composeRuntimeFounderRecommendations,
@@ -201,6 +202,7 @@ describe("founder runtime recommendations", () => {
     expect(recommendations[0]?.title).toBe(
       "No action required. Harmony has not identified any operational conditions requiring Founder intervention.",
     );
+    expect(recommendations[0]?.id).toBe("no-action-required");
     expect(recommendations[0]?.actionRequired).toBe(false);
     expect(recommendations[0]?.expectedImpact).toBe("NONE");
     expect(recommendations[0]?.estimatedFounderEffort).toBe("NONE");
@@ -331,5 +333,99 @@ describe("founder runtime recommendations", () => {
     expect(second).toEqual(first);
     expect(first.every((recommendation) => recommendation.confidence >= 0 && recommendation.confidence <= 100)).toBe(true);
     expect(frozenInput.counts.degraded).toBe(degraded.counts.degraded);
+  });
+});
+
+describe("founder decision center", () => {
+  it("selects top decision directly from highest-priority actionable recommendation", () => {
+    const complex = mapFounderRuntimeDashboardViewModel(
+      {
+        scope: { userId: "u-1", companyId: "c-1" },
+        generatedAt: "2026-07-30T00:00:00.000Z",
+        status: "failed",
+        probes: [],
+        categories: [
+          {
+            category: "liveness",
+            total: 4,
+            healthy: 0,
+            degraded: 1,
+            failed: 2,
+            unknown: 1,
+            stale: 0,
+            status: "failed",
+          },
+        ],
+      },
+      metadata,
+    );
+    const summary = composeRuntimeExecutiveSummary(complex);
+    const intelligence = composeRuntimeExecutiveIntelligence(complex);
+    const recommendations = composeRuntimeFounderRecommendations(complex, summary, intelligence);
+    const decisionCenter = composeRuntimeFounderDecisionCenter(summary, intelligence, recommendations);
+
+    expect(recommendations[0]?.title).toBe(decisionCenter.topDecision);
+    expect(recommendations[0]?.rationale).toBe(decisionCenter.rationale);
+    expect(decisionCenter.supportingRecommendationIds).toEqual([recommendations[0]?.id]);
+    expect(decisionCenter.actionRequired).toBe(true);
+  });
+
+  it("returns no-immediate-decision output when there are no actionable recommendations", () => {
+    const healthy = mapFounderRuntimeDashboardViewModel(makeSummary("healthy"), metadata);
+    const summary = composeRuntimeExecutiveSummary(healthy);
+    const intelligence = composeRuntimeExecutiveIntelligence(healthy);
+    const recommendations = composeRuntimeFounderRecommendations(healthy, summary, intelligence);
+    const decisionCenter = composeRuntimeFounderDecisionCenter(summary, intelligence, recommendations);
+
+    expect(decisionCenter.topDecision).toBe("No immediate Founder decision required.");
+    expect(decisionCenter.founderAttention).toBe("Runtime is operating within expected parameters.");
+    expect(decisionCenter.actionRequired).toBe(false);
+    expect(decisionCenter.supportingRecommendationIds).toEqual(["no-action-required"]);
+  });
+
+  it("preserves existing recommendation ordering without new tie-break logic", () => {
+    const samePriorityRecommendations = [
+      {
+        id: "first",
+        title: "First decision",
+        priority: "HIGH" as const,
+        rationale: "First rationale",
+        expectedImpact: "HIGH" as const,
+        estimatedFounderEffort: "5_TO_15_MIN" as const,
+        confidence: 85,
+        evidence: ["first evidence"],
+        actionRequired: true,
+      },
+      {
+        id: "second",
+        title: "Second decision",
+        priority: "HIGH" as const,
+        rationale: "Second rationale",
+        expectedImpact: "MEDIUM" as const,
+        estimatedFounderEffort: "5_TO_15_MIN" as const,
+        confidence: 85,
+        evidence: ["second evidence"],
+        actionRequired: true,
+      },
+    ];
+    const decisionCenter = composeRuntimeFounderDecisionCenter(
+      {
+        headline: "Runtime requires attention",
+        details: ["signal"],
+        severity: "attention",
+      },
+      {
+        sections: [
+          {
+            title: "Founder Attention Queue",
+            insights: ["Address high-priority risks."],
+          },
+        ],
+      },
+      samePriorityRecommendations,
+    );
+
+    expect(decisionCenter.topDecision).toBe("First decision");
+    expect(decisionCenter.supportingRecommendationIds).toEqual(["first"]);
   });
 });
