@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/user";
-import { BUNDLES, type Bundle, type BundleCategory } from "@/lib/marketplace";
+import { type Bundle, type BundleCategory } from "@/lib/marketplace";
+import { loadStorefrontViewModel } from "@/lib/marketplace/storefront";
+import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import { getAiosAgent } from "@/lib/workforce/registry";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -37,7 +39,9 @@ function ChipRow({ label, items }: { label: string; items: string[] }) {
 
 export default async function MarketplaceBundlesPage() {
   const t = await getTranslations("marketplace");
-  await requireUser();
+  const user = await requireUser();
+  const companyId = await resolvePrimaryCompanyId();
+  const storefront = await loadStorefrontViewModel(user.id, companyId);
 
   function workerNames(bundle: Bundle): string[] {
     return bundle.contents.workers.map((k) => getAiosAgent(k)?.name ?? k);
@@ -52,7 +56,7 @@ export default async function MarketplaceBundlesPage() {
       </PageHeader>
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {BUNDLES.map((bundle) => {
+        {storefront.bundles.map((bundle) => {
           const [c0, c1] = CAT_COLORS[bundle.category];
           return (
             <Card key={bundle.id} className="flex h-full flex-col overflow-hidden">

@@ -5,12 +5,10 @@ import { requireUser } from "@/lib/auth/user";
 import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import {
   searchMarketplace,
-  buildCollections,
-  recommendForProfile,
   type MarketplaceItem,
   type MarketplaceItemKind,
 } from "@/lib/marketplace";
-import { loadStorefrontContext, toDisplayItem } from "@/lib/marketplace/storefront";
+import { loadStorefrontViewModel, toDisplayItem } from "@/lib/marketplace/storefront";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { MarketplaceItemCard } from "@/components/marketplace/marketplace-item-card";
@@ -47,7 +45,8 @@ export default async function MarketplaceDiscoverPage({
   const query = (sp.q ?? "").trim();
   const kind = isFacet(sp.kind) ? sp.kind : null;
 
-  const { catalog, signal, installedIds, installCounts } = await loadStorefrontContext(user.id, companyId);
+  const storefront = await loadStorefrontViewModel(user.id, companyId);
+  const { catalog, installedIds } = storefront;
 
   const action = (item: MarketplaceItem) => (
     <MarketplaceActions companyId={companyId} itemId={item.id} installed={installedIds.has(item.id)} />
@@ -75,13 +74,13 @@ export default async function MarketplaceDiscoverPage({
     ? searchMarketplace(query, catalog, kind ? { kinds: [kind] } : {}).map((r) => r.item)
     : [];
 
-  const rec = recommendForProfile(signal, catalog, 8);
+  const rec = storefront.recommendations;
   const recommended: MarketplaceItem[] = [];
   const seen = new Set<string>();
   for (const bucket of [rec.workers, rec.departments, rec.skills, rec.connectors, rec.dashboards, rec.workflowPacks]) {
     for (const it of bucket) if (!seen.has(it.id)) { seen.add(it.id); recommended.push(it); }
   }
-  const collections = query ? [] : buildCollections({ catalog, signal, installCounts });
+  const collections = query ? [] : storefront.collections;
 
   return (
     <>
