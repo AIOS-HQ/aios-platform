@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FounderRuntimeDashboardViewModel } from "@/lib/founder/runtime-dashboard/view-model";
-import { composeRuntimeExecutiveSummary } from "@/lib/founder/runtime-dashboard/executive-summary";
+import { composeRuntimeExecutiveIntelligence, composeRuntimeExecutiveSummary } from "@/lib/founder/runtime-dashboard/executive-summary";
 
 interface RuntimeDashboardSummaryProps {
   viewModel: FounderRuntimeDashboardViewModel;
@@ -8,6 +8,7 @@ interface RuntimeDashboardSummaryProps {
 
 export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryProps) {
   const executiveSummary = composeRuntimeExecutiveSummary(viewModel);
+  const executiveIntelligence = composeRuntimeExecutiveIntelligence(viewModel);
 
   return (
     <Card>
@@ -19,6 +20,17 @@ export function RuntimeDashboardSummary({ viewModel }: RuntimeDashboardSummaryPr
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Executive Summary</p>
           <p className="mt-1 text-sm font-medium">{executiveSummary.headline}</p>
           <p className="mt-1 text-xs text-muted-foreground">{executiveSummary.details.join(" • ")}</p>
+        </div>
+        <div className="rounded-md border bg-muted/20 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Executive Runtime Intelligence</p>
+          <div className="mt-2 space-y-3">
+            {executiveIntelligence.sections.map((section) => (
+              <div key={section.title}>
+                <p className="text-xs font-medium text-foreground">{section.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{section.insights.join(" • ")}</p>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div><span className="text-muted-foreground">Overall status</span><p className="font-medium">{viewModel.status}</p></div>
