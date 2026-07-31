@@ -1,0 +1,3 @@
+param managedIdentityResourceIds array
+param logAnalyticsWorkspaceResourceId string
+param appInsightsConnectionString string

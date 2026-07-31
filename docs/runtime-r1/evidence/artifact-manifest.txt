@@ -1,0 +1,22 @@
+# Runtime R1 required artifacts
+infra/runtime-r1/identity/main.bicep
+infra/runtime-r1/identity/parameters/dev.bicepparam
+infra/runtime-r1/identity/parameters/stg.bicepparam
+infra/runtime-r1/identity/parameters/prod.bicepparam
+infra/runtime-r1/messaging/main.bicep
+infra/runtime-r1/messaging/parameters/dev.bicepparam
+infra/runtime-r1/messaging/parameters/stg.bicepparam
+infra/runtime-r1/messaging/parameters/prod.bicepparam
+infra/runtime-r1/observability/main.bicep
+infra/runtime-r1/observability/parameters/dev.bicepparam
+infra/runtime-r1/observability/parameters/stg.bicepparam
+infra/runtime-r1/observability/parameters/prod.bicepparam
+infra/runtime-r1/compute/main.bicep
+infra/runtime-r1/compute/parameters/dev.bicepparam
+infra/runtime-r1/compute/parameters/stg.bicepparam
+infra/runtime-r1/compute/parameters/prod.bicepparam
+docs/runtime-r1/epic-e1-service-identity-provisioning.md
+docs/runtime-r1/epic-e2-messaging-execution-backbone.md
+docs/runtime-r1/epic-e3-observability-runtime-telemetry.md
+docs/runtime-r1/epic-e4-runtime-compute-orchestration-services.md
+docs/runtime-r1/epic-e5-production-readiness-operational-handoff.md

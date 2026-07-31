@@ -1,0 +1,5 @@
+#source	destination	file	pattern	description
+E1	E4	infra/runtime-r1/compute/main.bicep	managedIdentityResourceIds	E4 receives E1 managed identity resource IDs
+E2	E3	infra/runtime-r1/observability/main.bicep	serviceBusNamespaceResourceId	E3 receives Service Bus namespace ID for diagnostics scope
+E3	E4	infra/runtime-r1/compute/main.bicep	logAnalyticsWorkspaceResourceId	E4 receives Log Analytics workspace ID
+E3	E4	infra/runtime-r1/compute/main.bicep	appInsightsConnectionString	E4 receives Application Insights connection string
