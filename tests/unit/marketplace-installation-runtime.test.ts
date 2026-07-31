@@ -1,0 +1,336 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  mockRequireUser,
+  mockCreateClient,
+  mockPlanInstall,
+  mockPlanUpdate,
+  mockPlanRollback,
+  mockPlanUninstall,
+  mockLoadCatalog,
+  mockLoadInstallState,
+} = vi.hoisted(() => ({
+  mockRequireUser: vi.fn(),
+  mockCreateClient: vi.fn(),
+  mockPlanInstall: vi.fn(),
+  mockPlanUpdate: vi.fn(),
+  mockPlanRollback: vi.fn(),
+  mockPlanUninstall: vi.fn(),
+  mockLoadCatalog: vi.fn(),
+  mockLoadInstallState: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/user", () => ({ requireUser: mockRequireUser }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: mockCreateClient }));
+vi.mock("@/lib/marketplace/install", () => ({
+  planInstall: mockPlanInstall,
+  planUpdate: mockPlanUpdate,
+  planRollback: mockPlanRollback,
+  planUninstall: mockPlanUninstall,
+}));
+vi.mock("@/lib/marketplace/persistence", () => ({
+  loadCatalog: mockLoadCatalog,
+  loadInstallState: mockLoadInstallState,
+}));
+
+import {
+  installMarketplaceItem,
+  rollbackMarketplaceItem,
+  uninstallMarketplaceItem,
+  updateMarketplaceItem,
+} from "@/lib/marketplace/actions";
+
+function makeOwnedCompanySupabase() {
+  const maybeSingle = vi.fn(async () => ({ data: { id: "company-1" } }));
+  const eqChain2 = { eq: vi.fn(() => ({ maybeSingle })) };
+  const eqChain1 = { eq: vi.fn(() => eqChain2) };
+  const selectChain = { select: vi.fn(() => eqChain1) };
+
+  const upsert = vi.fn(async () => ({ error: null }));
+  const upsertBuilder = { upsert };
+
+  const deleteEq2 = { eq: vi.fn(async () => ({ error: null })) };
+  const deleteEq1 = { eq: vi.fn(() => deleteEq2) };
+  const delBuilder = { delete: vi.fn(() => deleteEq1) };
+
+  const from = vi.fn((table: string) => {
+    if (table === "companies") return selectChain;
+    if (table === "company_installations") {
+      return {
+        ...upsertBuilder,
+        ...delBuilder,
+      };
+    }
+    throw new Error(`unexpected table ${table}`);
+  });
+
+  return { client: { from }, upsert };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("marketplace installation runtime actions", () => {
+  it("does not write when ownership check fails", async () => {
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+
+    const maybeSingle = vi.fn(async () => ({ data: null }));
+    const eqChain2 = { eq: vi.fn(() => ({ maybeSingle })) };
+    const eqChain1 = { eq: vi.fn(() => eqChain2) };
+    const selectChain = { select: vi.fn(() => eqChain1) };
+    const from = vi.fn((table: string) => {
+      if (table === "companies") return selectChain;
+      throw new Error(`unexpected table ${table}`);
+    });
+
+    mockCreateClient.mockResolvedValue({ from });
+
+    const result = await installMarketplaceItem("company-1", "item-1");
+
+    expect(result.applied).toBe(false);
+    expect(result.error).toBe("forbidden");
+    expect(result.plan.blocked).toBe(true);
+    expect(result.plan.reasons).toEqual(["Company not found or not owned"]);
+    expect(mockLoadCatalog).not.toHaveBeenCalled();
+    expect(mockLoadInstallState).not.toHaveBeenCalled();
+  });
+
+  it("returns blocked install plan without writes", async () => {
+    const { client, upsert } = makeOwnedCompanySupabase();
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+
+    mockLoadCatalog.mockResolvedValue({});
+    mockLoadInstallState.mockResolvedValue({});
+    mockPlanInstall.mockReturnValue({
+      action: "install",
+      itemId: "item-1",
+      fromVersion: null,
+      toVersion: "1.0.0",
+      steps: [],
+      warnings: [],
+      blocked: true,
+      reasons: ["Missing dependency dep (1.x)"],
+    });
+
+    const result = await installMarketplaceItem("company-1", "item-1");
+
+    expect(result.applied).toBe(false);
+    expect(result.plan.blocked).toBe(true);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("applies install steps via deterministic upsert payload", async () => {
+    const { client, upsert } = makeOwnedCompanySupabase();
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+
+    mockLoadCatalog.mockResolvedValue({
+      dep: { visibility: "marketplace_public" },
+      app: { visibility: "company_private" },
+    });
+    mockLoadInstallState.mockResolvedValue({});
+    mockPlanInstall.mockReturnValue({
+      action: "install",
+      itemId: "app",
+      fromVersion: null,
+      toVersion: "1.0.0",
+      steps: [
+        { itemId: "dep", kind: "skill", version: "1.2.0", reason: "dependency" },
+        { itemId: "app", kind: "workforce", version: "1.0.0", reason: "requested" },
+      ],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const result = await installMarketplaceItem("company-1", "app");
+
+    expect(result.applied).toBe(true);
+    expect(upsert).toHaveBeenCalledTimes(1);
+
+    const [rows, options] = upsert.mock.calls[0] as [Array<Record<string, unknown>>, { onConflict: string }];
+    expect(options).toEqual({ onConflict: "company_id,item_id" });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      user_id: "user-1",
+      company_id: "company-1",
+      item_id: "dep",
+      kind: "skill",
+      installed_version: "1.2.0",
+      source: "marketplace_public",
+      enabled: true,
+    });
+    expect(rows[1]).toMatchObject({
+      user_id: "user-1",
+      company_id: "company-1",
+      item_id: "app",
+      kind: "workforce",
+      installed_version: "1.0.0",
+      source: "company_private",
+      enabled: true,
+    });
+    expect(typeof rows[0].updated_at).toBe("string");
+    expect(typeof rows[1].updated_at).toBe("string");
+  });
+
+  it("treats repeated same-plan install as idempotent upsert", async () => {
+    const { client, upsert } = makeOwnedCompanySupabase();
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({});
+    mockPlanInstall.mockReturnValue({
+      action: "install",
+      itemId: "app",
+      fromVersion: null,
+      toVersion: "1.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "1.0.0", reason: "requested" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    await installMarketplaceItem("company-1", "app");
+    await installMarketplaceItem("company-1", "app");
+
+    expect(upsert).toHaveBeenCalledTimes(2);
+    const firstRows = upsert.mock.calls[0]?.[0];
+    const secondRows = upsert.mock.calls[1]?.[0];
+    expect(firstRows).toHaveLength(1);
+    expect(secondRows).toHaveLength(1);
+    expect((firstRows as Array<Record<string, unknown>>)[0]).toMatchObject({
+      user_id: "user-1",
+      company_id: "company-1",
+      item_id: "app",
+      installed_version: "1.0.0",
+    });
+    expect((secondRows as Array<Record<string, unknown>>)[0]).toMatchObject({
+      user_id: "user-1",
+      company_id: "company-1",
+      item_id: "app",
+      installed_version: "1.0.0",
+    });
+  });
+
+  it("returns persistence error when upsert fails", async () => {
+    const { client, upsert } = makeOwnedCompanySupabase();
+    upsert.mockResolvedValueOnce({ error: { message: "db down" } });
+
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({});
+    mockPlanInstall.mockReturnValue({
+      action: "install",
+      itemId: "app",
+      fromVersion: null,
+      toVersion: "1.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "1.0.0", reason: "requested" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const result = await installMarketplaceItem("company-1", "app");
+
+    expect(result.applied).toBe(false);
+    expect(result.error).toBe("db down");
+  });
+
+  it("uses same guarded runtime path for update and rollback", async () => {
+    const { client, upsert } = makeOwnedCompanySupabase();
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+
+    mockPlanUpdate.mockReturnValue({
+      action: "update",
+      itemId: "app",
+      fromVersion: "1.0.0",
+      toVersion: "2.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "2.0.0", reason: "requested" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+    mockPlanRollback.mockReturnValue({
+      action: "rollback",
+      itemId: "app",
+      fromVersion: "2.0.0",
+      toVersion: "1.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "1.0.0", reason: "rollback" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const updated = await updateMarketplaceItem("company-1", "app");
+    const rolledBack = await rollbackMarketplaceItem("company-1", "app", "1.0.0");
+
+    expect(updated.applied).toBe(true);
+    expect(rolledBack.applied).toBe(true);
+    expect(upsert).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks uninstall plan without delete and applies delete when allowed", async () => {
+    const maybeSingle = vi.fn(async () => ({ data: { id: "company-1" } }));
+    const eqChain2 = { eq: vi.fn(() => ({ maybeSingle })) };
+    const eqChain1 = { eq: vi.fn(() => eqChain2) };
+    const selectChain = { select: vi.fn(() => eqChain1) };
+
+    const deleteEq3 = vi.fn(async () => ({ error: null }));
+    const deleteEq2 = { eq: vi.fn(() => ({ eq: deleteEq3 })) };
+    const deleteEq1 = { eq: vi.fn(() => deleteEq2) };
+    const delBuilder = { delete: vi.fn(() => deleteEq1) };
+
+    const from = vi.fn((table: string) => {
+      if (table === "companies") return selectChain;
+      if (table === "company_installations") return delBuilder;
+      throw new Error(`unexpected table ${table}`);
+    });
+
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue({ from });
+    mockLoadCatalog.mockResolvedValue({});
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+
+    mockPlanUninstall
+      .mockReturnValueOnce({
+        action: "uninstall",
+        itemId: "app",
+        fromVersion: "1.0.0",
+        toVersion: null,
+        steps: [],
+        warnings: [],
+        blocked: true,
+        reasons: ["Required by installed item(s): dep"],
+      })
+      .mockReturnValueOnce({
+        action: "uninstall",
+        itemId: "app",
+        fromVersion: "1.0.0",
+        toVersion: null,
+        steps: [{ itemId: "app", kind: "workforce", version: "1.0.0", reason: "uninstall" }],
+        warnings: [],
+        blocked: false,
+        reasons: [],
+      });
+
+    const blocked = await uninstallMarketplaceItem("company-1", "app");
+    expect(blocked.applied).toBe(false);
+    expect(delBuilder.delete).not.toHaveBeenCalled();
+
+    const allowed = await uninstallMarketplaceItem("company-1", "app");
+    expect(allowed.applied).toBe(true);
+    expect(delBuilder.delete).toHaveBeenCalledTimes(1);
+    expect(deleteEq3).toHaveBeenCalledTimes(1);
+  });
+});
