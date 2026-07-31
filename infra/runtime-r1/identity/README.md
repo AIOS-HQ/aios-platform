@@ -37,6 +37,21 @@ infra/runtime-r1/identity/
 - Target subscription and resource group.
 - Existing Key Vault (`keyVaultName`).
 
+## Gate A DEV Baseline (validated environment)
+
+- Subscription ID: `a4cef627-4392-430a-89d7-143d95880c55`
+- Tenant ID: `db89245c-32e3-4980-8b7c-67e1d74a1382`
+- Resource Group: `aios-core-rg`
+- Region: `eastus`
+- Key Vault: `aioshq-keyvalt`
+- Key Vault URI: `https://aioshq-keyvalt.vault.azure.net/`
+- Existing ACA environment: `managedEnvironment-aioscorerg-a01d`
+- Existing Container App (known): `aios-runtime`
+
+`parameters/dev.bicepparam` is prepared for this baseline. Unknown runtime app IDs
+for `executionApi`, `mason`, `julius`, `workerRuntime`, and `futureRuntime`
+remain intentionally empty strings until those apps are created/identified.
+
 ## Required Azure Permissions (minimum)
 - `Managed Identity Contributor` on target resource group.
 - `Role Based Access Control Administrator` (or equivalent role assignment permissions) on target scopes.
@@ -58,12 +73,12 @@ Resulting identities:
 
 Validate compile:
 ```bash
-./scripts/runtime-r1/identity/validate.sh --environment dev --resource-group <rg>
+./scripts/runtime-r1/identity/validate.sh --environment dev --resource-group aios-core-rg
 ```
 
 What-if preview:
 ```bash
-./scripts/runtime-r1/identity/validate.sh --environment dev --resource-group <rg> --what-if
+./scripts/runtime-r1/identity/validate.sh --environment dev --resource-group aios-core-rg --what-if
 ```
 
 Deploy:
