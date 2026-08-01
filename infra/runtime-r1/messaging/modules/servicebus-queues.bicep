@@ -27,5 +27,5 @@ resource queues 'Microsoft.ServiceBus/namespaces/queues@2023-01-01-preview' = [f
   }
 }]
 
-output queueNames object = { for queueEntry in items(queueConfig): queueEntry.key: queueEntry.value.name }
-output queueResourceIds object = { for (queueEntry, i) in items(queueConfig): queueEntry.key: queues[i].id }
+output queueNames object = {for queueEntry in items(queueConfig): queueEntry.key: queueEntry.value.name}
+output queueResourceIds object = {for (queueEntry, i) in items(queueConfig): queueEntry.key: queues[i].id}
