@@ -206,8 +206,8 @@ output namespaceResourceId string = namespace.outputs.namespaceResourceId
 output queueNames object = queues.outputs.queueNames
 output queueResourceIds object = queues.outputs.queueResourceIds
 output topicName string = executionTopic.enabled ? executionTopic.name : ''
-output topicResourceId string = executionTopic.enabled ? topic.outputs.topicResourceId : ''
-output topicSubscriptionNames array = executionTopic.enabled ? topic.outputs.subscriptionNames : []
+output topicResourceId string = executionTopic.enabled ? topic!.outputs.topicResourceId : ''
+output topicSubscriptionNames array = executionTopic.enabled ? topic!.outputs.subscriptionNames : []
 output diagnosticsEnabled bool = enableDiagnostics && !empty(logAnalyticsWorkspaceResourceId)
 output deploymentNotes object = {
   message: 'Epic E2 provisions messaging infrastructure only. No runtime consumers/producers are deployed in this template.'
