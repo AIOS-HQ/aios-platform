@@ -21,6 +21,7 @@ NATS JetStream is a replaceable real-time transport. If NATS is selected, public
 ```bash
 AIOS_EVENT_MESH_PROVIDER=postgres
 AIOS_EVENT_MESH_PROVIDER=nats
+AIOS_EVENT_MESH_PROVIDER=azure-service-bus
 AIOS_EVENT_MESH_PROVIDER=local
 ```
 
@@ -34,6 +35,7 @@ Code lives in `src/lib/event-mesh`.
 - `envelope.ts`: versioned AIOS event envelope, runtime validation, size limits, secret-key rejection, deterministic idempotency.
 - `adapters/postgres.ts`: durable polling/lease adapter.
 - `adapters/nats.ts`: NATS JetStream adapter with isolated NATS imports.
+- `adapters/azure-service-bus.ts`: Azure Service Bus topic/subscription adapter using identity-based auth.
 - `adapters/local.ts`: deterministic test adapter.
 - `worker.ts`: portable long-running Node worker runtime.
 - `workforce-handlers.ts`: bounded workforce dispatch handlers.
@@ -85,7 +87,28 @@ The same worker process can run on local Docker, a standard Linux VM, Google Com
 
 Replit is suitable only when the target provides always-on processes, persistent storage, inbound/outbound networking, environment secrets, and process restart support. Request-driven/serverless-only environments are not appropriate for the NATS core worker because JetStream delivery requires durable long-running consumers.
 
-Future adapters can implement the same Event Mesh contract for Azure Service Bus, Google Pub/Sub, RabbitMQ, or Redis Streams without changing Harmony, Mason, Julius, or specialist business logic.
+Azure Service Bus provider activation (E3) is configuration-only and keeps existing Event Mesh contracts intact:
+
+```bash
+AIOS_EVENT_MESH_PROVIDER=azure-service-bus
+AIOS_EVENT_MESH_AZURE_SERVICEBUS_NAMESPACE=<namespace-or-fqdn>
+AIOS_EVENT_MESH_AZURE_SERVICEBUS_TOPIC=aios-runtime-r1-events
+AIOS_EVENT_MESH_AZURE_SERVICEBUS_SUBSCRIPTION_PREFIX=aios-runtime-r1
+AIOS_EVENT_MESH_AZURE_SERVICEBUS_REPLAY_TOPIC=
+AIOS_EVENT_MESH_AZURE_SERVICEBUS_DISABLE_REPLAY=true
+```
+
+Auth model:
+
+- `@azure/identity` `DefaultAzureCredential` only (managed identity / workload identity / federated identity)
+- no connection strings in source
+- no secrets in Event Mesh payloads
+
+Replay semantics on Azure Service Bus:
+
+- Direct parity with Postgres replay tables is not available by default.
+- If `AIOS_EVENT_MESH_AZURE_SERVICEBUS_REPLAY_TOPIC` is unset or `AIOS_EVENT_MESH_AZURE_SERVICEBUS_DISABLE_REPLAY=true`, replay returns `replay_not_supported_without_replay_topic`.
+- If replay topic is configured, replay publishes an explicit replay-request message for a downstream replay worker/pipeline.
 
 ## Rollout
 
