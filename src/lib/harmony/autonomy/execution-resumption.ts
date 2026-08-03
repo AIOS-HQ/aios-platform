@@ -155,46 +155,41 @@ function extractExecutionIdentity(params: Record<string, unknown>): {
   correlationId: string | null;
 } {
   const taskContract = asOptionalObject(params.taskContract);
-  const executionIdentity = asOptionalObject(taskContract?.executionIdentity);
+  const canonicalExecutionIdentity = asOptionalObject(taskContract?.executionIdentity);
+  const legacyExecutionIdentity = asOptionalObject(params.executionIdentity);
   const context = asOptionalObject(params.context);
 
   const executionId =
+    asNonEmptyString(canonicalExecutionIdentity?.executionId) ??
+    asNonEmptyString(canonicalExecutionIdentity?.execution_id) ??
+    asNonEmptyString(legacyExecutionIdentity?.executionId) ??
+    asNonEmptyString(legacyExecutionIdentity?.execution_id) ??
     asNonEmptyString(params.executionId) ??
     asNonEmptyString(params.execution_id) ??
-    asNonEmptyString(executionIdentity?.executionId) ??
-    asNonEmptyString(executionIdentity?.execution_id) ??
     asNonEmptyString(context?.executionId) ??
     asNonEmptyString(context?.execution_id);
 
   const requestId =
+    asNonEmptyString(canonicalExecutionIdentity?.requestId) ??
+    asNonEmptyString(canonicalExecutionIdentity?.request_id) ??
+    asNonEmptyString(legacyExecutionIdentity?.requestId) ??
+    asNonEmptyString(legacyExecutionIdentity?.request_id) ??
     asNonEmptyString(params.requestId) ??
     asNonEmptyString(params.request_id) ??
-    asNonEmptyString(executionIdentity?.requestId) ??
-    asNonEmptyString(executionIdentity?.request_id) ??
     asNonEmptyString(context?.requestId) ??
     asNonEmptyString(context?.request_id);
 
   const correlationId =
+    asNonEmptyString(canonicalExecutionIdentity?.correlationId) ??
+    asNonEmptyString(canonicalExecutionIdentity?.correlation_id) ??
+    asNonEmptyString(legacyExecutionIdentity?.correlationId) ??
+    asNonEmptyString(legacyExecutionIdentity?.correlation_id) ??
     asNonEmptyString(params.correlationId) ??
     asNonEmptyString(params.correlation_id) ??
-    asNonEmptyString(executionIdentity?.correlationId) ??
-    asNonEmptyString(executionIdentity?.correlation_id) ??
     asNonEmptyString(context?.correlationId) ??
     asNonEmptyString(context?.correlation_id);
 
   return { executionId, requestId, correlationId };
-}
-
-function isLegacyMasonResumePayload(params: Record<string, unknown>): boolean {
-  const taskContract = asOptionalObject(params.taskContract);
-  const executionIdentity = asOptionalObject(taskContract?.executionIdentity);
-  const context = asOptionalObject(params.context);
-  const hasAnyCanonicalIdentityContainer = Boolean(taskContract) || Boolean(executionIdentity) || Boolean(context);
-  if (hasAnyCanonicalIdentityContainer) return false;
-
-  const objective = asNonEmptyString(params.objective);
-  const repository = asNonEmptyString(params.repository);
-  return Boolean(objective && repository);
 }
 
 async function findPriorCanonicalExecution(
@@ -388,20 +383,6 @@ export async function resumeApprovedExecution(
   const params = (approval.original_params ?? {}) as Record<string, unknown>;
   const identity = extractExecutionIdentity(params);
 
-  if (
-    approval.original_agent === "mason" &&
-    !identity.executionId &&
-    !identity.requestId &&
-    !identity.correlationId &&
-    !isLegacyMasonResumePayload(params)
-  ) {
-    return {
-      ok: false,
-      error: "missing_execution_identity",
-      execution_result: undefined,
-    };
-  }
-
   const mergeValidation = validateMergeResumePayload(approval, params);
   if (!mergeValidation.ok) {
     const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
@@ -410,6 +391,24 @@ export async function resumeApprovedExecution(
       recoverable: true,
     });
     return { ok: false, error: "invalid_merge_resume_context", execution_result: result ?? undefined };
+  }
+
+  if (
+    approval.original_agent === "mason" &&
+    !identity.executionId &&
+    !identity.requestId &&
+    !identity.correlationId
+  ) {
+    const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+      code: "missing_execution_identity",
+      message: `Approval ${approvalId} cannot resume: execution identity is missing from approved payload.`,
+      recoverable: false,
+    });
+    return {
+      ok: false,
+      error: "missing_execution_identity",
+      execution_result: result ?? undefined,
+    };
   }
 
   const prior = await findPriorCanonicalExecution(d, userId, companyId, identity);
