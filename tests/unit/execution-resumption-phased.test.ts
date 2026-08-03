@@ -121,6 +121,7 @@ describe("execution resumption phased service", () => {
 
   it("returns deterministic blocked result for missing execution identity", async () => {
     const runMason = vi.fn();
+    const recordExecutionResult = vi.fn(async (_u: string, _c: string | null, result: ExecutionResult) => result);
 
     const result = await resumeApprovedExecution(
       "user-1",
@@ -134,13 +135,15 @@ describe("execution resumption phased service", () => {
               repository: "AIOS-HQ/aios-platform",
             },
           }),
+        recordExecutionResult,
         runMason,
       }),
     );
 
     expect(result.ok).toBe(false);
     expect(result.error).toBe("missing_execution_identity");
-    expect(result.execution_result).toBeUndefined();
+    expect(result.execution_result?.status).toBe("blocked");
+    expect(recordExecutionResult).toHaveBeenCalledTimes(1);
     expect(runMason).not.toHaveBeenCalled();
   });
 });

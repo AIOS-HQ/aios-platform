@@ -192,18 +192,6 @@ function extractExecutionIdentity(params: Record<string, unknown>): {
   return { executionId, requestId, correlationId };
 }
 
-function isLegacyMasonResumePayload(params: Record<string, unknown>): boolean {
-  const taskContract = asOptionalObject(params.taskContract);
-  const executionIdentity = asOptionalObject(taskContract?.executionIdentity);
-  const context = asOptionalObject(params.context);
-  const hasAnyCanonicalIdentityContainer = Boolean(taskContract) || Boolean(executionIdentity) || Boolean(context);
-  if (hasAnyCanonicalIdentityContainer) return false;
-
-  const objective = asNonEmptyString(params.objective);
-  const repository = asNonEmptyString(params.repository);
-  return Boolean(objective && repository);
-}
-
 async function findPriorCanonicalExecution(
   d: ResumeDeps,
   userId: string,
@@ -411,10 +399,15 @@ export async function resumeApprovedExecution(
     !identity.requestId &&
     !identity.correlationId
   ) {
+    const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+      code: "missing_execution_identity",
+      message: `Approval ${approvalId} cannot resume: execution identity is missing from approved payload.`,
+      recoverable: false,
+    });
     return {
       ok: false,
       error: "missing_execution_identity",
-      execution_result: undefined,
+      execution_result: result ?? undefined,
     };
   }
 
