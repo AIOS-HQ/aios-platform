@@ -15,6 +15,7 @@ import "server-only";
 
 import type { ApprovalPayload, ExecutionResult } from "./types";
 import type { WorkItem } from "@/types/database";
+import { getConnector } from "@/lib/integrations/connectors";
 
 export interface ResumeDeps {
   getApprovalPayload: (userId: string, approvalId: string) => Promise<ApprovalPayload | null>;
@@ -421,15 +422,72 @@ export async function resumeApprovedExecution(
   }
 
   try {
-    // Connector dispatch — payload carries connectorId + capabilityId.
-    if (typeof params.connectorId === "string" && typeof params.capabilityId === "string") {
+    const connectorId = asNonEmptyString(params.connectorId);
+    const capabilityId = asNonEmptyString(params.capabilityId);
+    const provider = asNonEmptyString(params.provider);
+    const connectionId =
+      asNonEmptyString(params.connectionId) ??
+      asNonEmptyString(params.connection_id) ??
+      asNonEmptyString(params.accountId) ??
+      asNonEmptyString(params.account_id);
+
+    // Connector dispatch — payload must carry canonical connector context.
+    if (connectorId || capabilityId || provider || connectionId) {
+      const connector = connectorId ? getConnector(connectorId) : undefined;
+
+      if (!connector) {
+        const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+          code: "unsupported_connector_provider",
+          message: "Connector resume blocked: provider is not supported by the connector registry.",
+          recoverable: false,
+        });
+        return { ok: false, error: "unsupported_connector_provider", execution_result: result ?? undefined };
+      }
+
+      if (!connectorId || !provider || connectorId !== provider) {
+        const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+          code: "unsupported_connector_provider",
+          message: "Connector resume blocked: provider must be present and match connectorId.",
+          recoverable: false,
+        });
+        return { ok: false, error: "unsupported_connector_provider", execution_result: result ?? undefined };
+      }
+
+      if (!capabilityId) {
+        const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+          code: "missing_connector_capability",
+          message: "Connector resume blocked: capabilityId is required.",
+          recoverable: false,
+        });
+        return { ok: false, error: "missing_connector_capability", execution_result: result ?? undefined };
+      }
+
+      if (!connectionId) {
+        const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+          code: "missing_connector_connection",
+          message: "Connector resume blocked: connection/account identifier is required.",
+          recoverable: false,
+        });
+        return { ok: false, error: "missing_connector_connection", execution_result: result ?? undefined };
+      }
+
       const run = await d.runConnector(
         userId,
-        params.connectorId,
-        params.capabilityId,
+        connectorId,
+        capabilityId,
         (params.params as Record<string, unknown> | undefined) ?? {},
         { approved: true },
       );
+
+      if (!run || typeof run !== "object" || typeof run.ok !== "boolean" || typeof run.status !== "string") {
+        const result = await recordResult(d, userId, companyId, approval, identity, "failed", {
+          code: "invalid_connector_result",
+          message: "Connector resume failed: runtime returned an invalid connector result.",
+          recoverable: true,
+        });
+        return { ok: false, error: "invalid_connector_result", execution_result: result ?? undefined };
+      }
+
       const status: ExecutionResult["status"] = run.ok
         ? "completed"
         : run.status === "blocked"
