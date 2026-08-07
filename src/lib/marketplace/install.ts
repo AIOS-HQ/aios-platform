@@ -127,12 +127,11 @@ export function planRollback(
   if (!item.versions.some((v) => v.version === toVersion)) {
     return { ...base, blocked: true, reasons: [`Version ${toVersion} does not exist`] };
   }
-  const warnings: string[] = [];
   if (compareSemver(toVersion, current.installedVersion) >= 0) {
-    warnings.push(`Target ${toVersion} is not older than current ${current.installedVersion}`);
+    return { ...base, blocked: true, reasons: [`Target ${toVersion} is not older than current ${current.installedVersion}`] };
   }
   const step: PlanStep = { itemId, kind: item.kind, version: toVersion, reason: "rollback" };
-  return { ...base, steps: [step], warnings: [...warnings, ...reconsentWarning([step])] };
+  return { ...base, steps: [step], warnings: reconsentWarning([step]) };
 }
 
 /** Plan uninstalling an item, blocking when other installed items depend on it. */

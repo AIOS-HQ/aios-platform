@@ -21,6 +21,10 @@ const indexReconciliation = readFileSync(
   "supabase/migrations/20260807230000_marketplace_audit_idempotency_index_reconciliation.sql",
   "utf8",
 );
+const boundaryEnforcement = readFileSync(
+  "supabase/migrations/20260807240000_marketplace_rollback_uninstall_boundary_enforcement.sql",
+  "utf8",
+);
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -79,7 +83,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 57");
+    expect(certification).toContain("migrations.length !== 58");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
@@ -164,5 +168,23 @@ describe("marketplace migration foundation", () => {
     expect(indexReconciliation).toContain("on public.agent_autonomy_audit (idempotency_key);");
     expect(indexReconciliation).not.toMatch(/where\s+operation\s+is\s+not\s+null/i);
     expect(indexReconciliation).not.toMatch(/where\s+idempotency_key\s+is\s+not\s+null/i);
+  });
+
+  it("certifies rollback/uninstall database boundary enforcement migration", () => {
+    expect(boundaryEnforcement).toContain("create or replace function public.marketplace_apply_rollback_with_evidence(");
+    expect(boundaryEnforcement).toContain("create or replace function public.marketplace_apply_uninstall_with_evidence(");
+    expect(boundaryEnforcement).toContain("create or replace function public.marketplace_semver_compare(");
+    expect(boundaryEnforcement).toContain("policy_denied");
+    expect(boundaryEnforcement).toContain("execution_identity_mismatch");
+    expect(boundaryEnforcement).toContain("rollback_target_not_older");
+    expect(boundaryEnforcement).toContain("uninstall_dependency_conflict");
+  });
+
+  it("runs executable rollback/uninstall database boundary probes in certification", () => {
+    expect(certification).toContain("function assertMarketplaceBoundaryEnforcement(database)");
+    expect(certification).toContain("rollback_same_should_fail");
+    expect(certification).toContain("rollback_newer_should_fail");
+    expect(certification).toContain("rollback_nonexistent_should_fail");
+    expect(certification).toContain("uninstall_with_dependents_should_fail");
   });
 });
