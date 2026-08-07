@@ -488,19 +488,73 @@ async function persistUpdateDecisionEvidence(input: PersistUpdateEvidenceInput):
 }
 
 async function persistRollbackDecisionEvidence(input: PersistRollbackEvidenceInput): Promise<string | null> {
+  const policy = input.policyEvidence;
+  const identity = policy.executionIdentity;
+  if (!identity || !isNonEmpty(identity.executionId) || !isNonEmpty(identity.requestId) || !isNonEmpty(identity.correlationId)) {
+    return null;
+  }
+
+  const idempotencyKey = [
+    "marketplace_rollback",
+    input.itemId,
+    input.fromVersion ?? "none",
+    input.toVersion ?? "none",
+    identity.executionId,
+    identity.requestId,
+    identity.correlationId,
+    input.decision,
+    input.reasonCode,
+  ].join(":");
+
   const supabase = await createClient();
+  const payload = {
+    operation: "marketplace_rollback",
+    decision: input.decision,
+    reasonCode: input.reasonCode,
+    actor: policy.actor,
+    companyId: input.companyId,
+    itemId: input.itemId,
+    fromVersion: input.fromVersion,
+    toVersion: input.toVersion,
+    executionIdentity: identity,
+    policyEvidence: policy,
+    decidedAt: new Date().toISOString(),
+  };
   const { data, error } = await supabase
     .from("agent_autonomy_audit")
     .upsert(
       {
-        user_id: input.userId,
+        operation: "marketplace_rollback",
+        actor_user_id: input.userId,
         company_id: input.companyId,
-        agent_id: input.policyEvidence.agent.id,
-        actor_type: input.policyEvidence.actor.type,
-        actor_id: input.policyEvidence.actor.id,
+        decision: input.decision,
+        reason: input.reasonCode,
+        policy_key: idempotencyKey,
+        payload,
+      },
+      { onConflict: "operation,policy_key" },
+    )
+    .select("id")
+    .maybeSingle();
+
+  if (!error && data?.id) return data.id;
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from("agent_autonomy_audit")
+    .upsert(
+      {
+        user_id: input.userId,
+        agent_id: policy.agent.id,
+        actor_type: policy.actor.type,
+        actor_id: policy.actor.id,
         decision: input.decision,
         confidence: 1,
         reason: input.reasonCode,
+        operation: "marketplace_rollback",
+        actor_user_id: input.userId,
+        policy_key: idempotencyKey,
+        payload,
+        idempotency_key: idempotencyKey,
         metadata: {
           action: "marketplace.rollback",
           itemId: input.itemId,
@@ -515,53 +569,106 @@ async function persistRollbackDecisionEvidence(input: PersistRollbackEvidenceInp
         },
       },
       {
-        onConflict: "user_id,company_id,agent_id,actor_type,actor_id,decision,reason",
+        onConflict: "idempotency_key",
         ignoreDuplicates: false,
       },
     )
     .select("id")
     .maybeSingle();
 
-  if (error) return null;
-  return data?.id ?? null;
+  if (fallbackError) return null;
+  return fallbackData?.id ?? null;
 }
 
 async function persistUninstallDecisionEvidence(input: PersistUninstallEvidenceInput): Promise<string | null> {
+  const policy = input.policyEvidence;
+  const identity = policy.executionIdentity;
+  if (!identity || !isNonEmpty(identity.executionId) || !isNonEmpty(identity.requestId) || !isNonEmpty(identity.correlationId)) {
+    return null;
+  }
+
+  const idempotencyKey = [
+    "marketplace_uninstall",
+    input.itemId,
+    input.fromVersion ?? "none",
+    identity.executionId,
+    identity.requestId,
+    identity.correlationId,
+    input.decision,
+    input.reasonCode,
+  ].join(":");
+
   const supabase = await createClient();
+  const payload = {
+    operation: "marketplace_uninstall",
+    decision: input.decision,
+    reasonCode: input.reasonCode,
+    actor: policy.actor,
+    companyId: input.companyId,
+    itemId: input.itemId,
+    fromVersion: input.fromVersion,
+    executionIdentity: identity,
+    policyEvidence: policy,
+    decidedAt: new Date().toISOString(),
+  };
   const { data, error } = await supabase
+    .from("agent_autonomy_audit")
+    .upsert(
+      {
+        operation: "marketplace_uninstall",
+        actor_user_id: input.userId,
+        company_id: input.companyId,
+        decision: input.decision,
+        reason: input.reasonCode,
+        policy_key: idempotencyKey,
+        payload,
+      },
+      { onConflict: "operation,policy_key" },
+    )
+    .select("id")
+    .maybeSingle();
+
+  if (!error && data?.id) return data.id;
+
+  const { data: fallbackData, error: fallbackError } = await supabase
     .from("agent_autonomy_audit")
     .upsert(
       {
         user_id: input.userId,
         company_id: input.companyId,
-        agent_id: input.policyEvidence.agent.id,
-        actor_type: input.policyEvidence.actor.type,
-        actor_id: input.policyEvidence.actor.id,
+        agent_id: policy.agent.id,
+        actor_type: policy.actor.type,
+        actor_id: policy.actor.id,
         decision: input.decision,
         confidence: 1,
         reason: input.reasonCode,
+        operation: "marketplace_uninstall",
+        actor_user_id: input.userId,
+        policy_key: idempotencyKey,
+        payload,
+        idempotency_key: idempotencyKey,
         metadata: {
           action: "marketplace.uninstall",
           itemId: input.itemId,
           fromVersion: input.fromVersion,
           policy: {
-            approvedAt: input.policyEvidence.approvedAt,
-            evaluatedAt: input.policyEvidence.evaluatedAt,
-            expiresAt: input.policyEvidence.expiresAt ?? null,
-            executionIdentity: input.policyEvidence.executionIdentity,
+            approvedAt: policy.approvedAt,
+            evaluatedAt: policy.evaluatedAt,
+            expiresAt: policy.expiresAt ?? null,
+            executionIdentity: identity,
           },
         },
       },
       {
-        onConflict: "user_id,company_id,agent_id,actor_type,actor_id,decision,reason",
+        onConflict: "idempotency_key",
         ignoreDuplicates: false,
       },
     )
     .select("id")
     .maybeSingle();
 
-  if (error) return null;
-  return data?.id ?? null;
+  if (fallbackError) return null;
+  return fallbackData?.id ?? null;
 }
 
 async function ownsCompany(userId: string, companyId: string): Promise<boolean> {

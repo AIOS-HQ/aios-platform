@@ -12,6 +12,7 @@ const reviews = readFileSync("src/lib/marketplace/review-actions.ts", "utf8");
 const certification = readFileSync("scripts/ci/full-migration-chain-certification.mjs", "utf8");
 const workflow = readFileSync(".github/workflows/full-migration-chain-certification.yml", "utf8");
 const rollbackAtomic = readFileSync("supabase/migrations/20260807190000_marketplace_atomic_rollback_evidence.sql", "utf8");
+const uninstallAtomic = readFileSync("supabase/migrations/20260807200000_marketplace_atomic_uninstall_evidence.sql", "utf8");
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -70,7 +71,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 53");
+    expect(certification).toContain("migrations.length !== 55");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
@@ -96,5 +97,36 @@ describe("marketplace migration foundation", () => {
     expect(rollbackAtomic).toContain("p_reason_code text default 'rollback_applied'");
     expect(rollbackAtomic).toContain(") from public, anon;");
     expect(rollbackAtomic).toContain(") to authenticated, service_role;");
+  });
+
+  it("certifies atomic uninstall RPC governance and privilege contract", () => {
+    expect(uninstallAtomic).toContain("create or replace function public.marketplace_apply_uninstall_with_evidence(");
+    expect(uninstallAtomic).toContain("security definer");
+    expect(uninstallAtomic).toContain("v_user_id := auth.uid()");
+    expect(uninstallAtomic).toContain("raise exception 'unauthenticated'");
+    expect(uninstallAtomic).toContain("forbidden_company");
+    expect(uninstallAtomic).toContain("policy_actor_mismatch");
+    expect(uninstallAtomic).toContain("policy_company_mismatch");
+    expect(uninstallAtomic).toContain("policy_item_mismatch");
+    expect(uninstallAtomic).toContain("policy_action_mismatch");
+    expect(uninstallAtomic).toContain("uninstall_transition_conflict");
+    expect(uninstallAtomic).toContain("delete from public.company_installations");
+    expect(uninstallAtomic).toContain("insert into public.agent_autonomy_audit");
+    expect(uninstallAtomic).toContain("p_reason_code text default 'uninstall_applied'");
+    expect(uninstallAtomic).toContain(") from public, anon;");
+    expect(uninstallAtomic).toContain(") to authenticated, service_role;");
+  });
+
+  it("certifies additive audit evidence reconciliation for marketplace contracts", () => {
+    const auditReconciliation = readFileSync(
+      "supabase/migrations/20260807210000_marketplace_audit_evidence_contract_reconciliation.sql",
+      "utf8",
+    );
+    expect(auditReconciliation).toContain("add column if not exists operation text");
+    expect(auditReconciliation).toContain("add column if not exists policy_key text");
+    expect(auditReconciliation).toContain("add column if not exists payload jsonb");
+    expect(auditReconciliation).toContain("add column if not exists idempotency_key text");
+    expect(auditReconciliation).toContain("agent_autonomy_audit_operation_policy_key_uq");
+    expect(auditReconciliation).toContain("agent_autonomy_audit_idempotency_key_uq");
   });
 });
