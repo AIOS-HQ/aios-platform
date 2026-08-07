@@ -88,6 +88,67 @@ export interface UpdateMarketplacePolicyInput {
   policyEvidence: MarketplaceUpdatePolicyEvidence;
 }
 
+export interface MarketplaceRollbackPolicyEvidence {
+  decision: "allow" | "deny";
+  approvedAt: string;
+  evaluatedAt: string;
+  expiresAt?: string;
+  actor: {
+    type: "founder";
+    id: string;
+  };
+  agent: {
+    id: "harmony";
+  };
+  companyId: string;
+  subject: {
+    kind: "marketplace_install";
+    itemId: string;
+    action: "rollback";
+    fromVersion?: string;
+    toVersion?: string;
+  };
+  executionIdentity: {
+    executionId: string;
+    requestId: string;
+    correlationId: string;
+  };
+}
+
+export interface RollbackMarketplacePolicyInput {
+  policyEvidence: MarketplaceRollbackPolicyEvidence;
+}
+
+export interface MarketplaceUninstallPolicyEvidence {
+  decision: "allow" | "deny";
+  approvedAt: string;
+  evaluatedAt: string;
+  expiresAt?: string;
+  actor: {
+    type: "founder";
+    id: string;
+  };
+  agent: {
+    id: "harmony";
+  };
+  companyId: string;
+  subject: {
+    kind: "marketplace_install";
+    itemId: string;
+    action: "uninstall";
+    fromVersion?: string;
+  };
+  executionIdentity: {
+    executionId: string;
+    requestId: string;
+    correlationId: string;
+  };
+}
+
+export interface UninstallMarketplacePolicyInput {
+  policyEvidence: MarketplaceUninstallPolicyEvidence;
+}
+
 type PersistInstallEvidenceInput = {
   userId: string;
   companyId: string;
@@ -108,6 +169,27 @@ type PersistUpdateEvidenceInput = {
   decision: "applied" | "blocked";
   reasonCode: string;
   note?: string;
+};
+
+type PersistRollbackEvidenceInput = {
+  userId: string;
+  companyId: string;
+  itemId: string;
+  fromVersion: string | null;
+  toVersion: string | null;
+  policyEvidence: MarketplaceRollbackPolicyEvidence;
+  decision: "applied" | "blocked";
+  reasonCode: string;
+};
+
+type PersistUninstallEvidenceInput = {
+  userId: string;
+  companyId: string;
+  itemId: string;
+  fromVersion: string | null;
+  policyEvidence: MarketplaceUninstallPolicyEvidence;
+  decision: "applied" | "blocked";
+  reasonCode: string;
 };
 
 function blockedPlan(action: InstallActionKind, itemId: string, reason: string): InstallPlan {
@@ -207,6 +289,91 @@ function validateUpdatePolicyTransition(
 ): string | null {
   if ((evidence.subject.fromVersion ?? "") !== (fromVersion ?? "")) return "policy_subject_mismatch";
   if ((evidence.subject.toVersion ?? "") !== (toVersion ?? "")) return "policy_subject_mismatch";
+  return null;
+}
+
+function validateRollbackPolicyEvidence(
+  userId: string,
+  companyId: string,
+  itemId: string,
+  input: RollbackMarketplacePolicyInput | undefined,
+): string | null {
+  if (!input || typeof input !== "object") return "missing_policy_decision";
+  const evidence = input.policyEvidence;
+  if (!evidence || typeof evidence !== "object") return "missing_policy_decision";
+  if (evidence.decision !== "allow") return "policy_denied";
+  if (!isIsoDate(evidence.approvedAt) || !isIsoDate(evidence.evaluatedAt)) return "malformed_policy_evidence";
+  if (evidence.expiresAt && !isIsoDate(evidence.expiresAt)) return "malformed_policy_evidence";
+  if (evidence.expiresAt && Date.parse(evidence.expiresAt) < Date.now()) return "stale_policy_evidence";
+  if (evidence.actor?.type !== "founder" || evidence.actor.id !== userId) return "policy_subject_mismatch";
+  if (evidence.agent?.id !== "harmony") return "policy_subject_mismatch";
+  if (evidence.companyId !== companyId) return "policy_subject_mismatch";
+  if (evidence.subject?.kind !== "marketplace_install" || evidence.subject.action !== "rollback") {
+    return "policy_subject_mismatch";
+  }
+  if (evidence.subject.itemId !== itemId) return "policy_subject_mismatch";
+  const identity = evidence.executionIdentity;
+  if (
+    !identity ||
+    !isNonEmpty(identity.executionId) ||
+    !isNonEmpty(identity.requestId) ||
+    !isNonEmpty(identity.correlationId)
+  ) {
+    return "missing_execution_identity";
+  }
+  return null;
+}
+
+function validateRollbackPolicyTransition(
+  evidence: MarketplaceRollbackPolicyEvidence,
+  plannedFromVersion: string | null,
+  plannedToVersion: string | null,
+): string | null {
+  const expectedFrom = evidence.subject.fromVersion ?? null;
+  const expectedTo = evidence.subject.toVersion ?? null;
+  if ((plannedFromVersion ?? null) !== expectedFrom) return "policy_subject_mismatch";
+  if ((plannedToVersion ?? null) !== expectedTo) return "policy_subject_mismatch";
+  return null;
+}
+
+function validateUninstallPolicyEvidence(
+  userId: string,
+  companyId: string,
+  itemId: string,
+  input: UninstallMarketplacePolicyInput | undefined,
+): string | null {
+  if (!input || typeof input !== "object") return "missing_policy_decision";
+  const evidence = input.policyEvidence;
+  if (!evidence || typeof evidence !== "object") return "missing_policy_decision";
+  if (evidence.decision !== "allow") return "policy_denied";
+  if (!isIsoDate(evidence.approvedAt) || !isIsoDate(evidence.evaluatedAt)) return "malformed_policy_evidence";
+  if (evidence.expiresAt && !isIsoDate(evidence.expiresAt)) return "malformed_policy_evidence";
+  if (evidence.expiresAt && Date.parse(evidence.expiresAt) < Date.now()) return "stale_policy_evidence";
+  if (evidence.actor?.type !== "founder" || evidence.actor.id !== userId) return "policy_subject_mismatch";
+  if (evidence.agent?.id !== "harmony") return "policy_subject_mismatch";
+  if (evidence.companyId !== companyId) return "policy_subject_mismatch";
+  if (evidence.subject?.kind !== "marketplace_install" || evidence.subject.action !== "uninstall") {
+    return "policy_subject_mismatch";
+  }
+  if (evidence.subject.itemId !== itemId) return "policy_subject_mismatch";
+  const identity = evidence.executionIdentity;
+  if (
+    !identity ||
+    !isNonEmpty(identity.executionId) ||
+    !isNonEmpty(identity.requestId) ||
+    !isNonEmpty(identity.correlationId)
+  ) {
+    return "missing_execution_identity";
+  }
+  return null;
+}
+
+function validateUninstallPolicyTransition(
+  evidence: MarketplaceUninstallPolicyEvidence,
+  plannedFromVersion: string | null,
+): string | null {
+  const expectedFrom = evidence.subject.fromVersion ?? null;
+  if (plannedFromVersion !== expectedFrom) return "policy_subject_mismatch";
   return null;
 }
 
@@ -320,6 +487,83 @@ async function persistUpdateDecisionEvidence(input: PersistUpdateEvidenceInput):
   return (data as { id?: string } | null)?.id ?? null;
 }
 
+async function persistRollbackDecisionEvidence(input: PersistRollbackEvidenceInput): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agent_autonomy_audit")
+    .upsert(
+      {
+        user_id: input.userId,
+        company_id: input.companyId,
+        agent_id: input.policyEvidence.agent.id,
+        actor_type: input.policyEvidence.actor.type,
+        actor_id: input.policyEvidence.actor.id,
+        decision: input.decision,
+        confidence: 1,
+        reason: input.reasonCode,
+        metadata: {
+          action: "marketplace.rollback",
+          itemId: input.itemId,
+          fromVersion: input.fromVersion,
+          toVersion: input.toVersion,
+          policy: {
+            approvedAt: input.policyEvidence.approvedAt,
+            evaluatedAt: input.policyEvidence.evaluatedAt,
+            expiresAt: input.policyEvidence.expiresAt ?? null,
+            executionIdentity: input.policyEvidence.executionIdentity,
+          },
+        },
+      },
+      {
+        onConflict: "user_id,company_id,agent_id,actor_type,actor_id,decision,reason",
+        ignoreDuplicates: false,
+      },
+    )
+    .select("id")
+    .maybeSingle();
+
+  if (error) return null;
+  return data?.id ?? null;
+}
+
+async function persistUninstallDecisionEvidence(input: PersistUninstallEvidenceInput): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agent_autonomy_audit")
+    .upsert(
+      {
+        user_id: input.userId,
+        company_id: input.companyId,
+        agent_id: input.policyEvidence.agent.id,
+        actor_type: input.policyEvidence.actor.type,
+        actor_id: input.policyEvidence.actor.id,
+        decision: input.decision,
+        confidence: 1,
+        reason: input.reasonCode,
+        metadata: {
+          action: "marketplace.uninstall",
+          itemId: input.itemId,
+          fromVersion: input.fromVersion,
+          policy: {
+            approvedAt: input.policyEvidence.approvedAt,
+            evaluatedAt: input.policyEvidence.evaluatedAt,
+            expiresAt: input.policyEvidence.expiresAt ?? null,
+            executionIdentity: input.policyEvidence.executionIdentity,
+          },
+        },
+      },
+      {
+        onConflict: "user_id,company_id,agent_id,actor_type,actor_id,decision,reason",
+        ignoreDuplicates: false,
+      },
+    )
+    .select("id")
+    .maybeSingle();
+
+  if (error) return null;
+  return data?.id ?? null;
+}
+
 async function ownsCompany(userId: string, companyId: string): Promise<boolean> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -417,6 +661,69 @@ async function applyUpdateAtomically(
       : "";
 
   return { applied: true, evidenceId: evidenceId || undefined };
+}
+
+async function applyRollbackAtomically(
+  companyId: string,
+  itemId: string,
+  fromVersion: string | null,
+  toVersion: string | null,
+  policyEvidence: MarketplaceRollbackPolicyEvidence,
+): Promise<{ applied: boolean; evidenceId?: string; error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("marketplace_apply_rollback_with_evidence", {
+    p_company_id: companyId,
+    p_item_id: itemId,
+    p_to_version: toVersion,
+    p_policy_evidence: policyEvidence,
+    p_evidence_from_version: fromVersion,
+    p_evidence_to_version: toVersion,
+    p_evidence_execution_id: policyEvidence.executionIdentity.executionId,
+    p_evidence_request_id: policyEvidence.executionIdentity.requestId,
+    p_evidence_correlation_id: policyEvidence.executionIdentity.correlationId,
+    p_reason_code: "rollback_applied",
+  });
+
+  if (error) return { applied: false, error: error.message };
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row || row.applied !== true) {
+    return { applied: false, error: "atomic rollback did not apply" };
+  }
+
+  return {
+    applied: true,
+    evidenceId: typeof row.evidence_id === "string" ? row.evidence_id : undefined,
+  };
+}
+
+async function applyUninstallAtomically(
+  companyId: string,
+  itemId: string,
+  fromVersion: string | null,
+  policyEvidence: MarketplaceUninstallPolicyEvidence,
+): Promise<{ applied: boolean; evidenceId?: string; error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("marketplace_apply_uninstall_with_evidence", {
+    p_company_id: companyId,
+    p_item_id: itemId,
+    p_policy_evidence: policyEvidence,
+    p_evidence_from_version: fromVersion,
+    p_evidence_execution_id: policyEvidence.executionIdentity.executionId,
+    p_evidence_request_id: policyEvidence.executionIdentity.requestId,
+    p_evidence_correlation_id: policyEvidence.executionIdentity.correlationId,
+    p_reason_code: "uninstall_applied",
+  });
+
+  if (error) return { applied: false, error: error.message };
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row || row.applied !== true) {
+    return { applied: false, error: "atomic uninstall did not apply" };
+  }
+
+  return {
+    applied: true,
+    evidenceId: typeof row.evidence_id === "string" ? row.evidence_id : undefined,
+  };
 }
 
 async function applySteps(
@@ -713,32 +1020,262 @@ export async function rollbackMarketplaceItem(
   companyId: string,
   itemId: string,
   toVersion: string,
+  policyInput?: RollbackMarketplacePolicyInput,
 ): Promise<ApplyResult> {
   const user = await requireUser();
+
+  const policyError = validateRollbackPolicyEvidence(user.id, companyId, itemId, policyInput);
+  if (policyError) {
+    const plan = blockedPlan("rollback", itemId, "Rollback blocked by policy validation");
+    const evidenceId = policyInput?.policyEvidence
+      ? await persistRollbackDecisionEvidence({
+          userId: user.id,
+          companyId,
+          itemId,
+          fromVersion: null,
+          toVersion: null,
+          policyEvidence: policyInput.policyEvidence,
+          decision: "blocked",
+          reasonCode: policyError,
+        })
+      : null;
+    return {
+      plan,
+      applied: false,
+      decision: "blocked",
+      reasonCode: policyError,
+      evidenceId: evidenceId ?? undefined,
+      error: policyError,
+    };
+  }
+
+  const policyEvidence = policyInput?.policyEvidence;
+  if (!policyEvidence) {
+    return {
+      plan: blockedPlan("rollback", itemId, "Rollback blocked by policy validation"),
+      applied: false,
+      decision: "blocked",
+      reasonCode: "missing_policy_decision",
+      error: "missing_policy_decision",
+    };
+  }
+
   if (!(await ownsCompany(user.id, companyId))) {
-    return { plan: blockedPlan("rollback", itemId, "Company not found or not owned"), applied: false, error: "forbidden" };
+    const evidenceId = await persistRollbackDecisionEvidence({
+      userId: user.id,
+      companyId,
+      itemId,
+      fromVersion: null,
+      toVersion: null,
+      policyEvidence,
+      decision: "blocked",
+      reasonCode: "forbidden",
+    });
+    return {
+      plan: blockedPlan("rollback", itemId, "Company not found or not owned"),
+      applied: false,
+      decision: "blocked",
+      reasonCode: "forbidden",
+      evidenceId: evidenceId ?? undefined,
+      error: "forbidden",
+    };
   }
   const [catalog, state] = await Promise.all([loadCatalog(), loadInstallState(user.id, companyId)]);
   const plan = planRollback(catalog, state, itemId, toVersion);
-  if (plan.blocked) return { plan, applied: false };
-  return applySteps(user.id, companyId, catalog, plan);
+  if (plan.blocked) {
+    const reasonCode = "rollback_plan_blocked";
+    const evidenceId = await persistRollbackDecisionEvidence({
+      userId: user.id,
+      companyId,
+      itemId,
+      fromVersion: plan.fromVersion,
+      toVersion: plan.toVersion,
+      policyEvidence,
+      decision: "blocked",
+      reasonCode,
+    });
+    return { plan, applied: false, decision: "blocked", reasonCode, evidenceId: evidenceId ?? undefined };
+  }
+
+  const transitionError = validateRollbackPolicyTransition(policyEvidence, plan.fromVersion, plan.toVersion);
+  if (transitionError) {
+    const reasonCode = "policy_subject_mismatch";
+    const evidenceId = await persistRollbackDecisionEvidence({
+      userId: user.id,
+      companyId,
+      itemId,
+      fromVersion: plan.fromVersion,
+      toVersion: plan.toVersion,
+      policyEvidence,
+      decision: "blocked",
+      reasonCode,
+    });
+    return {
+      plan: blockedPlan("rollback", itemId, "Rollback blocked by policy validation"),
+      applied: false,
+      decision: "blocked",
+      reasonCode,
+      evidenceId: evidenceId ?? undefined,
+      error: reasonCode,
+    };
+  }
+
+  const applied = await applyRollbackAtomically(companyId, itemId, plan.fromVersion, plan.toVersion, policyEvidence);
+  if (!applied.applied) {
+    return {
+      plan,
+      applied: false,
+      error: applied.error,
+      decision: "blocked",
+      reasonCode: "persistence_failed",
+      evidenceId:
+        (await persistRollbackDecisionEvidence({
+          userId: user.id,
+          companyId,
+          itemId,
+          fromVersion: plan.fromVersion,
+          toVersion: plan.toVersion,
+          policyEvidence,
+          decision: "blocked",
+          reasonCode: "persistence_failed",
+        })) ?? undefined,
+    };
+  }
+
+  return {
+    plan,
+    applied: true,
+    decision: "applied",
+    reasonCode: "rollback_applied",
+    evidenceId: applied.evidenceId,
+  };
 }
 
-export async function uninstallMarketplaceItem(companyId: string, itemId: string): Promise<ApplyResult> {
+export async function uninstallMarketplaceItem(
+  companyId: string,
+  itemId: string,
+  policyInput?: UninstallMarketplacePolicyInput,
+): Promise<ApplyResult> {
   const user = await requireUser();
+
+  const policyError = validateUninstallPolicyEvidence(user.id, companyId, itemId, policyInput);
+  if (policyError) {
+    const plan = blockedPlan("uninstall", itemId, "Uninstall blocked by policy validation");
+    const evidenceId = policyInput?.policyEvidence
+      ? await persistUninstallDecisionEvidence({
+          userId: user.id,
+          companyId,
+          itemId,
+          fromVersion: null,
+          policyEvidence: policyInput.policyEvidence,
+          decision: "blocked",
+          reasonCode: policyError,
+        })
+      : null;
+    return {
+      plan,
+      applied: false,
+      decision: "blocked",
+      reasonCode: policyError,
+      evidenceId: evidenceId ?? undefined,
+      error: policyError,
+    };
+  }
+
+  const policyEvidence = policyInput?.policyEvidence;
+  if (!policyEvidence) {
+    return {
+      plan: blockedPlan("uninstall", itemId, "Uninstall blocked by policy validation"),
+      applied: false,
+      decision: "blocked",
+      reasonCode: "missing_policy_decision",
+      error: "missing_policy_decision",
+    };
+  }
+
   if (!(await ownsCompany(user.id, companyId))) {
-    return { plan: blockedPlan("uninstall", itemId, "Company not found or not owned"), applied: false, error: "forbidden" };
+    const evidenceId = await persistUninstallDecisionEvidence({
+      userId: user.id,
+      companyId,
+      itemId,
+      fromVersion: null,
+      policyEvidence,
+      decision: "blocked",
+      reasonCode: "forbidden",
+    });
+    return {
+      plan: blockedPlan("uninstall", itemId, "Company not found or not owned"),
+      applied: false,
+      decision: "blocked",
+      reasonCode: "forbidden",
+      evidenceId: evidenceId ?? undefined,
+      error: "forbidden",
+    };
   }
   const [catalog, state] = await Promise.all([loadCatalog(), loadInstallState(user.id, companyId)]);
   const plan = planUninstall(catalog, state, itemId);
-  if (plan.blocked) return { plan, applied: false };
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("company_installations")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("company_id", companyId)
-    .eq("item_id", itemId);
-  if (error) return { plan, applied: false, error: error.message };
-  return { plan, applied: true };
+  if (plan.blocked) {
+    const reasonCode = "uninstall_plan_blocked";
+    const evidenceId = await persistUninstallDecisionEvidence({
+      userId: user.id,
+      companyId,
+      itemId,
+      fromVersion: plan.fromVersion,
+      policyEvidence,
+      decision: "blocked",
+      reasonCode,
+    });
+    return { plan, applied: false, decision: "blocked", reasonCode, evidenceId: evidenceId ?? undefined };
+  }
+
+  const transitionError = validateUninstallPolicyTransition(policyEvidence, plan.fromVersion);
+  if (transitionError) {
+    const reasonCode = "policy_subject_mismatch";
+    const evidenceId = await persistUninstallDecisionEvidence({
+      userId: user.id,
+      companyId,
+      itemId,
+      fromVersion: plan.fromVersion,
+      policyEvidence,
+      decision: "blocked",
+      reasonCode,
+    });
+    return {
+      plan: blockedPlan("uninstall", itemId, "Uninstall blocked by policy validation"),
+      applied: false,
+      decision: "blocked",
+      reasonCode,
+      evidenceId: evidenceId ?? undefined,
+      error: reasonCode,
+    };
+  }
+
+  const applied = await applyUninstallAtomically(companyId, itemId, plan.fromVersion, policyEvidence);
+  if (!applied.applied) {
+    return {
+      plan,
+      applied: false,
+      error: applied.error,
+      decision: "blocked",
+      reasonCode: "persistence_failed",
+      evidenceId:
+        (await persistUninstallDecisionEvidence({
+          userId: user.id,
+          companyId,
+          itemId,
+          fromVersion: plan.fromVersion,
+          policyEvidence,
+          decision: "blocked",
+          reasonCode: "persistence_failed",
+        })) ?? undefined,
+    };
+  }
+
+  return {
+    plan,
+    applied: true,
+    decision: "applied",
+    reasonCode: "uninstall_applied",
+    evidenceId: applied.evidenceId,
+  };
 }

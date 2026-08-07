@@ -11,6 +11,7 @@ const publish = readFileSync("src/lib/marketplace/publish-actions.ts", "utf8");
 const reviews = readFileSync("src/lib/marketplace/review-actions.ts", "utf8");
 const certification = readFileSync("scripts/ci/full-migration-chain-certification.mjs", "utf8");
 const workflow = readFileSync(".github/workflows/full-migration-chain-certification.yml", "utf8");
+const rollbackAtomic = readFileSync("supabase/migrations/20260807190000_marketplace_atomic_rollback_evidence.sql", "utf8");
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -69,12 +70,31 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 52");
+    expect(certification).toContain("migrations.length !== 53");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
     expect(workflow).toContain("pgvector/pgvector:pg15");
     expect(workflow).toContain("node-version: 22");
     expect(workflow).not.toMatch(/supabase\s+(?:link|db push)|vercel|service[_-]role[_-]key/i);
+  });
+
+  it("certifies atomic rollback RPC governance and privilege contract", () => {
+    expect(rollbackAtomic).toContain("create or replace function public.marketplace_apply_rollback_with_evidence(");
+    expect(rollbackAtomic).toContain("security definer");
+    expect(rollbackAtomic).toContain("v_user_id := auth.uid()");
+    expect(rollbackAtomic).toContain("raise exception 'unauthenticated'");
+    expect(rollbackAtomic).toContain("forbidden_company");
+    expect(rollbackAtomic).toContain("policy_actor_mismatch");
+    expect(rollbackAtomic).toContain("policy_company_mismatch");
+    expect(rollbackAtomic).toContain("policy_item_mismatch");
+    expect(rollbackAtomic).toContain("policy_action_mismatch");
+    expect(rollbackAtomic).toContain("rollback_transition_conflict");
+    expect(rollbackAtomic).toContain("rollback_target_mismatch");
+    expect(rollbackAtomic).toContain("update public.company_installations");
+    expect(rollbackAtomic).toContain("insert into public.agent_autonomy_audit");
+    expect(rollbackAtomic).toContain("p_reason_code text default 'rollback_applied'");
+    expect(rollbackAtomic).toContain(") from public, anon;");
+    expect(rollbackAtomic).toContain(") to authenticated, service_role;");
   });
 });
