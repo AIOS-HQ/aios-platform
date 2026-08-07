@@ -21,6 +21,20 @@ function connectorApproval(
         correlationId: "corr-conn-1",
       },
     },
+    policyDecision: {
+      decision: "approval_required",
+      requiresApproval: true,
+      approvedAt: "2026-01-01T00:00:00Z",
+      actor: "agent",
+      agent: "harmony",
+      domain: "operations",
+      action: "open_pull_request",
+      target: {
+        connectorId: "github",
+        provider: "github",
+        capabilityId: "list_pull_requests",
+      },
+    },
   };
 
   const mergedParams: Record<string, unknown> = { ...baseParams, ...paramsOverrides };
@@ -92,6 +106,20 @@ describe("connector resumption runtime r2 m2", () => {
               connectorId: "unknown-provider",
               provider: "unknown-provider",
               connectionId: "conn-unsupported-1",
+              policyDecision: {
+                decision: "approval_required",
+                requiresApproval: true,
+                approvedAt: "2026-01-01T00:00:00Z",
+                actor: "agent",
+                agent: "harmony",
+                domain: "operations",
+                action: "open_pull_request",
+                target: {
+                  connectorId: "unknown-provider",
+                  provider: "unknown-provider",
+                  capabilityId: "list_pull_requests",
+                },
+              },
             },
           ),
         runConnector,

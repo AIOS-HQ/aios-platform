@@ -126,7 +126,26 @@ export function buildConnectorApprovalPayload(
     original_agent: "harmony",
     original_domain: "operations",
     original_action: connectorRiskToAction(policy.risk),
-    original_params: { connectorId, capabilityId, params },
+    original_params: {
+      connectorId,
+      capabilityId,
+      provider: connectorId,
+      params,
+      policyDecision: {
+        decision: "approval_required",
+        requiresApproval: true,
+        approvedAt: now.toISOString(),
+        actor: "agent",
+        agent: "harmony",
+        domain: "operations",
+        action: connectorRiskToAction(policy.risk),
+        target: {
+          connectorId,
+          provider: connectorId,
+          capabilityId,
+        },
+      },
+    },
     required_context: {
       repository: typeof params.repo === "string" ? params.repo : undefined,
     },

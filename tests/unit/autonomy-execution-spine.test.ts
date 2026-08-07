@@ -23,7 +23,19 @@ function payload(overrides: Partial<ApprovalPayload> = {}): ApprovalPayload {
     original_agent: "mason",
     original_domain: "engineering",
     original_action: "merge_pull_request",
-    original_params: { objective: "Merge the release PR", repository: "AIOS-HQ/aios-platform" },
+    original_params: {
+      objective: "Merge the release PR",
+      repository: "AIOS-HQ/aios-platform",
+      policyDecision: {
+        decision: "approval_required",
+        requiresApproval: true,
+        approvedAt: "2026-07-03T00:00:00.000Z",
+        actor: "agent",
+        agent: "mason",
+        domain: "engineering",
+        action: "merge_pull_request",
+      },
+    },
     required_context: {},
     created_at: created.toISOString(),
     expires_at: new Date(created.getTime() + 72 * 60 * 60 * 1000).toISOString(),
@@ -72,7 +84,19 @@ describe("Autonomy Execution Spine", () => {
     const destructive = payload({
       approval_id: "approval_del",
       original_action: "delete_repository",
-      original_params: { objective: "Delete the repo", repository: "AIOS-HQ/aios-platform" },
+      original_params: {
+        objective: "Delete the repo",
+        repository: "AIOS-HQ/aios-platform",
+        policyDecision: {
+          decision: "approval_required",
+          requiresApproval: true,
+          approvedAt: "2026-07-03T00:00:00.000Z",
+          actor: "agent",
+          agent: "mason",
+          domain: "engineering",
+          action: "delete_repository",
+        },
+      },
     });
 
     const items = await getPendingApprovalQueue("user-1", null, {
@@ -102,19 +126,60 @@ describe("Autonomy Execution Spine", () => {
       getApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { objective: "Open release PR", repository: "AIOS-HQ/aios-platform" },
+          original_params: {
+            objective: "Open release PR",
+            repository: "AIOS-HQ/aios-platform",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-s3",
+              requestId: "req-s3",
+              correlationId: "corr-s3",
+            },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       getApprovedApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { objective: "Open release PR", repository: "AIOS-HQ/aios-platform" },
+          original_params: {
+            objective: "Open release PR",
+            repository: "AIOS-HQ/aios-platform",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-s3",
+              requestId: "req-s3",
+              correlationId: "corr-s3",
+            },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       recordExecutionResult: rec.fn,
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
       runMason,
       runConnector,
       now: () => T0,
     });
 
+    console.error({ ok: outcome.ok, error: outcome.error, executionResult: outcome.execution_result });
+    console.error({ ok: outcome.ok, error: outcome.error, executionResult: outcome.execution_result });
     expect(outcome.ok).toBe(true);
     expect(runMason).toHaveBeenCalledTimes(1);
     expect(runMason).toHaveBeenCalledWith(
@@ -126,8 +191,8 @@ describe("Autonomy Execution Spine", () => {
     );
     expect(runConnector).not.toHaveBeenCalled();
     expect(rec.calls).toHaveLength(1);
-    expect(rec.calls[0]?.request_id).toBeUndefined();
-    expect(rec.calls[0]?.correlation_id).toBeUndefined();
+    expect(rec.calls[0]?.request_id).toBe("req-s3");
+    expect(rec.calls[0]?.correlation_id).toBe("corr-s3");
     expect(rec.calls[0]).toMatchObject({ status: "completed", required_approval: true, approval_id: "approval_1" });
   });
 
@@ -208,7 +273,33 @@ describe("Autonomy Execution Spine", () => {
           original_agent: "harmony",
           original_domain: "operations",
           original_action: "publish_externally",
-          original_params: { connectorId: "github", capabilityId: "create_issue", params: { repo: "AIOS-HQ/aios-platform" } },
+          original_params: {
+            connectorId: "github",
+            capabilityId: "create_issue",
+            provider: "github",
+            connectionId: "conn-s3b",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-s3b",
+              requestId: "req-s3b",
+              correlationId: "corr-s3b",
+            },
+            params: { repo: "AIOS-HQ/aios-platform" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "harmony",
+              domain: "operations",
+              action: "publish_externally",
+              target: {
+                connectorId: "github",
+                provider: "github",
+                capabilityId: "create_issue",
+              },
+            },
+          },
         }),
       getApprovedApprovalPayload: async () =>
         payload({
@@ -216,9 +307,38 @@ describe("Autonomy Execution Spine", () => {
           original_agent: "harmony",
           original_domain: "operations",
           original_action: "publish_externally",
-          original_params: { connectorId: "github", capabilityId: "create_issue", params: { repo: "AIOS-HQ/aios-platform" } },
+          original_params: {
+            connectorId: "github",
+            capabilityId: "create_issue",
+            provider: "github",
+            connectionId: "conn-s3b",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-s3b",
+              requestId: "req-s3b",
+              correlationId: "corr-s3b",
+            },
+            params: { repo: "AIOS-HQ/aios-platform" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "harmony",
+              domain: "operations",
+              action: "publish_externally",
+              target: {
+                connectorId: "github",
+                provider: "github",
+                capabilityId: "create_issue",
+              },
+            },
+          },
         }),
       recordExecutionResult: rec.fn,
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
       runConnector,
       runMason: vi.fn(),
       now: () => T0,
@@ -307,6 +427,15 @@ describe("Autonomy Execution Spine", () => {
           original_params: {
             repo: "AIOS-HQ/aios-platform",
             context: { executionId: "exec-1" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "merge_pull_request",
+            },
           },
         }),
       getApprovedApprovalPayload: async () =>
@@ -315,9 +444,21 @@ describe("Autonomy Execution Spine", () => {
           original_params: {
             repo: "AIOS-HQ/aios-platform",
             context: { executionId: "exec-1" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "merge_pull_request",
+            },
           },
         }),
       recordExecutionResult: rec.fn,
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
       runMason,
       runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
       now: () => T0,
@@ -354,6 +495,15 @@ describe("Autonomy Execution Spine", () => {
             mergeReady: true,
             requiredChecksPassed: true,
             context: { executionId: "exec-other" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "merge_pull_request",
+            },
           },
         }),
       getApprovedApprovalPayload: async () =>
@@ -368,9 +518,21 @@ describe("Autonomy Execution Spine", () => {
             mergeReady: true,
             requiredChecksPassed: true,
             context: { executionId: "exec-other" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "merge_pull_request",
+            },
           },
         }),
       recordExecutionResult: rec.fn,
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
       runMason,
       runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
       now: () => T0,
@@ -408,12 +570,38 @@ describe("Autonomy Execution Spine", () => {
       getApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { executionId: "exec-dup", requestId: "req-x", correlationId: "corr-x" },
+          original_params: {
+            executionId: "exec-dup",
+            requestId: "req-x",
+            correlationId: "corr-x",
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       getApprovedApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { executionId: "exec-dup", requestId: "req-x", correlationId: "corr-x" },
+          original_params: {
+            executionId: "exec-dup",
+            requestId: "req-x",
+            correlationId: "corr-x",
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       findExecutionResultByExecutionId: async () => prior,
       findExecutionResultByRequestId: async () => null,
@@ -456,7 +644,20 @@ describe("Autonomy Execution Spine", () => {
       getApprovedApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { executionId: "exec-none", requestId: "req-dup", correlationId: "corr-dup" },
+          original_params: {
+            executionId: "exec-none",
+            requestId: "req-dup",
+            correlationId: "corr-dup",
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       findExecutionResultByExecutionId: findByExec,
       findExecutionResultByRequestId: findByReq,
@@ -500,7 +701,20 @@ describe("Autonomy Execution Spine", () => {
       getApprovedApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { executionId: "exec-none", requestId: "req-none", correlationId: "corr-dup" },
+          original_params: {
+            executionId: "exec-none",
+            requestId: "req-none",
+            correlationId: "corr-dup",
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       findExecutionResultByExecutionId: findByExec,
       findExecutionResultByRequestId: findByReq,
@@ -531,9 +745,30 @@ describe("Autonomy Execution Spine", () => {
       getApprovedApprovalPayload: async () =>
         payload({
           original_action: "open_pull_request",
-          original_params: { objective: "Open", repository: "AIOS-HQ/aios-platform" },
+          original_params: {
+            objective: "Open",
+            repository: "AIOS-HQ/aios-platform",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-legacy",
+              requestId: "req-legacy",
+              correlationId: "corr-legacy",
+            },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
+          },
         }),
       recordExecutionResult: rec.fn,
+      findExecutionResultByExecutionId: async () => null,
+      findExecutionResultByRequestId: async () => null,
+      findExecutionResultByCorrelationId: async () => null,
       runMason,
       runConnector: vi.fn(async () => ({ ok: true, status: "executed", message: "ok" })),
       now: () => T0,
@@ -555,7 +790,17 @@ describe("Autonomy Execution Spine", () => {
           original_params: {
             objective: "Open",
             repository: "AIOS-HQ/aios-platform",
+            status: "approved",
             taskContract: { requestedOutcome: "open_pull_request" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
           },
         }),
       recordExecutionResult: rec.fn,
@@ -567,7 +812,13 @@ describe("Autonomy Execution Spine", () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.error).toBe("missing_execution_identity");
     expect(runMason).not.toHaveBeenCalled();
-    expect(rec.calls).toHaveLength(0);
+    expect(rec.calls).toHaveLength(1);
+    expect(rec.calls[0]).toMatchObject({
+      status: "blocked",
+      error: { code: "missing_execution_identity" },
+      approval_id: "approval_1",
+      required_approval: true,
+    });
   });
 
   it("continues normal Mason execution when identities are present and no match exists", async () => {
@@ -589,6 +840,16 @@ describe("Autonomy Execution Spine", () => {
             correlationId: "corr-new",
             objective: "Open",
             repository: "AIOS-HQ/aios-platform",
+            status: "approved",
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "open_pull_request",
+            },
           },
         }),
       findExecutionResultByExecutionId: async () => null,
@@ -613,6 +874,7 @@ describe("Autonomy Execution Spine", () => {
       getApprovedApprovalPayload: async () =>
         payload({
           original_agent: "harmony",
+          original_domain: "operations",
           original_action: "create_issue",
           original_params: {
             executionId: "exec-connector",
@@ -620,7 +882,65 @@ describe("Autonomy Execution Spine", () => {
             correlationId: "corr-connector",
             connectorId: "github",
             capabilityId: "create_issue",
+            provider: "github",
+            connectionId: "conn-connector",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-connector",
+              requestId: "req-connector",
+              correlationId: "corr-connector",
+            },
             params: { repo: "AIOS-HQ/aios-platform" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "harmony",
+              domain: "operations",
+              action: "create_issue",
+              target: {
+                connectorId: "github",
+                provider: "github",
+                capabilityId: "create_issue",
+              },
+            },
+          },
+        }),
+      getApprovalPayload: async () =>
+        payload({
+          original_agent: "harmony",
+          original_domain: "operations",
+          original_action: "create_issue",
+          original_params: {
+            executionId: "exec-connector",
+            requestId: "req-connector",
+            correlationId: "corr-connector",
+            connectorId: "github",
+            capabilityId: "create_issue",
+            provider: "github",
+            connectionId: "conn-connector",
+            status: "approved",
+            executionIdentity: {
+              executionId: "exec-connector",
+              requestId: "req-connector",
+              correlationId: "corr-connector",
+            },
+            params: { repo: "AIOS-HQ/aios-platform" },
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "harmony",
+              domain: "operations",
+              action: "create_issue",
+              target: {
+                connectorId: "github",
+                provider: "github",
+                capabilityId: "create_issue",
+              },
+            },
           },
         }),
       findExecutionResultByExecutionId: async () => null,
@@ -735,6 +1055,7 @@ describe("Autonomy Execution Spine", () => {
             correlationId: "corr-dupe",
             objective: "Open",
             repository: "AIOS-HQ/aios-platform",
+            policyDecision: { decision: "approval_required", requiresApproval: true, approvedAt: "2026-07-03T00:00:00.000Z", actor: "agent", agent: "mason", domain: "engineering", action: "open_pull_request" },
           },
         }),
       findExecutionResultByExecutionId: async () => null,
@@ -756,6 +1077,7 @@ describe("Autonomy Execution Spine", () => {
             correlationId: "corr-dupe",
             objective: "Open",
             repository: "AIOS-HQ/aios-platform",
+            policyDecision: { decision: "approval_required", requiresApproval: true, approvedAt: "2026-07-03T00:00:00.000Z", actor: "agent", agent: "mason", domain: "engineering", action: "open_pull_request" },
           },
         }),
       findExecutionResultByExecutionId: async () => persisted,
@@ -798,6 +1120,15 @@ describe("Autonomy Execution Spine", () => {
             executionId: "exec-gov",
             requestId: "req-gov",
             correlationId: "corr-gov",
+            policyDecision: {
+              decision: "approval_required",
+              requiresApproval: true,
+              approvedAt: "2026-07-03T00:00:00.000Z",
+              actor: "agent",
+              agent: "mason",
+              domain: "engineering",
+              action: "merge_pull_request",
+            },
           },
         }),
       findExecutionResultByExecutionId: findByExec,
