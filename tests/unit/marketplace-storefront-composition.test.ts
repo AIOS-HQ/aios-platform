@@ -155,4 +155,29 @@ describe("marketplace storefront composition", () => {
     expect(display.id).toBe("item-dup");
     expect(display.dependencies).toEqual(["dep-1"]);
   });
+
+  it("excludes unverified public items from public storefront visibility", () => {
+    const catalog: Catalog = {
+      approved: item({ id: "approved", slug: "approved", visibility: "marketplace_public", verification: "verified" }),
+      rejected: item({ id: "rejected", slug: "rejected", visibility: "marketplace_public", verification: "rejected" }),
+      pending: item({ id: "pending", slug: "pending", visibility: "marketplace_public", verification: "pending" }),
+      unverified: item({ id: "unverified", slug: "unverified", visibility: "marketplace_public", verification: "unverified" }),
+      companyPrivate: item({ id: "company-private", slug: "company-private", visibility: "company_private", verification: "unverified" }),
+    };
+
+    const viewModel = composeStorefrontViewModel(
+      context({
+        catalog,
+        installedIds: new Set<string>(),
+        installCounts: {},
+      }),
+    );
+
+    const visibleIds = new Set(viewModel.discovery.defaultResult.map((r) => r.item.id));
+    expect(visibleIds.has("approved")).toBe(true);
+    expect(visibleIds.has("rejected")).toBe(false);
+    expect(visibleIds.has("pending")).toBe(false);
+    expect(visibleIds.has("unverified")).toBe(false);
+    expect(visibleIds.has("company-private")).toBe(true);
+  });
 });
