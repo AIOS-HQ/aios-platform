@@ -209,7 +209,7 @@ describe("marketplace core engine contracts", () => {
     const catalog = buildCatalog();
     const installed: InstallState = {
       app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
-      dep: { kind: "skill", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+      dep: { kind: "skill", installedVersion: "1.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
     };
 
     const plan = planRollback(catalog, installed, "app", "1.0.0");
@@ -218,6 +218,89 @@ describe("marketplace core engine contracts", () => {
     expect(plan.fromVersion).toBe("2.0.0");
     expect(plan.toVersion).toBe("1.0.0");
     expect(plan.steps.map((s) => `${s.itemId}@${s.version}`)).toEqual(["app@1.0.0"]);
+  });
+
+  it("blocks rollback when target is the same version", () => {
+    const catalog = buildCatalog();
+    const installed: InstallState = {
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+    };
+
+    const plan = planRollback(catalog, installed, "app", "2.0.0");
+    expect(plan.blocked).toBe(true);
+  });
+
+  it("blocks rollback when target is newer", () => {
+    const catalog = buildCatalog({
+      app: {
+        ...buildCatalog().app,
+        versions: [...buildCatalog().app.versions, { version: "3.0.0", createdAt: "2026-05-01", dependencies: [] }],
+      },
+    });
+    const installed: InstallState = {
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+    };
+
+    const plan = planRollback(catalog, installed, "app", "3.0.0");
+    expect(plan.blocked).toBe(true);
+  });
+
+  it("allows prerelease rollback ordering", () => {
+    const catalog = buildCatalog({
+      app: {
+        ...buildCatalog().app,
+        versions: [
+          ...buildCatalog().app.versions,
+          { version: "2.0.0-beta.1", createdAt: "2026-03-15", dependencies: [] },
+        ],
+      },
+    });
+    const installed: InstallState = {
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+    };
+
+    const plan = planRollback(catalog, installed, "app", "2.0.0-beta.1");
+    expect(plan.blocked).toBe(false);
+  });
+
+  it("fails closed on malformed rollback semver", () => {
+    const catalog = buildCatalog({
+      app: {
+        ...buildCatalog().app,
+        versions: [...buildCatalog().app.versions, { version: "not-semver", createdAt: "2026-03-15", dependencies: [] }],
+      },
+    });
+    const installed: InstallState = {
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+    };
+
+    const plan = planRollback(catalog, installed, "app", "not-semver");
+    expect(plan.blocked).toBe(true);
+  });
+
+  it("blocks rollback when required dependency is missing", () => {
+    const catalog = buildCatalog();
+    const installed: InstallState = {
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+    };
+
+    const plan = planRollback(catalog, installed, "app", "1.0.0");
+
+    expect(plan.blocked).toBe(true);
+    expect(plan.reasons).toEqual(["Missing dependency dep (>=1.0.0 <2.0.0)"]);
+  });
+
+  it("blocks rollback when installed dependency is incompatible", () => {
+    const catalog = buildCatalog();
+    const installed: InstallState = {
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+      dep: { kind: "skill", installedVersion: "2.0.0", installedAt: "2026-06-20", source: "marketplace_public" },
+    };
+
+    const plan = planRollback(catalog, installed, "app", "1.0.0");
+
+    expect(plan.blocked).toBe(true);
+    expect(plan.reasons).toEqual(["Version conflict on dep: 2.0.0 vs >=1.0.0 <2.0.0"]);
   });
 
   it("creates uninstall plan and blocks uninstall when dependents exist", () => {

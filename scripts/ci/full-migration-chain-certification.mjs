@@ -262,7 +262,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '1.0.0','1.0.0','rb-exec-2','rb-req-2','rb-corr-2','rollback_applied'
         );
         raise exception 'rollback_same_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'rollback_same_should_fail' then
+            raise;
+          end if;
+      end;
 
       begin
         perform * from public.marketplace_apply_rollback_with_evidence(
@@ -271,7 +276,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '1.0.0','3.0.0','rb-exec-3','rb-req-3','rb-corr-3','rollback_applied'
         );
         raise exception 'rollback_newer_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'rollback_newer_should_fail' then
+            raise;
+          end if;
+      end;
 
       update public.company_installations set installed_version='2.0.0' where company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and user_id='${TEST_USER}';
 
@@ -288,7 +298,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '2.0.0-beta.1','9.9.9','rb-exec-5','rb-req-5','rb-corr-5','rollback_applied'
         );
         raise exception 'rollback_nonexistent_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'rollback_nonexistent_should_fail' then
+            raise;
+          end if;
+      end;
 
       begin
         perform * from public.marketplace_apply_rollback_with_evidence(
@@ -297,7 +312,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '2.0.0-beta.1','1.0.0','rb-exec-6','rb-req-6','rb-corr-6','rollback_applied'
         );
         raise exception 'rollback_denied_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'rollback_denied_should_fail' then
+            raise;
+          end if;
+      end;
 
       begin
         perform * from public.marketplace_apply_rollback_with_evidence(
@@ -306,7 +326,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '2.0.0-beta.1','1.0.0','rb-exec-7','rb-req-7','rb-corr-XXX','rollback_applied'
         );
         raise exception 'rollback_identity_mismatch_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'rollback_identity_mismatch_should_fail' then
+            raise;
+          end if;
+      end;
 
       if (select installed_version from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888') <> '2.0.0-beta.1' then
         raise exception 'rollback_failed_operation_mutated_state';
@@ -334,7 +359,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '1.0.0','un-exec-2','un-req-2','un-corr-2','uninstall_applied'
         );
         raise exception 'uninstall_with_dependents_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'uninstall_with_dependents_should_fail' then
+            raise;
+          end if;
+      end;
 
       if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888') then
         raise exception 'uninstall_rejected_operation_mutated_state';
@@ -347,7 +377,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '1.0.0','un-exec-3','un-req-3','un-corr-3','uninstall_applied'
         );
         raise exception 'uninstall_denied_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'uninstall_denied_should_fail' then
+            raise;
+          end if;
+      end;
 
       begin
         perform * from public.marketplace_apply_uninstall_with_evidence(
@@ -356,7 +391,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
           '1.0.0','un-exec-4','un-req-4','un-corr-XXX','uninstall_applied'
         );
         raise exception 'uninstall_identity_mismatch_should_fail';
-      exception when others then null; end;
+      exception
+        when raise_exception then
+          if sqlerrm = 'uninstall_identity_mismatch_should_fail' then
+            raise;
+          end if;
+      end;
 
       reset role;
     end $$;

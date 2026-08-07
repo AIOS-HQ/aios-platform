@@ -15,7 +15,7 @@ begin
     raise exception 'invalid_semver' using errcode = '22023';
   end if;
 
-  if p_version !~ '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$' then
+  if p_version !~ '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' then
     raise exception 'invalid_semver' using errcode = '22023';
   end if;
 
@@ -176,6 +176,24 @@ begin
   if v_installed_version is null then raise exception 'rollback_installation_not_found' using errcode='22023'; end if;
   if v_installed_version is distinct from p_evidence_from_version then raise exception 'rollback_transition_conflict' using errcode='22023'; end if;
   if public.marketplace_semver_compare(p_to_version, v_installed_version) >= 0 then raise exception 'rollback_target_not_older' using errcode='22023'; end if;
+
+  if exists (
+    select 1
+      from public.marketplace_item_versions v
+      join lateral jsonb_array_elements(coalesce(v.dependencies, '[]'::jsonb)) dep on true
+      left join public.company_installations dep_ci
+        on dep_ci.user_id = v_user_id
+       and dep_ci.company_id = p_company_id
+       and dep_ci.item_id::text = coalesce(dep->>'itemId', '')
+     where v.item_id = p_item_id
+       and v.version = p_to_version
+       and (
+         dep_ci.item_id is null
+         or not (dep_ci.installed_version = dep->>'range' or dep_ci.installed_version like replace(dep->>'range','x','%'))
+       )
+  ) then
+    raise exception 'rollback_dependency_conflict' using errcode='22023';
+  end if;
 
   update public.company_installations
      set installed_version = p_to_version,

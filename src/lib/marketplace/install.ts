@@ -10,7 +10,7 @@
  */
 
 import type { Catalog, InstallPlan, InstallState, PlanStep } from "./types";
-import { compareSemver } from "./semver";
+import { compareSemver, satisfies } from "./semver";
 import { isPublicInstallable, latestVersion, resolveDependencies } from "./registry";
 
 function reconsentWarning(steps: PlanStep[]): string[] {
@@ -127,6 +127,23 @@ export function planRollback(
   if (!item.versions.some((v) => v.version === toVersion)) {
     return { ...base, blocked: true, reasons: [`Version ${toVersion} does not exist`] };
   }
+
+  const targetVersion = item.versions.find((v) => v.version === toVersion);
+  const dependencyReasons: string[] = [];
+  for (const dependency of targetVersion?.dependencies ?? []) {
+    const dependencyInstalled = installed[dependency.itemId];
+    if (!dependencyInstalled) {
+      dependencyReasons.push(`Missing dependency ${dependency.itemId} (${dependency.range})`);
+      continue;
+    }
+    if (!satisfies(dependencyInstalled.installedVersion, dependency.range)) {
+      dependencyReasons.push(
+        `Version conflict on ${dependency.itemId}: ${dependencyInstalled.installedVersion} vs ${dependency.range}`,
+      );
+    }
+  }
+  if (dependencyReasons.length) return { ...base, blocked: true, reasons: dependencyReasons };
+
   if (compareSemver(toVersion, current.installedVersion) >= 0) {
     return { ...base, blocked: true, reasons: [`Target ${toVersion} is not older than current ${current.installedVersion}`] };
   }
