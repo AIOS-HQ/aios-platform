@@ -255,32 +255,28 @@ function assertMarketplaceBoundaryEnforcement(database) {
       );
       if v_id is null then raise exception 'rollback_older_should_succeed'; end if;
 
-      begin
-        perform * from public.marketplace_apply_rollback_with_evidence(
-          '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','1.0.0',
-          jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','1.0.0','toVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-exec-2','requestId','rb-req-2','correlationId','rb-corr-2')),
-          '1.0.0','1.0.0','rb-exec-2','rb-req-2','rb-corr-2','rollback_applied'
-        );
-        raise exception 'rollback_same_should_fail';
-      exception
-        when raise_exception then
-          if sqlerrm = 'rollback_same_should_fail' then
-            raise;
-          end if;
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','1.0.0',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','1.0.0','toVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-exec-2','requestId','rb-req-2','correlationId','rb-corr-2')),
+            '1.0.0','1.0.0','rb-exec-2','rb-req-2','rb-corr-2','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_same_should_fail'; end if;
+        if position('rollback_target_not_older' in v_err) = 0 then raise exception 'rollback_same_wrong_error:%', v_err; end if;
       end;
 
-      begin
-        perform * from public.marketplace_apply_rollback_with_evidence(
-          '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','3.0.0',
-          jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','1.0.0','toVersion','3.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-exec-3','requestId','rb-req-3','correlationId','rb-corr-3')),
-          '1.0.0','3.0.0','rb-exec-3','rb-req-3','rb-corr-3','rollback_applied'
-        );
-        raise exception 'rollback_newer_should_fail';
-      exception
-        when raise_exception then
-          if sqlerrm = 'rollback_newer_should_fail' then
-            raise;
-          end if;
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','3.0.0',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','1.0.0','toVersion','3.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-exec-3','requestId','rb-req-3','correlationId','rb-corr-3')),
+            '1.0.0','3.0.0','rb-exec-3','rb-req-3','rb-corr-3','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_newer_should_fail'; end if;
+        if position('rollback_target_not_older' in v_err) = 0 then raise exception 'rollback_newer_wrong_error:%', v_err; end if;
       end;
 
       update public.company_installations set installed_version='2.0.0' where company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and user_id='${TEST_USER}';
