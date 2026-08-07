@@ -13,6 +13,10 @@ const certification = readFileSync("scripts/ci/full-migration-chain-certificatio
 const workflow = readFileSync(".github/workflows/full-migration-chain-certification.yml", "utf8");
 const rollbackAtomic = readFileSync("supabase/migrations/20260807190000_marketplace_atomic_rollback_evidence.sql", "utf8");
 const uninstallAtomic = readFileSync("supabase/migrations/20260807200000_marketplace_atomic_uninstall_evidence.sql", "utf8");
+const decisionReconciliation = readFileSync(
+  "supabase/migrations/20260807220000_marketplace_audit_decision_contract_reconciliation.sql",
+  "utf8",
+);
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -71,7 +75,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 55");
+    expect(certification).toContain("migrations.length !== 56");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
@@ -128,5 +132,22 @@ describe("marketplace migration foundation", () => {
     expect(auditReconciliation).toContain("add column if not exists idempotency_key text");
     expect(auditReconciliation).toContain("agent_autonomy_audit_operation_policy_key_uq");
     expect(auditReconciliation).toContain("agent_autonomy_audit_idempotency_key_uq");
+  });
+
+  it("certifies additive audit decision-contract reconciliation for marketplace outcomes", () => {
+    expect(decisionReconciliation).toContain("drop constraint if exists agent_autonomy_audit_decision_check");
+    expect(decisionReconciliation).toContain("add constraint agent_autonomy_audit_decision_check");
+    expect(decisionReconciliation).toContain("'applied'");
+    expect(decisionReconciliation).toContain("'blocked'");
+    expect(decisionReconciliation).toContain("'auto_executed'");
+    expect(decisionReconciliation).toContain("'lockdown'");
+  });
+
+  it("runs executable marketplace audit evidence probes in full migration certification", () => {
+    expect(certification).toContain("function assertMarketplaceAuditEvidenceContract(database)");
+    expect(certification).toContain("marketplace_audit_duplicate_not_idempotent");
+    expect(certification).toContain("marketplace_audit_legacy_required_fields_missing");
+    expect(certification).toContain("marketplace_audit_invalid_decision_was_allowed");
+    expect(certification).toContain("invalid_decision");
   });
 });

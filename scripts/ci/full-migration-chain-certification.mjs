@@ -135,6 +135,88 @@ function assertMarketplaceContract(database) {
   `);
 }
 
+function assertMarketplaceAuditEvidenceContract(database) {
+  sql(database, `
+    insert into public.agent_autonomy_audit (
+      user_id, company_id, agent, action, decision,
+      operation, reason, actor_user_id, policy_key, payload,
+      idempotency_key
+    ) values (
+      '${TEST_USER}', '${TEST_COMPANY}', 'harmony', 'marketplace_install', 'applied',
+      'marketplace_install', 'install_applied', '${TEST_USER}',
+      'mkt:install:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:exec-1:req-1:corr-1:applied:install_applied',
+      jsonb_build_object('itemId','${TEST_ITEM}','decision','applied'),
+      'mkt:install:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:exec-1:req-1:corr-1:applied:install_applied'
+    );
+
+    insert into public.agent_autonomy_audit (
+      user_id, company_id, agent, action, decision,
+      operation, reason, actor_user_id, policy_key, payload,
+      idempotency_key
+    ) values (
+      '${TEST_USER}', '${TEST_COMPANY}', 'harmony', 'marketplace_install', 'blocked',
+      'marketplace_install', 'missing_policy_decision', '${TEST_USER}',
+      'mkt:install:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:exec-2:req-2:corr-2:blocked:missing_policy_decision',
+      jsonb_build_object('itemId','${TEST_ITEM}','decision','blocked'),
+      'mkt:install:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:exec-2:req-2:corr-2:blocked:missing_policy_decision'
+    );
+
+    insert into public.agent_autonomy_audit (
+      user_id, company_id, agent, action, decision,
+      operation, reason, actor_user_id, policy_key, payload,
+      idempotency_key
+    ) values (
+      '${TEST_USER}', '${TEST_COMPANY}', 'harmony', 'marketplace_update', 'applied',
+      'marketplace_update', 'update_applied', '${TEST_USER}',
+      'mkt:update:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:2.0.0:exec-3:req-3:corr-3:applied:update_applied',
+      jsonb_build_object('itemId','${TEST_ITEM}','decision','applied'),
+      'mkt:update:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:2.0.0:exec-3:req-3:corr-3:applied:update_applied'
+    ) on conflict (idempotency_key)
+      do update set payload = excluded.payload, reason_code = excluded.reason_code;
+
+    insert into public.agent_autonomy_audit (
+      user_id, company_id, agent, action, decision,
+      operation, reason, actor_user_id, policy_key, payload,
+      idempotency_key
+    ) values (
+      '${TEST_USER}', '${TEST_COMPANY}', 'harmony', 'marketplace_update', 'applied',
+      'marketplace_update', 'update_applied', '${TEST_USER}',
+      'mkt:update:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:2.0.0:exec-3:req-3:corr-3:applied:update_applied',
+      jsonb_build_object('itemId','${TEST_ITEM}','decision','applied','retry',true),
+      'mkt:update:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:2.0.0:exec-3:req-3:corr-3:applied:update_applied'
+    ) on conflict (idempotency_key)
+      do update set payload = excluded.payload, reason_code = excluded.reason_code;
+
+    do $$ begin
+      if (select count(*) from public.agent_autonomy_audit where idempotency_key='mkt:update:${TEST_COMPANY}:${TEST_ITEM}:1.2.3:2.0.0:exec-3:req-3:corr-3:applied:update_applied') <> 1 then
+        raise exception 'marketplace_audit_duplicate_not_idempotent';
+      end if;
+
+      if exists (
+        select 1 from public.agent_autonomy_audit
+        where operation like 'marketplace_%'
+          and (user_id is null or agent is null or action is null or decision is null)
+      ) then
+        raise exception 'marketplace_audit_legacy_required_fields_missing';
+      end if;
+
+      begin
+        insert into public.agent_autonomy_audit (
+          user_id, company_id, agent, action, decision,
+          operation, reason, actor_user_id, policy_key, payload
+        ) values (
+          '${TEST_USER}', '${TEST_COMPANY}', 'harmony', 'marketplace_install', 'invalid_decision',
+          'marketplace_install', 'invalid', '${TEST_USER}',
+          'mkt:invalid:${TEST_COMPANY}:${TEST_ITEM}',
+          '{}'::jsonb
+        );
+        raise exception 'marketplace_audit_invalid_decision_was_allowed';
+      exception when check_violation then null;
+      end;
+    end $$;
+  `);
+}
+
 function assertMarketplaceRls(database) {
   sql(database, `
     insert into auth.users(id,email) values
@@ -184,10 +266,11 @@ function runCompleteHistory() {
   createDatabase(database);
   try {
     const migrations = orderedMigrations();
-    if (migrations.length !== 55) fail(`unexpected_migration_count:${migrations.length}`);
+    if (migrations.length !== 56) fail(`unexpected_migration_count:${migrations.length}`);
     for (const migration of migrations) file(database, resolve(MIGRATIONS, migration));
     assertMarketplaceContract(database);
     assertMarketplaceRls(database);
+    assertMarketplaceAuditEvidenceContract(database);
   } finally {
     dropDatabase(database);
   }

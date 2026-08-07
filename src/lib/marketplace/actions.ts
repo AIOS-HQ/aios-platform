@@ -525,10 +525,13 @@ async function persistRollbackDecisionEvidence(input: PersistRollbackEvidenceInp
     .upsert(
       {
         operation: "marketplace_rollback",
-        actor_user_id: input.userId,
+        user_id: input.userId,
         company_id: input.companyId,
+        agent: "harmony",
+        action: "marketplace_rollback",
         decision: input.decision,
         reason: input.reasonCode,
+        actor_user_id: input.userId,
         policy_key: idempotencyKey,
         payload,
       },
@@ -616,10 +619,13 @@ async function persistUninstallDecisionEvidence(input: PersistUninstallEvidenceI
     .upsert(
       {
         operation: "marketplace_uninstall",
-        actor_user_id: input.userId,
+        user_id: input.userId,
         company_id: input.companyId,
+        agent: "harmony",
+        action: "marketplace_uninstall",
         decision: input.decision,
         reason: input.reasonCode,
+        actor_user_id: input.userId,
         policy_key: idempotencyKey,
         payload,
       },
