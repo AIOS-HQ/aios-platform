@@ -17,6 +17,10 @@ const decisionReconciliation = readFileSync(
   "supabase/migrations/20260807220000_marketplace_audit_decision_contract_reconciliation.sql",
   "utf8",
 );
+const indexReconciliation = readFileSync(
+  "supabase/migrations/20260807230000_marketplace_audit_idempotency_index_reconciliation.sql",
+  "utf8",
+);
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -75,7 +79,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 56");
+    expect(certification).toContain("migrations.length !== 57");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
@@ -149,5 +153,16 @@ describe("marketplace migration foundation", () => {
     expect(certification).toContain("marketplace_audit_legacy_required_fields_missing");
     expect(certification).toContain("marketplace_audit_invalid_decision_was_allowed");
     expect(certification).toContain("invalid_decision");
+  });
+
+  it("certifies canonical non-partial idempotency index arbiters for marketplace evidence upserts", () => {
+    expect(indexReconciliation).toContain("drop index if exists public.agent_autonomy_audit_operation_policy_key_uq;");
+    expect(indexReconciliation).toContain("create unique index if not exists agent_autonomy_audit_operation_policy_key_uq");
+    expect(indexReconciliation).toContain("on public.agent_autonomy_audit (operation, policy_key);");
+    expect(indexReconciliation).toContain("drop index if exists public.agent_autonomy_audit_idempotency_key_uq;");
+    expect(indexReconciliation).toContain("create unique index if not exists agent_autonomy_audit_idempotency_key_uq");
+    expect(indexReconciliation).toContain("on public.agent_autonomy_audit (idempotency_key);");
+    expect(indexReconciliation).not.toMatch(/where\s+operation\s+is\s+not\s+null/i);
+    expect(indexReconciliation).not.toMatch(/where\s+idempotency_key\s+is\s+not\s+null/i);
   });
 });
