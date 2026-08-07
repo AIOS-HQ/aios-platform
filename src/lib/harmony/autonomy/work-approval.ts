@@ -35,7 +35,22 @@ export function buildWorkItemApprovalPayload(
     original_agent: "harmony",
     original_domain: "operations",
     original_action: "coordinate_agents",
-    original_params: { workItemId: item.id, workItemTitle: item.title },
+    original_params: {
+      workItemId: item.id,
+      workItemTitle: item.title,
+      policyDecision: {
+        decision: "approval_required",
+        requiresApproval: true,
+        approvedAt: now.toISOString(),
+        actor: "harmony",
+        agent: "harmony",
+        domain: "operations",
+        action: "coordinate_agents",
+      },
+      policyScope: {
+        companyId: item.companyId ?? null,
+      },
+    },
     required_context: {},
     created_at: now.toISOString(),
     expires_at: new Date(now.getTime() + 72 * 60 * 60 * 1000).toISOString(),

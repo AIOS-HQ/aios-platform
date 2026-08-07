@@ -193,6 +193,102 @@ function extractExecutionIdentity(params: Record<string, unknown>): {
   return { executionId, requestId, correlationId };
 }
 
+function validateCanonicalPolicyContext(
+  approval: ApprovalPayload,
+  params: Record<string, unknown>,
+  companyId: string | null,
+): { ok: true } | { ok: false; code: string; message: string; recoverable: boolean } {
+  const policyContext = asOptionalObject(params.policyContext);
+  const policyDecision = asOptionalObject(policyContext?.decision ?? params.policyDecision);
+  if (!policyDecision) {
+    return {
+      ok: false,
+      code: "missing_policy_decision",
+      message: "Approved payload is missing canonical policy decision evidence.",
+      recoverable: false,
+    };
+  }
+
+  const decision = asNonEmptyString(policyDecision.decision);
+  if (!decision || !["execute", "approval_required", "blocked"].includes(decision)) {
+    return {
+      ok: false,
+      code: "malformed_policy_decision",
+      message: "Approved payload contains an unsupported policy decision value.",
+      recoverable: false,
+    };
+  }
+  if (decision !== "approval_required" || policyDecision.requiresApproval !== true) {
+    return {
+      ok: false,
+      code: "contradictory_policy_decision",
+      message: "Approved payload policy decision is contradictory for approval resumption.",
+      recoverable: false,
+    };
+  }
+  const approvedAt = asNonEmptyString(policyDecision.approvedAt);
+  const approvalStatus = asNonEmptyString((params as Record<string, unknown>).status) ?? "approved";
+  if (!approvedAt && approvalStatus === "approved") {
+    return {
+      ok: false,
+      code: "stale_policy_evidence",
+      message: "Approved payload policy decision lacks canonical approval evidence timestamp.",
+      recoverable: false,
+    };
+  }
+
+  const scope = asOptionalObject(policyContext?.scope ?? params.policyScope);
+  const scopedCompanyId = asNonEmptyString(scope?.companyId);
+  if (companyId && scopedCompanyId && scopedCompanyId !== companyId) {
+    return {
+      ok: false,
+      code: "company_scope_mismatch",
+      message: "Approved payload company scope does not match resumption company scope.",
+      recoverable: false,
+    };
+  }
+
+  const actor = asNonEmptyString(policyDecision.actor);
+  const agent = asNonEmptyString(policyDecision.agent);
+  const domain = asNonEmptyString(policyDecision.domain);
+  const action = asNonEmptyString(policyDecision.action);
+  if (
+    (actor && actor !== approval.original_actor) ||
+    (agent && agent !== approval.original_agent) ||
+    (domain && domain !== approval.original_domain) ||
+    (action && action !== approval.original_action)
+  ) {
+    return {
+      ok: false,
+      code: "policy_subject_mismatch",
+      message: "Approved payload policy subject does not match canonical approval subject.",
+      recoverable: false,
+    };
+  }
+
+  const target = asOptionalObject(policyDecision.target);
+  const connectorId = asNonEmptyString(params.connectorId);
+  const capabilityId = asNonEmptyString(params.capabilityId);
+  const provider = asNonEmptyString(params.provider);
+  const targetConnectorId = asNonEmptyString(target?.connectorId);
+  const targetCapabilityId = asNonEmptyString(target?.capabilityId);
+  const targetProvider = asNonEmptyString(target?.provider);
+  if (
+    (targetConnectorId && connectorId && targetConnectorId !== connectorId) ||
+    (targetCapabilityId && capabilityId && targetCapabilityId !== capabilityId) ||
+    (targetProvider && provider && targetProvider !== provider)
+  ) {
+    return {
+      ok: false,
+      code: "connector_policy_mismatch",
+      message: "Approved payload connector target context does not match canonical policy decision.",
+      recoverable: false,
+    };
+  }
+
+  return { ok: true };
+}
+
 async function findPriorCanonicalExecution(
   d: ResumeDeps,
   userId: string,
@@ -383,6 +479,16 @@ export async function resumeApprovedExecution(
 
   const params = (approval.original_params ?? {}) as Record<string, unknown>;
   const identity = extractExecutionIdentity(params);
+
+  const canonicalPolicy = validateCanonicalPolicyContext(approval, params, companyId);
+  if (!canonicalPolicy.ok) {
+    const result = await recordResult(d, userId, companyId, approval, identity, "blocked", {
+      code: canonicalPolicy.code,
+      message: canonicalPolicy.message,
+      recoverable: canonicalPolicy.recoverable,
+    });
+    return { ok: false, error: canonicalPolicy.code, execution_result: result ?? undefined };
+  }
 
   const mergeValidation = validateMergeResumePayload(approval, params);
   if (!mergeValidation.ok) {

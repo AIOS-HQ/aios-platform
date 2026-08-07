@@ -14,6 +14,16 @@ function approval(overrides: Partial<ApprovalPayload> = {}): ApprovalPayload {
     original_params: {
       objective: "Ship Runtime R2",
       repository: "AIOS-HQ/aios-platform",
+      status: "approved",
+      policyDecision: {
+        decision: "approval_required",
+        requiresApproval: true,
+        approvedAt: "2026-01-01T00:00:00Z",
+        actor: "founder",
+        agent: "mason",
+        domain: "engineering",
+        action: "open_pull_request",
+      },
       executionIdentity: {
         executionId: "exec-1",
         requestId: "req-1",
@@ -90,6 +100,16 @@ describe("execution resumption phased service", () => {
             original_params: {
               objective: "merge",
               repository: "AIOS-HQ/aios-platform",
+              status: "approved",
+              policyDecision: {
+                decision: "approval_required",
+                requiresApproval: true,
+                approvedAt: "2026-01-01T00:00:00Z",
+                actor: "founder",
+                agent: "mason",
+                domain: "engineering",
+                action: "merge_pull_request",
+              },
               executionIdentity: {
                 executionId: "exec-1",
                 requestId: "req-1",
@@ -133,6 +153,16 @@ describe("execution resumption phased service", () => {
             original_params: {
               objective: "Ship Runtime R2",
               repository: "AIOS-HQ/aios-platform",
+              status: "approved",
+              policyDecision: {
+                decision: "approval_required",
+                requiresApproval: true,
+                approvedAt: "2026-01-01T00:00:00Z",
+                actor: "founder",
+                agent: "mason",
+                domain: "engineering",
+                action: "open_pull_request",
+              },
             },
           }),
         recordExecutionResult,
@@ -145,5 +175,129 @@ describe("execution resumption phased service", () => {
     expect(result.execution_result?.status).toBe("blocked");
     expect(recordExecutionResult).toHaveBeenCalledTimes(1);
     expect(runMason).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when approved status is missing approvedAt", async () => {
+    const runMason = vi.fn();
+    const recordExecutionResult = vi.fn(async (_u: string, _c: string | null, result: ExecutionResult) => result);
+
+    const result = await resumeApprovedExecution(
+      "user-1",
+      "approval-1",
+      "company-1",
+      deps({
+        getApprovedApprovalPayload: async () =>
+          approval({
+            original_params: {
+              ...approval().original_params,
+              status: "approved",
+              policyDecision: {
+                decision: "approval_required",
+                requiresApproval: true,
+                actor: "founder",
+                agent: "mason",
+                domain: "engineering",
+                action: "open_pull_request",
+              },
+            },
+          }),
+        runMason,
+        recordExecutionResult,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("stale_policy_evidence");
+    expect(result.execution_result?.status).toBe("blocked");
+    expect(result.execution_result?.error?.code).toBe("stale_policy_evidence");
+    expect(recordExecutionResult).toHaveBeenCalledTimes(1);
+    expect(runMason).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when status omitted and approvedAt is missing", async () => {
+    const runMason = vi.fn();
+
+    const result = await resumeApprovedExecution(
+      "user-1",
+      "approval-1",
+      "company-1",
+      deps({
+        getApprovedApprovalPayload: async () => {
+          const seeded = approval();
+          const params = { ...(seeded.original_params as Record<string, unknown>) };
+          delete params.status;
+          params.policyDecision = {
+            decision: "approval_required",
+            requiresApproval: true,
+            actor: "founder",
+            agent: "mason",
+            domain: "engineering",
+            action: "open_pull_request",
+          };
+          return { ...seeded, original_params: params };
+        },
+        runMason,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("stale_policy_evidence");
+    expect(result.execution_result?.status).toBe("blocked");
+    expect(runMason).not.toHaveBeenCalled();
+  });
+
+  it("allows non-approved status without approvedAt and blocks dispatch deterministically", async () => {
+    const runMason = vi.fn();
+    const runConnector = vi.fn();
+
+    const result = await resumeApprovedExecution(
+      "user-1",
+      "approval-1",
+      "company-1",
+      deps({
+        getApprovedApprovalPayload: async () =>
+          approval({
+            original_params: {
+              ...approval().original_params,
+              status: "pending",
+              policyDecision: {
+                decision: "approval_required",
+                requiresApproval: true,
+                actor: "founder",
+                agent: "mason",
+                domain: "engineering",
+                action: "open_pull_request",
+              },
+            },
+          }),
+        getApprovedApprovalPayload: async () =>
+          approval({
+            original_action: "merge_pull_request",
+            original_params: {
+              ...approval().original_params,
+              status: "pending",
+              policyDecision: {
+                decision: "approval_required",
+                requiresApproval: true,
+                actor: "founder",
+                agent: "mason",
+                domain: "engineering",
+                action: "merge_pull_request",
+              },
+              repository: "AIOS-HQ/aios-platform",
+              context: { executionId: "exec-other" },
+            },
+          }),
+        runMason,
+        runConnector,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.execution_result?.status).toBe("blocked");
+    expect(result.error).toBe("invalid_merge_resume_context");
+    expect(result.execution_result?.error?.code).toBe("invalid_merge_resume_context");
+    expect(runMason).not.toHaveBeenCalled();
+    expect(runConnector).not.toHaveBeenCalled();
   });
 });
