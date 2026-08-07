@@ -39,6 +39,7 @@ import {
   uninstallMarketplaceItem,
   updateMarketplaceItem,
   type InstallMarketplacePolicyInput,
+  type UpdateMarketplacePolicyInput,
 } from "@/lib/marketplace/actions";
 
 function makeOwnedCompanySupabase() {
@@ -100,6 +101,34 @@ function validPolicyInput(overrides: Partial<InstallMarketplacePolicyInput["poli
         executionId: "exec-install-1",
         requestId: "req-install-1",
         correlationId: "corr-install-1",
+      },
+      ...overrides,
+    },
+  };
+}
+
+function validUpdatePolicyInput(
+  overrides: Partial<UpdateMarketplacePolicyInput["policyEvidence"]> = {},
+): UpdateMarketplacePolicyInput {
+  return {
+    policyEvidence: {
+      decision: "allow",
+      approvedAt: "2026-08-07T10:00:00.000Z",
+      evaluatedAt: "2026-08-07T09:59:59.000Z",
+      actor: { type: "founder", id: "user-1" },
+      agent: { id: "harmony" },
+      companyId: "company-1",
+      subject: {
+        kind: "marketplace_install",
+        itemId: "app",
+        action: "update",
+        fromVersion: "1.0.0",
+        toVersion: "2.0.0",
+      },
+      executionIdentity: {
+        executionId: "exec-update-1",
+        requestId: "req-update-1",
+        correlationId: "corr-update-1",
       },
       ...overrides,
     },
@@ -348,8 +377,62 @@ describe("marketplace installation runtime actions", () => {
     expect(result.decision).toBe("blocked");
   });
 
-  it("uses same guarded runtime path for update and rollback", async () => {
-    const { client, upsertInstallRows } = makeOwnedCompanySupabase();
+  it("blocks update when policy evidence is missing", async () => {
+    const { client, rpc } = makeOwnedCompanySupabase();
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+
+    const result = await updateMarketplaceItem("company-1", "app");
+
+    expect(result.applied).toBe(false);
+    expect(result.error).toBe("missing_policy_decision");
+    expect(result.reasonCode).toBe("missing_policy_decision");
+    expect(result.decision).toBe("blocked");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("blocks update when policy subject versions contradict planned update", async () => {
+    const { client, rpc } = makeOwnedCompanySupabase();
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+    mockPlanUpdate.mockReturnValue({
+      action: "update",
+      itemId: "app",
+      fromVersion: "1.0.0",
+      toVersion: "2.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "2.0.0", reason: "requested" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const result = await updateMarketplaceItem(
+      "company-1",
+      "app",
+      validUpdatePolicyInput({
+        subject: {
+          kind: "marketplace_install",
+          itemId: "app",
+          action: "update",
+          fromVersion: "1.0.0",
+          toVersion: "9.9.9",
+        },
+      }),
+    );
+
+    expect(result.applied).toBe(false);
+    expect(result.decision).toBe("blocked");
+    expect(result.reasonCode).toBe("policy_subject_mismatch");
+    expect(result.error).toBe("policy_subject_mismatch");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("applies governed update via existing persistence path with valid evidence", async () => {
+    const { client, upsertInstallRows, rpc } = makeOwnedCompanySupabase();
     mockRequireUser.mockResolvedValue({ id: "user-1" });
     mockCreateClient.mockResolvedValue(client);
     mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
@@ -378,12 +461,93 @@ describe("marketplace installation runtime actions", () => {
       reasons: [],
     });
 
-    const updated = await updateMarketplaceItem("company-1", "app");
-    const rolledBack = await rollbackMarketplaceItem("company-1", "app", "1.0.0");
+    const updated = await updateMarketplaceItem("company-1", "app", validUpdatePolicyInput());
 
     expect(updated.applied).toBe(true);
+    expect(updated.decision).toBe("applied");
+    expect(updated.reasonCode).toBe("update_applied");
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls[0]?.[0]).toBe("marketplace_apply_update_with_evidence");
+    expect(rpc.mock.calls[0]?.[1]).toMatchObject({
+      p_company_id: "company-1",
+      p_item_id: "app",
+      p_evidence_from_version: "1.0.0",
+      p_evidence_to_version: "2.0.0",
+      p_reason_code: "update_applied",
+    });
+    expect(upsertInstallRows).toHaveBeenCalledTimes(0);
+
+    const rolledBack = await rollbackMarketplaceItem("company-1", "app", "1.0.0");
     expect(rolledBack.applied).toBe(true);
-    expect(upsertInstallRows).toHaveBeenCalledTimes(2);
+  });
+
+  it("produces deterministic idempotent update decision evidence for repeated equivalent updates", async () => {
+    const { client, rpc, upsertAuditBuilder, upsertInstallRows } = makeOwnedCompanySupabase();
+    const upsertAudit = upsertAuditBuilder.upsert as ReturnType<typeof vi.fn>;
+
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+    mockPlanUpdate.mockReturnValue({
+      action: "update",
+      itemId: "app",
+      fromVersion: "1.0.0",
+      toVersion: "2.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "2.0.0", reason: "requested" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const policy = validUpdatePolicyInput();
+    const first = await updateMarketplaceItem("company-1", "app", policy);
+    const second = await updateMarketplaceItem("company-1", "app", policy);
+
+    expect(first.applied).toBe(true);
+    expect(second.applied).toBe(true);
+    expect(first.reasonCode).toBe("update_applied");
+    expect(second.reasonCode).toBe("update_applied");
+    expect(rpc).toHaveBeenCalledTimes(2);
+    const firstRpc = rpc.mock.calls[0]?.[1] as { p_evidence_execution_id: string };
+    const secondRpc = rpc.mock.calls[1]?.[1] as { p_evidence_execution_id: string };
+    expect(firstRpc.p_evidence_execution_id).toBe(secondRpc.p_evidence_execution_id);
+    expect(upsertAudit).toHaveBeenCalledTimes(0);
+    expect(upsertInstallRows).toHaveBeenCalledTimes(0);
+  });
+
+  it("fails closed when atomic update rpc errors", async () => {
+    const { client, rpc, upsertInstallRows, upsertAuditBuilder } = makeOwnedCompanySupabase();
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "atomic update failed" } });
+    const upsertAudit = upsertAuditBuilder.upsert as ReturnType<typeof vi.fn>;
+
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+    mockPlanUpdate.mockReturnValue({
+      action: "update",
+      itemId: "app",
+      fromVersion: "1.0.0",
+      toVersion: "2.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "2.0.0", reason: "requested" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const result = await updateMarketplaceItem("company-1", "app", validUpdatePolicyInput());
+
+    expect(result.applied).toBe(false);
+    expect(result.reasonCode).toBe("persistence_failed");
+    expect(result.error).toBe("atomic update failed");
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(upsertInstallRows).toHaveBeenCalledTimes(0);
+    expect(upsertAudit).toHaveBeenCalledTimes(1);
   });
 
   it("blocks uninstall plan without delete and applies delete when allowed", async () => {

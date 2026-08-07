@@ -184,7 +184,7 @@ function runCompleteHistory() {
   createDatabase(database);
   try {
     const migrations = orderedMigrations();
-    if (migrations.length !== 51) fail(`unexpected_migration_count:${migrations.length}`);
+    if (migrations.length !== 52) fail(`unexpected_migration_count:${migrations.length}`);
     for (const migration of migrations) file(database, resolve(MIGRATIONS, migration));
     assertMarketplaceContract(database);
     assertMarketplaceRls(database);
