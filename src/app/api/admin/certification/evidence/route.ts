@@ -27,7 +27,7 @@ export const maxDuration = 60;
  * identity, tokens, credentials, cookies, headers, prompts, memory, or customer
  * data.
  */
-export async function GET(request?: Request) {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   if (!(await currentUserIsAdmin())) {
