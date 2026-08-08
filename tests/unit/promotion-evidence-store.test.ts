@@ -116,6 +116,10 @@ describe("writeFounderPromotionEvidence", () => {
   });
 
   it("allows duplicate retry when existing founder decision is identical", async () => {
+    const persistedDecidedAt = "2026-08-08T12:00:00.000Z";
+    const persistedApprovedAt = "2026-08-08T12:00:00.000Z";
+    const persistedEvidenceId = "persisted-evidence-123";
+
     const admin = makeAdmin({
       production_promotion_requests: [
         { data: null, error: { code: "23505" } },
@@ -125,9 +129,13 @@ describe("writeFounderPromotionEvidence", () => {
         { data: null, error: { code: "23505" } },
         {
           data: {
+            decision_source: "founder",
             decision: "approved",
+            actor_type: "founder",
             actor_id: baseInput.actorId,
-            approved_at: new Date().toISOString(),
+            evidence_id: persistedEvidenceId,
+            decided_at: persistedDecidedAt,
+            approved_at: persistedApprovedAt,
           },
           error: null,
         },
@@ -141,6 +149,9 @@ describe("writeFounderPromotionEvidence", () => {
 
     expect(result.decision.decision).toBe("approved");
     expect(result.decision.actor_id).toBe(baseInput.actorId);
+    expect(result.decision.evidence_id).toBe(persistedEvidenceId);
+    expect(result.decision.decided_at).toBe(persistedDecidedAt);
+    expect(result.decision.approved_at).toBe(persistedApprovedAt);
   });
 
   it("rejects changing existing rejected decision to approved", async () => {

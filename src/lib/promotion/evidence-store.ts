@@ -62,10 +62,17 @@ function stableFounderEvidenceId(input: { promotionRequestId: string; actorId: s
 async function selectExistingDecision(
   client: AdminClient,
   promotionRequestId: string,
-): Promise<QueryResult<Pick<PromotionDecisionInsert, "decision" | "actor_id" | "approved_at">>> {
+): Promise<
+  QueryResult<
+    Pick<
+      PromotionDecisionInsert,
+      "decision_source" | "decision" | "actor_type" | "actor_id" | "evidence_id" | "decided_at" | "approved_at"
+    >
+  >
+> {
   return client
     .from("production_promotion_decisions")
-    .select("decision,actor_id,approved_at")
+    .select("decision_source,decision,actor_type,actor_id,evidence_id,decided_at,approved_at")
     .eq("promotion_request_id", promotionRequestId)
     .eq("decision_source", "founder")
     .maybeSingle();
@@ -164,9 +171,6 @@ export async function writeFounderPromotionEvidence(input: PromotionEvidenceWrit
 
   return {
     request: input.request,
-    decision: {
-      ...decisionInsert,
-      approved_at: existing.approved_at,
-    },
+    decision: existing,
   };
 }
