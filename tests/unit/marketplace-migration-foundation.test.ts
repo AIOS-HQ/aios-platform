@@ -25,6 +25,10 @@ const boundaryEnforcement = readFileSync(
   "supabase/migrations/20260807240000_marketplace_rollback_uninstall_boundary_enforcement.sql",
   "utf8",
 );
+const promotionApprovalEvidence = readFileSync(
+  "supabase/migrations/20260807250000_production_promotion_approval_evidence.sql",
+  "utf8",
+);
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -199,5 +203,23 @@ describe("marketplace migration foundation", () => {
     expect(certification).toContain("rollback_newer_should_fail");
     expect(certification).toContain("rollback_nonexistent_should_fail");
     expect(certification).toContain("uninstall_with_dependents_should_fail");
+  });
+
+  it("certifies production-promotion approval evidence persistence contract", () => {
+    expect(promotionApprovalEvidence).toContain("create table if not exists public.production_promotion_requests");
+    expect(promotionApprovalEvidence).toContain("create table if not exists public.production_promotion_decisions");
+    expect(promotionApprovalEvidence).toContain("check (repository = 'AIOS-HQ/aios-platform')");
+    expect(promotionApprovalEvidence).toContain("check (purpose = 'production_promotion')");
+    expect(promotionApprovalEvidence).toContain("check (target_sha ~ '^[0-9a-f]{40}$')");
+    expect(promotionApprovalEvidence).toContain("check (source_environment = 'staging')");
+    expect(promotionApprovalEvidence).toContain("check (target_environment = 'production')");
+    expect(promotionApprovalEvidence).toContain("check (decision_source in ('founder', 'harmony'))");
+    expect(promotionApprovalEvidence).toContain("check (decision in ('approved', 'rejected'))");
+    expect(promotionApprovalEvidence).toContain("actor_type = 'founder'");
+    expect(promotionApprovalEvidence).toContain("agent_id = 'harmony'");
+    expect(promotionApprovalEvidence).toContain("production_promotion_decisions_request_source_uq");
+    expect(promotionApprovalEvidence).toContain("enable row level security");
+    expect(promotionApprovalEvidence).toContain("revoke insert, update, delete on public.production_promotion_requests from authenticated");
+    expect(promotionApprovalEvidence).toContain("revoke insert, update, delete on public.production_promotion_decisions from authenticated");
   });
 });
