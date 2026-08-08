@@ -98,7 +98,13 @@ function assertArtifactName(value, expectedSha, runId) {
 
 function assertWorkflowRef(value, workflowRunId, workflowRunAttempt) {
   if (typeof value !== "string" || value.trim() === "") fail("workflow_ref_invalid");
+  if (value.includes("http://") || value.includes("https://")) fail("workflow_ref_repository_mismatch");
   const lowered = value.toLowerCase();
+  const workflowPrefix = `${EXPECTED_REPOSITORY}/.github/workflows/`;
+  if (!value.startsWith(workflowPrefix)) fail("workflow_ref_repository_mismatch");
+  if (value.startsWith(`evil/${workflowPrefix}`)) fail("workflow_ref_repository_mismatch");
+  if (value.includes("../") || value.includes("..\\")) fail("workflow_ref_path_traversal");
+
   const mutableBare = lowered.endsWith("@main")
     || lowered.endsWith("@head")
     || lowered.endsWith("@latest")
@@ -113,7 +119,12 @@ function assertWorkflowRef(value, workflowRunId, workflowRunAttempt) {
   }
 
   const prefix = value.slice(0, -expectedSuffix.length);
-  if (!prefix.includes("/.github/workflows/") || !prefix.includes("@")) fail("workflow_ref_invalid");
+  const atCount = (prefix.match(/@/g) ?? []).length;
+  if (atCount !== 1) fail("workflow_ref_invalid");
+  const [workflowPath, gitRef] = prefix.split("@");
+  if (!workflowPath.startsWith(workflowPrefix)) fail("workflow_ref_repository_mismatch");
+  if (!workflowPath.endsWith(".yml") && !workflowPath.endsWith(".yaml")) fail("workflow_ref_extension_invalid");
+  if (gitRef.trim() === "") fail("workflow_ref_invalid");
   return value;
 }
 
@@ -121,8 +132,11 @@ function buildGuardEvidenceId(deploymentTargetSha, metadata, attestation) {
   const material = [
     deploymentTargetSha,
     metadata.artifactId,
+    metadata.artifactName,
     metadata.workflowRunId,
     String(metadata.workflowRunAttempt),
+    metadata.workflowRef,
+    metadata.attestedSha,
     attestation.runtimeCertification.evidenceId,
     attestation.migrationPlanCertification.evidenceId,
     attestation.founderApproval.evidenceId,
@@ -161,8 +175,11 @@ export function validateLivePromotionGuard(input, options = {}) {
   const verifiedAt = assertTimestamp(new Date().toISOString(), "guard_verified_at_invalid");
   const guardEvidenceId = buildGuardEvidenceId(deploymentTargetSha, {
     artifactId,
+    artifactName,
     workflowRunId,
     workflowRunAttempt,
+    workflowRef,
+    attestedSha,
   }, attestation);
 
   const output = {

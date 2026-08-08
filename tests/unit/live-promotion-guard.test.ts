@@ -134,12 +134,12 @@ describe("live promotion guard", () => {
     expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
       ...validInput().promotionArtifact,
       workflowRef: "workflow@HEAD",
-    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_repository_mismatch|workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
 
     expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
       ...validInput().promotionArtifact,
       workflowRef: "workflow@latest",
-    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_repository_mismatch|workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
 
     expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
       ...validInput().promotionArtifact,
@@ -150,6 +150,31 @@ describe("live promotion guard", () => {
       ...validInput().promotionArtifact,
       workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:2",
     } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "evil/repo/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:1",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_repository_mismatch/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "evil/AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:1",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_repository_mismatch/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "https://github.com/AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:1",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_repository_mismatch/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/../evil.yml@refs/heads/main#run:77777:attempt:1",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_path_traversal/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion@refs/heads/main#run:77777:attempt:1",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_extension_invalid/);
   });
 
   it("fails closed for exact artifact-name format violations and substring coincidence", () => {
@@ -193,6 +218,20 @@ describe("live promotion guard", () => {
       workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:2",
     } }), { expectedSha: SHA });
     expect(base.guardEvidenceId).not.toBe(changed.guardEvidenceId);
+
+    const changedWorkflowRef = validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-release.yaml@refs/heads/main#run:77777:attempt:1",
+    } }), { expectedSha: SHA });
+    expect(base.guardEvidenceId).not.toBe(changedWorkflowRef.guardEvidenceId);
+
+    const changedArtifactName = validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      artifactName: `promotion-attestation-${SHA}-88888`,
+      workflowRunId: "88888",
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:88888:attempt:1",
+    } }), { expectedSha: SHA });
+    expect(base.guardEvidenceId).not.toBe(changedArtifactName.guardEvidenceId);
   });
 
   it("executes real CLI validate success and fail-closed SHA mismatch", () => {
