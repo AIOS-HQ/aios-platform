@@ -84,6 +84,7 @@ jobs:
           cache-dependency-path: control/package-lock.json
 
       - name: Verify immutable target and trusted controls
+        id: target_validation
         shell: bash
         env:
           TARGET_REF: ${{ inputs.target_ref }}
@@ -99,6 +100,7 @@ jobs:
           test -d "$GITHUB_WORKSPACE/target/supabase/migrations"
           migration_count="$(find "$GITHUB_WORKSPACE/target/supabase/migrations" -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
           test "$migration_count" -gt 0
+          printf 'migration_count=%s\n' "$migration_count" >>"$GITHUB_OUTPUT"
           printf 'Migration files discovered: %s\n' "$migration_count"
 
       - name: Verify pinned CLI supports fail-closed dry run
@@ -234,7 +236,7 @@ jobs:
           TARGET_REF: ${{ inputs.target_ref }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
-          MIGRATION_COUNT: ${{ steps.checkout_target.outputs.migration_count }}
+          MIGRATION_COUNT: ${{ steps.target_validation.outputs.migration_count }}
           STAGING_PLAN_ENVIRONMENT: "staging"
           STAGING_PLAN_RESULT: "passed"
           STAGING_PLAN_MODE: "dry_run"

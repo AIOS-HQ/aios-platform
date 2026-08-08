@@ -268,6 +268,11 @@ describe("Supabase staging migration plan", () => {
 
   it("builds, validates, and uploads an immutable safe staging certification artifact", async () => {
     const workflow = await readFile(".github/workflows/supabase-staging-migration-plan.yml", "utf8");
+    expect(workflow).toContain('- name: Verify immutable target and trusted controls\n        id: target_validation');
+    expect(workflow).toContain('test "$migration_count" -gt 0');
+    expect(workflow).toContain("printf 'migration_count=%s\\n' \"$migration_count\" >>\"$GITHUB_OUTPUT\"");
+    expect(workflow).toContain("MIGRATION_COUNT: ${{ steps.target_validation.outputs.migration_count }}");
+    expect(workflow).not.toContain("steps.checkout_target.outputs.migration_count");
     expect(workflow).toContain("Build immutable staging migration certification artifact");
     expect(workflow).toContain("Validate staging migration certification artifact");
     expect(workflow).toContain("Upload safe staging migration certification artifact");
