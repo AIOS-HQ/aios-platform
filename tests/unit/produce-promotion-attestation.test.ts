@@ -1,3 +1,7 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { producePromotionAttestation } from "../../scripts/ci/produce-promotion-attestation.mjs";
 import { validatePromotionAttestation } from "../../scripts/ci/promotion-attestation-contract.mjs";
@@ -158,5 +162,75 @@ describe("producePromotionAttestation", () => {
     expect(produced.migrationPlanCertification.verifiedAt).toBe(input.stagingPromotionEvidence.migrationPlanCertification.verifiedAt);
     expect(produced.founderApproval.approvedAt).toBe(input.promotionApprovalEvidence.founderApproval.approvedAt);
     expect(produced.harmonyGovernanceApproval.approvedAt).toBe(input.promotionApprovalEvidence.harmonyGovernanceApproval.approvedAt);
+  });
+
+  it("CLI produce writes valid M5A attestation JSON file", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "promotion-attestation-cli-"));
+    try {
+      const inputPath = join(tmp, "input.json");
+      const outputPath = join(tmp, "output.json");
+      const input = validInput();
+      writeFileSync(inputPath, JSON.stringify({
+        stagingPromotionEvidence: input.stagingPromotionEvidence,
+        promotionApprovalEvidence: input.promotionApprovalEvidence,
+      }));
+
+      const cliPath = resolve("scripts/ci/produce-promotion-attestation.mjs");
+      const run = spawnSync(process.execPath, [cliPath, "produce", inputPath, SHA, outputPath], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      });
+
+      expect(run.status).toBe(0);
+      const output = JSON.parse(readFileSync(outputPath, "utf8"));
+      const validated = validatePromotionAttestation(output, { expectedSha: SHA });
+      expect(validated.ok).toBe(true);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("CLI produce exits nonzero on wrong expected SHA", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "promotion-attestation-cli-"));
+    try {
+      const inputPath = join(tmp, "input.json");
+      const outputPath = join(tmp, "output.json");
+      const input = validInput();
+      writeFileSync(inputPath, JSON.stringify({
+        stagingPromotionEvidence: input.stagingPromotionEvidence,
+        promotionApprovalEvidence: input.promotionApprovalEvidence,
+      }));
+
+      const cliPath = resolve("scripts/ci/produce-promotion-attestation.mjs");
+      const run = spawnSync(process.execPath, [cliPath, "produce", inputPath, "a".repeat(40), outputPath], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      });
+
+      expect(run.status).not.toBe(0);
+      expect(run.stderr).toContain("target_sha_mismatch");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("CLI produce exits nonzero on malformed input", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "promotion-attestation-cli-"));
+    try {
+      const inputPath = join(tmp, "input.json");
+      const outputPath = join(tmp, "output.json");
+      writeFileSync(inputPath, "not-json");
+
+      const cliPath = resolve("scripts/ci/produce-promotion-attestation.mjs");
+      const run = spawnSync(process.execPath, [cliPath, "produce", inputPath, SHA, outputPath], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      });
+
+      expect(run.status).not.toBe(0);
+      expect(run.stderr).toContain("input_parse_failed");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

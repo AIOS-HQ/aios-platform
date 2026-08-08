@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import { validatePromotionApprovalEvidence } from "./promotion-approval-evidence.mjs";
 import { validatePromotionAttestation } from "./promotion-attestation-contract.mjs";
 
@@ -62,4 +63,44 @@ export function producePromotionAttestation(input) {
 
   validatePromotionAttestation(attestation, { expectedSha: expectedTargetSha });
   return attestation;
+}
+
+function main() {
+  const command = process.argv[2];
+  if (command !== "produce") {
+    throw new Error("usage: node scripts/ci/produce-promotion-attestation.mjs produce <input-json> <expected-target-sha> <output-json>");
+  }
+
+  const inputPath = process.argv[3];
+  const expectedTargetSha = process.argv[4];
+  const outputPath = process.argv[5];
+
+  if (!inputPath || !expectedTargetSha || !outputPath) {
+    throw new Error("usage: node scripts/ci/produce-promotion-attestation.mjs produce <input-json> <expected-target-sha> <output-json>");
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(readFileSync(inputPath, "utf8"));
+  } catch {
+    throw new Error("input_parse_failed");
+  }
+
+  const attestation = producePromotionAttestation({
+    stagingPromotionEvidence: payload.stagingPromotionEvidence,
+    promotionApprovalEvidence: payload.promotionApprovalEvidence,
+    expectedTargetSha,
+  });
+
+  writeFileSync(outputPath, `${JSON.stringify(attestation, null, 2)}\n`, "utf8");
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  try {
+    main();
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error && error.code ? String(error.code) : String(error?.message ?? "produce_failed");
+    console.error(code);
+    process.exit(1);
+  }
 }
