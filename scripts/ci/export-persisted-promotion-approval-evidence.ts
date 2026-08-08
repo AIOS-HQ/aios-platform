@@ -23,9 +23,9 @@ export async function exportPersistedPromotionApprovalEvidence(
   });
 
   const mapped = await loadPersistedPromotionApprovalEvidenceWithClient(client, promotionRequestId);
-  const safe = validatePromotionApprovalEvidence(mapped, { expectedSha: expectedTargetSha });
-  writeFileSync(outputPath, `${JSON.stringify(safe, null, 2)}\n`, "utf8");
-  return safe;
+  validatePromotionApprovalEvidence(mapped, { expectedSha: expectedTargetSha });
+  writeFileSync(outputPath, `${JSON.stringify(mapped, null, 2)}\n`, "utf8");
+  return mapped;
 }
 
 async function main() {

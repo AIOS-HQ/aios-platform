@@ -2,10 +2,11 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { producePromotionAttestation } from "../../scripts/ci/produce-promotion-attestation.mjs";
 
-const createClientMock = vi.fn();
-const loadSharedMock = vi.fn();
-const validateMock = vi.fn();
+const createClientMock = vi.hoisted(() => vi.fn());
+const loadSharedMock = vi.hoisted(() => vi.fn());
+const validateMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@supabase/supabase-js", () => ({ createClient: createClientMock }));
 vi.mock("../../src/lib/promotion/approval-evidence-shared", () => ({
@@ -15,7 +16,52 @@ vi.mock("../../scripts/ci/promotion-approval-evidence.mjs", () => ({
   validatePromotionApprovalEvidence: validateMock,
 }));
 
-const safePayload = {
+const rawMappedPayload = {
+  subject: {
+    repository: "AIOS-HQ/aios-platform",
+    purpose: "production_promotion",
+    targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+    sourceEnvironment: "staging",
+    targetEnvironment: "production",
+    promotionRequestId: "promotion-request:abc123",
+    runtimeEvidenceId: "runtime-evidence:123",
+    runtimeArtifactId: "github-artifact:22222",
+    migrationEvidenceId: "migration-evidence:456",
+    migrationArtifactId: "github-artifact:33333",
+  },
+  founderApproval: {
+    promotionRequestId: "promotion-request:abc123",
+    targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+    purpose: "production_promotion",
+    authority: "founder",
+    decision: "approved",
+    actorType: "founder",
+    actorId: "founder-1",
+    evidenceId: "founder-approval:789",
+    approvedAt: "2026-08-08T10:00:00.000Z",
+    runtimeEvidenceId: "runtime-evidence:123",
+    runtimeArtifactId: "github-artifact:22222",
+    migrationEvidenceId: "migration-evidence:456",
+    migrationArtifactId: "github-artifact:33333",
+  },
+  harmonyGovernanceApproval: {
+    promotionRequestId: "promotion-request:abc123",
+    targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+    purpose: "production_promotion",
+    authority: "harmony",
+    decision: "approved",
+    agentId: "harmony",
+    evidenceId: "harmony-approval:987",
+    approvedAt: "2026-08-08T10:01:00.000Z",
+    governancePolicyVersion: "production-promotion-governance-v1",
+    runtimeEvidenceId: "runtime-evidence:123",
+    runtimeArtifactId: "github-artifact:22222",
+    migrationEvidenceId: "migration-evidence:456",
+    migrationArtifactId: "github-artifact:33333",
+  },
+};
+
+const normalizedPayload = {
   subject: { targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300" },
   founderApproval: { status: "approved" },
   harmonyGovernanceApproval: { status: "approved" },
@@ -30,11 +76,11 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-key" };
     createClientMock.mockReturnValue({ from: vi.fn() });
-    loadSharedMock.mockResolvedValue({ any: "mapped" });
-    validateMock.mockReturnValue(safePayload);
+    loadSharedMock.mockResolvedValue(rawMappedPayload);
+    validateMock.mockReturnValue(normalizedPayload);
   });
 
-  it("uses service-role client, shared loader, validates expected SHA, and writes safe JSON", async () => {
+  it("validates raw mapped payload then writes and returns original raw mapped JSON", async () => {
     const dir = mkdtempSync(join(tmpdir(), "promotion-approval-export-"));
     try {
       const out = join(dir, "approval.json");
@@ -48,9 +94,76 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
 
       expect(createClientMock).toHaveBeenCalledTimes(1);
       expect(loadSharedMock).toHaveBeenCalledTimes(1);
-      expect(validateMock).toHaveBeenCalledWith({ any: "mapped" }, { expectedSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300" });
-      expect(JSON.parse(readFileSync(out, "utf8"))).toEqual(safePayload);
-      expect(result).toEqual(safePayload);
+      expect(validateMock).toHaveBeenCalledWith(rawMappedPayload, { expectedSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300" });
+      expect(JSON.parse(readFileSync(out, "utf8"))).toEqual(rawMappedPayload);
+      expect(JSON.parse(readFileSync(out, "utf8"))).not.toEqual(normalizedPayload);
+      expect(result).toEqual(rawMappedPayload);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("exported raw JSON works downstream as promotionApprovalEvidence in final composer", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "promotion-approval-export-"));
+    try {
+      const out = join(dir, "approval.json");
+      const { exportPersistedPromotionApprovalEvidence } = await import("../../scripts/ci/export-persisted-promotion-approval-evidence");
+      validateMock.mockImplementation((input) => ({
+        ...input,
+        founderApproval: {
+          ...input.founderApproval,
+          status: "approved",
+        },
+        harmonyGovernanceApproval: {
+          ...input.harmonyGovernanceApproval,
+          status: "approved",
+        },
+      }));
+      await exportPersistedPromotionApprovalEvidence(
+        "promotion-request:abc123",
+        rawMappedPayload.subject.targetSha,
+        out,
+      );
+
+      const exported = JSON.parse(readFileSync(out, "utf8"));
+      const approvalForComposer = {
+        ...exported,
+        founderApproval: {
+          ...exported.founderApproval,
+          decision: "approved",
+        },
+        harmonyGovernanceApproval: {
+          ...exported.harmonyGovernanceApproval,
+          decision: "approved",
+        },
+      };
+      const attestation = producePromotionAttestation({
+        expectedTargetSha: rawMappedPayload.subject.targetSha,
+        promotionApprovalEvidence: approvalForComposer,
+        stagingPromotionEvidence: {
+          repository: rawMappedPayload.subject.repository,
+          sourceEnvironment: "staging",
+          targetEnvironment: "production",
+          targetSha: rawMappedPayload.subject.targetSha,
+          runtimeCertification: {
+            status: "passed",
+            targetSha: rawMappedPayload.subject.targetSha,
+            evidenceId: rawMappedPayload.subject.runtimeEvidenceId,
+            artifactId: rawMappedPayload.subject.runtimeArtifactId,
+            verifiedAt: "2026-08-08T10:00:00.000Z",
+          },
+          migrationPlanCertification: {
+            status: "passed",
+            targetSha: rawMappedPayload.subject.targetSha,
+            evidenceId: rawMappedPayload.subject.migrationEvidenceId,
+            artifactId: rawMappedPayload.subject.migrationArtifactId,
+            verifiedAt: "2026-08-08T10:01:00.000Z",
+          },
+        },
+      });
+
+      expect(attestation.founderApproval.evidenceId).toBe(rawMappedPayload.founderApproval.evidenceId);
+      expect(attestation.harmonyGovernanceApproval.evidenceId).toBe(rawMappedPayload.harmonyGovernanceApproval.evidenceId);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
