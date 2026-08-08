@@ -29,6 +29,13 @@ create table if not exists public.production_promotion_requests (
       and lower(runtime_evidence_id) not like '%head%'
       and lower(runtime_evidence_id) <> 'main'
     ),
+  constraint production_promotion_requests_promotion_request_id_check
+    check (
+      btrim(promotion_request_id) <> ''
+      and lower(promotion_request_id) not like '%latest%'
+      and lower(promotion_request_id) not like '%head%'
+      and lower(promotion_request_id) <> 'main'
+    ),
   constraint production_promotion_requests_runtime_artifact_id_check
     check (
       btrim(runtime_artifact_id) <> ''
@@ -85,7 +92,15 @@ create table if not exists public.production_promotion_decisions (
         agent_id = 'harmony'
         and policy_version is not null
         and btrim(policy_version) <> ''
+        and lower(policy_version) not like '%latest%'
+        and lower(policy_version) not like '%head%'
+        and lower(policy_version) <> 'main'
       )
+    ),
+  constraint production_promotion_decisions_timestamp_consistency_check
+    check (
+      (decision = 'approved' and approved_at is not null)
+      or (decision = 'rejected' and approved_at is null)
     ),
   constraint production_promotion_decisions_evidence_id_check
     check (
@@ -104,8 +119,34 @@ alter table public.production_promotion_decisions enable row level security;
 
 grant select on public.production_promotion_requests to authenticated, service_role;
 grant select on public.production_promotion_decisions to authenticated, service_role;
+grant insert on public.production_promotion_requests to service_role;
+grant insert on public.production_promotion_decisions to service_role;
+
+revoke update, delete on public.production_promotion_requests from service_role;
+revoke update, delete on public.production_promotion_decisions from service_role;
 
 revoke insert, update, delete on public.production_promotion_requests from authenticated;
 revoke insert, update, delete on public.production_promotion_decisions from authenticated;
 revoke all on public.production_promotion_requests from anon;
 revoke all on public.production_promotion_decisions from anon;
+
+create or replace function public.reject_production_promotion_mutations()
+returns trigger
+language plpgsql
+as $$
+begin
+  raise exception 'production_promotion tables are append-only';
+end;
+$$;
+
+drop trigger if exists production_promotion_requests_append_only on public.production_promotion_requests;
+create trigger production_promotion_requests_append_only
+before update or delete on public.production_promotion_requests
+for each row
+execute function public.reject_production_promotion_mutations();
+
+drop trigger if exists production_promotion_decisions_append_only on public.production_promotion_decisions;
+create trigger production_promotion_decisions_append_only
+before update or delete on public.production_promotion_decisions
+for each row
+execute function public.reject_production_promotion_mutations();
