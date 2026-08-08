@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 const EXPECTED_REPO = "AIOS-HQ/aios-platform";
 const EXPECTED_SOURCE_ENV = "staging";
 const EXPECTED_TARGET_ENV = "production";
@@ -146,7 +148,7 @@ function main(argv) {
 
   let payload;
   try {
-    payload = JSON.parse(require("node:fs").readFileSync(filePath, "utf8"));
+    payload = JSON.parse(readFileSync(filePath, "utf8"));
   } catch {
     console.error("attestation_parse_failed");
     process.exit(65);

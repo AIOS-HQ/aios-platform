@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { validatePromotionAttestation } from "../../scripts/ci/promotion-attestation-contract.mjs";
 
 const BASE_SHA = "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300";
@@ -109,5 +113,36 @@ describe("promotion attestation contract", () => {
     expect(() =>
       validatePromotionAttestation({ ...validAttestation(), note: "postgres://user:pass@host/db" }),
     ).toThrow(/sensitive_value_rejected/);
+  });
+
+  it("validates a promotion attestation via real node CLI execution", () => {
+    const dir = mkdtempSync(join(tmpdir(), "m5a-attest-"));
+    const payloadPath = join(dir, "attestation.json");
+    writeFileSync(payloadPath, JSON.stringify(validAttestation()), "utf8");
+
+    const output = execFileSync("node", ["scripts/ci/promotion-attestation-contract.mjs", "validate", payloadPath, BASE_SHA], {
+      encoding: "utf8",
+    });
+    const result = JSON.parse(output);
+    expect(result.ok).toBe(true);
+    expect(result.targetSha).toBe(BASE_SHA);
+    expect(result.sourceEnvironment).toBe("staging");
+    expect(result.targetEnvironment).toBe("production");
+  });
+
+  it("fails closed in CLI mode when expected SHA mismatches", () => {
+    const dir = mkdtempSync(join(tmpdir(), "m5a-attest-mismatch-"));
+    const payloadPath = join(dir, "attestation.json");
+    writeFileSync(payloadPath, JSON.stringify(validAttestation()), "utf8");
+
+    expect(() =>
+      execFileSync("node", ["scripts/ci/promotion-attestation-contract.mjs", "validate", payloadPath, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], {
+        encoding: "utf8",
+        stdio: "pipe",
+      }),
+    ).toThrow();
+
+    const persisted = JSON.parse(readFileSync(payloadPath, "utf8"));
+    expect(persisted.targetSha).toBe(BASE_SHA);
   });
 });
