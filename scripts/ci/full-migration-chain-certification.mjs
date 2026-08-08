@@ -424,12 +424,6 @@ function assertMarketplaceBoundaryEnforcement(database) {
         raise exception 'rollback_timestamp_rejection_mutated_state';
       end if;
 
-      update public.company_installations
-         set installed_version='1.0.0'
-       where user_id='${TEST_USER}'
-         and company_id='${TEST_COMPANY}'
-         and item_id='88888888-8888-8888-8888-888888888888';
-
       declare v_err text := null; begin
         begin
           perform * from public.marketplace_apply_rollback_with_evidence(
@@ -444,6 +438,12 @@ function assertMarketplaceBoundaryEnforcement(database) {
       if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='2.0.0') then
         raise exception 'rollback_timestamp_rejection_mutated_state';
       end if;
+
+      update public.company_installations
+         set installed_version='1.0.0'
+       where user_id='${TEST_USER}'
+         and company_id='${TEST_COMPANY}'
+         and item_id='88888888-8888-8888-8888-888888888888';
 
       declare v_err text := null; begin
         begin
