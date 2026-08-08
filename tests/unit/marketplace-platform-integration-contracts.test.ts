@@ -98,7 +98,13 @@ describe("marketplace platform integration contracts", () => {
     expect(marketplaceActions).toContain("planUpdate");
     expect(marketplaceActions).toContain("planRollback");
     expect(marketplaceActions).toContain("planUninstall");
-    expect(marketplaceActions).toContain("if (plan.blocked) return { plan, applied: false }");
+    expect(marketplaceActions).toContain('decision: "blocked"');
+    expect(marketplaceActions).toContain('decision: "applied"');
+    expect(marketplaceActions).toContain('reasonCode: "persistence_failed"');
+    expect(marketplaceActions).toContain("marketplace_apply_install_with_evidence");
+    expect(marketplaceActions).toContain("marketplace_apply_update_with_evidence");
+    expect(marketplaceActions).toContain("marketplace_apply_rollback_with_evidence");
+    expect(marketplaceActions).toContain("marketplace_apply_uninstall_with_evidence");
     expect(marketplaceActions).toContain("company_installations");
   });
 

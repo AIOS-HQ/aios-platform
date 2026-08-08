@@ -40,6 +40,8 @@ import {
   updateMarketplaceItem,
   type InstallMarketplacePolicyInput,
   type UpdateMarketplacePolicyInput,
+  type RollbackMarketplacePolicyInput,
+  type UninstallMarketplacePolicyInput,
 } from "@/lib/marketplace/actions";
 
 function makeOwnedCompanySupabase() {
@@ -129,6 +131,62 @@ function validUpdatePolicyInput(
         executionId: "exec-update-1",
         requestId: "req-update-1",
         correlationId: "corr-update-1",
+      },
+      ...overrides,
+    },
+  };
+}
+
+
+function validRollbackPolicyInput(
+  overrides: Partial<RollbackMarketplacePolicyInput["policyEvidence"]> = {},
+): RollbackMarketplacePolicyInput {
+  return {
+    policyEvidence: {
+      decision: "allow",
+      approvedAt: "2026-08-07T10:00:00.000Z",
+      evaluatedAt: "2026-08-07T09:59:59.000Z",
+      actor: { type: "founder", id: "user-1" },
+      agent: { id: "harmony" },
+      companyId: "company-1",
+      subject: {
+        kind: "marketplace_install",
+        itemId: "app",
+        action: "rollback",
+        fromVersion: "2.0.0",
+        toVersion: "1.0.0",
+      },
+      executionIdentity: {
+        executionId: "exec-rollback-1",
+        requestId: "req-rollback-1",
+        correlationId: "corr-rollback-1",
+      },
+      ...overrides,
+    },
+  };
+}
+
+function validUninstallPolicyInput(
+  overrides: Partial<UninstallMarketplacePolicyInput["policyEvidence"]> = {},
+): UninstallMarketplacePolicyInput {
+  return {
+    policyEvidence: {
+      decision: "allow",
+      approvedAt: "2026-08-07T10:00:00.000Z",
+      evaluatedAt: "2026-08-07T09:59:59.000Z",
+      actor: { type: "founder", id: "user-1" },
+      agent: { id: "harmony" },
+      companyId: "company-1",
+      subject: {
+        kind: "marketplace_install",
+        itemId: "app",
+        action: "uninstall",
+        fromVersion: "1.0.0",
+      },
+      executionIdentity: {
+        executionId: "exec-uninstall-1",
+        requestId: "req-uninstall-1",
+        correlationId: "corr-uninstall-1",
       },
       ...overrides,
     },
@@ -477,8 +535,48 @@ describe("marketplace installation runtime actions", () => {
     });
     expect(upsertInstallRows).toHaveBeenCalledTimes(0);
 
-    const rolledBack = await rollbackMarketplaceItem("company-1", "app", "1.0.0");
+    const rolledBack = await rollbackMarketplaceItem("company-1", "app", "1.0.0", validRollbackPolicyInput());
     expect(rolledBack.applied).toBe(true);
+    expect(rolledBack.reasonCode).toBe("rollback_applied");
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(rpc.mock.calls[1]?.[0]).toBe("marketplace_apply_rollback_with_evidence");
+    expect(rpc.mock.calls[1]?.[1]).toMatchObject({
+      p_company_id: "company-1",
+      p_item_id: "app",
+      p_to_version: "1.0.0",
+      p_evidence_from_version: "2.0.0",
+      p_evidence_to_version: "1.0.0",
+      p_reason_code: "rollback_applied",
+    });
+    expect(upsertInstallRows).toHaveBeenCalledTimes(0);
+  });
+
+  it("returns persistence_failed when rollback rpc errors", async () => {
+    const { client, rpc } = makeOwnedCompanySupabase();
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "atomic rollback failed" } });
+
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({ app: { visibility: "marketplace_public" } });
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "2.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+    mockPlanRollback.mockReturnValue({
+      action: "rollback",
+      itemId: "app",
+      fromVersion: "2.0.0",
+      toVersion: "1.0.0",
+      steps: [{ itemId: "app", kind: "workforce", version: "1.0.0", reason: "rollback" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const result = await rollbackMarketplaceItem("company-1", "app", "1.0.0", validRollbackPolicyInput());
+
+    expect(result.applied).toBe(false);
+    expect(result.reasonCode).toBe("persistence_failed");
+    expect(result.decision).toBe("blocked");
   });
 
   it("produces deterministic idempotent update decision evidence for repeated equivalent updates", async () => {
@@ -550,25 +648,31 @@ describe("marketplace installation runtime actions", () => {
     expect(upsertAudit).toHaveBeenCalledTimes(1);
   });
 
-  it("blocks uninstall plan without delete and applies delete when allowed", async () => {
+  it("blocks uninstall plan without rpc and applies uninstall through atomic rpc", async () => {
     const maybeSingle = vi.fn(async () => ({ data: { id: "company-1" } }));
     const eqChain2 = { eq: vi.fn(() => ({ maybeSingle })) };
     const eqChain1 = { eq: vi.fn(() => eqChain2) };
     const selectChain = { select: vi.fn(() => eqChain1) };
 
-    const deleteEq3 = vi.fn(async () => ({ error: null }));
-    const deleteEq2 = { eq: vi.fn(() => ({ eq: deleteEq3 })) };
-    const deleteEq1 = { eq: vi.fn(() => deleteEq2) };
-    const delBuilder = { delete: vi.fn(() => deleteEq1) };
+    const upsertAuditRows = vi.fn(async () => ({ data: { id: "audit-uninstall-1" }, error: null }));
+    const selectAudit = vi.fn(() => ({ maybeSingle: upsertAuditRows }));
+    const upsertAuditBuilder = {
+      upsert: vi.fn(() => ({ select: selectAudit })),
+    };
 
     const from = vi.fn((table: string) => {
       if (table === "companies") return selectChain;
-      if (table === "company_installations") return delBuilder;
+      if (table === "company_installations") return {};
+      if (table === "agent_autonomy_audit") return upsertAuditBuilder;
       throw new Error(`unexpected table ${table}`);
     });
 
+    const rpc = vi
+      .fn(async () => ({ data: [{ applied: true, evidence_id: "audit-uninstall-rpc-1" }], error: null }))
+      .mockResolvedValueOnce({ data: [{ applied: true, evidence_id: "audit-uninstall-rpc-1" }], error: null });
+
     mockRequireUser.mockResolvedValue({ id: "user-1" });
-    mockCreateClient.mockResolvedValue({ from });
+    mockCreateClient.mockResolvedValue({ from, rpc });
     mockLoadCatalog.mockResolvedValue({});
     mockLoadInstallState.mockResolvedValue({
       app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
@@ -596,12 +700,49 @@ describe("marketplace installation runtime actions", () => {
         reasons: [],
       });
 
-    const blocked = await uninstallMarketplaceItem("company-1", "app");
+    const blocked = await uninstallMarketplaceItem("company-1", "app", validUninstallPolicyInput());
     expect(blocked.applied).toBe(false);
-    expect(deleteEq3).not.toHaveBeenCalled();
+    expect(blocked.reasonCode).toBe("uninstall_plan_blocked");
+    expect(rpc).not.toHaveBeenCalled();
 
-    const allowed = await uninstallMarketplaceItem("company-1", "app");
+    const allowed = await uninstallMarketplaceItem("company-1", "app", validUninstallPolicyInput());
     expect(allowed.applied).toBe(true);
-    expect(deleteEq3).toHaveBeenCalledTimes(1);
+    expect(allowed.reasonCode).toBe("uninstall_applied");
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls[0]?.[0]).toBe("marketplace_apply_uninstall_with_evidence");
+    expect(rpc.mock.calls[0]?.[1]).toMatchObject({
+      p_company_id: "company-1",
+      p_item_id: "app",
+      p_evidence_from_version: "1.0.0",
+      p_reason_code: "uninstall_applied",
+    });
+  });
+
+  it("returns persistence_failed when uninstall rpc errors", async () => {
+    const { client, rpc } = makeOwnedCompanySupabase();
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "atomic uninstall failed" } });
+
+    mockRequireUser.mockResolvedValue({ id: "user-1" });
+    mockCreateClient.mockResolvedValue(client);
+    mockLoadCatalog.mockResolvedValue({});
+    mockLoadInstallState.mockResolvedValue({
+      app: { kind: "workforce", installedVersion: "1.0.0", installedAt: "2026-01-01", source: "marketplace_public" },
+    });
+    mockPlanUninstall.mockReturnValue({
+      action: "uninstall",
+      itemId: "app",
+      fromVersion: "1.0.0",
+      toVersion: null,
+      steps: [{ itemId: "app", kind: "workforce", version: "1.0.0", reason: "uninstall" }],
+      warnings: [],
+      blocked: false,
+      reasons: [],
+    });
+
+    const result = await uninstallMarketplaceItem("company-1", "app", validUninstallPolicyInput());
+
+    expect(result.applied).toBe(false);
+    expect(result.decision).toBe("blocked");
+    expect(result.reasonCode).toBe("persistence_failed");
   });
 });
