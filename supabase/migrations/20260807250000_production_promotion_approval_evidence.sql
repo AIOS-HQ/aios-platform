@@ -83,6 +83,8 @@ create table if not exists public.production_promotion_decisions (
         actor_type = 'founder'
         and actor_id is not null
         and btrim(actor_id) <> ''
+        and agent_id is null
+        and policy_version is null
       )
     ),
   constraint production_promotion_decisions_harmony_fields_check
@@ -90,6 +92,8 @@ create table if not exists public.production_promotion_decisions (
       decision_source <> 'harmony'
       or (
         agent_id = 'harmony'
+        and actor_type is null
+        and actor_id is null
         and policy_version is not null
         and btrim(policy_version) <> ''
         and lower(policy_version) not like '%latest%'

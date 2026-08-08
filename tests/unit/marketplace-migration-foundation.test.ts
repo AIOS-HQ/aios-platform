@@ -220,7 +220,11 @@ describe("marketplace migration foundation", () => {
     expect(promotionApprovalEvidence).toContain("check (decision_source in ('founder', 'harmony'))");
     expect(promotionApprovalEvidence).toContain("check (decision in ('approved', 'rejected'))");
     expect(promotionApprovalEvidence).toContain("actor_type = 'founder'");
+    expect(promotionApprovalEvidence).toContain("and agent_id is null");
+    expect(promotionApprovalEvidence).toContain("and policy_version is null");
     expect(promotionApprovalEvidence).toContain("agent_id = 'harmony'");
+    expect(promotionApprovalEvidence).toContain("and actor_type is null");
+    expect(promotionApprovalEvidence).toContain("and actor_id is null");
     expect(promotionApprovalEvidence).toContain("and btrim(policy_version) <> ''");
     expect(promotionApprovalEvidence).toContain("and lower(policy_version) not like '%latest%'");
     expect(promotionApprovalEvidence).toContain("and lower(policy_version) not like '%head%'");
