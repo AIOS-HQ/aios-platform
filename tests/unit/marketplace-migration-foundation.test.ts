@@ -174,6 +174,12 @@ describe("marketplace migration foundation", () => {
     expect(boundaryEnforcement).toContain("create or replace function public.marketplace_apply_rollback_with_evidence(");
     expect(boundaryEnforcement).toContain("create or replace function public.marketplace_apply_uninstall_with_evidence(");
     expect(boundaryEnforcement).toContain("create or replace function public.marketplace_semver_compare(");
+    expect(boundaryEnforcement).toContain("create or replace function public.marketplace_semver_satisfies(");
+    expect(boundaryEnforcement).toContain("create or replace function public.marketplace_timestamptz_is_valid(");
+    expect(boundaryEnforcement).toContain("or not public.marketplace_semver_satisfies(dep_ci.installed_version, dep->>'range')");
+    expect(boundaryEnforcement).toContain("if not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'approvedAt')");
+    expect(boundaryEnforcement).toContain("or not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'evaluatedAt')");
+    expect(boundaryEnforcement).toContain("if not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'expiresAt') then");
     expect(boundaryEnforcement).toContain("policy_denied");
     expect(boundaryEnforcement).toContain("execution_identity_mismatch");
     expect(boundaryEnforcement).toContain("rollback_target_not_older");
@@ -182,6 +188,13 @@ describe("marketplace migration foundation", () => {
 
   it("runs executable rollback/uninstall database boundary probes in certification", () => {
     expect(certification).toContain("function assertMarketplaceBoundaryEnforcement(database)");
+    expect(certification).toContain("semver_build_metadata_precedence_failed");
+    expect(certification).toContain("rollback_ranged_dependency_compatible_failed");
+    expect(certification).toContain("rollback_ranged_dependency_incompatible_not_rejected");
+    expect(certification).toContain("rollback_malformed_approved_at_not_rejected");
+    expect(certification).toContain("uninstall_malformed_approved_at_not_rejected");
+    expect(certification).toContain("rollback_timestamp_rejection_mutated_state");
+    expect(certification).toContain("uninstall_timestamp_rejection_mutated_state");
     expect(certification).toContain("rollback_same_should_fail");
     expect(certification).toContain("rollback_newer_should_fail");
     expect(certification).toContain("rollback_nonexistent_should_fail");

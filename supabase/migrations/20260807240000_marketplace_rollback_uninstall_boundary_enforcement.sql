@@ -10,6 +10,7 @@ declare
   v_clean text;
   v_pre text;
   v_parts text[];
+  v_dash_pos int;
 begin
   if p_version is null or btrim(p_version) = '' then
     raise exception 'invalid_semver' using errcode = '22023';
@@ -19,8 +20,14 @@ begin
     raise exception 'invalid_semver' using errcode = '22023';
   end if;
 
-  v_clean := split_part(p_version, '-', 1);
-  v_pre := nullif(split_part(p_version, '-', 2), '');
+  v_clean := split_part(p_version, '+', 1);
+  v_dash_pos := strpos(v_clean, '-');
+  if v_dash_pos > 0 then
+    v_pre := substring(v_clean from v_dash_pos + 1);
+    v_clean := substring(v_clean from 1 for v_dash_pos - 1);
+  else
+    v_pre := null;
+  end if;
   v_parts := string_to_array(v_clean, '.');
 
   major := v_parts[1]::int;
@@ -86,6 +93,180 @@ begin
 end;
 $$;
 
+create or replace function public.marketplace_semver_satisfies(p_version text, p_range text)
+returns boolean
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  v_group text;
+  v_token text;
+  v_comparators text[];
+  v_cmp int;
+  v_target text;
+  v_ok boolean;
+  v_version_parts record;
+  v_target_parts record;
+  v_wild text[];
+begin
+  perform public.marketplace_semver_parts(p_version);
+
+  for v_group in
+    select btrim(value)
+    from regexp_split_to_table(coalesce(p_range, ''), '\s*\|\|\s*') as value
+  loop
+    v_comparators := regexp_split_to_array(v_group, '\s+');
+    v_ok := true;
+
+    if v_comparators is null or array_length(v_comparators, 1) is null then
+      return true;
+    end if;
+
+    foreach v_token in array v_comparators
+    loop
+      v_token := btrim(v_token);
+      if v_token = '' then
+        continue;
+      end if;
+
+      if v_token in ('*', 'x', 'X') then
+        continue;
+      elsif v_token ~ '^[0-9]+\.(x|X|\*)$' then
+        v_wild := string_to_array(v_token, '.');
+        select * into v_version_parts from public.marketplace_semver_parts(p_version);
+        if v_version_parts.major <> v_wild[1]::int then
+          v_ok := false;
+          exit;
+        end if;
+      elsif v_token ~ '^[0-9]+\.[0-9]+\.(x|X|\*)$' then
+        v_wild := string_to_array(v_token, '.');
+        select * into v_version_parts from public.marketplace_semver_parts(p_version);
+        if v_version_parts.major <> v_wild[1]::int or v_version_parts.minor <> v_wild[2]::int then
+          v_ok := false;
+          exit;
+        end if;
+      elsif left(v_token, 1) = '^' then
+        v_target := btrim(substring(v_token from 2));
+        perform public.marketplace_semver_parts(v_target);
+        v_cmp := public.marketplace_semver_compare(p_version, v_target);
+        if v_cmp < 0 then
+          v_ok := false;
+          exit;
+        end if;
+        select * into v_version_parts from public.marketplace_semver_parts(p_version);
+        select * into v_target_parts from public.marketplace_semver_parts(v_target);
+        if v_target_parts.major > 0 then
+          if v_version_parts.major <> v_target_parts.major then
+            v_ok := false;
+            exit;
+          end if;
+        elsif v_target_parts.minor > 0 then
+          if v_version_parts.major <> 0 or v_version_parts.minor <> v_target_parts.minor then
+            v_ok := false;
+            exit;
+          end if;
+        else
+          if v_version_parts.major <> 0 or v_version_parts.minor <> 0 or v_version_parts.patch <> v_target_parts.patch then
+            v_ok := false;
+            exit;
+          end if;
+        end if;
+      elsif left(v_token, 1) = '~' then
+        v_target := btrim(substring(v_token from 2));
+        perform public.marketplace_semver_parts(v_target);
+        v_cmp := public.marketplace_semver_compare(p_version, v_target);
+        if v_cmp < 0 then
+          v_ok := false;
+          exit;
+        end if;
+        select * into v_version_parts from public.marketplace_semver_parts(p_version);
+        select * into v_target_parts from public.marketplace_semver_parts(v_target);
+        if v_version_parts.major <> v_target_parts.major or v_version_parts.minor <> v_target_parts.minor then
+          v_ok := false;
+          exit;
+        end if;
+      elsif v_token ~ '^(>=|<=|>|<|=).+$' then
+        if v_token like '>=%' then
+          v_target := btrim(substring(v_token from 3));
+          perform public.marketplace_semver_parts(v_target);
+          if public.marketplace_semver_compare(p_version, v_target) < 0 then
+            v_ok := false;
+            exit;
+          end if;
+        elsif v_token like '<=%' then
+          v_target := btrim(substring(v_token from 3));
+          perform public.marketplace_semver_parts(v_target);
+          if public.marketplace_semver_compare(p_version, v_target) > 0 then
+            v_ok := false;
+            exit;
+          end if;
+        elsif v_token like '>%' then
+          v_target := btrim(substring(v_token from 2));
+          perform public.marketplace_semver_parts(v_target);
+          if public.marketplace_semver_compare(p_version, v_target) <= 0 then
+            v_ok := false;
+            exit;
+          end if;
+        elsif v_token like '<%' then
+          v_target := btrim(substring(v_token from 2));
+          perform public.marketplace_semver_parts(v_target);
+          if public.marketplace_semver_compare(p_version, v_target) >= 0 then
+            v_ok := false;
+            exit;
+          end if;
+        elsif v_token like '=%' then
+          v_target := btrim(substring(v_token from 2));
+          perform public.marketplace_semver_parts(v_target);
+          if public.marketplace_semver_compare(p_version, v_target) <> 0 then
+            v_ok := false;
+            exit;
+          end if;
+        end if;
+      else
+        perform public.marketplace_semver_parts(v_token);
+        if public.marketplace_semver_compare(p_version, v_token) <> 0 then
+          v_ok := false;
+          exit;
+        end if;
+      end if;
+    end loop;
+
+    if v_ok then
+      return true;
+    end if;
+  end loop;
+
+  return false;
+exception
+  when others then
+    return false;
+end;
+$$;
+
+create or replace function public.marketplace_timestamptz_is_valid(p_value text)
+returns boolean
+language plpgsql
+stable
+set search_path = ''
+as $$
+declare
+  v_timestamp timestamptz;
+begin
+  if p_value is null or btrim(p_value) = '' then
+    return false;
+  end if;
+
+  begin
+    v_timestamp := p_value::timestamptz;
+    return true;
+  exception
+    when others then
+      return false;
+  end;
+end;
+$$;
+
 create or replace function public.marketplace_apply_rollback_with_evidence(
   p_company_id uuid,
   p_item_id uuid,
@@ -123,9 +304,17 @@ begin
 
   if coalesce(jsonb_typeof(p_policy_evidence),'') <> 'object' then raise exception 'missing_policy_evidence' using errcode='22023'; end if;
   if coalesce(p_policy_evidence->>'decision','') <> 'allow' then raise exception 'policy_denied' using errcode='22023'; end if;
-  if coalesce(p_policy_evidence->>'approvedAt','') = '' or coalesce(p_policy_evidence->>'evaluatedAt','') = '' then raise exception 'malformed_policy_evidence' using errcode='22023'; end if;
-  if (p_policy_evidence ? 'expiresAt') and ((p_policy_evidence->>'expiresAt') !~ '^\d{4}-\d{2}-\d{2}T' or (p_policy_evidence->>'expiresAt')::timestamptz < now()) then
-    raise exception 'stale_policy_evidence' using errcode='22023';
+  if not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'approvedAt')
+    or not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'evaluatedAt') then
+    raise exception 'malformed_policy_evidence' using errcode='22023';
+  end if;
+  if p_policy_evidence ? 'expiresAt' then
+    if not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'expiresAt') then
+      raise exception 'malformed_policy_evidence' using errcode='22023';
+    end if;
+    if (p_policy_evidence->>'expiresAt')::timestamptz < now() then
+      raise exception 'stale_policy_evidence' using errcode='22023';
+    end if;
   end if;
 
   v_actor_id := coalesce(p_policy_evidence #>> '{actor,id}','');
@@ -189,7 +378,7 @@ begin
        and v.version = p_to_version
        and (
          dep_ci.item_id is null
-         or not (dep_ci.installed_version = dep->>'range' or dep_ci.installed_version like replace(dep->>'range','x','%'))
+        or not public.marketplace_semver_satisfies(dep_ci.installed_version, dep->>'range')
        )
   ) then
     raise exception 'rollback_dependency_conflict' using errcode='22023';
@@ -276,9 +465,17 @@ begin
 
   if coalesce(jsonb_typeof(p_policy_evidence),'') <> 'object' then raise exception 'missing_policy_evidence' using errcode='22023'; end if;
   if coalesce(p_policy_evidence->>'decision','') <> 'allow' then raise exception 'policy_denied' using errcode='22023'; end if;
-  if coalesce(p_policy_evidence->>'approvedAt','') = '' or coalesce(p_policy_evidence->>'evaluatedAt','') = '' then raise exception 'malformed_policy_evidence' using errcode='22023'; end if;
-  if (p_policy_evidence ? 'expiresAt') and ((p_policy_evidence->>'expiresAt') !~ '^\d{4}-\d{2}-\d{2}T' or (p_policy_evidence->>'expiresAt')::timestamptz < now()) then
-    raise exception 'stale_policy_evidence' using errcode='22023';
+  if not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'approvedAt')
+    or not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'evaluatedAt') then
+    raise exception 'malformed_policy_evidence' using errcode='22023';
+  end if;
+  if p_policy_evidence ? 'expiresAt' then
+    if not public.marketplace_timestamptz_is_valid(p_policy_evidence->>'expiresAt') then
+      raise exception 'malformed_policy_evidence' using errcode='22023';
+    end if;
+    if (p_policy_evidence->>'expiresAt')::timestamptz < now() then
+      raise exception 'stale_policy_evidence' using errcode='22023';
+    end if;
   end if;
 
   v_actor_id := coalesce(p_policy_evidence #>> '{actor,id}','');

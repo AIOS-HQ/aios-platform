@@ -256,6 +256,204 @@ function assertMarketplaceBoundaryEnforcement(database) {
       );
       if v_id is null then raise exception 'rollback_older_should_succeed'; end if;
 
+      -- Semver/build-metadata and semver-range helper probes.
+      if public.marketplace_semver_compare('1.2.3+build.1','1.2.3+build.2') <> 0 then
+        raise exception 'semver_build_metadata_precedence_failed';
+      end if;
+      if public.marketplace_semver_compare('1.2.3-beta+build.1','1.2.3-beta+build.2') <> 0 then
+        raise exception 'semver_prerelease_build_metadata_precedence_failed';
+      end if;
+      if public.marketplace_semver_compare('1.2.3-beta-one+build.1','1.2.3-beta-one+build.2') <> 0 then
+        raise exception 'semver_prerelease_hyphen_build_metadata_precedence_failed';
+      end if;
+
+      if not public.marketplace_semver_satisfies('1.0.0','>=1.0.0 <2.0.0') then
+        raise exception 'semver_and_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('1.5.0','^1.2.3') then
+        raise exception 'semver_caret_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('0.2.9','^0.2.3') then
+        raise exception 'semver_caret_zero_minor_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('1.2.9','~1.2.3') then
+        raise exception 'semver_tilde_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('1.9.9','1.x') then
+        raise exception 'semver_wildcard_major_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('1.2.9','1.2.x') then
+        raise exception 'semver_wildcard_minor_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('2.4.0','^1.0.0 || ^2.0.0') then
+        raise exception 'semver_or_range_failed';
+      end if;
+      if not public.marketplace_semver_satisfies('1.5.0+build.7','>=1.0.0 <2.0.0') then
+        raise exception 'semver_build_metadata_range_failed';
+      end if;
+
+      if public.marketplace_semver_satisfies('2.0.0','>=1.0.0 <2.0.0') then
+        raise exception 'semver_and_range_not_closed';
+      end if;
+      if public.marketplace_semver_satisfies('2.0.0','^1.2.3') then
+        raise exception 'semver_caret_range_not_closed';
+      end if;
+      if public.marketplace_semver_satisfies('1.3.0','~1.2.3') then
+        raise exception 'semver_tilde_range_not_closed';
+      end if;
+      if public.marketplace_semver_satisfies('not-a-semver','>=1.0.0 <2.0.0') then
+        raise exception 'semver_malformed_version_not_closed';
+      end if;
+      if public.marketplace_semver_satisfies('1.2.3','not-a-range') then
+        raise exception 'semver_malformed_range_not_closed';
+      end if;
+
+      -- Real rollback dependency-range enforcement through rollback RPC.
+      insert into public.marketplace_items(id,user_id,company_id,kind,slug,name,description,visibility,verification)
+      values
+        ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','${TEST_USER}','${TEST_COMPANY}','workflow','rollback-range-target','Rollback Range Target','', 'company_private','unverified'),
+        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','${TEST_USER}','${TEST_COMPANY}','workflow','rollback-range-dep','Rollback Range Dep','', 'company_private','unverified')
+      on conflict do nothing;
+
+      insert into public.marketplace_item_versions(item_id,user_id,version,dependencies,yanked)
+      values
+        ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','${TEST_USER}','2.0.0','[]'::jsonb,false),
+        ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','${TEST_USER}','1.0.0','[{"itemId":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","range":">=1.0.0 <2.0.0"}]'::jsonb,false),
+        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','${TEST_USER}','1.0.0','[]'::jsonb,false),
+        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','${TEST_USER}','2.0.0','[]'::jsonb,false)
+      on conflict do nothing;
+
+      insert into public.company_installations(user_id,company_id,item_id,kind,installed_version,source,enabled)
+      values
+        ('${TEST_USER}','${TEST_COMPANY}','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','workflow','2.0.0','company_private',true),
+        ('${TEST_USER}','${TEST_COMPANY}','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','workflow','1.0.0','company_private',true)
+      on conflict (company_id,item_id) do update set installed_version=excluded.installed_version;
+
+      select evidence_id into v_id from public.marketplace_apply_rollback_with_evidence(
+        '${TEST_COMPANY}','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','1.0.0',
+        jsonb_build_object(
+          'decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z',
+          'actor',jsonb_build_object('type','founder','id','${TEST_USER}'),
+          'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}',
+          'subject',jsonb_build_object('kind','marketplace_install','itemId','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','action','rollback','fromVersion','2.0.0','toVersion','1.0.0'),
+          'executionIdentity',jsonb_build_object('executionId','rb-range-exec-1','requestId','rb-range-req-1','correlationId','rb-range-corr-1')
+        ),
+        '2.0.0','1.0.0','rb-range-exec-1','rb-range-req-1','rb-range-corr-1','rollback_applied'
+      );
+      if v_id is null then raise exception 'rollback_ranged_dependency_compatible_failed'; end if;
+      if not exists (
+        select 1 from public.company_installations ci
+        where ci.user_id='${TEST_USER}' and ci.company_id='${TEST_COMPANY}' and ci.item_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and ci.installed_version='1.0.0'
+      ) then
+        raise exception 'rollback_ranged_dependency_state_not_applied';
+      end if;
+      if not exists (
+        select 1 from public.agent_autonomy_audit a
+        where a.company_id='${TEST_COMPANY}'
+          and a.target_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+          and a.operation='marketplace_rollback'
+          and a.decision='applied'
+      ) then
+        raise exception 'rollback_ranged_dependency_evidence_missing';
+      end if;
+
+      update public.company_installations
+         set installed_version='2.0.0'
+       where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+      update public.company_installations
+         set installed_version='2.0.0'
+       where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','1.0.0',
+            jsonb_build_object(
+              'decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z',
+              'actor',jsonb_build_object('type','founder','id','${TEST_USER}'),
+              'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}',
+              'subject',jsonb_build_object('kind','marketplace_install','itemId','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','action','rollback','fromVersion','2.0.0','toVersion','1.0.0'),
+              'executionIdentity',jsonb_build_object('executionId','rb-range-exec-2','requestId','rb-range-req-2','correlationId','rb-range-corr-2')
+            ),
+            '2.0.0','1.0.0','rb-range-exec-2','rb-range-req-2','rb-range-corr-2','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_ranged_dependency_incompatible_not_rejected'; end if;
+        if position('rollback_dependency_conflict' in v_err) = 0 then raise exception 'rollback_ranged_dependency_wrong_error:%', v_err; end if;
+      end;
+
+      if not exists (
+        select 1 from public.company_installations ci
+        where ci.user_id='${TEST_USER}' and ci.company_id='${TEST_COMPANY}' and ci.item_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' and ci.installed_version='2.0.0'
+      ) then
+        raise exception 'rollback_ranged_dependency_rejection_mutated_state';
+      end if;
+
+      update public.company_installations
+         set installed_version='2.0.0'
+       where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888';
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','1.0.0',
+            jsonb_build_object('decision','allow','approvedAt','not-a-timestamp','evaluatedAt','2026-08-07T09:59:59.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','2.0.0','toVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-ts-exec-1','requestId','rb-ts-req-1','correlationId','rb-ts-corr-1')),
+            '2.0.0','1.0.0','rb-ts-exec-1','rb-ts-req-1','rb-ts-corr-1','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_malformed_approved_at_not_rejected'; end if;
+        if position('malformed_policy_evidence' in v_err) = 0 then raise exception 'rollback_malformed_approved_at_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='2.0.0') then
+        raise exception 'rollback_timestamp_rejection_mutated_state';
+      end if;
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','1.0.0',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','not-a-timestamp','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','2.0.0','toVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-ts-exec-2','requestId','rb-ts-req-2','correlationId','rb-ts-corr-2')),
+            '2.0.0','1.0.0','rb-ts-exec-2','rb-ts-req-2','rb-ts-corr-2','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_malformed_evaluated_at_not_rejected'; end if;
+        if position('malformed_policy_evidence' in v_err) = 0 then raise exception 'rollback_malformed_evaluated_at_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='2.0.0') then
+        raise exception 'rollback_timestamp_rejection_mutated_state';
+      end if;
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','1.0.0',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','expiresAt','not-a-timestamp','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','2.0.0','toVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-ts-exec-3','requestId','rb-ts-req-3','correlationId','rb-ts-corr-3')),
+            '2.0.0','1.0.0','rb-ts-exec-3','rb-ts-req-3','rb-ts-corr-3','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_malformed_expires_at_not_rejected'; end if;
+        if position('malformed_policy_evidence' in v_err) = 0 then raise exception 'rollback_malformed_expires_at_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='2.0.0') then
+        raise exception 'rollback_timestamp_rejection_mutated_state';
+      end if;
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_rollback_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888','1.0.0',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','expiresAt','2000-01-01T00:00:00.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','rollback','fromVersion','2.0.0','toVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','rb-ts-exec-4','requestId','rb-ts-req-4','correlationId','rb-ts-corr-4')),
+            '2.0.0','1.0.0','rb-ts-exec-4','rb-ts-req-4','rb-ts-corr-4','rollback_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'rollback_expired_policy_not_rejected'; end if;
+        if position('stale_policy_evidence' in v_err) = 0 then raise exception 'rollback_expired_policy_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='2.0.0') then
+        raise exception 'rollback_timestamp_rejection_mutated_state';
+      end if;
+
       declare v_err text := null; begin
         begin
           perform * from public.marketplace_apply_rollback_with_evidence(
@@ -357,6 +555,70 @@ function assertMarketplaceBoundaryEnforcement(database) {
 
       if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888') then
         raise exception 'uninstall_rejected_operation_mutated_state';
+      end if;
+
+      update public.company_installations
+         set installed_version='1.0.0'
+       where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888';
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_uninstall_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888',
+            jsonb_build_object('decision','allow','approvedAt','not-a-timestamp','evaluatedAt','2026-08-07T09:59:59.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','uninstall','fromVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','un-ts-exec-1','requestId','un-ts-req-1','correlationId','un-ts-corr-1')),
+            '1.0.0','un-ts-exec-1','un-ts-req-1','un-ts-corr-1','uninstall_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'uninstall_malformed_approved_at_not_rejected'; end if;
+        if position('malformed_policy_evidence' in v_err) = 0 then raise exception 'uninstall_malformed_approved_at_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='1.0.0') then
+        raise exception 'uninstall_timestamp_rejection_mutated_state';
+      end if;
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_uninstall_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','not-a-timestamp','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','uninstall','fromVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','un-ts-exec-2','requestId','un-ts-req-2','correlationId','un-ts-corr-2')),
+            '1.0.0','un-ts-exec-2','un-ts-req-2','un-ts-corr-2','uninstall_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'uninstall_malformed_evaluated_at_not_rejected'; end if;
+        if position('malformed_policy_evidence' in v_err) = 0 then raise exception 'uninstall_malformed_evaluated_at_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='1.0.0') then
+        raise exception 'uninstall_timestamp_rejection_mutated_state';
+      end if;
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_uninstall_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','expiresAt','not-a-timestamp','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','uninstall','fromVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','un-ts-exec-3','requestId','un-ts-req-3','correlationId','un-ts-corr-3')),
+            '1.0.0','un-ts-exec-3','un-ts-req-3','un-ts-corr-3','uninstall_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'uninstall_malformed_expires_at_not_rejected'; end if;
+        if position('malformed_policy_evidence' in v_err) = 0 then raise exception 'uninstall_malformed_expires_at_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='1.0.0') then
+        raise exception 'uninstall_timestamp_rejection_mutated_state';
+      end if;
+
+      declare v_err text := null; begin
+        begin
+          perform * from public.marketplace_apply_uninstall_with_evidence(
+            '${TEST_COMPANY}','88888888-8888-8888-8888-888888888888',
+            jsonb_build_object('decision','allow','approvedAt','2026-08-07T10:00:00.000Z','evaluatedAt','2026-08-07T09:59:59.000Z','expiresAt','2000-01-01T00:00:00.000Z','actor',jsonb_build_object('type','founder','id','${TEST_USER}'),'agent',jsonb_build_object('id','harmony'),'companyId','${TEST_COMPANY}','subject',jsonb_build_object('kind','marketplace_install','itemId','88888888-8888-8888-8888-888888888888','action','uninstall','fromVersion','1.0.0'),'executionIdentity',jsonb_build_object('executionId','un-ts-exec-4','requestId','un-ts-req-4','correlationId','un-ts-corr-4')),
+            '1.0.0','un-ts-exec-4','un-ts-req-4','un-ts-corr-4','uninstall_applied'
+          );
+        exception when others then v_err := SQLERRM; end;
+        if v_err is null then raise exception 'uninstall_expired_policy_not_rejected'; end if;
+        if position('stale_policy_evidence' in v_err) = 0 then raise exception 'uninstall_expired_policy_wrong_error:%', v_err; end if;
+      end;
+      if not exists (select 1 from public.company_installations where user_id='${TEST_USER}' and company_id='${TEST_COMPANY}' and item_id='88888888-8888-8888-8888-888888888888' and installed_version='1.0.0') then
+        raise exception 'uninstall_timestamp_rejection_mutated_state';
       end if;
 
       declare v_err text := null; begin

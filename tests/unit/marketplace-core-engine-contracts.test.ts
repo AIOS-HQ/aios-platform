@@ -6,6 +6,7 @@ import {
   planUninstall,
   planUpdate,
   resolveDependencies,
+  compareSemver,
   type Catalog,
   type InstallState,
 } from "@/lib/marketplace";
@@ -276,6 +277,12 @@ describe("marketplace core engine contracts", () => {
 
     const plan = planRollback(catalog, installed, "app", "not-semver");
     expect(plan.blocked).toBe(true);
+  });
+
+  it("keeps semver precedence independent from build metadata", () => {
+    expect(compareSemver("1.2.3+build.1", "1.2.3+build.2")).toBe(0);
+    expect(compareSemver("1.2.3-beta+build.1", "1.2.3-beta+build.2")).toBe(0);
+    expect(compareSemver("1.2.3-beta-one+build.1", "1.2.3-beta-one+build.2")).toBe(0);
   });
 
   it("blocks rollback when required dependency is missing", () => {
