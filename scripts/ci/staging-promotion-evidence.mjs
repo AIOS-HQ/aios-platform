@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { validateDeploymentIdentity } from "./operational-preview-certification.mjs";
+import { assertArtifactSafe, validateCompactEvidence } from "./operational-preview-certification.mjs";
 import { assertStagingPlanCertificationArtifact } from "./supabase-staging-plan.mjs";
 
 const EXPECTED_REPOSITORY = "AIOS-HQ/aios-platform";
@@ -105,9 +105,12 @@ function assertArtifactMeta(meta, family) {
 
 function buildRuntimeEvidenceId(runtimeArtifact, runtimeMeta) {
   const deploymentId = runtimeArtifact?.deployment?.vercelDeploymentId;
-  const deploymentSha = runtimeArtifact?.deployment?.commitSha;
-  if (typeof deploymentId !== "string" || typeof deploymentSha !== "string") fail("runtime_identity_missing");
-  return `runtime:${deploymentId}:${deploymentSha}:${runtimeMeta.runId}:${runtimeMeta.runAttempt}`;
+  const outcomeId = runtimeArtifact?.operationalRuntimeSummary?.outcomeId;
+  const conditionId = runtimeArtifact?.operationalRuntimeSummary?.runtimeCondition?.conditionId;
+  if (typeof deploymentId !== "string") fail("runtime_identity_missing");
+  if (typeof outcomeId !== "string" || !/^[0-9a-f]{64}$/.test(outcomeId)) fail("invalid_runtime_outcome_id");
+  if (typeof conditionId !== "string" || !/^[0-9a-f]{64}$/.test(conditionId)) fail("invalid_runtime_condition_id");
+  return `runtime:${outcomeId}:${conditionId}:${deploymentId}:${runtimeMeta.runId}:${runtimeMeta.runAttempt}`;
 }
 
 function buildMigrationEvidenceId(migrationArtifact, migrationMeta) {
@@ -123,6 +126,7 @@ function buildMigrationEvidenceId(migrationArtifact, migrationMeta) {
 
 export function composeStagingPromotionEvidence(input, options = {}) {
   if (!isObject(input)) fail("input_not_object");
+  if (input.repository !== EXPECTED_REPOSITORY) fail("repository_mismatch");
   if (!isObject(input.runtimeArtifact)) fail("runtime_artifact_missing");
   if (!isObject(input.migrationArtifact)) fail("migration_artifact_missing");
 
@@ -139,12 +143,21 @@ export function composeStagingPromotionEvidence(input, options = {}) {
   const runtimeArtifact = input.runtimeArtifact;
   if (runtimeArtifact.certification !== EXPECTED_RUNTIME_CERT) fail("runtime_certification_type_invalid");
   if (runtimeArtifact.result !== "passed") fail("runtime_result_not_passed");
+  if (runtimeArtifact.previewUrlClassification !== "approved_vercel_preview") fail("runtime_preview_classification_invalid");
+  if (!Number.isInteger(runtimeArtifact.pr) || runtimeArtifact.pr < 1) fail("runtime_pr_invalid");
   if (runtimeArtifact.authenticatedSession !== true) fail("runtime_unauthenticated");
   if (runtimeArtifact.founderAuthorized !== true) fail("runtime_founder_unauthorized");
   if (runtimeArtifact.originMatched !== true) fail("runtime_origin_mismatch");
   const runtimeSha = assertSha(runtimeArtifact.headSha, "runtime_head_sha_invalid");
   if (runtimeSha !== expectedSha) fail("runtime_target_sha_mismatch");
-  validateDeploymentIdentity(runtimeArtifact.deployment, expectedSha);
+  const compactEvidence = {
+    ok: true,
+    deployment: runtimeArtifact.deployment,
+    operationalRuntimeSummary: runtimeArtifact.operationalRuntimeSummary,
+    operationalRuntimeFoundation: runtimeArtifact.operationalRuntimeFoundation,
+  };
+  validateCompactEvidence(compactEvidence, expectedSha);
+  assertArtifactSafe(runtimeArtifact);
   parseTimestampOrFail(runtimeArtifact.verifiedAt, "runtime_verified_at_invalid");
 
   const migrationArtifact = input.migrationArtifact;
@@ -158,7 +171,7 @@ export function composeStagingPromotionEvidence(input, options = {}) {
     fail("migration_run_attempt_mismatch");
   }
 
-  if (migrationArtifact.repository !== EXPECTED_REPOSITORY || runtimeArtifact.repository !== EXPECTED_REPOSITORY) {
+  if (migrationArtifact.repository !== EXPECTED_REPOSITORY) {
     fail("repository_mismatch");
   }
 
