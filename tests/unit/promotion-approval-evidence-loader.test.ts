@@ -75,6 +75,14 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
     const contract = validatePromotionApprovalEvidence(mapped, { expectedSha: requestRow.target_sha });
 
     expect(mapped.subject.promotionRequestId).toBe(requestRow.promotion_request_id);
+    expect(mapped.founderApproval.authority).toBe(founderRow.decision_source);
+    expect(mapped.founderApproval.decision).toBe(founderRow.decision);
+    expect(mapped.founderApproval.actorType).toBe(founderRow.actor_type);
+    expect(mapped.founderApproval.actorId).toBe(founderRow.actor_id);
+    expect(mapped.harmonyGovernanceApproval.authority).toBe(harmonyRow.decision_source);
+    expect(mapped.harmonyGovernanceApproval.decision).toBe(harmonyRow.decision);
+    expect(mapped.harmonyGovernanceApproval.agentId).toBe(harmonyRow.agent_id);
+    expect(mapped.harmonyGovernanceApproval.governancePolicyVersion).toBe(harmonyRow.policy_version);
     expect(contract.subject.targetSha).toBe(requestRow.target_sha);
     expect(contract.founderApproval.evidenceId).toBe(founderRow.evidence_id);
     expect(contract.harmonyGovernanceApproval.evidenceId).toBe(harmonyRow.evidence_id);
