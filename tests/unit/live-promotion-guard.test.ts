@@ -56,7 +56,7 @@ function validInput(overrides = {}) {
       artifactName: `promotion-attestation-${SHA}-77777`,
       workflowRunId: "77777",
       workflowRunAttempt: 1,
-      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/operational-preview-live-certification.yml@refs/heads/main#77777",
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:1",
       attestedSha: SHA,
     },
     ...overrides,
@@ -115,7 +115,44 @@ describe("live promotion guard", () => {
       .toThrow(/issued_at_invalid/);
   });
 
-  it("fails closed for invalid promotion artifact metadata and mutable aliases", () => {
+  it("accepts canonical branch ref only with exact immutable run binding", () => {
+    const out = validateLivePromotionGuard(validInput(), { expectedSha: SHA });
+    expect(out.ok).toBe(true);
+  });
+
+  it("fails closed for bare mutable workflow refs and wrong run bindings", () => {
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/release",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "workflow@HEAD",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "workflow@latest",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:99999:attempt:1",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:2",
+    } }), { expectedSha: SHA })).toThrow(/workflow_ref_mutable_selector|workflow_ref_run_binding_missing/);
+  });
+
+  it("fails closed for exact artifact-name format violations and substring coincidence", () => {
     expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactId: "0" } }), { expectedSha: SHA }))
       .toThrow(/artifact_id_invalid/);
     expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, workflowRunId: "0" } }), { expectedSha: SHA }))
@@ -124,12 +161,14 @@ describe("live promotion guard", () => {
       .toThrow(/workflow_run_attempt_invalid/);
     expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, attestedSha: "a".repeat(40) } }), { expectedSha: SHA }))
       .toThrow(/artifact_attested_sha_mismatch/);
-    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactName: "promotion-attestation-latest" } }), { expectedSha: SHA }))
-      .toThrow(/artifact_name_mutable_alias/);
-    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactName: "promotion-attestation-77777" } }), { expectedSha: SHA }))
-      .toThrow(/artifact_name_sha_missing/);
-    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, workflowRef: "workflow@HEAD" } }), { expectedSha: SHA }))
-      .toThrow(/workflow_ref_mutable_selector/);
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactName: `promotion-attestation-${SHA}-99999` } }), { expectedSha: SHA }))
+      .toThrow(/artifact_name_run_id_missing|artifact_name_format_invalid/);
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactName: `promotion-attestation-${SHA}` } }), { expectedSha: SHA }))
+      .toThrow(/artifact_name_run_id_missing|artifact_name_format_invalid/);
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactName: `promotion-attestation-${SHA}-77777-latest` } }), { expectedSha: SHA }))
+      .toThrow(/artifact_name_mutable_alias|artifact_name_format_invalid/);
+    expect(() => validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, artifactName: `promotion-attestation-${"77777"}-deadbeefdeadbeefdeadbeefdeadbeefdeadbeef` } }), { expectedSha: SHA }))
+      .toThrow(/artifact_name_sha_missing|artifact_name_format_invalid/);
   });
 
   it("fails closed for sensitive keys and values", () => {
@@ -148,7 +187,11 @@ describe("live promotion guard", () => {
 
   it("changes guardEvidenceId when immutable artifact/run identity changes", () => {
     const base = validateLivePromotionGuard(validInput(), { expectedSha: SHA });
-    const changed = validateLivePromotionGuard(validInput({ promotionArtifact: { ...validInput().promotionArtifact, workflowRunAttempt: 2 } }), { expectedSha: SHA });
+    const changed = validateLivePromotionGuard(validInput({ promotionArtifact: {
+      ...validInput().promotionArtifact,
+      workflowRunAttempt: 2,
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/live-promotion.yml@refs/heads/main#run:77777:attempt:2",
+    } }), { expectedSha: SHA });
     expect(base.guardEvidenceId).not.toBe(changed.guardEvidenceId);
   });
 
@@ -176,6 +219,9 @@ describe("live promotion guard", () => {
       });
       expect(mismatch.status).not.toBe(0);
       expect(mismatch.stderr).toContain("deployment_target_sha_mismatch");
+      expect(mismatch.stderr).not.toContain("promotionAttestation");
+      expect(mismatch.stderr).not.toContain("runtimeCertification");
+      expect(mismatch.stderr).not.toContain("migrationPlanCertification");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

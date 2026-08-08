@@ -86,18 +86,34 @@ function containsMutableAlias(value) {
 function assertArtifactName(value, expectedSha, runId) {
   if (typeof value !== "string" || value.trim() === "") fail("artifact_name_invalid");
   if (containsMutableAlias(value)) fail("artifact_name_mutable_alias");
-  if (!value.includes("promotion-attestation")) fail("artifact_name_family_mismatch");
-  if (!value.includes(expectedSha)) fail("artifact_name_sha_missing");
-  if (!value.includes(runId)) fail("artifact_name_run_id_missing");
+  const expected = `promotion-attestation-${expectedSha}-${runId}`;
+  if (value !== expected) {
+    if (!value.startsWith("promotion-attestation-")) fail("artifact_name_family_mismatch");
+    if (!value.includes(expectedSha)) fail("artifact_name_sha_missing");
+    if (!value.endsWith(`-${runId}`)) fail("artifact_name_run_id_missing");
+    fail("artifact_name_format_invalid");
+  }
   return value;
 }
 
-function assertWorkflowRef(value) {
+function assertWorkflowRef(value, workflowRunId, workflowRunAttempt) {
   if (typeof value !== "string" || value.trim() === "") fail("workflow_ref_invalid");
   const lowered = value.toLowerCase();
-  if (lowered.endsWith("@main") || lowered.endsWith("@head") || lowered.endsWith("@latest")) {
-    fail("workflow_ref_mutable_selector");
+  const mutableBare = lowered.endsWith("@main")
+    || lowered.endsWith("@head")
+    || lowered.endsWith("@latest")
+    || lowered.includes("@refs/heads/")
+    || lowered.includes("@refs/tags/");
+  const expectedSuffix = `#run:${workflowRunId}:attempt:${workflowRunAttempt}`;
+  if (!value.endsWith(expectedSuffix)) {
+    if (mutableBare || lowered.includes("@head") || lowered.includes("@latest")) {
+      fail("workflow_ref_mutable_selector");
+    }
+    fail("workflow_ref_run_binding_missing");
   }
+
+  const prefix = value.slice(0, -expectedSuffix.length);
+  if (!prefix.includes("/.github/workflows/") || !prefix.includes("@")) fail("workflow_ref_invalid");
   return value;
 }
 
@@ -140,7 +156,7 @@ export function validateLivePromotionGuard(input, options = {}) {
   const attestedSha = assertSha(metadata.attestedSha, "artifact_attested_sha_invalid");
   if (attestedSha !== deploymentTargetSha) fail("artifact_attested_sha_mismatch");
   const artifactName = assertArtifactName(metadata.artifactName, deploymentTargetSha, workflowRunId);
-  const workflowRef = assertWorkflowRef(metadata.workflowRef);
+  const workflowRef = assertWorkflowRef(metadata.workflowRef, workflowRunId, workflowRunAttempt);
 
   const verifiedAt = assertTimestamp(new Date().toISOString(), "guard_verified_at_invalid");
   const guardEvidenceId = buildGuardEvidenceId(deploymentTargetSha, {
