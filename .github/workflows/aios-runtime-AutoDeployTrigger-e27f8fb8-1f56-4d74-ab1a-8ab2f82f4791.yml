@@ -243,7 +243,13 @@ jobs:
           writeFileSync("live-promotion-guard-input.json", `${JSON.stringify(payload, null, 2)}\n`, "utf8");
           NODE
 
-          node scripts/ci/live-promotion-guard.mjs validate live-promotion-guard-input.json "$TARGET_SHA"
+          node scripts/ci/live-promotion-guard.mjs validate live-promotion-guard-input.json "$TARGET_SHA" > "$RUNNER_TEMP/live-promotion-guard-output.json"
+
+      - name: Preserve trusted production provenance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/ci/production-deployment-provenance.mjs "$RUNNER_TEMP/production-deployment-provenance.mjs"
 
       - name: Checkout exact deployment target SHA
         uses: actions/checkout@v4
@@ -289,6 +295,23 @@ jobs:
           docker build -t "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" .
           docker push "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
 
+      - name: Resolve immutable pushed image digest from ACR
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_digest="$(az acr repository show-manifests \
+            --name "$ACR_NAME" \
+            --repository "$IMAGE_NAME" \
+            --query "[?contains(tags, '$TARGET_SHA')].digest | [0]" \
+            --output tsv)"
+
+          if [[ ! "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "image_digest_invalid" >&2
+            exit 1
+          fi
+
+          echo "IMAGE_DIGEST=$image_digest" >> "$GITHUB_ENV"
+
       - name: Configure Container App registry with managed identity
         run: |
           test -n "$REGISTRY_LOGIN_SERVER"
@@ -313,3 +336,102 @@ jobs:
             --type external \
             --target-port 3000 \
             --transport auto
+
+      - name: Resolve deployed Azure revision identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deployed_revision="$(az containerapp revision list \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "[0].name" \
+            --output tsv)"
+
+          if [[ -z "$deployed_revision" ]]; then
+            echo "deployed_revision_missing" >&2
+            exit 1
+          fi
+
+          revision_json="$(az containerapp revision show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --revision "$deployed_revision" \
+            --output json)"
+
+          deployed_at="$(jq -r '.properties.createdTime' <<<"$revision_json")"
+          revision_image="$(jq -r '.properties.template.containers[0].image' <<<"$revision_json")"
+
+          if [[ -z "$deployed_at" || "$deployed_at" == "null" ]]; then
+            echo "deployed_at_missing" >&2
+            exit 1
+          fi
+
+          expected_image="$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$TARGET_SHA"
+          if [[ "$revision_image" != "$expected_image" ]]; then
+            echo "deployed_revision_image_mismatch" >&2
+            exit 1
+          fi
+
+          echo "DEPLOYED_REVISION_NAME=$deployed_revision" >> "$GITHUB_ENV"
+          echo "DEPLOYED_AT=$deployed_at" >> "$GITHUB_ENV"
+
+      - name: Build production deployment provenance input
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const livePromotionGuard = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/live-promotion-guard-output.json`, "utf8"));
+
+          const payload = {
+            repository: "AIOS-HQ/aios-platform",
+            sourceEnvironment: "staging",
+            targetEnvironment: "production",
+            targetSha: process.env.TARGET_SHA,
+            promotionAuthorization: {
+              promotionArtifactId: process.env.PROMOTION_ARTIFACT_ID,
+              promotionArtifactName: process.env.PROMOTION_ARTIFACT_NAME,
+              promotionWorkflowRunId: process.env.SOURCE_RUN_ID,
+              promotionWorkflowRunAttempt: process.env.SOURCE_RUN_ATTEMPT,
+              promotionWorkflowRef: process.env.PROMOTION_WORKFLOW_REF,
+            },
+            livePromotionGuard,
+            deploymentWorkflow: {
+              runId: process.env.GITHUB_RUN_ID,
+              runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+              workflowRef: `AIOS-HQ/aios-platform/.github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml@${process.env.GITHUB_SHA}#run:${process.env.GITHUB_RUN_ID}:attempt:${process.env.GITHUB_RUN_ATTEMPT}`,
+            },
+            containerImage: {
+              acrName: "aioscoreacr",
+              imageName: "aios-runtime",
+              imageTag: process.env.TARGET_SHA,
+              imageDigest: process.env.IMAGE_DIGEST,
+            },
+            azureProductionTarget: {
+              resourceGroup: "aios-core-rg",
+              containerApp: "aios-runtime",
+              deployedRevisionName: process.env.DEPLOYED_REVISION_NAME,
+              deployedAt: process.env.DEPLOYED_AT,
+            },
+          };
+
+          writeFileSync("production-deployment-provenance-input.json", `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+          NODE
+
+      - name: Validate canonical production deployment provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node "$RUNNER_TEMP/production-deployment-provenance.mjs" validate \
+            production-deployment-provenance-input.json \
+            "$TARGET_SHA" \
+            > production-deployment-provenance.json
+
+      - name: Upload immutable production deployment provenance artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-deployment-provenance-${{ inputs.target_sha }}-${{ github.run_id }}
+          path: production-deployment-provenance.json
+          if-no-files-found: error
