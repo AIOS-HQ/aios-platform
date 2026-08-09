@@ -69,7 +69,8 @@ function validGuardInput(overrides = {}) {
 }
 
 function validInput(overrides = {}) {
-  const guardOutput = validateLivePromotionGuard(validGuardInput(), { expectedSha: SHA });
+  const baseGuardInput = validGuardInput();
+  const guardOutput = validateLivePromotionGuard(baseGuardInput, { expectedSha: SHA });
 
   return {
     repository: "AIOS-HQ/aios-platform",
@@ -198,12 +199,21 @@ describe("production deployment provenance contract", () => {
   });
 
   it("produces deterministic deploymentEvidenceId", () => {
-    const first = validateProductionDeploymentProvenance(validInput(), { expectedSha: SHA });
-    const second = validateProductionDeploymentProvenance(validInput(), { expectedSha: SHA });
+    const base = validInput();
+    const first = validateProductionDeploymentProvenance(base, { expectedSha: SHA });
+    const second = validateProductionDeploymentProvenance(base, { expectedSha: SHA });
     expect(first.deploymentEvidenceId).toBe(second.deploymentEvidenceId);
 
     const changed = validateProductionDeploymentProvenance(validInput({ containerImage: { ...validInput().containerImage, imageDigest: `sha256:${"b".repeat(64)}` } }), { expectedSha: SHA });
     expect(changed.deploymentEvidenceId).not.toBe(first.deploymentEvidenceId);
+
+    const verifiedAtChanged = validateProductionDeploymentProvenance(validInput({
+      livePromotionGuard: {
+        ...validInput().livePromotionGuard,
+        verifiedAt: "2026-08-09T10:00:01.000Z",
+      },
+    }), { expectedSha: SHA });
+    expect(verifiedAtChanged.deploymentEvidenceId).not.toBe(first.deploymentEvidenceId);
   });
 
   it("runs real CLI success and fail-closed behavior", () => {

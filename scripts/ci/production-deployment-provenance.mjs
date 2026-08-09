@@ -213,6 +213,7 @@ export function validateProductionDeploymentProvenance(input, options = {}) {
     promotionRunAttempt,
     promotionWorkflowRef,
     guardEvidenceId,
+    guardVerifiedAt,
     guardArtifactId,
     guardRunId,
     guardRunAttempt,
