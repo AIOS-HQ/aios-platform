@@ -1,15 +1,6 @@
 name: Trigger auto deployment for aios-runtime
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "**"
-      - ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml"
-      - "Dockerfile"
-      - ".dockerignore"
-      - "next.config.ts"
   pull_request:
     branches:
       - main
@@ -19,6 +10,15 @@ on:
       - "next.config.ts"
       - ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml"
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Lowercase 40-char commit SHA for production deployment"
+        required: true
+        type: string
+      promotion_artifact_id:
+        description: "GitHub Actions promotion attestation artifact numeric ID"
+        required: true
+        type: string
 
 jobs:
   docker-pr-validation:
@@ -74,22 +74,192 @@ jobs:
           docker rm -f aios-runtime-pr-test || true
 
   build-and-deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'AIOS-HQ/aios-platform' &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+      actions: read
 
     env:
       CONTAINER_APP_NAME: aios-runtime
       RESOURCE_GROUP: aios-core-rg
       ACR_NAME: aioscoreacr
       IMAGE_NAME: aios-runtime
-      IMAGE_TAG: ${{ github.sha }}
+      TARGET_SHA: ${{ inputs.target_sha }}
+      PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+      REPO: AIOS-HQ/aios-platform
 
     steps:
-      - name: Checkout
+      - name: Validate immutable workflow_dispatch inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "target_sha_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$PROMOTION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+      - name: Checkout trusted current-main controls
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify controls are pinned to current GitHub main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin main
+          current_main_sha="$(git rev-parse origin/main)"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$current_main_sha" != "$checked_out_sha" ]]; then
+            echo "trusted_main_mismatch" >&2
+            exit 1
+          fi
+          echo "CURRENT_MAIN_SHA=$current_main_sha" >> "$GITHUB_ENV"
+
+      - name: Require target SHA belongs to current main history
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$TARGET_SHA^{commit}" 2>/dev/null || { echo "target_sha_not_found" >&2; exit 1; }
+          git merge-base --is-ancestor "$TARGET_SHA" "$CURRENT_MAIN_SHA" || { echo "target_sha_not_in_main_history" >&2; exit 1; }
+
+      - name: Resolve promotion artifact by exact numeric ID and verify canonical provenance
+        id: resolve_promotion_artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID")"
+          artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
+          if [[ "$artifact_expired" != "false" ]]; then
+            echo "promotion_artifact_expired" >&2
+            exit 1
+          fi
+
+          source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
+          if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
+            echo "promotion_artifact_run_missing" >&2
+            exit 1
+          fi
+
+          source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
+          source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
+          source_run_event="$(jq -r '.event' <<<"$source_run_json")"
+          source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
+          source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
+          source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
+          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+
+          if [[ "$source_run_conclusion" != "success" ]]; then
+            echo "promotion_source_run_not_success" >&2
+            exit 1
+          fi
+
+          if [[ "$source_workflow_path" != ".github/workflows/production-promotion-attestation.yml" ]]; then
+            echo "promotion_source_workflow_invalid" >&2
+            exit 1
+          fi
+
+          if [[ "$source_run_event" != "workflow_dispatch" ]]; then
+            echo "promotion_source_event_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_source_run_attempt_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "promotion_source_head_sha_invalid" >&2
+            exit 1
+          fi
+
+          expected_artifact_name="promotion-attestation-${TARGET_SHA}-${source_run_id}"
+          if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
+            echo "promotion_artifact_name_invalid" >&2
+            exit 1
+          fi
+
+          workflow_ref="AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@${source_run_head_sha}#run:${source_run_id}:attempt:${source_run_attempt}"
+
+          echo "SOURCE_RUN_ID=$source_run_id" >> "$GITHUB_ENV"
+          echo "SOURCE_RUN_ATTEMPT=$source_run_attempt" >> "$GITHUB_ENV"
+          echo "SOURCE_RUN_HEAD_SHA=$source_run_head_sha" >> "$GITHUB_ENV"
+          echo "PROMOTION_ARTIFACT_NAME=$artifact_name" >> "$GITHUB_ENV"
+          echo "PROMOTION_WORKFLOW_REF=$workflow_ref" >> "$GITHUB_ENV"
+
+      - name: Download promotion artifact by exact numeric ID
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID/zip" > promotion-artifact.zip
+          mkdir -p promotion-artifact
+          unzip -o promotion-artifact.zip -d promotion-artifact >/dev/null
+
+      - name: Require extracted promotion-attestation.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f promotion-artifact/promotion-attestation.json
+
+      - name: Build and validate M5C-1 live-promotion-guard input
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const promotionAttestation = JSON.parse(readFileSync("promotion-artifact/promotion-attestation.json", "utf8"));
+          const payload = {
+            repository: "AIOS-HQ/aios-platform",
+            deploymentTargetSha: process.env.TARGET_SHA,
+            promotionAttestation,
+            promotionArtifact: {
+              artifactId: process.env.PROMOTION_ARTIFACT_ID,
+              workflowRunId: process.env.SOURCE_RUN_ID,
+              workflowRunAttempt: Number(process.env.SOURCE_RUN_ATTEMPT),
+              attestedSha: process.env.TARGET_SHA,
+              artifactName: process.env.PROMOTION_ARTIFACT_NAME,
+              workflowRef: process.env.PROMOTION_WORKFLOW_REF,
+            },
+          };
+          writeFileSync("live-promotion-guard-input.json", `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+          NODE
+
+          node scripts/ci/live-promotion-guard.mjs validate live-promotion-guard-input.json "$TARGET_SHA"
+
+      - name: Checkout exact deployment target SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+
+      - name: Verify checked out deployment SHA equals target SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$TARGET_SHA" ]]; then
+            echo "deployment_checkout_sha_mismatch" >&2
+            exit 1
+          fi
 
       - name: Azure Login
         uses: azure/login@v2
@@ -112,6 +282,8 @@ jobs:
         run: az acr login --name "$ACR_NAME"
 
       - name: Build and push Docker image
+        env:
+          IMAGE_TAG: ${{ inputs.target_sha }}
         run: |
           test -n "$REGISTRY_LOGIN_SERVER"
           docker build -t "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" .
@@ -127,6 +299,8 @@ jobs:
             --identity system
 
       - name: Deploy to Azure Container Apps
+        env:
+          IMAGE_TAG: ${{ inputs.target_sha }}
         run: |
           test -n "$REGISTRY_LOGIN_SERVER"
           az containerapp update \
