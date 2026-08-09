@@ -342,13 +342,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          deployed_revision="$(az containerapp revision list \
+          deployed_revision="$(az containerapp show \
             --name "$CONTAINER_APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --query "[0].name" \
+            --query "properties.latestRevisionName" \
             --output tsv)"
 
-          if [[ -z "$deployed_revision" ]]; then
+          if [[ -z "$deployed_revision" || "$deployed_revision" == "null" ]]; then
             echo "deployed_revision_missing" >&2
             exit 1
           fi

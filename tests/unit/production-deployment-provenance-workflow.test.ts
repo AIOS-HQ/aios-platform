@@ -46,8 +46,11 @@ describe("production deployment provenance producer wiring", () => {
     const revisionIndex = workflow.indexOf("- name: Resolve deployed Azure revision identity");
     expect(revisionIndex).toBeGreaterThan(deployIndex);
 
-    expect(workflow).toContain("az containerapp revision list");
+    expect(workflow).toContain("az containerapp show");
+    expect(workflow).toContain('"properties.latestRevisionName"');
+    expect(workflow).not.toContain("az containerapp revision list");
     expect(workflow).toContain("az containerapp revision show");
+    expect(workflow).toContain('--revision "$deployed_revision"');
     expect(workflow).toContain(".properties.createdTime");
     expect(workflow).toContain("deployed_at_missing");
     expect(workflow).toContain("deployed_revision_image_mismatch");
