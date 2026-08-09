@@ -133,7 +133,8 @@ export function validateProductionDeploymentProvenance(input, options = {}) {
   const promotion = input.promotionAuthorization;
   if (!isObject(promotion)) fail("promotion_authorization_missing");
 
-  const promotionArtifactId = assertPositiveIdentity(promotion.promotionArtifactId, "promotion_artifact_id_invalid");
+  const promotionArtifactIdNumeric = assertPositiveIdentity(promotion.promotionArtifactId, "promotion_artifact_id_invalid");
+  const promotionArtifactId = `github-artifact:${promotionArtifactIdNumeric}`;
   const promotionRunId = assertPositiveIdentity(promotion.promotionWorkflowRunId, "promotion_run_id_invalid");
   const promotionRunAttempt = assertPositiveIdentity(promotion.promotionWorkflowRunAttempt, "promotion_run_attempt_invalid");
   const promotionArtifactName = assertImmutableRef(promotion.promotionArtifactName, "promotion_artifact_name_invalid");
@@ -151,20 +152,26 @@ export function validateProductionDeploymentProvenance(input, options = {}) {
 
   const guard = input.livePromotionGuard;
   if (!isObject(guard)) fail("live_guard_missing");
+  if (guard.ok !== true) fail("live_guard_not_ok");
+  if (guard.repository !== EXPECTED_REPOSITORY) fail("live_guard_repository_mismatch");
+  if (guard.sourceEnvironment !== EXPECTED_SOURCE_ENV) fail("live_guard_source_environment_mismatch");
+  if (guard.targetEnvironment !== EXPECTED_TARGET_ENV) fail("live_guard_target_environment_mismatch");
   if (guard.promotionAuthorized !== true) fail("live_guard_not_authorized");
 
   const guardEvidenceId = assertImmutableRef(guard.guardEvidenceId, "live_guard_evidence_id_invalid");
-  const guardVerifiedAt = assertTimestamp(guard.guardVerifiedAt, "live_guard_verified_at_invalid");
-  const guardArtifactId = assertPositiveIdentity(guard.promotionArtifactId, "live_guard_artifact_id_invalid");
+  const guardVerifiedAt = assertTimestamp(guard.verifiedAt, "live_guard_verified_at_invalid");
+  const guardDeploymentTargetSha = assertSha(guard.deploymentTargetSha, "live_guard_target_sha_invalid");
+  if (guardDeploymentTargetSha !== targetSha) fail("live_guard_target_sha_mismatch");
+
+  const guardArtifactId = assertImmutableRef(guard.artifactId, "live_guard_artifact_id_invalid");
+  if (guardArtifactId !== promotionArtifactId) fail("live_guard_artifact_id_mismatch");
+
   const guardRunId = assertPositiveIdentity(guard.workflowRunId, "live_guard_run_id_invalid");
-  const guardRunAttempt = assertPositiveIdentity(guard.workflowRunAttempt, "live_guard_run_attempt_invalid");
-  const guardAttestedSha = assertSha(guard.attestedSha, "live_guard_attested_sha_invalid");
+  const guardRunAttempt = assertPositiveIdentity(String(guard.workflowRunAttempt), "live_guard_run_attempt_invalid");
   const guardArtifactName = assertImmutableRef(guard.artifactName, "live_guard_artifact_name_invalid");
 
-  if (guardArtifactId !== promotionArtifactId) fail("live_guard_artifact_id_mismatch");
   if (guardRunId !== promotionRunId) fail("live_guard_run_id_mismatch");
   if (guardRunAttempt !== promotionRunAttempt) fail("live_guard_run_attempt_mismatch");
-  if (guardAttestedSha !== targetSha) fail("live_guard_attested_sha_mismatch");
   if (guardArtifactName !== promotionArtifactName) fail("live_guard_artifact_name_mismatch");
 
   const guardWorkflowRef = assertWorkflowRef(
@@ -206,7 +213,11 @@ export function validateProductionDeploymentProvenance(input, options = {}) {
     promotionRunAttempt,
     promotionWorkflowRef,
     guardEvidenceId,
-    guardVerifiedAt,
+    guardArtifactId,
+    guardRunId,
+    guardRunAttempt,
+    guardArtifactName,
+    guardWorkflowRef,
     deploymentRunId,
     deploymentRunAttempt,
     deployment.workflowRef,
@@ -226,20 +237,24 @@ export function validateProductionDeploymentProvenance(input, options = {}) {
     targetEnvironment: EXPECTED_TARGET_ENV,
     targetSha,
     promotionAuthorization: {
-      promotionArtifactId,
+      promotionArtifactId: promotionArtifactIdNumeric,
       promotionArtifactName,
       promotionWorkflowRunId: promotionRunId,
       promotionWorkflowRunAttempt: promotionRunAttempt,
       promotionWorkflowRef,
     },
     livePromotionGuard: {
+      ok: true,
+      repository: EXPECTED_REPOSITORY,
+      sourceEnvironment: EXPECTED_SOURCE_ENV,
+      targetEnvironment: EXPECTED_TARGET_ENV,
+      deploymentTargetSha: guardDeploymentTargetSha,
       promotionAuthorized: true,
       guardEvidenceId,
-      guardVerifiedAt,
-      promotionArtifactId: guardArtifactId,
+      verifiedAt: guardVerifiedAt,
+      artifactId: guardArtifactId,
       workflowRunId: guardRunId,
       workflowRunAttempt: guardRunAttempt,
-      attestedSha: guardAttestedSha,
       artifactName: guardArtifactName,
       workflowRef: guardWorkflowRef,
     },
