@@ -53,7 +53,14 @@ describe("production promotion attestation workflow", () => {
 
   it("composes, exports, validates and uploads immutable final attestation", () => {
     expect(workflow).toContain("scripts/ci/staging-promotion-evidence.mjs");
+    expect(workflow).toContain("runtime-artifact/operational-runtime-live-certification.json");
+    expect(workflow).toContain("migration-artifact/supabase-staging-migration-plan.json");
+    expect(workflow).toContain("actions/setup-node@v4");
+    expect(workflow).toContain('node-version: "22"');
+    expect(workflow).toContain("npm ci");
     expect(workflow).toContain("scripts/ci/export-persisted-promotion-approval-evidence.ts");
+    expect(workflow).toContain("npx --no-install tsx scripts/ci/export-persisted-promotion-approval-evidence.ts");
+    expect(workflow).not.toContain("npx --yes tsx");
     expect(workflow).toContain("scripts/ci/produce-promotion-attestation.mjs");
     expect(workflow).toContain("scripts/ci/promotion-attestation-contract.mjs validate promotion-attestation.json");
     expect(workflow).toContain("promotion-attestation-${{ inputs.target_sha }}-${{ github.run_id }}");

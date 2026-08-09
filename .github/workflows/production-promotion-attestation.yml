@@ -176,6 +176,17 @@ jobs:
           mkdir -p migration-artifact
           unzip -o migration-artifact.zip -d migration-artifact >/dev/null
 
+      - name: Setup Node for trusted repo tooling
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install locked dependencies from trusted main
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+
       - name: Compose staging promotion evidence from exact artifact metadata
         shell: bash
         run: |
@@ -184,8 +195,8 @@ jobs:
           import { readFileSync, writeFileSync } from "node:fs";
           import { composeStagingPromotionEvidence } from "./scripts/ci/staging-promotion-evidence.mjs";
 
-          const runtimeArtifact = JSON.parse(readFileSync("runtime-artifact/runtime-certification.json", "utf8"));
-          const migrationArtifact = JSON.parse(readFileSync("migration-artifact/migration-certification.json", "utf8"));
+          const runtimeArtifact = JSON.parse(readFileSync("runtime-artifact/operational-runtime-live-certification.json", "utf8"));
+          const migrationArtifact = JSON.parse(readFileSync("migration-artifact/supabase-staging-migration-plan.json", "utf8"));
 
           const composed = composeStagingPromotionEvidence({
             repository: "AIOS-HQ/aios-platform",
@@ -222,7 +233,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes tsx scripts/ci/export-persisted-promotion-approval-evidence.ts \
+          npx --no-install tsx scripts/ci/export-persisted-promotion-approval-evidence.ts \
             "$PROMOTION_REQUEST_ID" \
             "$TARGET_SHA" \
             promotion-approval-evidence.json
