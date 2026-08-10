@@ -50,6 +50,7 @@ function payload(overrides = {}) {
 
 function fakeBrowser({
   postUrl = `https://${FQDN}/harmony`,
+  initialUrl = null,
   status = 200,
   responsePayload = payload(),
 } = {}) {
@@ -64,7 +65,7 @@ function fakeBrowser({
     currentUrl: "",
     async goto(url) {
       state.gotUrls.push(url);
-      this.currentUrl = url;
+      this.currentUrl = initialUrl ?? url;
     },
     locator(selector) {
       return {
@@ -161,6 +162,18 @@ describe("production post-live probe", () => {
     expect(result.operationalRuntimeFoundation).toHaveLength(6);
   });
 
+  it("fails closed before filling credentials on cross-origin pre-login redirect", async () => {
+    const browser = fakeBrowser({ initialUrl: "https://evil.example/login?redirect=%2Fharmony" });
+    await expectFailure("pre_login_origin_mismatch", () => probeProductionPostLive({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+    }));
+    expect(browser.state.filledSelectors).toEqual([]);
+  });
+
   it("fails closed on 401/403 and invalid evidence guarantees", async () => {
     await expectFailure("operational_evidence_unauthorized", () => probeProductionPostLive({
       browser: fakeBrowser({ status: 401 }).value,
@@ -245,6 +258,53 @@ describe("production post-live probe", () => {
     expect(serialized).not.toContain("token");
     expect(serialized).not.toContain("userid");
     expect(serialized).not.toContain("companyid");
+  });
+
+  it("blocks exact credential value leakage in returned allowlisted evidence", async () => {
+    const leakedEmail = "leak@example.invalid";
+    const leakedPassword = "leak-secret";
+
+    const emailLeakPayload = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            foundation: payload().certification.details.operationalRuntimeLive.foundation.map((entry, index) =>
+              index === 0 ? { ...entry, safeMessage: leakedEmail } : entry,
+            ),
+          },
+        },
+      },
+    });
+
+    await expectFailure("credential_email_leaked", () => probeProductionPostLive({
+      browser: fakeBrowser({ responsePayload: emailLeakPayload }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: leakedEmail,
+      password: leakedPassword,
+    }));
+
+    const passwordLeakPayload = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            foundation: payload().certification.details.operationalRuntimeLive.foundation.map((entry, index) =>
+              index === 1 ? { ...entry, safeMessage: leakedPassword } : entry,
+            ),
+          },
+        },
+      },
+    });
+
+    await expectFailure("credential_password_leaked", () => probeProductionPostLive({
+      browser: fakeBrowser({ responsePayload: passwordLeakPayload }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: leakedEmail,
+      password: leakedPassword,
+    }));
   });
 
   it("exports typed failure for callers", () => {

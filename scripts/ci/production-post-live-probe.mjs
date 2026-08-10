@@ -173,11 +173,15 @@ export async function probeProductionPostLive({
     const loginUrl = new URL("/login?redirect=%2Fharmony", productionOrigin).toString();
 
     await page.goto(loginUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    const expectedOrigin = new URL(productionOrigin).origin;
+    if (new URL(page.url()).origin !== expectedOrigin) {
+      fail("pre_login_origin_mismatch");
+    }
+
     await page.locator('input[name="email"]').fill(email);
     await page.locator('input[name="password"]').fill(password);
     await page.locator('button[type="submit"]').click();
 
-    const expectedOrigin = new URL(productionOrigin).origin;
     try {
       await page.waitForURL(
         (url) => url.origin === expectedOrigin && url.pathname.startsWith("/harmony"),
@@ -213,6 +217,9 @@ export async function probeProductionPostLive({
     };
 
     assertNoSensitive(result);
+    const serializedResult = JSON.stringify(result);
+    if (serializedResult.includes(email)) fail("credential_email_leaked");
+    if (serializedResult.includes(password)) fail("credential_password_leaked");
     return result;
   } finally {
     await context.close();
