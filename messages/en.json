@@ -1269,6 +1269,58 @@
     "bookmark": "Bookmark",
     "bookmarked": "Bookmarked"
   },
+  "socialPublishing": {
+    "youtubeUpload": {
+      "format": "Format",
+      "video": "Video",
+      "short": "Short",
+      "channel": "Channel",
+      "selectChannel": "Select channel",
+      "title": "Title",
+      "description": "Description",
+      "visibility": "Visibility",
+      "private": "Private",
+      "unlisted": "Unlisted",
+      "public": "Public",
+      "scheduledAt": "Scheduled publish time",
+      "playlist": "Playlist",
+      "noPlaylist": "No playlist",
+      "tags": "Tags",
+      "tagsPlaceholder": "comma-separated",
+      "videoFile": "Video file",
+      "thumbnail": "Thumbnail file",
+      "thumbnailAlt": "Thumbnail description",
+      "prepareDraft": "Prepare YouTube draft",
+      "retry": "Retry upload",
+      "cancel": "Cancel upload",
+      "uploadProgress": "Video upload {progress}% complete",
+      "directUploadNote": "Video bytes upload directly to private storage and never pass through the AIOS application server.",
+      "states": {
+        "idle": "Ready",
+        "preparing": "Preparing secure upload",
+        "uploading": "Uploading directly to private storage",
+        "verifying": "Verifying stored media",
+        "awaiting_approval": "Awaiting Founder approval",
+        "cancelled": "Upload cancelled",
+        "failed": "Upload failed — retry available"
+      },
+      "errors": {
+        "unauthenticated": "Your session expired. Sign in and try again.",
+        "forbidden": "Founder access is required to prepare YouTube publishing.",
+        "rate_limited": "Too many upload attempts. Wait a moment and try again.",
+        "invalid_request": "The draft details are incomplete or invalid.",
+        "invalid_metadata": "The selected media does not meet YouTube requirements.",
+        "upload_expired": "The secure upload authorization expired. Retry to create a new one.",
+        "upload_not_found": "This upload is not available to the current account.",
+        "verification_in_progress": "This upload is already being verified. Wait a moment, then retry.",
+        "storage_incomplete": "Storage has not finished processing the upload. Retry verification.",
+        "storage_mismatch": "The stored media does not match the selected file.",
+        "provider_validation": "The selected YouTube channel or playlist is no longer available.",
+        "service_unavailable": "The upload service is temporarily unavailable. Retry safely.",
+        "cancelled": "The upload was cancelled. Nothing was published."
+      }
+    }
+  },
   "operations": {
     "title": "Operations",
     "subtitle": "Operational health, blockers, approvals, and delivery status.",

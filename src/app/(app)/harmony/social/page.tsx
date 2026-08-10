@@ -13,16 +13,13 @@ import {
   approveSocialDraft,
   prepareLinkedInTestDraft,
   prepareXTestDraft,
-  prepareYouTubeDraft,
   publishSocialDraft,
 } from "@/lib/social-publishing/actions";
 import { linkedInPublishingAdapter } from "@/lib/social-publishing/adapters/linkedin";
 import { xPublishingAdapter } from "@/lib/social-publishing/adapters/x";
 import { listYouTubeChannels, listYouTubePlaylists, youTubePublishingAdapter } from "@/lib/social-publishing/adapters/youtube";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
+import { YouTubeDraftUploader } from "@/components/harmony/social/youtube-draft-uploader";
 
 export const metadata: Metadata = {
   title: "Social",
@@ -332,7 +329,7 @@ export default async function HarmonySocialPage() {
         { label: "Playlists", value: youtubePlaylists.length },
         { label: "Upload scope", value: youtubeHealth.grantedScopes.includes("https://www.googleapis.com/auth/youtube.upload") ? "Granted" : "Missing" },
       ],
-      action: <YouTubeDraftForm channels={youtubeChannels} playlists={youtubePlaylists} disabled={!youtubeHealth.healthy || youtubeChannels.length === 0} />,
+      action: <YouTubeDraftUploader channels={youtubeChannels} playlists={youtubePlaylists} disabled={!youtubeHealth.healthy || youtubeChannels.length === 0} />,
     },
   ];
 
@@ -535,125 +532,6 @@ function ProviderOperationsCard({ provider }: { provider: ProviderCardModel }) {
         {provider.action ? <div className="pt-1">{provider.action}</div> : null}
       </CardContent>
     </Card>
-  );
-}
-
-function YouTubeDraftForm({
-  channels,
-  playlists,
-  disabled,
-}: {
-  channels: YouTubeChannelOption[];
-  playlists: YouTubePlaylistOption[];
-  disabled: boolean;
-}) {
-  return (
-    <form action={prepareYouTubeDraft} className="space-y-3 rounded-md border bg-muted/20 p-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-content-type">Format</Label>
-          <select
-            id="youtube-content-type"
-            name="content_type"
-            disabled={disabled}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="youtube_video">Video</option>
-            <option value="youtube_short">Short</option>
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-channel">Channel</Label>
-          <select
-            id="youtube-channel"
-            name="youtube_channel_id"
-            disabled={disabled}
-            required
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Select channel</option>
-            {channels.map((channel) => (
-              <option key={channel.id} value={channel.id}>
-                {channel.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="youtube-title">Title</Label>
-        <Input id="youtube-title" name="title" disabled={disabled} required maxLength={100} />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="youtube-description">Description</Label>
-        <Textarea id="youtube-description" name="description" disabled={disabled} required rows={4} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-visibility">Visibility</Label>
-          <select
-            id="youtube-visibility"
-            name="youtube_visibility"
-            disabled={disabled}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="private">Private</option>
-            <option value="unlisted">Unlisted</option>
-            <option value="public">Public</option>
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-scheduled-at">Scheduled publish time</Label>
-          <Input id="youtube-scheduled-at" name="scheduled_at" type="datetime-local" disabled={disabled} />
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="youtube-playlist">Playlist</Label>
-        <select
-          id="youtube-playlist"
-          name="youtube_playlist_id"
-          disabled={disabled}
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">No playlist</option>
-          {playlists.map((playlist) => (
-            <option key={playlist.id} value={playlist.id}>
-              {playlist.title}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="youtube-tags">Tags</Label>
-        <Input id="youtube-tags" name="youtube_tags" disabled={disabled} placeholder="comma-separated" />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5 sm:col-span-3">
-          <Label htmlFor="youtube-video">Video file</Label>
-          <Input id="youtube-video" name="video" type="file" accept="video/mp4,video/quicktime,video/webm" disabled={disabled} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-duration">Duration seconds</Label>
-          <Input id="youtube-duration" name="duration_seconds" type="number" min="1" disabled={disabled} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-width">Width</Label>
-          <Input id="youtube-width" name="video_width" type="number" min="1" disabled={disabled} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="youtube-height">Height</Label>
-          <Input id="youtube-height" name="video_height" type="number" min="1" disabled={disabled} />
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="youtube-thumbnail">Thumbnail file</Label>
-        <Input id="youtube-thumbnail" name="thumbnail" type="file" accept="image/jpeg,image/png" disabled={disabled} />
-      </div>
-      <Button type="submit" size="sm" disabled={disabled}>
-        Prepare YouTube draft
-      </Button>
-    </form>
   );
 }
 

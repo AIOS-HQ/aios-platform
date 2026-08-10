@@ -34,8 +34,11 @@ export function createIdempotencyKey(input: {
     .digest("hex");
 }
 
-export function assertApprovedExactContent(job: SocialPublishJob): void {
-  if (job.state !== "approved" && job.state !== "failed") {
+export function assertApprovedExactContent(job: SocialPublishJob, allowInProgress = false): void {
+  const permitted = allowInProgress
+    ? ["approved", "failed", "uploading", "publishing"]
+    : ["approved", "failed"];
+  if (!permitted.includes(job.state)) {
     throw new Error("Founder approval is required before publishing.");
   }
   if (!job.approvedContentHash || job.approvedContentHash !== job.contentHash) {
@@ -145,6 +148,7 @@ export async function publishApprovedJob(input: {
   userId: string;
   jobId: string;
   adapter: ProviderAdapter;
+  resumeInProgress?: boolean;
 }): Promise<{ ok: boolean; url?: string; error?: string }> {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: "Admin client unavailable." };
@@ -164,7 +168,7 @@ export async function publishApprovedJob(input: {
     if (input.adapter.provider !== job.provider) {
       throw new Error("Provider adapter does not match the approved publishing job.");
     }
-    assertApprovedExactContent(job);
+    assertApprovedExactContent(job, input.resumeInProgress === true);
     const health = await input.adapter.verifyAccount(input.userId, job.targetIdentity);
     if (!health.ok) throw new Error(health.blockers.join(" ") || "Provider account health check failed.");
 
@@ -186,7 +190,9 @@ export async function publishApprovedJob(input: {
       .eq("user_id", input.userId)
       .eq("id", job.id)
       .eq("provider", job.provider)
-      .in("state", ["approved", "failed"])
+      .in("state", input.resumeInProgress
+        ? ["approved", "failed", "uploading", "publishing"]
+        : ["approved", "failed"])
       .is("provider_post_id", null)
       .select("id")
       .maybeSingle();

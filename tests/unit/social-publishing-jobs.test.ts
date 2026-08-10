@@ -122,6 +122,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 function resetRows() {
   state.beforeClaim = null;
   Object.assign(state.job, {
+    provider: "linkedin",
     state: "approved",
     provider_post_id: null,
     provider_post_url: null,
@@ -194,5 +195,35 @@ describe("social publishing job persistence", () => {
     expect(result.error).toContain("Provider adapter does not match");
     expect(wrongAdapter.publish).not.toHaveBeenCalled();
     expect(state.job.state).toBe("failed");
+  });
+
+  it("never resumes a YouTube worker transfer after exact-content approval drift", async () => {
+    Object.assign(state.job, {
+      provider: "youtube",
+      content_type: "youtube_video",
+      state: "uploading",
+      approved_content_hash: "previous-hash",
+      content_hash: "changed-hash",
+    });
+    const youtube = adapter({
+      provider: "youtube",
+      publish: vi.fn(async () => ({
+        providerPostId: "must-not-exist",
+        providerPostUrl: "https://youtube.test/must-not-exist",
+      })),
+    });
+
+    const result = await publishApprovedJob({
+      userId: "user-1",
+      jobId: "job-1",
+      adapter: youtube,
+      resumeInProgress: true,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("no longer matches");
+    expect(youtube.publish).not.toHaveBeenCalled();
+    expect(state.job.provider_post_id).toBeNull();
+    expect(state.job.provider_post_url).toBeNull();
   });
 });

@@ -16,11 +16,15 @@ const state = vi.hoisted(() => ({
     blockers: [] as string[],
   },
   sessionUrl: null as string | null,
+  sessionStatus: "uploading" as "uploading" | "completed",
+  providerVideoId: null as string | null,
   progress: [] as Record<string, unknown>[],
 }));
 
 vi.mock("@/lib/social-publishing/storage", () => ({
   downloadAssetBytes: async () => new Uint8Array([1, 2, 3, 4]),
+  readAssetRange: async (_path: string, start: number, end: number) =>
+    new Uint8Array(end - start + 1).fill((start + 1) % 251),
 }));
 
 vi.mock("@/lib/integrations/token-refresh", () => ({
@@ -51,19 +55,33 @@ class FakeQuery {
     this.payload = payload;
     if (this.tableName === "social_publish_jobs") state.progress.push(payload);
     if (this.tableName === "youtube_upload_sessions" && typeof payload.provider_video_id === "string") {
-      state.sessionUrl = null;
+      state.sessionStatus = "completed";
+      state.providerVideoId = payload.provider_video_id;
     }
     return this;
   }
 
   upsert(payload: Record<string, unknown>) {
     state.sessionUrl = String(payload.upload_url_encrypted);
+    state.sessionStatus = "uploading";
+    state.providerVideoId = null;
     return Promise.resolve({ data: null, error: null });
   }
 
   maybeSingle() {
-    if (this.tableName === "youtube_upload_sessions" && state.sessionUrl) {
-      return Promise.resolve({ data: { upload_url_encrypted: state.sessionUrl }, error: null });
+    if (this.tableName === "youtube_upload_sessions" && (state.sessionUrl || state.providerVideoId)) {
+      return Promise.resolve({
+        data: {
+          upload_url_encrypted: state.sessionUrl,
+          acknowledged_offset: 0,
+          total_bytes: 4,
+          retry_count: 0,
+          status: state.sessionStatus,
+          provider_video_id: state.providerVideoId,
+          session_expires_at: new Date(Date.now() + 60_000).toISOString(),
+        },
+        error: null,
+      });
     }
     return Promise.resolve({ data: null, error: null });
   }
@@ -175,6 +193,8 @@ describe("YouTube publishing adapter", () => {
   beforeEach(() => {
     state.accessToken = "youtube-token";
     state.sessionUrl = null;
+    state.sessionStatus = "uploading";
+    state.providerVideoId = null;
     state.progress = [];
     state.health = {
       healthy: true,
@@ -243,5 +263,25 @@ describe("YouTube publishing adapter", () => {
     expect(result.providerPostId).toBe("video-recovered");
     expect(calls.some((call) => call.includes("uploadType=resumable"))).toBe(false);
     expect(calls.some((call) => call.includes("recovered-session"))).toBe(true);
+  });
+
+  it("reuses a completed provider video after downstream retry instead of creating a duplicate", async () => {
+    state.sessionStatus = "completed";
+    state.providerVideoId = "video-already-uploaded";
+    state.sessionUrl = "encrypted-session-placeholder";
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method ?? "GET"} ${url}`);
+      if (url.includes("uploadType=resumable") || url.includes("upload.youtube.test")) {
+        throw new Error("must not create or transfer a second video");
+      }
+      if (url.includes("/videos?")) return Response.json({ items: [{ processingDetails: { processingStatus: "processed" } }] });
+      return Response.json({});
+    }));
+    const { youTubePublishingAdapter } = await import("@/lib/social-publishing/adapters/youtube");
+    const result = await youTubePublishingAdapter.publish("user-1", job({ youtubePlaylistId: null }), [asset()]);
+
+    expect(result.providerPostId).toBe("video-already-uploaded");
+    expect(calls.some((call) => call.includes("uploadType=resumable"))).toBe(false);
   });
 });

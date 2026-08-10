@@ -1269,6 +1269,58 @@
     "bookmark": "Guardar",
     "bookmarked": "Guardado"
   },
+  "socialPublishing": {
+    "youtubeUpload": {
+      "format": "Formato",
+      "video": "Video",
+      "short": "Short",
+      "channel": "Canal",
+      "selectChannel": "Seleccionar canal",
+      "title": "Título",
+      "description": "Descripción",
+      "visibility": "Visibilidad",
+      "private": "Privado",
+      "unlisted": "No listado",
+      "public": "Público",
+      "scheduledAt": "Hora de publicación programada",
+      "playlist": "Lista de reproducción",
+      "noPlaylist": "Sin lista de reproducción",
+      "tags": "Etiquetas",
+      "tagsPlaceholder": "separadas por comas",
+      "videoFile": "Archivo de video",
+      "thumbnail": "Archivo de miniatura",
+      "thumbnailAlt": "Descripción de la miniatura",
+      "prepareDraft": "Preparar borrador de YouTube",
+      "retry": "Reintentar carga",
+      "cancel": "Cancelar carga",
+      "uploadProgress": "Carga de video completada al {progress}%",
+      "directUploadNote": "Los bytes del video se cargan directamente al almacenamiento privado y nunca pasan por el servidor de la aplicación AIOS.",
+      "states": {
+        "idle": "Listo",
+        "preparing": "Preparando carga segura",
+        "uploading": "Cargando directamente al almacenamiento privado",
+        "verifying": "Verificando los archivos almacenados",
+        "awaiting_approval": "Esperando aprobación del Fundador",
+        "cancelled": "Carga cancelada",
+        "failed": "La carga falló — se puede reintentar"
+      },
+      "errors": {
+        "unauthenticated": "Tu sesión caducó. Inicia sesión e inténtalo de nuevo.",
+        "forbidden": "Se requiere acceso de Fundador para preparar publicaciones de YouTube.",
+        "rate_limited": "Demasiados intentos de carga. Espera un momento e inténtalo de nuevo.",
+        "invalid_request": "Los detalles del borrador están incompletos o no son válidos.",
+        "invalid_metadata": "El contenido seleccionado no cumple los requisitos de YouTube.",
+        "upload_expired": "La autorización de carga segura caducó. Reintenta para crear una nueva.",
+        "upload_not_found": "Esta carga no está disponible para la cuenta actual.",
+        "verification_in_progress": "Esta carga ya se está verificando. Espera un momento y vuelve a intentarlo.",
+        "storage_incomplete": "El almacenamiento aún no termina de procesar la carga. Reintenta la verificación.",
+        "storage_mismatch": "El contenido almacenado no coincide con el archivo seleccionado.",
+        "provider_validation": "El canal o la lista de reproducción de YouTube ya no está disponible.",
+        "service_unavailable": "El servicio de carga no está disponible temporalmente. Puedes reintentarlo con seguridad.",
+        "cancelled": "La carga fue cancelada. No se publicó nada."
+      }
+    }
+  },
   "operations": {
     "title": "Operaciones",
     "subtitle": "Salud operativa, bloqueos, aprobaciones y estado de entregas.",
