@@ -169,9 +169,68 @@ describe("operational Preview live certification", () => {
     await expect(discoverPreviewDeployment({
       prNumber: 448,
       expectedHeadSha: HEAD_SHA,
+      trustedControlSha: HEAD_SHA,
       token: "test-github-token",
       fetchImpl,
     })).resolves.toEqual({ previewUrl: PREVIEW_URL, deploymentId: 10, deploymentSha: HEAD_SHA });
+  });
+
+  it("allows merged PR when exact frozen head is in trusted main history", async () => {
+    const fetchImpl = async (url: string) => {
+      const payload = url.includes("/pulls/")
+        ? { state: "closed", merged: true, head: { sha: HEAD_SHA, repo: { full_name: "AIOS-HQ/aios-platform" } } }
+        : url.includes("/compare/")
+          ? { status: "ahead" }
+          : url.includes("/statuses")
+            ? [{ state: "success", environment_url: PREVIEW_URL }]
+            : [{
+                id: 10,
+                sha: HEAD_SHA,
+                environment: "Preview",
+                created_at: "2026-07-23T12:00:00Z",
+                performed_via_github_app: { slug: "vercel" },
+              }];
+      return { ok: true, json: async () => payload } as Response;
+    };
+    await expect(discoverPreviewDeployment({
+      prNumber: 448,
+      expectedHeadSha: HEAD_SHA,
+      trustedControlSha: HEAD_SHA,
+      token: "test-github-token",
+      fetchImpl,
+    })).resolves.toEqual({ previewUrl: PREVIEW_URL, deploymentId: 10, deploymentSha: HEAD_SHA });
+  });
+
+  it("rejects closed unmerged PRs and merged heads outside trusted main history", async () => {
+    const closedUnmerged = async (url: string) => {
+      const payload = url.includes("/pulls/")
+        ? { state: "closed", merged: false, head: { sha: HEAD_SHA, repo: { full_name: "AIOS-HQ/aios-platform" } } }
+        : [];
+      return { ok: true, json: async () => payload } as Response;
+    };
+    await expect(discoverPreviewDeployment({
+      prNumber: 448,
+      expectedHeadSha: HEAD_SHA,
+      trustedControlSha: HEAD_SHA,
+      token: "test-github-token",
+      fetchImpl: closedUnmerged,
+    })).rejects.toThrowError("pr_not_open_or_merged");
+
+    const mergedNotAncestor = async (url: string) => {
+      const payload = url.includes("/pulls/")
+        ? { state: "closed", merged: true, head: { sha: HEAD_SHA, repo: { full_name: "AIOS-HQ/aios-platform" } } }
+        : url.includes("/compare/")
+          ? { status: "diverged" }
+          : [];
+      return { ok: true, json: async () => payload } as Response;
+    };
+    await expect(discoverPreviewDeployment({
+      prNumber: 448,
+      expectedHeadSha: HEAD_SHA,
+      trustedControlSha: HEAD_SHA,
+      token: "test-github-token",
+      fetchImpl: mergedNotAncestor,
+    })).rejects.toThrowError("merged_pr_head_not_in_trusted_main_history");
   });
 
   it("rejects deployment metadata without Vercel GitHub App provenance", async () => {
@@ -184,6 +243,7 @@ describe("operational Preview live certification", () => {
     await expect(discoverPreviewDeployment({
       prNumber: 448,
       expectedHeadSha: HEAD_SHA,
+      trustedControlSha: HEAD_SHA,
       token: "test-github-token",
       fetchImpl,
     })).rejects.toThrowError("matching_preview_deployment_not_ready");
