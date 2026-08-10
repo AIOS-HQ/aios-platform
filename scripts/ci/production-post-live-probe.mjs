@@ -135,6 +135,8 @@ function requireCertifiableOperationalLive(payload, targetSha) {
   return {
     operationalRuntimeSummary: summary,
     operationalRuntimeFoundation: foundation,
+    runtimeConditionId: live?.runtimeCondition?.conditionId,
+    outcomeId: live?.outcomeId,
   };
 }
 
@@ -202,16 +204,37 @@ export async function probeProductionPostLive({
     );
 
     const evidencePayload = await responseJson(evidenceResponse, "operational_evidence");
-    const { operationalRuntimeSummary, operationalRuntimeFoundation } = requireCertifiableOperationalLive(
+    const {
+      operationalRuntimeSummary,
+      operationalRuntimeFoundation,
+      runtimeConditionId,
+      outcomeId,
+    } = requireCertifiableOperationalLive(
       evidencePayload,
       normalizedTargetSha,
     );
+
+    if (typeof runtimeConditionId !== "string" || !/^[0-9a-f]{64}$/.test(runtimeConditionId)) {
+      fail("operational_runtime_condition_id_invalid");
+    }
+    if (typeof outcomeId !== "string" || !/^[0-9a-f]{64}$/.test(outcomeId)) {
+      fail("operational_runtime_outcome_id_invalid");
+    }
+    for (const entry of operationalRuntimeFoundation) {
+      if (entry.runtimeConditionId !== runtimeConditionId) {
+        fail("operational_runtime_foundation_condition_mismatch");
+      }
+    }
 
     const result = {
       authenticatedSession: true,
       founderAuthorized: true,
       originMatched: true,
-      operationalRuntimeSummary,
+      operationalRuntimeSummary: {
+        ...operationalRuntimeSummary,
+        runtimeCondition: { conditionId: runtimeConditionId },
+        outcomeId,
+      },
       operationalRuntimeFoundation,
       verifiedAt,
     };

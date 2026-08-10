@@ -9,12 +9,16 @@ import {
 
 const SHA = "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300";
 const FQDN = "aios-runtime-prod.eastus.azurecontainerapps.io";
+const CONDITION_ID = "a".repeat(64);
+const OUTCOME_ID = "b".repeat(64);
 
 function payload(overrides = {}) {
   return {
     certification: {
       details: {
         operationalRuntimeLive: {
+          runtimeCondition: { conditionId: CONDITION_ID },
+          outcomeId: OUTCOME_ID,
           deploymentSha: SHA,
           deploymentEnvironment: "production",
           certifiable: true,
@@ -38,7 +42,7 @@ function payload(overrides = {}) {
             status: "healthy",
             evidenceType: "authenticated_runtime_proof",
             details: { liveProbeAttempted: true },
-            runtimeConditionId: "cond-1",
+            runtimeConditionId: CONDITION_ID,
             latencyBucket: "under_1s",
           })),
         },
@@ -159,6 +163,8 @@ describe("production post-live probe", () => {
     expect(result.originMatched).toBe(true);
     expect(result.operationalRuntimeSummary.componentCount).toBe(6);
     expect(result.operationalRuntimeSummary.healthy).toBe(6);
+    expect(result.operationalRuntimeSummary.runtimeCondition.conditionId).toBe(CONDITION_ID);
+    expect(result.operationalRuntimeSummary.outcomeId).toBe(OUTCOME_ID);
     expect(result.operationalRuntimeFoundation).toHaveLength(6);
   });
 
@@ -233,6 +239,64 @@ describe("production post-live probe", () => {
     p3.certification.details.operationalRuntimeLive.foundation[2].status = "degraded";
     await expectFailure("operational_runtime_live_component_not_healthy", () => probeProductionPostLive({
       browser: fakeBrowser({ responsePayload: p3 }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+    }));
+  });
+
+  it("requires runtimeCondition.conditionId and outcomeId bindings", async () => {
+    const badCondition = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            runtimeCondition: { conditionId: "invalid" },
+          },
+        },
+      },
+    });
+    await expectFailure("operational_runtime_condition_id_invalid", () => probeProductionPostLive({
+      browser: fakeBrowser({ responsePayload: badCondition }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+    }));
+
+    const badOutcome = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            outcomeId: "zzz",
+          },
+        },
+      },
+    });
+    await expectFailure("operational_runtime_outcome_id_invalid", () => probeProductionPostLive({
+      browser: fakeBrowser({ responsePayload: badOutcome }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+    }));
+
+    const mismatch = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            foundation: payload().certification.details.operationalRuntimeLive.foundation.map((entry, index) =>
+              index === 0 ? { ...entry, runtimeConditionId: "c".repeat(64) } : entry,
+            ),
+          },
+        },
+      },
+    });
+    await expectFailure("operational_runtime_live_condition_mismatch", () => probeProductionPostLive({
+      browser: fakeBrowser({ responsePayload: mismatch }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
       email: "founder@example.invalid",

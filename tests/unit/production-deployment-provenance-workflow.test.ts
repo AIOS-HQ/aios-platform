@@ -54,7 +54,18 @@ describe("production deployment provenance producer wiring", () => {
     expect(workflow).toContain(".properties.createdTime");
     expect(workflow).toContain("deployed_at_missing");
     expect(workflow).toContain("deployed_revision_image_mismatch");
+    expect(workflow).toContain('select(.name=="AIOS_DEPLOYMENT_SHA")');
+    expect(workflow).toContain('select(.name=="AIOS_DEPLOYMENT_ENVIRONMENT")');
+    expect(workflow).toContain("deployed_revision_sha_mismatch");
+    expect(workflow).toContain("deployed_revision_environment_mismatch");
     expect(workflow).toContain("$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$TARGET_SHA");
+  });
+
+  it("uses a single deployment update that sets image and deployment identity env vars", () => {
+    const updateMatches = workflow.match(/az containerapp update/g) ?? [];
+    expect(updateMatches).toHaveLength(1);
+    expect(workflow).toContain('--image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"');
+    expect(workflow).toContain('--set-env-vars "AIOS_DEPLOYMENT_SHA=$TARGET_SHA" "AIOS_DEPLOYMENT_ENVIRONMENT=production"');
   });
 
   it("records immutable deployment workflow identity and validates canonical M5D contract", () => {
@@ -75,5 +86,41 @@ describe("production deployment provenance producer wiring", () => {
     expect(workflow).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(workflow).not.toContain("on:\n  push:");
     expect(workflow).toContain("docker-pr-validation:");
+  });
+
+  it("resolves production fqdn from Azure and never from workflow input", () => {
+    expect(workflow).toContain('- name: Resolve deployed production FQDN from Azure');
+    expect(workflow).toContain('properties.configuration.ingress.fqdn');
+    expect(workflow).toContain('production_fqdn_missing');
+    expect(workflow).not.toContain('inputs.production_fqdn');
+  });
+
+  it("runs authenticated production post-live probe with secrets only and no bypass", () => {
+    expect(workflow).toContain('- name: Install trusted certification dependencies');
+    expect(workflow).toContain('npm ci');
+    expect(workflow).toContain('npx --no-install playwright install --with-deps chromium');
+    expect(workflow).toContain('- name: Execute authenticated production post-live probe');
+    expect(workflow).toContain('AIOS_PRODUCTION_CERT_FOUNDER_EMAIL');
+    expect(workflow).toContain('AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD');
+    expect(workflow).toContain('production_cert_credentials_missing');
+    expect(workflow).toContain('node scripts/ci/production-post-live-probe.mjs probe');
+    expect(workflow).toContain('production-post-live-probe-safe.json');
+    expect(workflow).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(workflow).not.toContain('authorization: bearer');
+  });
+
+  it("builds M5E-1 input from canonical M5D provenance and validates then uploads immutable artifact", () => {
+    expect(workflow).toContain('- name: Build M5E-1 production post-live evidence input');
+    expect(workflow).toContain('const deploymentProvenance = JSON.parse(readFileSync("production-deployment-provenance.json", "utf8"));');
+    expect(workflow).toContain('deploymentEvidenceId: deploymentProvenance.deploymentEvidenceId');
+    expect(workflow).toContain('operationalRuntimeSummary: postLiveProbe.operationalRuntimeSummary');
+    expect(workflow).toContain('operationalRuntimeFoundation: postLiveProbe.operationalRuntimeFoundation');
+    expect(workflow).toContain('- name: Validate canonical production post-live evidence (M5E-1)');
+    expect(workflow).toContain('node scripts/ci/production-post-live-evidence.mjs validate');
+    expect(workflow).toContain('production-post-live-evidence-input.json');
+    expect(workflow).toContain('production-post-live-evidence.json');
+    expect(workflow).toContain('deployment_evidence_id_missing');
+    expect(workflow).toContain('- name: Upload immutable production post-live evidence artifact');
+    expect(workflow).toContain('production-post-live-evidence-${{ inputs.target_sha }}-${{ github.run_id }}');
   });
 });

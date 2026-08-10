@@ -329,7 +329,8 @@ jobs:
           az containerapp update \
             --name "$CONTAINER_APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG"
+            --image "$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$IMAGE_TAG" \
+            --set-env-vars "AIOS_DEPLOYMENT_SHA=$TARGET_SHA" "AIOS_DEPLOYMENT_ENVIRONMENT=production"
           az containerapp ingress update \
             --name "$CONTAINER_APP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
@@ -370,6 +371,18 @@ jobs:
           expected_image="$REGISTRY_LOGIN_SERVER/$IMAGE_NAME:$TARGET_SHA"
           if [[ "$revision_image" != "$expected_image" ]]; then
             echo "deployed_revision_image_mismatch" >&2
+            exit 1
+          fi
+
+          revision_deployment_sha="$(jq -r '.properties.template.containers[0].env[]? | select(.name=="AIOS_DEPLOYMENT_SHA") | .value' <<<"$revision_json" | head -n1)"
+          if [[ "$revision_deployment_sha" != "$TARGET_SHA" ]]; then
+            echo "deployed_revision_sha_mismatch" >&2
+            exit 1
+          fi
+
+          revision_deployment_environment="$(jq -r '.properties.template.containers[0].env[]? | select(.name=="AIOS_DEPLOYMENT_ENVIRONMENT") | .value' <<<"$revision_json" | head -n1)"
+          if [[ "$revision_deployment_environment" != "production" ]]; then
+            echo "deployed_revision_environment_mismatch" >&2
             exit 1
           fi
 
@@ -434,4 +447,104 @@ jobs:
         with:
           name: production-deployment-provenance-${{ inputs.target_sha }}-${{ github.run_id }}
           path: production-deployment-provenance.json
+          if-no-files-found: error
+
+      - name: Resolve deployed production FQDN from Azure
+        shell: bash
+        run: |
+          set -euo pipefail
+          production_fqdn="$(az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)"
+
+          if [[ -z "$production_fqdn" || "$production_fqdn" == "null" ]]; then
+            echo "production_fqdn_missing" >&2
+            exit 1
+          fi
+
+          echo "PRODUCTION_FQDN=$production_fqdn" >> "$GITHUB_ENV"
+
+      - name: Install trusted certification dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+
+      - name: Execute authenticated production post-live probe
+        shell: bash
+        env:
+          AIOS_PRODUCTION_CERT_FOUNDER_EMAIL: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_EMAIL }}
+          AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${AIOS_PRODUCTION_CERT_FOUNDER_EMAIL:-}" || -z "${AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD:-}" ]]; then
+            echo "production_cert_credentials_missing" >&2
+            exit 1
+          fi
+
+          node scripts/ci/production-post-live-probe.mjs probe \
+            "$PRODUCTION_FQDN" \
+            "$TARGET_SHA" \
+            > production-post-live-probe-safe.json
+
+      - name: Build M5E-1 production post-live evidence input
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const deploymentProvenance = JSON.parse(readFileSync("production-deployment-provenance.json", "utf8"));
+          const postLiveProbe = JSON.parse(readFileSync("production-post-live-probe-safe.json", "utf8"));
+
+          const payload = {
+            repository: "AIOS-HQ/aios-platform",
+            environment: "production",
+            targetSha: process.env.TARGET_SHA,
+            productionDeployment: {
+              deploymentEvidenceId: deploymentProvenance.deploymentEvidenceId,
+              targetSha: deploymentProvenance.targetSha,
+              imageDigest: deploymentProvenance.containerImage?.imageDigest,
+              imageTag: deploymentProvenance.containerImage?.imageTag,
+              deployedRevisionName: deploymentProvenance.azureProductionTarget?.deployedRevisionName,
+              deployedAt: deploymentProvenance.azureProductionTarget?.deployedAt,
+            },
+            authenticatedRuntime: {
+              authenticatedSession: postLiveProbe.authenticatedSession,
+              founderAuthorized: postLiveProbe.founderAuthorized,
+              originMatched: postLiveProbe.originMatched,
+            },
+            operationalRuntimeSummary: postLiveProbe.operationalRuntimeSummary,
+            operationalRuntimeFoundation: postLiveProbe.operationalRuntimeFoundation,
+            verifiedAt: postLiveProbe.verifiedAt,
+          };
+
+          writeFileSync("production-post-live-evidence-input.json", `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+          NODE
+
+      - name: Validate canonical production post-live evidence (M5E-1)
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployment_evidence_id="$(jq -r '.deploymentEvidenceId' production-deployment-provenance.json)"
+          if [[ -z "$deployment_evidence_id" || "$deployment_evidence_id" == "null" ]]; then
+            echo "deployment_evidence_id_missing" >&2
+            exit 1
+          fi
+
+          node scripts/ci/production-post-live-evidence.mjs validate \
+            production-post-live-evidence-input.json \
+            "$TARGET_SHA" \
+            "$deployment_evidence_id" \
+            > production-post-live-evidence.json
+
+      - name: Upload immutable production post-live evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-post-live-evidence-${{ inputs.target_sha }}-${{ github.run_id }}
+          path: production-post-live-evidence.json
           if-no-files-found: error
