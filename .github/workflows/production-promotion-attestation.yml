@@ -1,0 +1,279 @@
+name: production-promotion-attestation
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Lowercase 40-char commit SHA for production promotion"
+        required: true
+        type: string
+      promotion_request_id:
+        description: "Persisted production promotion request ID"
+        required: true
+        type: string
+      runtime_artifact_id:
+        description: "GitHub Actions runtime artifact numeric ID"
+        required: true
+        type: string
+      migration_artifact_id:
+        description: "GitHub Actions migration artifact numeric ID"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  compose-attestation:
+    name: Compose production promotion attestation
+    if: ${{ github.repository == 'AIOS-HQ/aios-platform' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: ${{ inputs.target_sha }}
+      PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+      RUNTIME_ARTIFACT_ID: ${{ inputs.runtime_artifact_id }}
+      MIGRATION_ARTIFACT_ID: ${{ inputs.migration_artifact_id }}
+      REPO: AIOS-HQ/aios-platform
+
+    steps:
+      - name: Validate immutable workflow_dispatch inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "target_sha_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$RUNTIME_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "runtime_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$MIGRATION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "migration_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+          if [[ -z "${PROMOTION_REQUEST_ID// }" ]]; then
+            echo "promotion_request_id_missing" >&2
+            exit 1
+          fi
+
+          lower_request_id="$(echo "$PROMOTION_REQUEST_ID" | tr '[:upper:]' '[:lower:]')"
+          if [[ "$lower_request_id" == *latest* ]] || [[ "$lower_request_id" == *head* ]] || [[ "$lower_request_id" == "main" ]]; then
+            echo "promotion_request_id_mutable_alias" >&2
+            exit 1
+          fi
+
+      - name: Checkout trusted main controls
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify checked out controls match current GitHub main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin main
+          expected_main_sha="$(git rev-parse origin/main)"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$expected_main_sha" != "$checked_out_sha" ]]; then
+            echo "trusted_main_mismatch" >&2
+            exit 1
+          fi
+
+      - name: Resolve exact runtime and migration artifacts by numeric ID
+        id: resolve_artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          runtime_json="$(gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID")"
+          migration_json="$(gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID")"
+
+          runtime_expired="$(jq -r '.expired' <<<"$runtime_json")"
+          migration_expired="$(jq -r '.expired' <<<"$migration_json")"
+          if [[ "$runtime_expired" != "false" ]]; then
+            echo "runtime_artifact_expired" >&2
+            exit 1
+          fi
+          if [[ "$migration_expired" != "false" ]]; then
+            echo "migration_artifact_expired" >&2
+            exit 1
+          fi
+
+          runtime_run_id="$(jq -r '.workflow_run.id' <<<"$runtime_json")"
+          migration_run_id="$(jq -r '.workflow_run.id' <<<"$migration_json")"
+          if [[ -z "$runtime_run_id" || "$runtime_run_id" == "null" ]]; then
+            echo "runtime_artifact_run_missing" >&2
+            exit 1
+          fi
+          if [[ -z "$migration_run_id" || "$migration_run_id" == "null" ]]; then
+            echo "migration_artifact_run_missing" >&2
+            exit 1
+          fi
+
+          runtime_run_json="$(gh api "/repos/$REPO/actions/runs/$runtime_run_id")"
+          migration_run_json="$(gh api "/repos/$REPO/actions/runs/$migration_run_id")"
+
+          runtime_conclusion="$(jq -r '.conclusion' <<<"$runtime_run_json")"
+          migration_conclusion="$(jq -r '.conclusion' <<<"$migration_run_json")"
+          if [[ "$runtime_conclusion" != "success" ]]; then
+            echo "runtime_workflow_not_success" >&2
+            exit 1
+          fi
+          if [[ "$migration_conclusion" != "success" ]]; then
+            echo "migration_workflow_not_success" >&2
+            exit 1
+          fi
+
+          runtime_workflow_path="$(jq -r '.path' <<<"$runtime_run_json")"
+          migration_workflow_path="$(jq -r '.path' <<<"$migration_run_json")"
+          if [[ "$runtime_workflow_path" != ".github/workflows/operational-preview-live-certification.yml" ]]; then
+            echo "runtime_workflow_path_invalid" >&2
+            exit 1
+          fi
+          if [[ "$migration_workflow_path" != ".github/workflows/supabase-staging-migration-plan.yml" ]]; then
+            echo "migration_workflow_path_invalid" >&2
+            exit 1
+          fi
+
+          runtime_run_attempt="$(jq -r '.run_attempt' <<<"$runtime_run_json")"
+          migration_run_attempt="$(jq -r '.run_attempt' <<<"$migration_run_json")"
+          runtime_artifact_name="$(jq -r '.name' <<<"$runtime_json")"
+          migration_artifact_name="$(jq -r '.name' <<<"$migration_json")"
+
+          echo "runtime_run_id=$runtime_run_id" >> "$GITHUB_OUTPUT"
+          echo "runtime_run_attempt=$runtime_run_attempt" >> "$GITHUB_OUTPUT"
+          echo "runtime_artifact_name=$runtime_artifact_name" >> "$GITHUB_OUTPUT"
+          echo "migration_run_id=$migration_run_id" >> "$GITHUB_OUTPUT"
+          echo "migration_run_attempt=$migration_run_attempt" >> "$GITHUB_OUTPUT"
+          echo "migration_artifact_name=$migration_artifact_name" >> "$GITHUB_OUTPUT"
+
+      - name: Download runtime artifact by exact ID
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID/zip" > runtime-artifact.zip
+          mkdir -p runtime-artifact
+          unzip -o runtime-artifact.zip -d runtime-artifact >/dev/null
+
+      - name: Download migration artifact by exact ID
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID/zip" > migration-artifact.zip
+          mkdir -p migration-artifact
+          unzip -o migration-artifact.zip -d migration-artifact >/dev/null
+
+      - name: Setup Node for trusted repo tooling
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install locked dependencies from trusted main
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+
+      - name: Compose staging promotion evidence from exact artifact metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          import { composeStagingPromotionEvidence } from "./scripts/ci/staging-promotion-evidence.mjs";
+
+          const runtimeArtifact = JSON.parse(readFileSync("runtime-artifact/operational-runtime-live-certification.json", "utf8"));
+          const migrationArtifact = JSON.parse(readFileSync("migration-artifact/supabase-staging-migration-plan.json", "utf8"));
+
+          const composed = composeStagingPromotionEvidence({
+            repository: "AIOS-HQ/aios-platform",
+            runtimeArtifact,
+            migrationArtifact,
+            runtimeArtifactMeta: {
+              artifactId: process.env.RUNTIME_ARTIFACT_ID,
+              runId: process.env.RUNTIME_RUN_ID,
+              runAttempt: Number(process.env.RUNTIME_RUN_ATTEMPT),
+              artifactName: process.env.RUNTIME_ARTIFACT_NAME,
+            },
+            migrationArtifactMeta: {
+              artifactId: process.env.MIGRATION_ARTIFACT_ID,
+              runId: process.env.MIGRATION_RUN_ID,
+              runAttempt: Number(process.env.MIGRATION_RUN_ATTEMPT),
+              artifactName: process.env.MIGRATION_ARTIFACT_NAME,
+            },
+          }, { expectedTargetSha: process.env.TARGET_SHA });
+
+          writeFileSync("staging-promotion-evidence.json", `${JSON.stringify(composed, null, 2)}\n`, "utf8");
+          NODE
+        env:
+          RUNTIME_ARTIFACT_ID: ${{ inputs.runtime_artifact_id }}
+          RUNTIME_RUN_ID: ${{ steps.resolve_artifacts.outputs.runtime_run_id }}
+          RUNTIME_RUN_ATTEMPT: ${{ steps.resolve_artifacts.outputs.runtime_run_attempt }}
+          RUNTIME_ARTIFACT_NAME: ${{ steps.resolve_artifacts.outputs.runtime_artifact_name }}
+          MIGRATION_ARTIFACT_ID: ${{ inputs.migration_artifact_id }}
+          MIGRATION_RUN_ID: ${{ steps.resolve_artifacts.outputs.migration_run_id }}
+          MIGRATION_RUN_ATTEMPT: ${{ steps.resolve_artifacts.outputs.migration_run_attempt }}
+          MIGRATION_ARTIFACT_NAME: ${{ steps.resolve_artifacts.outputs.migration_artifact_name }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+
+      - name: Export persisted promotion approvals
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --no-install tsx scripts/ci/export-persisted-promotion-approval-evidence.ts \
+            "$PROMOTION_REQUEST_ID" \
+            "$TARGET_SHA" \
+            promotion-approval-evidence.json
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Produce final promotion attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const stagingPromotionEvidence = JSON.parse(readFileSync("staging-promotion-evidence.json", "utf8"));
+          const promotionApprovalEvidence = JSON.parse(readFileSync("promotion-approval-evidence.json", "utf8"));
+          writeFileSync("promotion-attestation-input.json", `${JSON.stringify({ stagingPromotionEvidence, promotionApprovalEvidence }, null, 2)}\n`, "utf8");
+          NODE
+
+          node scripts/ci/produce-promotion-attestation.mjs \
+            produce \
+            promotion-attestation-input.json \
+            "$TARGET_SHA" \
+            promotion-attestation.json
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+
+      - name: Validate final promotion attestation contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/promotion-attestation-contract.mjs validate promotion-attestation.json "$TARGET_SHA"
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+
+      - name: Upload immutable promotion attestation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: promotion-attestation-${{ inputs.target_sha }}-${{ github.run_id }}
+          path: promotion-attestation.json
+          if-no-files-found: error

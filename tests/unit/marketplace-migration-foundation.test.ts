@@ -25,6 +25,10 @@ const boundaryEnforcement = readFileSync(
   "supabase/migrations/20260807240000_marketplace_rollback_uninstall_boundary_enforcement.sql",
   "utf8",
 );
+const promotionApprovalEvidence = readFileSync(
+  "supabase/migrations/20260807250000_production_promotion_approval_evidence.sql",
+  "utf8",
+);
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -83,7 +87,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 58");
+    expect(certification).toContain("migrations.length !== 59");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
@@ -199,5 +203,44 @@ describe("marketplace migration foundation", () => {
     expect(certification).toContain("rollback_newer_should_fail");
     expect(certification).toContain("rollback_nonexistent_should_fail");
     expect(certification).toContain("uninstall_with_dependents_should_fail");
+  });
+
+  it("certifies production-promotion approval evidence persistence contract", () => {
+    expect(promotionApprovalEvidence).toContain("create table if not exists public.production_promotion_requests");
+    expect(promotionApprovalEvidence).toContain("create table if not exists public.production_promotion_decisions");
+    expect(promotionApprovalEvidence).toContain("check (repository = 'AIOS-HQ/aios-platform')");
+    expect(promotionApprovalEvidence).toContain("check (purpose = 'production_promotion')");
+    expect(promotionApprovalEvidence).toContain("check (target_sha ~ '^[0-9a-f]{40}$')");
+    expect(promotionApprovalEvidence).toContain("check (source_environment = 'staging')");
+    expect(promotionApprovalEvidence).toContain("check (target_environment = 'production')");
+    expect(promotionApprovalEvidence).toContain("btrim(promotion_request_id) <> ''");
+    expect(promotionApprovalEvidence).toContain("lower(promotion_request_id) not like '%latest%'");
+    expect(promotionApprovalEvidence).toContain("lower(promotion_request_id) not like '%head%'");
+    expect(promotionApprovalEvidence).toContain("lower(promotion_request_id) <> 'main'");
+    expect(promotionApprovalEvidence).toContain("check (decision_source in ('founder', 'harmony'))");
+    expect(promotionApprovalEvidence).toContain("check (decision in ('approved', 'rejected'))");
+    expect(promotionApprovalEvidence).toContain("actor_type = 'founder'");
+    expect(promotionApprovalEvidence).toContain("and agent_id is null");
+    expect(promotionApprovalEvidence).toContain("and policy_version is null");
+    expect(promotionApprovalEvidence).toContain("agent_id = 'harmony'");
+    expect(promotionApprovalEvidence).toContain("and actor_type is null");
+    expect(promotionApprovalEvidence).toContain("and actor_id is null");
+    expect(promotionApprovalEvidence).toContain("and btrim(policy_version) <> ''");
+    expect(promotionApprovalEvidence).toContain("and lower(policy_version) not like '%latest%'");
+    expect(promotionApprovalEvidence).toContain("and lower(policy_version) not like '%head%'");
+    expect(promotionApprovalEvidence).toContain("and lower(policy_version) <> 'main'");
+    expect(promotionApprovalEvidence).toContain("(decision = 'approved' and approved_at is not null)");
+    expect(promotionApprovalEvidence).toContain("(decision = 'rejected' and approved_at is null)");
+    expect(promotionApprovalEvidence).toContain("production_promotion_decisions_request_source_uq");
+    expect(promotionApprovalEvidence).toContain("enable row level security");
+    expect(promotionApprovalEvidence).toContain("grant insert on public.production_promotion_requests to service_role");
+    expect(promotionApprovalEvidence).toContain("grant insert on public.production_promotion_decisions to service_role");
+    expect(promotionApprovalEvidence).toContain("revoke update, delete on public.production_promotion_requests from service_role");
+    expect(promotionApprovalEvidence).toContain("revoke update, delete on public.production_promotion_decisions from service_role");
+    expect(promotionApprovalEvidence).toContain("revoke insert, update, delete on public.production_promotion_requests from authenticated");
+    expect(promotionApprovalEvidence).toContain("revoke insert, update, delete on public.production_promotion_decisions from authenticated");
+    expect(promotionApprovalEvidence).toContain("create or replace function public.reject_production_promotion_mutations()");
+    expect(promotionApprovalEvidence).toContain("before update or delete on public.production_promotion_requests");
+    expect(promotionApprovalEvidence).toContain("before update or delete on public.production_promotion_decisions");
   });
 });

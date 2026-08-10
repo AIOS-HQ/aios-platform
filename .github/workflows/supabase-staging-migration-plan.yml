@@ -25,6 +25,7 @@ jobs:
       name: staging
     env:
       SUPABASE_CLI_VERSION: "2.109.1"
+      STAGING_PLAN_ARTIFACT_PATH: artifacts/supabase-staging-migration-plan.json
       AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED: "false"
 
     steps:
@@ -83,6 +84,7 @@ jobs:
           cache-dependency-path: control/package-lock.json
 
       - name: Verify immutable target and trusted controls
+        id: target_validation
         shell: bash
         env:
           TARGET_REF: ${{ inputs.target_ref }}
@@ -98,6 +100,7 @@ jobs:
           test -d "$GITHUB_WORKSPACE/target/supabase/migrations"
           migration_count="$(find "$GITHUB_WORKSPACE/target/supabase/migrations" -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
           test "$migration_count" -gt 0
+          printf 'migration_count=%s\n' "$migration_count" >>"$GITHUB_OUTPUT"
           printf 'Migration files discovered: %s\n' "$migration_count"
 
       - name: Verify pinned CLI supports fail-closed dry run
@@ -226,3 +229,46 @@ jobs:
             printf -- '- Worker: disabled\n'
             printf -- '- Database changes: none\n'
           } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Build immutable staging migration certification artifact
+        shell: bash
+        env:
+          TARGET_REF: ${{ inputs.target_ref }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+          MIGRATION_COUNT: ${{ steps.target_validation.outputs.migration_count }}
+          STAGING_PLAN_ENVIRONMENT: "staging"
+          STAGING_PLAN_RESULT: "passed"
+          STAGING_PLAN_MODE: "dry_run"
+          STAGING_PLAN_DATABASE_CHANGES_APPLIED: "false"
+          STAGING_PLAN_COMPLETE_HISTORY: "true"
+          STAGING_PLAN_ARTIFACT_PATH: ${{ env.STAGING_PLAN_ARTIFACT_PATH }}
+        run: |
+          set -Eeuo pipefail
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          node "$validator" write-artifact
+          test -f "$STAGING_PLAN_ARTIFACT_PATH"
+
+      - name: Validate staging migration certification artifact
+        shell: bash
+        env:
+          TARGET_REF: ${{ inputs.target_ref }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+          STAGING_PLAN_ARTIFACT_PATH: ${{ env.STAGING_PLAN_ARTIFACT_PATH }}
+        run: |
+          set -Eeuo pipefail
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-staging-plan.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          test -f "$STAGING_PLAN_ARTIFACT_PATH"
+          node "$validator" validate-artifact
+
+      - name: Upload safe staging migration certification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-staging-migration-plan-${{ inputs.target_ref }}-${{ github.run_id }}
+          path: ${{ env.STAGING_PLAN_ARTIFACT_PATH }}
+          if-no-files-found: error

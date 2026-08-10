@@ -6,10 +6,12 @@ import { createCertificationResult } from "@/lib/evidence/certification";
 import { buildStrictValidationEvidence, redactValidationEvidenceAllowlist } from "@/lib/evidence/validation-evidence";
 import { EVIDENCE_TYPES } from "@/lib/evidence/model";
 import { getOperationalRuntimeFoundation } from "@/lib/operational-runtime/certification";
+import { certifyOperationalRuntimeLive } from "@/lib/operational-runtime/live-certification";
 import { getAgentRuntimeMappings } from "@/lib/runtime-identity/agent-mappings";
 import { certifyAgentRuntimes } from "@/lib/runtime-identity/agent-certification";
 import { probeRuntimeIdentity } from "@/lib/runtime-identity/probe";
 import { resolveRuntimeIdentity } from "@/lib/runtime-identity/resolver";
+import { resolvePrimaryCompanyId } from "@/lib/julius/wiring";
 import {
   AIOS_WORKFORCE,
   AIOS_WORKFORCE_REGISTRY_VERSION,
@@ -18,6 +20,10 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+function isLowercaseSha40(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^[0-9a-f]{40}$/.test(value);
+}
 
 /**
  * Founder-only, read-only Evidence Layer certification.
@@ -41,9 +47,37 @@ export async function GET(request: Request) {
     : null;
   const inferenceProbeRequested = probeMode === "1" || probeMode === "workforce";
   const workforceProbeRequested = probeMode === "workforce";
+  const operationalProbeRequested = probeMode === "operational";
+  const companyId = await resolvePrimaryCompanyId();
   const runtimeIdentity = inferenceProbeRequested
     ? await probeRuntimeIdentity({ observedAt: now })
     : resolveRuntimeIdentity(process.env, now);
+  let operationalRuntimeLive = null;
+  if (operationalProbeRequested) {
+    const operationalProbeCompanyId = companyId;
+    const operationalProbeDeploymentSha = process.env.AIOS_DEPLOYMENT_SHA;
+    const operationalProbeDeploymentEnvironment = process.env.AIOS_DEPLOYMENT_ENVIRONMENT;
+
+    if (
+      !isLowercaseSha40(operationalProbeDeploymentSha)
+      || operationalProbeDeploymentEnvironment !== "production"
+      || !operationalProbeCompanyId
+      || operationalProbeCompanyId.trim().length === 0
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "operational_deployment_identity_unavailable" },
+        { status: 503 },
+      );
+    }
+
+    operationalRuntimeLive = await certifyOperationalRuntimeLive({
+      userId: user.id,
+      companyId: operationalProbeCompanyId,
+      deploymentEnvironment: operationalProbeDeploymentEnvironment,
+      deploymentSha: operationalProbeDeploymentSha,
+      observedAt: now,
+    });
+  }
   const workforceRuntime = workforceProbeRequested
     ? await certifyAgentRuntimes({
         providerIdentity: runtimeIdentity,
@@ -74,6 +108,8 @@ export async function GET(request: Request) {
       runtimeIdentity,
       inferenceProbeRequested,
       workforceProbeRequested,
+      operationalProbeRequested,
+      operationalRuntimeLive,
       workforceRuntimeSummary: workforceRuntime
         ? {
             agentCount: workforceRuntime.agentCount,

@@ -9,6 +9,8 @@ import {
   STAGING_PROJECT_REF,
   STAGING_USERNAME,
   MAX_PLAN_ATTEMPTS,
+  assertStagingPlanCertificationArtifact,
+  buildStagingPlanCertificationArtifact,
   assembleStagingDatabaseUri,
   classifyPlanAttemptFailure,
   encodeDatabasePassword,
@@ -233,7 +235,6 @@ describe("Supabase staging migration plan", () => {
     expect(workflow).toContain("retry_delay=$((2 ** attempt))");
     expect(workflow).toContain('printf \'staging_plan_failed code=%s attempts=%s\\n\'');
     expect(workflow).not.toMatch(/supabase(?:@[^ ]+)?\s+link|migration\s+up|db\s+(reset|seed)|--linked|az\s+containerapp|vercel\s+deploy|worker:social/i);
-    expect(workflow).not.toContain("upload-artifact");
     expect(workflow).not.toContain('printf "%s" "$database_uri"');
 
     const preflight = workflow.indexOf("Preflight trusted staging target and password");
@@ -259,9 +260,144 @@ describe("Supabase staging migration plan", () => {
     expect(workflow).toContain('current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"');
     expect(workflow).toContain('test "$control_sha" = "$current_main_sha"');
     expect(workflow).toContain("TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}");
-    expect(workflow.match(/sha256sum "\$validator"/g)).toHaveLength(4);
-    expect(workflow.match(/git -C "\$GITHUB_WORKSPACE\/control" rev-parse HEAD/g)).toHaveLength(4);
+    expect(workflow.match(/sha256sum "\$validator"/g)).toHaveLength(6);
+    expect(workflow.match(/git -C "\$GITHUB_WORKSPACE\/control" rev-parse HEAD/g)).toHaveLength(6);
     expect(workflow).toContain('test "$(git -C "$GITHUB_WORKSPACE/target" rev-parse HEAD)" = "$TARGET_REF"');
     expect(workflow).not.toContain('$GITHUB_WORKSPACE/target/scripts/ci/supabase-staging-plan.mjs');
+  });
+
+  it("builds, validates, and uploads an immutable safe staging certification artifact", async () => {
+    const workflow = await readFile(".github/workflows/supabase-staging-migration-plan.yml", "utf8");
+    expect(workflow).toContain('- name: Verify immutable target and trusted controls\n        id: target_validation');
+    expect(workflow).toContain('test "$migration_count" -gt 0');
+    expect(workflow).toContain("printf 'migration_count=%s\\n' \"$migration_count\" >>\"$GITHUB_OUTPUT\"");
+    expect(workflow).toContain("MIGRATION_COUNT: ${{ steps.target_validation.outputs.migration_count }}");
+    expect(workflow).not.toContain("steps.checkout_target.outputs.migration_count");
+    expect(workflow).toContain("Build immutable staging migration certification artifact");
+    expect(workflow).toContain("Validate staging migration certification artifact");
+    expect(workflow).toContain("Upload safe staging migration certification artifact");
+    expect(workflow).toContain("node \"$validator\" write-artifact");
+    expect(workflow).toContain("node \"$validator\" validate-artifact");
+    expect(workflow).toContain("actions/upload-artifact@v4");
+    expect(workflow).toContain("supabase-staging-migration-plan-${{ inputs.target_ref }}-${{ github.run_id }}");
+    expect(workflow).toContain("if-no-files-found: error");
+  });
+
+  it("builds a canonical immutable staging migration-plan certification artifact", () => {
+    const artifact = buildStagingPlanCertificationArtifact({
+      repository: "AIOS-HQ/aios-platform",
+      targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      environment: "staging",
+      result: "passed",
+      mode: "dry_run",
+      databaseChangesApplied: false,
+      completeHistory: true,
+      migrationCount: 58,
+      trustedControlSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      validatorSha256: "a".repeat(64),
+      runId: "123456789",
+      runAttempt: "1",
+      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/supabase-staging-migration-plan.yml@refs/heads/main",
+      verifiedAt: "2026-08-08T12:00:00.000Z",
+    });
+
+    expect(artifact).toMatchObject({
+      certification: "supabase-staging-migration-plan",
+      repository: "AIOS-HQ/aios-platform",
+      targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      environment: "staging",
+      result: "passed",
+      mode: "dry_run",
+      databaseChangesApplied: false,
+      completeHistory: true,
+      migrationCount: 58,
+    });
+    expect(assertStagingPlanCertificationArtifact(artifact, {
+      expectedTargetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+    })).toBe(true);
+  });
+
+  it("fails closed on repository/environment/result/target mismatches", () => {
+    const base = {
+      certification: "supabase-staging-migration-plan",
+      repository: "AIOS-HQ/aios-platform",
+      targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      environment: "staging",
+      result: "passed",
+      mode: "dry_run",
+      databaseChangesApplied: false,
+      completeHistory: true,
+      migrationCount: 58,
+      trustedControlSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      validatorSha256: "a".repeat(64),
+      workflowRun: { runId: "123", runAttempt: 1, workflowRef: "ref" },
+      verifiedAt: "2026-08-08T12:00:00.000Z",
+    };
+
+    expect(() => assertStagingPlanCertificationArtifact({ ...base, repository: "other/repo" })).toThrow(/repository_mismatch/);
+    expect(() => assertStagingPlanCertificationArtifact({ ...base, environment: "production" })).toThrow(/environment_mismatch/);
+    expect(() => assertStagingPlanCertificationArtifact({ ...base, result: "failed" })).toThrow(/result_mismatch/);
+    expect(() => assertStagingPlanCertificationArtifact({ ...base, targetSha: "deadbeef" })).toThrow(/target_sha_invalid/);
+    expect(() => assertStagingPlanCertificationArtifact(base, { expectedTargetSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" })).toThrow(/target_sha_mismatch/);
+  });
+
+  it("fails closed on migration count and control identity invalid values", () => {
+    expect(() =>
+      buildStagingPlanCertificationArtifact({
+        repository: "AIOS-HQ/aios-platform",
+        targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+        environment: "staging",
+        result: "passed",
+        mode: "dry_run",
+        databaseChangesApplied: false,
+        completeHistory: true,
+        migrationCount: 0,
+        trustedControlSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+        validatorSha256: "a".repeat(64),
+        runId: "123456",
+        runAttempt: "1",
+        workflowRef: "ref",
+        verifiedAt: "2026-08-08T12:00:00.000Z",
+      }),
+    ).toThrow(/migration_count_invalid/);
+
+    expect(() =>
+      buildStagingPlanCertificationArtifact({
+        repository: "AIOS-HQ/aios-platform",
+        targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+        environment: "staging",
+        result: "passed",
+        mode: "dry_run",
+        databaseChangesApplied: false,
+        completeHistory: true,
+        migrationCount: 58,
+        trustedControlSha: "bad",
+        validatorSha256: "short",
+        runId: "abc",
+        runAttempt: "x",
+        workflowRef: "",
+        verifiedAt: "not-a-time",
+      }),
+    ).toThrow();
+  });
+
+  it("fails closed on sensitive key/value presence", () => {
+    const base = {
+      certification: "supabase-staging-migration-plan",
+      repository: "AIOS-HQ/aios-platform",
+      targetSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      environment: "staging",
+      result: "passed",
+      mode: "dry_run",
+      databaseChangesApplied: false,
+      completeHistory: true,
+      migrationCount: 58,
+      trustedControlSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300",
+      validatorSha256: "a".repeat(64),
+      workflowRun: { runId: "123", runAttempt: 1, workflowRef: "ref" },
+      verifiedAt: "2026-08-08T12:00:00.000Z",
+    };
+    expect(() => assertStagingPlanCertificationArtifact({ ...base, db_url: "postgres://x" })).toThrow(/sensitive_key_rejected/);
+    expect(() => assertStagingPlanCertificationArtifact({ ...base, note: "postgresql://user:pass@host/db" })).toThrow(/sensitive_value_rejected/);
   });
 });
