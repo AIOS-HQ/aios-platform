@@ -55,7 +55,7 @@ type PromotionEvidenceWriteInput = {
 
 type PromotionEvidenceWriteResult = {
   request: PromotionRequestInsert;
-  decision: FounderDecisionInsert;
+  decision: FounderDecisionRow;
 };
 
 type HarmonyEvidenceWriteInput = {
@@ -64,12 +64,78 @@ type HarmonyEvidenceWriteInput = {
 
 type HarmonyEvidenceWriteResult = {
   request: PromotionRequestInsert;
-  decision: HarmonyDecisionInsert;
+  decision: HarmonyDecisionRow;
 };
 
 type AdminClient = NonNullable<ReturnType<typeof createAdminClient>>;
 
 type QueryResult<T> = { data: T | null; error: { code?: string; message?: string } | null };
+
+type FounderDecisionRow = Pick<
+  FounderDecisionInsert,
+  "decision_source" | "decision" | "actor_type" | "actor_id" | "evidence_id" | "decided_at" | "approved_at"
+>;
+
+type HarmonyDecisionRow = Pick<
+  HarmonyDecisionInsert,
+  "decision_source"
+  | "decision"
+  | "actor_type"
+  | "actor_id"
+  | "agent_id"
+  | "policy_version"
+  | "evidence_id"
+  | "decided_at"
+  | "approved_at"
+>;
+
+function isPromotionDecision(value: unknown): value is PromotionDecision {
+  return value === "approved" || value === "rejected";
+}
+
+function isFounderDecisionRow(value: unknown): value is FounderDecisionRow {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return (
+    row.decision_source === "founder"
+    && isPromotionDecision(row.decision)
+    && row.actor_type === "founder"
+    && typeof row.actor_id === "string"
+    && typeof row.evidence_id === "string"
+    && typeof row.decided_at === "string"
+    && (typeof row.approved_at === "string" || row.approved_at === null)
+  );
+}
+
+function isHarmonyDecisionRow(value: unknown): value is HarmonyDecisionRow {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return (
+    row.decision_source === "harmony"
+    && isPromotionDecision(row.decision)
+    && row.actor_type === null
+    && row.actor_id === null
+    && row.agent_id === "harmony"
+    && row.policy_version === HARMONY_POLICY_VERSION
+    && typeof row.evidence_id === "string"
+    && typeof row.decided_at === "string"
+    && (typeof row.approved_at === "string" || row.approved_at === null)
+  );
+}
+
+function normalizeFounderDecisionRow(row: unknown): FounderDecisionRow {
+  if (!isFounderDecisionRow(row)) {
+    throw new Error("promotion_decision_invalid_shape");
+  }
+  return row;
+}
+
+function normalizeHarmonyDecisionRow(row: unknown): HarmonyDecisionRow {
+  if (!isHarmonyDecisionRow(row)) {
+    throw new Error("harmony_decision_invalid_shape");
+  }
+  return row;
+}
 
 function stableFounderEvidenceId(input: { promotionRequestId: string; actorId: string; decision: PromotionDecision }) {
   const digest = createHash("sha256")
@@ -108,7 +174,7 @@ async function selectExistingFounderDecision(
 > {
   return client
     .from("production_promotion_decisions")
-    .select("decision_source,decision,actor_type,actor_id,evidence_id,decided_at,approved_at")
+    .select("promotion_request_id,decision_source,decision,actor_type,actor_id,agent_id,policy_version,evidence_id,decided_at,approved_at")
     .eq("promotion_request_id", promotionRequestId)
     .eq("decision_source", "founder")
     .maybeSingle();
@@ -135,7 +201,7 @@ async function selectExistingHarmonyDecision(
 > {
   return client
     .from("production_promotion_decisions")
-    .select("decision_source,decision,actor_type,actor_id,agent_id,policy_version,evidence_id,decided_at,approved_at")
+    .select("promotion_request_id,decision_source,decision,actor_type,actor_id,agent_id,policy_version,evidence_id,decided_at,approved_at")
     .eq("promotion_request_id", promotionRequestId)
     .eq("decision_source", "harmony")
     .maybeSingle();
@@ -249,7 +315,7 @@ export async function writeFounderPromotionEvidence(input: PromotionEvidenceWrit
   if (!decisionInsertResult.error && decisionInsertResult.data) {
     return {
       request: input.request,
-      decision: decisionInsertResult.data,
+      decision: normalizeFounderDecisionRow(decisionInsertResult.data),
     };
   }
 
@@ -262,7 +328,7 @@ export async function writeFounderPromotionEvidence(input: PromotionEvidenceWrit
     throw existingDecisionResult.error ?? new Error("promotion_decision_not_found_after_conflict");
   }
 
-  const existing = existingDecisionResult.data;
+  const existing = normalizeFounderDecisionRow(existingDecisionResult.data);
 
   if (existing.decision === "rejected" && input.decision === "approved") {
     throw new Error("promotion_decision_rejected_immutable");
@@ -313,7 +379,7 @@ export async function writeHarmonyPromotionDecision(input: HarmonyEvidenceWriteI
   if (!decisionInsertResult.error && decisionInsertResult.data) {
     return {
       request,
-      decision: decisionInsertResult.data,
+      decision: normalizeHarmonyDecisionRow(decisionInsertResult.data),
     };
   }
 
@@ -326,7 +392,7 @@ export async function writeHarmonyPromotionDecision(input: HarmonyEvidenceWriteI
     throw existingDecisionResult.error ?? new Error("harmony_decision_not_found_after_conflict");
   }
 
-  const existing = existingDecisionResult.data;
+  const existing = normalizeHarmonyDecisionRow(existingDecisionResult.data);
   if (
     existing.decision !== decision ||
     existing.agent_id !== "harmony" ||

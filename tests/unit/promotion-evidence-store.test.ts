@@ -8,8 +8,8 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 type DbError = { code?: string; message?: string };
 
-function makeBuilder(queue: Array<{ data: any; error: DbError | null }>) {
-  const chain: any = {
+function makeBuilder(queue: Array<{ data: unknown; error: DbError | null }>) {
+  const chain: Record<string, unknown> = {
     select: vi.fn(() => chain),
     insert: vi.fn(() => chain),
     eq: vi.fn(() => chain),
@@ -19,7 +19,7 @@ function makeBuilder(queue: Array<{ data: any; error: DbError | null }>) {
   return chain;
 }
 
-function makeAdmin(queueByTable: Record<string, Array<{ data: any; error: DbError | null }>>) {
+function makeAdmin(queueByTable: Record<string, Array<{ data: unknown; error: DbError | null }>>) {
   return {
     from: vi.fn((table: string) => makeBuilder(queueByTable[table] ?? [])),
   };
@@ -73,7 +73,7 @@ describe("writeFounderPromotionEvidence", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeFounderPromotionEvidence } = await import("@/lib/promotion/evidence-store");
     const result = await writeFounderPromotionEvidence(baseInput);
@@ -108,7 +108,7 @@ describe("writeFounderPromotionEvidence", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeFounderPromotionEvidence } = await import("@/lib/promotion/evidence-store");
     const result = await writeFounderPromotionEvidence({ ...baseInput, decision: "rejected" });
@@ -144,7 +144,7 @@ describe("writeFounderPromotionEvidence", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeFounderPromotionEvidence } = await import("@/lib/promotion/evidence-store");
     const result = await writeFounderPromotionEvidence(baseInput);
@@ -163,8 +163,12 @@ describe("writeFounderPromotionEvidence", () => {
         { data: null, error: { code: "23505" } },
         {
           data: {
+            decision_source: "founder",
             decision: "rejected",
+            actor_type: "founder",
             actor_id: baseInput.actorId,
+            evidence_id: "persisted-rejected-evidence",
+            decided_at: "2026-08-08T12:00:00.000Z",
             approved_at: null,
           },
           error: null,
@@ -172,7 +176,7 @@ describe("writeFounderPromotionEvidence", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeFounderPromotionEvidence } = await import("@/lib/promotion/evidence-store");
 
@@ -208,7 +212,7 @@ describe("writeHarmonyPromotionDecision", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { HARMONY_POLICY_VERSION, writeHarmonyPromotionDecision } = await import("@/lib/promotion/evidence-store");
     const result = await writeHarmonyPromotionDecision({ promotionRequestId: baseRequest.promotion_request_id });
@@ -245,7 +249,7 @@ describe("writeHarmonyPromotionDecision", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeHarmonyPromotionDecision } = await import("@/lib/promotion/evidence-store");
     const result = await writeHarmonyPromotionDecision({ promotionRequestId: baseRequest.promotion_request_id });
@@ -276,7 +280,7 @@ describe("writeHarmonyPromotionDecision", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeHarmonyPromotionDecision } = await import("@/lib/promotion/evidence-store");
     const result = await writeHarmonyPromotionDecision({ promotionRequestId: baseRequest.promotion_request_id });
@@ -306,7 +310,7 @@ describe("writeHarmonyPromotionDecision", () => {
       ],
     });
 
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { writeHarmonyPromotionDecision } = await import("@/lib/promotion/evidence-store");
     const result = await writeHarmonyPromotionDecision({ promotionRequestId: baseRequest.promotion_request_id });

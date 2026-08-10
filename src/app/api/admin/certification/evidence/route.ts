@@ -49,33 +49,35 @@ export async function GET(request: Request) {
   const workforceProbeRequested = probeMode === "workforce";
   const operationalProbeRequested = probeMode === "operational";
   const companyId = await resolvePrimaryCompanyId();
-  const operationalDeploymentSha = process.env.AIOS_DEPLOYMENT_SHA;
-  const operationalDeploymentEnvironment = process.env.AIOS_DEPLOYMENT_ENVIRONMENT;
+  const runtimeIdentity = inferenceProbeRequested
+    ? await probeRuntimeIdentity({ observedAt: now })
+    : resolveRuntimeIdentity(process.env, now);
+  let operationalRuntimeLive = null;
   if (operationalProbeRequested) {
+    const operationalProbeCompanyId = companyId;
+    const operationalProbeDeploymentSha = process.env.AIOS_DEPLOYMENT_SHA;
+    const operationalProbeDeploymentEnvironment = process.env.AIOS_DEPLOYMENT_ENVIRONMENT;
+
     if (
-      !isLowercaseSha40(operationalDeploymentSha)
-      || operationalDeploymentEnvironment !== "production"
-      || !companyId
-      || companyId.trim().length === 0
+      !isLowercaseSha40(operationalProbeDeploymentSha)
+      || operationalProbeDeploymentEnvironment !== "production"
+      || !operationalProbeCompanyId
+      || operationalProbeCompanyId.trim().length === 0
     ) {
       return NextResponse.json(
         { ok: false, error: "operational_deployment_identity_unavailable" },
         { status: 503 },
       );
     }
+
+    operationalRuntimeLive = await certifyOperationalRuntimeLive({
+      userId: user.id,
+      companyId: operationalProbeCompanyId,
+      deploymentEnvironment: operationalProbeDeploymentEnvironment,
+      deploymentSha: operationalProbeDeploymentSha,
+      observedAt: now,
+    });
   }
-  const runtimeIdentity = inferenceProbeRequested
-    ? await probeRuntimeIdentity({ observedAt: now })
-    : resolveRuntimeIdentity(process.env, now);
-  const operationalRuntimeLive = operationalProbeRequested
-    ? await certifyOperationalRuntimeLive({
-        userId: user.id,
-        companyId,
-        deploymentEnvironment: operationalDeploymentEnvironment,
-        deploymentSha: operationalDeploymentSha,
-        observedAt: now,
-      })
-    : null;
   const workforceRuntime = workforceProbeRequested
     ? await certifyAgentRuntimes({
         providerIdentity: runtimeIdentity,

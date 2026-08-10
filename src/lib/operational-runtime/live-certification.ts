@@ -263,7 +263,6 @@ function normalizeProbeForEvidence(component: OperationalRuntimeComponent, probe
       observedAt: probe.observedAt,
       observedBy: probe.observedBy,
       confidence: probe.confidence,
-      latencyBucket: probe.latencyBucket,
       liveProbeAttempted: probe.liveProbeAttempted,
     };
   }
@@ -290,7 +289,6 @@ async function executeMeasuredProbe(
   input: LiveCertificationInput,
   probeFn: (ctx: LiveCertificationInput) => Promise<LiveProbeResult>,
 ): Promise<LiveProbeResult> {
-  const startedAt = Date.now();
   try {
     const probe = await probeFn(input);
     return probe;

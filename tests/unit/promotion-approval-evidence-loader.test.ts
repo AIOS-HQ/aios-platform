@@ -9,8 +9,8 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 type DbError = { code?: string; message?: string };
 
-function makeBuilder(queue: Array<{ data: any; error: DbError | null }>) {
-  const chain: any = {
+function makeBuilder(queue: Array<{ data: unknown; error: DbError | null }>) {
+  const chain: Record<string, unknown> = {
     select: vi.fn(() => chain),
     eq: vi.fn(() => chain),
     single: vi.fn(async () => queue.shift() ?? { data: null, error: { message: "empty_queue" } }),
@@ -18,7 +18,7 @@ function makeBuilder(queue: Array<{ data: any; error: DbError | null }>) {
   return chain;
 }
 
-function makeAdmin(queueByTable: Record<string, Array<{ data: any; error: DbError | null }>>) {
+function makeAdmin(queueByTable: Record<string, Array<{ data: unknown; error: DbError | null }>>) {
   return {
     from: vi.fn((table: string) => makeBuilder(queueByTable[table] ?? [])),
   };
@@ -68,7 +68,7 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
       production_promotion_requests: [{ data: requestRow, error: null }],
       production_promotion_decisions: [{ data: founderRow, error: null }, { data: harmonyRow, error: null }],
     });
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
     const mapped = await loadPersistedPromotionApprovalEvidence(requestRow.promotion_request_id);
@@ -93,7 +93,7 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
       production_promotion_requests: [{ data: requestRow, error: null }],
       production_promotion_decisions: [{ data: null, error: { code: "PGRST116" } }],
     });
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
     await expect(loadPersistedPromotionApprovalEvidence(requestRow.promotion_request_id)).rejects.toThrow("founder_decision_missing");
@@ -106,7 +106,7 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
         { data: { ...founderRow, decision: "rejected", approved_at: null }, error: null },
       ],
     });
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
     await expect(loadPersistedPromotionApprovalEvidence(requestRow.promotion_request_id)).rejects.toThrow("founder_decision_invalid");
@@ -120,7 +120,7 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
         { data: null, error: { code: "PGRST116" } },
       ],
     });
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
     await expect(loadPersistedPromotionApprovalEvidence(requestRow.promotion_request_id)).rejects.toThrow("harmony_decision_missing");
@@ -134,7 +134,7 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
         { data: { ...harmonyRow, decision: "rejected", approved_at: null }, error: null },
       ],
     });
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
     await expect(loadPersistedPromotionApprovalEvidence(requestRow.promotion_request_id)).rejects.toThrow("harmony_decision_invalid");
@@ -157,7 +157,7 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
       production_promotion_requests: [{ data: requestRow, error: null }],
       production_promotion_decisions: [{ data: customFounder, error: null }, { data: customHarmony, error: null }],
     });
-    createAdminClientMock.mockReturnValue(admin as any);
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
 
     const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
     const mapped = await loadPersistedPromotionApprovalEvidence(requestRow.promotion_request_id);

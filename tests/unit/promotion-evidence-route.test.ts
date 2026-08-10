@@ -47,12 +47,18 @@ describe("admin promotion evidence POST route", () => {
     authState.user = null;
     authState.admin = false;
     writeFounderPromotionEvidence.mockResolvedValue({
+      request: {
+        ...validBody,
+        created_by: "founder-1",
+      },
       decision: {
         promotion_request_id: "req-1",
         decision_source: "founder",
         decision: "approved",
         actor_type: "founder",
         actor_id: "founder-1",
+        agent_id: null,
+        policy_version: null,
         evidence_id: "evidence-1",
         decided_at: "2026-08-08T00:00:00.000Z",
         approved_at: "2026-08-08T00:00:00.000Z",
