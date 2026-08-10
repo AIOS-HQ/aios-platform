@@ -18,6 +18,25 @@ describe("production deployment provenance producer wiring", () => {
     expect(checkoutTargetIndex).toBeGreaterThan(copyIndex);
   });
 
+  it("preserves trusted M5E controls before target checkout and verifies hashes after", () => {
+    const preserveIndex = workflow.indexOf("- name: Preserve trusted production post-live certification controls");
+    const checkoutTargetIndex = workflow.indexOf("- name: Checkout exact deployment target SHA");
+    const verifyHashIndex = workflow.indexOf("- name: Verify trusted production post-live certification control hashes");
+    expect(preserveIndex).toBeGreaterThan(-1);
+    expect(checkoutTargetIndex).toBeGreaterThan(preserveIndex);
+    expect(verifyHashIndex).toBeGreaterThan(checkoutTargetIndex);
+
+    expect(workflow).toContain('cp scripts/ci/production-post-live-probe.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs"');
+    expect(workflow).toContain('cp scripts/ci/production-post-live-evidence.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs"');
+    expect(workflow).toContain('cp package-lock.json "$TRUSTED_CERT_DIR/package-lock.json"');
+    expect(workflow).toContain('sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs" > "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"');
+    expect(workflow).toContain('sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs" > "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"');
+    expect(workflow).toContain('sha256sum "$TRUSTED_CERT_DIR/package-lock.json" > "$TRUSTED_CERT_DIR/package-lock.json.sha256"');
+    expect(workflow).toContain('sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"');
+    expect(workflow).toContain('sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"');
+    expect(workflow).toContain('sha256sum -c "$TRUSTED_CERT_DIR/package-lock.json.sha256"');
+  });
+
   it("keeps authorization ordering with azure side effects after M5C-1 guard", () => {
     const guardIndex = workflow.indexOf("live-promotion-guard.mjs validate live-promotion-guard-input.json");
     const azureLoginIndex = workflow.indexOf("- name: Azure Login");
@@ -97,13 +116,14 @@ describe("production deployment provenance producer wiring", () => {
 
   it("runs authenticated production post-live probe with secrets only and no bypass", () => {
     expect(workflow).toContain('- name: Install trusted certification dependencies');
+    expect(workflow).toContain('cd "$TRUSTED_CERT_DIR"');
     expect(workflow).toContain('npm ci');
     expect(workflow).toContain('npx --no-install playwright install --with-deps chromium');
     expect(workflow).toContain('- name: Execute authenticated production post-live probe');
     expect(workflow).toContain('AIOS_PRODUCTION_CERT_FOUNDER_EMAIL');
     expect(workflow).toContain('AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD');
     expect(workflow).toContain('production_cert_credentials_missing');
-    expect(workflow).toContain('node scripts/ci/production-post-live-probe.mjs probe');
+    expect(workflow).toContain('node "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs" probe');
     expect(workflow).toContain('production-post-live-probe-safe.json');
     expect(workflow).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
     expect(workflow).not.toContain('authorization: bearer');
@@ -116,11 +136,16 @@ describe("production deployment provenance producer wiring", () => {
     expect(workflow).toContain('operationalRuntimeSummary: postLiveProbe.operationalRuntimeSummary');
     expect(workflow).toContain('operationalRuntimeFoundation: postLiveProbe.operationalRuntimeFoundation');
     expect(workflow).toContain('- name: Validate canonical production post-live evidence (M5E-1)');
-    expect(workflow).toContain('node scripts/ci/production-post-live-evidence.mjs validate');
+    expect(workflow).toContain('node "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs" validate');
     expect(workflow).toContain('production-post-live-evidence-input.json');
     expect(workflow).toContain('production-post-live-evidence.json');
     expect(workflow).toContain('deployment_evidence_id_missing');
     expect(workflow).toContain('- name: Upload immutable production post-live evidence artifact');
     expect(workflow).toContain('production-post-live-evidence-${{ inputs.target_sha }}-${{ github.run_id }}');
+  });
+
+  it("never executes certification controls from target checkout scripts path", () => {
+    expect(workflow).not.toContain('node scripts/ci/production-post-live-probe.mjs probe');
+    expect(workflow).not.toContain('node scripts/ci/production-post-live-evidence.mjs validate');
   });
 });

@@ -251,6 +251,21 @@ jobs:
           set -euo pipefail
           cp scripts/ci/production-deployment-provenance.mjs "$RUNNER_TEMP/production-deployment-provenance.mjs"
 
+      - name: Preserve trusted production post-live certification controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          TRUSTED_CERT_DIR="$RUNNER_TEMP/trusted-production-certification-controls"
+          mkdir -p "$TRUSTED_CERT_DIR/scripts/ci"
+          cp scripts/ci/production-post-live-probe.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs"
+          cp scripts/ci/production-post-live-evidence.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs"
+          cp package.json "$TRUSTED_CERT_DIR/package.json"
+          cp package-lock.json "$TRUSTED_CERT_DIR/package-lock.json"
+          sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs" > "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"
+          sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs" > "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"
+          sha256sum "$TRUSTED_CERT_DIR/package-lock.json" > "$TRUSTED_CERT_DIR/package-lock.json.sha256"
+          echo "TRUSTED_CERT_DIR=$TRUSTED_CERT_DIR" >> "$GITHUB_ENV"
+
       - name: Checkout exact deployment target SHA
         uses: actions/checkout@v4
         with:
@@ -266,6 +281,14 @@ jobs:
             echo "deployment_checkout_sha_mismatch" >&2
             exit 1
           fi
+
+      - name: Verify trusted production post-live certification control hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"
+          sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"
+          sha256sum -c "$TRUSTED_CERT_DIR/package-lock.json.sha256"
 
       - name: Azure Login
         uses: azure/login@v2
@@ -470,6 +493,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cd "$TRUSTED_CERT_DIR"
           npm ci
           npx --no-install playwright install --with-deps chromium
 
@@ -486,7 +510,7 @@ jobs:
             exit 1
           fi
 
-          node scripts/ci/production-post-live-probe.mjs probe \
+          node "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs" probe \
             "$PRODUCTION_FQDN" \
             "$TARGET_SHA" \
             > production-post-live-probe-safe.json
@@ -536,7 +560,7 @@ jobs:
             exit 1
           fi
 
-          node scripts/ci/production-post-live-evidence.mjs validate \
+          node "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs" validate \
             production-post-live-evidence-input.json \
             "$TARGET_SHA" \
             "$deployment_evidence_id" \
