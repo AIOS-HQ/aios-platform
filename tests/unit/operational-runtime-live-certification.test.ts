@@ -5,6 +5,7 @@ import {
   type LiveProbeResult,
 } from "@/lib/operational-runtime/live-certification";
 import { OPERATIONAL_RUNTIME_COMPONENTS } from "@/lib/operational-runtime/certification";
+import type { RuntimeLatencyBucket } from "@/lib/runtime-identity/model";
 
 const SHA = "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300";
 const OBSERVED_AT = new Date("2026-08-09T12:00:00.000Z");
@@ -18,7 +19,6 @@ function okProbe(source: string): LiveProbeResult {
     observedAt: OBSERVED_AT,
     observedBy: source,
     confidence: 0.95,
-    latencyBucket: "under_1s",
     liveProbeAttempted: true,
   };
 }
@@ -69,6 +69,9 @@ describe("operational runtime live certification provider", () => {
     expect(result.certifiable).toBe(true);
     expect(result.foundation.every((entry) => entry.details.liveProbeAttempted === true)).toBe(true);
     expect(result.foundation.every((entry) => ["live_runtime_proof", "authenticated_runtime_proof"].includes(entry.evidenceType))).toBe(true);
+    const canonicalBuckets: NonNullable<RuntimeLatencyBucket>[] = ["under_1s", "1s_to_3s", "3s_to_10s", "over_10s"];
+    expect(result.foundation.every((entry) => typeof entry.latencyBucket === "string" && entry.latencyBucket.length > 0)).toBe(true);
+    expect(result.foundation.every((entry) => canonicalBuckets.includes(entry.latencyBucket))).toBe(true);
   });
 
   it("binds all six components to a single runtimeConditionId and deterministic outcomeId", async () => {
@@ -85,6 +88,30 @@ describe("operational runtime live certification provider", () => {
     expect(ids.size).toBe(1);
     expect(first.runtimeCondition.conditionId).toBe([...ids][0]);
     expect(first.outcomeId).toBe(second.outcomeId);
+  });
+
+  it("keeps deterministic outcomeId unchanged by latency variation", async () => {
+    const slow = adapters({
+      probeHarmonyOrchestration: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        return okProbe("harmony");
+      },
+      probeJuliusRetrieval: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return okProbe("julius");
+      },
+    });
+
+    const baseline = await certifyOperationalRuntimeLive(
+      { userId: "founder-1", deploymentEnvironment: "production", deploymentSha: SHA, observedAt: OBSERVED_AT },
+      adapters(),
+    );
+    const delayed = await certifyOperationalRuntimeLive(
+      { userId: "founder-1", deploymentEnvironment: "production", deploymentSha: SHA, observedAt: OBSERVED_AT },
+      slow,
+    );
+
+    expect(delayed.outcomeId).toBe(baseline.outcomeId);
   });
 
   it("fails closed for failed/degraded/unknown/unavailable/blocked component outcomes", async () => {
@@ -116,6 +143,7 @@ describe("operational runtime live certification provider", () => {
 
     const approval = result.foundation.find((entry) => entry.component === "approval_runtime");
     expect(approval?.status).toBe("unknown");
+    expect(approval?.latencyBucket).toBeTypeOf("string");
     expect(result.certifiable).toBe(false);
   });
 

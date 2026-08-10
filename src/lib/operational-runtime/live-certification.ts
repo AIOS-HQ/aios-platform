@@ -17,6 +17,7 @@ import { listApprovalsUnified } from "@/lib/data/os/approvals";
 import { runSupabaseDiagnostics } from "@/lib/integrations/clients/supabase-diagnostics";
 import { createClient } from "@/lib/supabase/server";
 import { resolveRuntimeIdentity } from "@/lib/runtime-identity/resolver";
+import type { RuntimeLatencyBucket } from "@/lib/runtime-identity/model";
 
 export type LiveProbeResult = {
   status: "healthy" | "degraded" | "blocked" | "unavailable" | "unknown";
@@ -26,9 +27,21 @@ export type LiveProbeResult = {
   observedAt?: Date;
   observedBy: string;
   confidence?: number;
-  latencyBucket?: string | null;
   liveProbeAttempted: boolean;
 };
+
+function toCanonicalLatencyBucket(elapsedMs: number): NonNullable<RuntimeLatencyBucket> {
+  if (elapsedMs < 1000) {
+    return "under_1s";
+  }
+  if (elapsedMs < 3000) {
+    return "1s_to_3s";
+  }
+  if (elapsedMs < 10000) {
+    return "3s_to_10s";
+  }
+  return "over_10s";
+}
 
 export type LiveCertificationInput = {
   userId: string;
@@ -62,7 +75,7 @@ export type OperationalRuntimeLiveCertificationResult = {
   runtimeCondition: RuntimeConditionSnapshot;
   outcomeId: string;
   summary: LiveCertificationSummary;
-  foundation: OperationalRuntimeCertification[];
+  foundation: (OperationalRuntimeCertification & { latencyBucket: NonNullable<RuntimeLatencyBucket> })[];
   certifiable: boolean;
 };
 
@@ -95,7 +108,6 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
         observedAt,
         observedBy: PROBE_OBSERVED_BY[component],
         confidence: plan.phases.length > 0 ? 0.85 : 0.5,
-        latencyBucket: null,
         liveProbeAttempted: true,
       };
     }
@@ -111,8 +123,7 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
           observedAt,
           observedBy: PROBE_OBSERVED_BY[component],
           confidence: 0,
-          latencyBucket: null,
-          liveProbeAttempted: false,
+            liveProbeAttempted: false,
         };
       }
 
@@ -133,7 +144,6 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
         observedAt,
         observedBy: PROBE_OBSERVED_BY[component],
         confidence: semanticHit ? 0.85 : 0.5,
-        latencyBucket: null,
         liveProbeAttempted: true,
       };
     }
@@ -149,8 +159,7 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
           observedAt,
           observedBy: PROBE_OBSERVED_BY[component],
           confidence: 0.4,
-          latencyBucket: null,
-          liveProbeAttempted: true,
+            liveProbeAttempted: true,
         };
       }
       const hasFailed = rows.some((row) => row.state === "needs_reauth" || row.state === "setup_required" || row.state === "unknown");
@@ -163,7 +172,6 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
         observedAt,
         observedBy: PROBE_OBSERVED_BY[component],
         confidence: hasFailed ? 0.6 : 0.9,
-        latencyBucket: null,
         liveProbeAttempted: true,
       };
     }
@@ -178,7 +186,6 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
         observedAt,
         observedBy: PROBE_OBSERVED_BY[component],
         confidence: 0.85,
-        latencyBucket: null,
         liveProbeAttempted: true,
       };
     }
@@ -203,8 +210,7 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
           observedAt,
           observedBy: PROBE_OBSERVED_BY[component],
           confidence: 0.5,
-          latencyBucket: null,
-          liveProbeAttempted: true,
+            liveProbeAttempted: true,
         };
       }
 
@@ -216,7 +222,6 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
         observedAt,
         observedBy: PROBE_OBSERVED_BY[component],
         confidence: 0.9,
-        latencyBucket: null,
         liveProbeAttempted: true,
       };
     }
@@ -230,7 +235,6 @@ function defaultProbe(component: OperationalRuntimeComponent): (input: LiveCerti
       observedAt,
       observedBy: PROBE_OBSERVED_BY[component],
       confidence: summary.status === "healthy" ? 0.9 : 0.6,
-      latencyBucket: null,
       liveProbeAttempted: true,
     };
   };
@@ -277,9 +281,23 @@ function fallbackProbe(component: OperationalRuntimeComponent, observedAt: Date,
     observedAt,
     observedBy: PROBE_OBSERVED_BY[component],
     confidence: 0,
-    latencyBucket: null,
     liveProbeAttempted: false,
   };
+}
+
+async function executeMeasuredProbe(
+  component: OperationalRuntimeComponent,
+  input: LiveCertificationInput,
+  probeFn: (ctx: LiveCertificationInput) => Promise<LiveProbeResult>,
+): Promise<LiveProbeResult> {
+  const startedAt = Date.now();
+  try {
+    const probe = await probeFn(input);
+    return probe;
+  } catch (error) {
+    const fallback = fallbackProbe(component, input.observedAt ?? new Date(), error);
+    return fallback;
+  }
 }
 
 export async function certifyOperationalRuntimeLive(
@@ -306,7 +324,7 @@ export async function certifyOperationalRuntimeLive(
   };
 
   const seen = new Set<string>();
-  const foundation: OperationalRuntimeCertification[] = [];
+  const foundation: (OperationalRuntimeCertification & { latencyBucket: NonNullable<RuntimeLatencyBucket> })[] = [];
 
   for (const component of OPERATIONAL_RUNTIME_COMPONENTS) {
     if (seen.has(component)) {
@@ -314,16 +332,13 @@ export async function certifyOperationalRuntimeLive(
     }
     seen.add(component);
 
-    let rawProbe: LiveProbeResult;
-    try {
-      rawProbe = await adapterMap[component](input);
-    } catch (error) {
-      rawProbe = fallbackProbe(component, observedAt, error);
-    }
+    const probeStart = Date.now();
+    const rawProbe = await executeMeasuredProbe(component, input, adapterMap[component]);
+    const measuredLatencyBucket = toCanonicalLatencyBucket(Math.max(0, Date.now() - probeStart));
 
     const probe = normalizeProbeForEvidence(component, rawProbe);
 
-    foundation.push(createOperationalRuntimeCertification({
+    const certification = createOperationalRuntimeCertification({
       component,
       status: probe.status,
       evidenceType: probe.evidenceType,
@@ -335,7 +350,12 @@ export async function certifyOperationalRuntimeLive(
       runtimeConditionId: runtimeCondition.conditionId,
       safeErrorCode: probe.safeErrorCode ?? null,
       safeMessage: probe.safeMessage,
-    }));
+    });
+
+    foundation.push({
+      ...certification,
+      latencyBucket: measuredLatencyBucket,
+    });
   }
 
   if (foundation.length !== OPERATIONAL_RUNTIME_COMPONENTS.length) {
