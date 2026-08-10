@@ -268,11 +268,12 @@ function normalizeProbeForEvidence(component: OperationalRuntimeComponent, probe
 }
 
 function fallbackProbe(component: OperationalRuntimeComponent, observedAt: Date, error: unknown): LiveProbeResult {
+  void error;
   return {
     status: "unknown",
     evidenceType: "unknown",
-    safeMessage: `${component}_probe_unavailable`,
-    safeErrorCode: error instanceof Error ? `probe_error:${error.message}` : "probe_error:unknown",
+    safeMessage: `${component}_probe_execution_failed`,
+    safeErrorCode: "probe_execution_failed",
     observedAt,
     observedBy: PROBE_OBSERVED_BY[component],
     confidence: 0,

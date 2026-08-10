@@ -119,6 +119,25 @@ describe("operational runtime live certification provider", () => {
     expect(result.certifiable).toBe(false);
   });
 
+  it("thrown probe errors with secret-like content are never copied into evidence", async () => {
+    const secretError = "Bearer sk-secret-token password=hunter2 url=https://db.example.internal";
+    const result = await certifyOperationalRuntimeLive(
+      { userId: "u", deploymentEnvironment: "production", deploymentSha: SHA, observedAt: OBSERVED_AT },
+      adapters({
+        probeApprovalRuntime: async () => {
+          throw new Error(secretError);
+        },
+      }),
+    );
+
+    const serialized = JSON.stringify(result).toLowerCase();
+    expect(serialized).not.toContain("sk-secret-token");
+    expect(serialized).not.toContain("hunter2");
+    expect(serialized).not.toContain("db.example.internal");
+    expect(serialized).not.toContain("bearer");
+    expect(serialized).not.toContain("password");
+  });
+
   it("configuration/source-only healthy claims are rejected", async () => {
     const result = await certifyOperationalRuntimeLive({ userId: "u", deploymentEnvironment: "production", deploymentSha: SHA, observedAt: OBSERVED_AT }, adapters({
       probeJuliusRetrieval: async () => ({
