@@ -327,17 +327,28 @@ export async function discoverPreviewDeployment({
   repository = APPROVED_REPOSITORY,
   prNumber,
   expectedHeadSha,
+  trustedControlSha,
   token,
   fetchImpl = fetch,
 }) {
   if (repository !== APPROVED_REPOSITORY) fail("unapproved_repository");
   if (!Number.isInteger(prNumber) || prNumber < 1) fail("invalid_pr_number");
   const expected = validateExpectedHeadSha(expectedHeadSha);
+  const trustedMain = validateExpectedHeadSha(trustedControlSha ?? "");
   if (typeof token !== "string" || token.length === 0) fail("missing_github_token");
   const pull = await githubJson(`/repos/${repository}/pulls/${prNumber}`, token, fetchImpl);
-  if (pull.state !== "open") fail("pr_not_open");
+  const isOpen = pull.state === "open";
+  const isMerged = pull.state === "closed" && pull.merged === true;
+  if (!isOpen && !isMerged) fail("pr_not_open_or_merged");
   if (pull.head?.sha !== expected) fail("stale_pr_head_sha");
   if (pull.head?.repo?.full_name !== repository) fail("untrusted_pr_head_repository");
+
+  if (isMerged) {
+    const compare = await githubJson(`/repos/${repository}/compare/${expected}...${trustedMain}`, token, fetchImpl);
+    if (compare.status !== "ahead" && compare.status !== "identical") {
+      fail("merged_pr_head_not_in_trusted_main_history");
+    }
+  }
 
   const deployments = await githubJson(
     `/repos/${repository}/deployments?sha=${expected}&per_page=100`,
@@ -399,6 +410,7 @@ async function main() {
       repository: process.env.GITHUB_REPOSITORY,
       prNumber: Number(process.env.PR_NUMBER),
       expectedHeadSha: process.env.EXPECTED_HEAD_SHA,
+      trustedControlSha: process.env.TRUSTED_CONTROL_SHA,
       token: process.env.GITHUB_TOKEN,
     });
     if (!process.env.GITHUB_OUTPUT) fail("github_output_unavailable");
