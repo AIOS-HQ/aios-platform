@@ -72,7 +72,15 @@ function founderEvidence(overrides: Record<string, unknown> = {}) {
       component: "approval_runtime",
       status: "healthy",
       evidenceType: "authenticated_runtime_proof",
-      observations: [{ repository: "AIOS-HQ/aios-platform", commitSha: HEAD_SHA, environment: "preview" }],
+      details: {
+        deployment: {
+          commitSha: HEAD_SHA,
+          environment: "preview",
+          buildTimestamp: null,
+          requestTimestamp: "2026-07-23T12:00:00.000Z",
+          vercelDeploymentId: "dpl_founder_evidence",
+        },
+      },
     },
   };
   return {
@@ -347,11 +355,19 @@ describe("operational Preview live certification", () => {
           component: "approval_runtime",
           status: "healthy",
           evidenceType: "authenticated_runtime_proof",
-          observations: [{ repository: "AIOS-HQ/aios-platform", commitSha: "b".repeat(40), environment: "preview" }],
+          details: {
+            deployment: {
+              commitSha: "b".repeat(40),
+              environment: "preview",
+              buildTimestamp: null,
+              requestTimestamp: "2026-07-23T12:00:00.000Z",
+              vercelDeploymentId: "dpl_wrong_sha",
+            },
+          },
         },
       }),
       HEAD_SHA,
-    )).toThrowError("founder_evidence_target_not_found");
+    )).toThrowError("stale_deployment_sha");
   });
 
   it("does not require session-diagnostic endpoint", async () => {

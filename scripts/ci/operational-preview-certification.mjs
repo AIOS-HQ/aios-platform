@@ -139,19 +139,10 @@ export function validateFounderEvidence(payload, expectedHeadSha) {
   }
   if (certification.status !== "healthy") fail("founder_evidence_not_healthy");
 
-  const observations = certification.observations;
-  if (!Array.isArray(observations) || observations.length < 1) {
-    fail("founder_evidence_missing_observations");
+  if (!certification.details || typeof certification.details !== "object" || Array.isArray(certification.details)) {
+    fail("founder_evidence_missing_details");
   }
-  const matchingObservation = observations.some((observation) => (
-    observation
-    && typeof observation === "object"
-    && !Array.isArray(observation)
-    && observation.repository === APPROVED_REPOSITORY
-    && observation.commitSha === expectedHeadSha
-    && observation.environment === "preview"
-  ));
-  if (!matchingObservation) fail("founder_evidence_target_not_found");
+  validateDeploymentIdentity(certification.details.deployment, expectedHeadSha);
 
   assertNoSensitiveKeys(payload);
   return certification;
