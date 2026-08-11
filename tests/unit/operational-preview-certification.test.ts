@@ -12,6 +12,7 @@ import {
   validatePreviewCredentials,
   validatePreviewUrl,
   validateSessionDiagnostic,
+  validateVercelTrustedOidcToken,
 } from "../../scripts/ci/operational-preview-certification.mjs";
 
 const HEAD_SHA = "a".repeat(40);
@@ -98,6 +99,7 @@ function fakeBrowser(options: {
   compactPayload?: unknown;
 } = {}) {
   const filledSelectors: string[] = [];
+  let newContextOptions: unknown = null;
   let currentUrl = `${PREVIEW_URL}login`;
   const page = {
     goto: async () => {
@@ -129,7 +131,13 @@ function fakeBrowser(options: {
   };
   return {
     filledSelectors,
-    value: { newContext: async () => context },
+    getNewContextOptions: () => newContextOptions,
+    value: {
+      newContext: async (options: unknown) => {
+        newContextOptions = options;
+        return context;
+      },
+    },
   };
 }
 
@@ -252,6 +260,7 @@ describe("operational Preview live certification", () => {
   it("fails closed when dedicated credentials are missing", () => {
     expect(() => validatePreviewCredentials("", "password")).toThrowError("missing_preview_credentials");
     expect(() => validatePreviewCredentials("preview@example.invalid", "")).toThrowError("missing_preview_credentials");
+    expect(() => validateVercelTrustedOidcToken("")).toThrowError("missing_vercel_trusted_oidc_token");
   });
 
   it("performs the complete successful login and certification flow through browser boundaries", async () => {
@@ -263,7 +272,13 @@ describe("operational Preview live certification", () => {
       prNumber: 448,
       email: "preview@example.invalid",
       password: "test-only-password",
+      vercelTrustedOidcToken: "oidc-token",
       verifiedAt: "2026-07-23T12:00:00.000Z",
+    });
+    expect(browser.getNewContextOptions()).toMatchObject({
+      extraHTTPHeaders: {
+        "x-vercel-trusted-oidc-idp-token": "oidc-token",
+      },
     });
     expect(browser.filledSelectors).toEqual(['input[name="email"]', 'input[name="password"]']);
     expect(artifact).toMatchObject({
@@ -286,6 +301,7 @@ describe("operational Preview live certification", () => {
       prNumber: 448,
       email: "preview@example.invalid",
       password: "test-only-password",
+      vercelTrustedOidcToken: "oidc-token",
     }));
     const failedLogin = fakeBrowser({ loginFails: true });
     await expectFailure("preview_password_login_failed", () => certifyWithBrowser({
@@ -295,7 +311,22 @@ describe("operational Preview live certification", () => {
       prNumber: 448,
       email: "preview@example.invalid",
       password: "test-only-password",
+      vercelTrustedOidcToken: "oidc-token",
     }));
+  });
+
+  it("fails closed when trusted OIDC token is absent", async () => {
+    const browser = fakeBrowser();
+    await expectFailure("missing_vercel_trusted_oidc_token", () => certifyWithBrowser({
+      browser: browser.value,
+      previewUrl: PREVIEW_URL,
+      expectedHeadSha: HEAD_SHA,
+      prNumber: 448,
+      email: "preview@example.invalid",
+      password: "test-only-password",
+      vercelTrustedOidcToken: "",
+    }));
+    expect(browser.filledSelectors).toEqual([]);
   });
 
   it.each([
@@ -317,6 +348,7 @@ describe("operational Preview live certification", () => {
         prNumber: 448,
         email: "preview@example.invalid",
         password: "test-only-password",
+        vercelTrustedOidcToken: "oidc-token",
       }));
     }
   });
@@ -362,6 +394,11 @@ describe("operational Preview live certification", () => {
     expect(workflow).toContain("name: staging");
     expect(workflow).toContain("AIOS_PREVIEW_FOUNDER_EMAIL");
     expect(workflow).toContain("AIOS_PREVIEW_FOUNDER_PASSWORD");
+    expect(workflow).toContain("id-token: write");
+    expect(workflow).toContain("ACTIONS_ID_TOKEN_REQUEST_URL");
+    expect(workflow).toContain("audience=https://github.com/AIOS-HQ");
+    expect(workflow).toContain("VERCEL_TRUSTED_OIDC_IDP_TOKEN");
+    expect(workflow).toContain("VERCEL_TRUSTED_OIDC_IDP_TOKEN");
     expect(workflow).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(workflow).not.toContain("protection-bypass");
     expect(workflow).not.toContain("x-vercel-protection-bypass");
