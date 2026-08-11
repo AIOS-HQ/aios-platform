@@ -9,9 +9,9 @@ import {
   discoverPreviewDeployment,
   validateCompactEvidence,
   validateExpectedHeadSha,
+  validateFounderEvidence,
   validatePreviewCredentials,
   validatePreviewUrl,
-  validateSessionDiagnostic,
   validateVercelTrustedOidcToken,
 } from "../../scripts/ci/operational-preview-certification.mjs";
 
@@ -65,19 +65,22 @@ function compactEvidence(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function diagnostic(overrides: Record<string, unknown> = {}) {
-  return {
+function founderEvidence(overrides: Record<string, unknown> = {}) {
+  const base = {
     ok: true,
-    environment: "preview",
-    diagnostic: {
-      supabaseConfigured: true,
-      supabaseCookiePresent: true,
-      authenticatedUserResolved: true,
-      founderAuthorizationResolved: true,
-      requestOriginMatchesConfiguredSiteOrigin: true,
-      likelyFailureStage: "authenticated",
-      operatorHint: "open_compact_operational_certification",
-      ...overrides,
+    certification: {
+      component: "approval_runtime",
+      status: "healthy",
+      evidenceType: "authenticated_runtime_proof",
+      observations: [{ repository: "AIOS-HQ/aios-platform", commitSha: HEAD_SHA, environment: "preview" }],
+    },
+  };
+  return {
+    ...base,
+    ...overrides,
+    certification: {
+      ...base.certification,
+      ...((overrides.certification as Record<string, unknown>) ?? {}),
     },
   };
 }
@@ -123,9 +126,9 @@ function fakeBrowser(options: {
   const context = {
     newPage: async () => page,
     request: {
-      get: async (url: string) => url.includes("session-diagnostic")
-        ? apiResponse(options.diagnosticStatus ?? 200, options.diagnosticPayload ?? diagnostic())
-        : apiResponse(options.compactStatus ?? 200, options.compactPayload ?? compactEvidence()),
+      get: async (url: string) => (url.endsWith("/api/admin/certification/evidence")
+        ? apiResponse(options.diagnosticStatus ?? 200, options.diagnosticPayload ?? founderEvidence())
+        : apiResponse(options.compactStatus ?? 200, options.compactPayload ?? compactEvidence())),
     },
     close: async () => undefined,
   };
@@ -330,12 +333,38 @@ describe("operational Preview live certification", () => {
   });
 
   it.each([
-    ["session_cookie_missing", { supabaseCookiePresent: false }],
-    ["authenticated_user_not_resolved", { authenticatedUserResolved: false }],
-    ["founder_authorization_failed", { founderAuthorizationResolved: false }],
-    ["preview_origin_mismatch", { requestOriginMatchesConfiguredSiteOrigin: false }],
-  ])("rejects session diagnostic failure %s", (code, override) => {
-    expect(() => validateSessionDiagnostic(diagnostic(override))).toThrowError(code);
+    ["founder_evidence_failed", { ok: false }],
+    ["founder_evidence_wrong_evidence_type", { certification: { evidenceType: "live_runtime_proof" } }],
+    ["founder_evidence_not_healthy", { certification: { status: "degraded" } }],
+  ])("rejects founder evidence failure %s", (code, override) => {
+    expect(() => validateFounderEvidence(founderEvidence(override), HEAD_SHA)).toThrowError(code);
+  });
+
+  it("rejects founder evidence for wrong target sha", () => {
+    expect(() => validateFounderEvidence(
+      founderEvidence({
+        certification: {
+          component: "approval_runtime",
+          status: "healthy",
+          evidenceType: "authenticated_runtime_proof",
+          observations: [{ repository: "AIOS-HQ/aios-platform", commitSha: "b".repeat(40), environment: "preview" }],
+        },
+      }),
+      HEAD_SHA,
+    )).toThrowError("founder_evidence_target_not_found");
+  });
+
+  it("does not require session-diagnostic endpoint", async () => {
+    const browser = fakeBrowser();
+    await expect(certifyWithBrowser({
+      browser: browser.value,
+      previewUrl: PREVIEW_URL,
+      expectedHeadSha: HEAD_SHA,
+      prNumber: 448,
+      email: "preview@example.invalid",
+      password: "test-only-password",
+      vercelTrustedOidcToken: "oidc-token",
+    })).resolves.toBeDefined();
   });
 
   it("rejects compact endpoint authorization failures", async () => {

@@ -124,19 +124,37 @@ export function validateVercelTrustedOidcToken(token) {
   return token;
 }
 
-export function validateSessionDiagnostic(payload) {
-  const diagnostic = payload?.diagnostic;
-  if (payload?.ok !== true || payload?.environment !== "preview" || !diagnostic) {
-    fail("session_diagnostic_failed");
+export function validateFounderEvidence(payload, expectedHeadSha) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    fail("invalid_founder_evidence");
   }
-  if (diagnostic.supabaseConfigured !== true) fail("supabase_not_configured");
-  if (diagnostic.supabaseCookiePresent !== true) fail("session_cookie_missing");
-  if (diagnostic.authenticatedUserResolved !== true) fail("authenticated_user_not_resolved");
-  if (diagnostic.founderAuthorizationResolved !== true) fail("founder_authorization_failed");
-  if (diagnostic.requestOriginMatchesConfiguredSiteOrigin !== true) fail("preview_origin_mismatch");
-  if (diagnostic.likelyFailureStage !== "authenticated") fail("session_diagnostic_not_authenticated");
+  if (payload.ok !== true) fail("founder_evidence_failed");
+
+  const certification = payload.certification;
+  if (!certification || typeof certification !== "object" || Array.isArray(certification)) {
+    fail("founder_evidence_missing_certification");
+  }
+  if (certification.evidenceType !== "authenticated_runtime_proof") {
+    fail("founder_evidence_wrong_evidence_type");
+  }
+  if (certification.status !== "healthy") fail("founder_evidence_not_healthy");
+
+  const observations = certification.observations;
+  if (!Array.isArray(observations) || observations.length < 1) {
+    fail("founder_evidence_missing_observations");
+  }
+  const matchingObservation = observations.some((observation) => (
+    observation
+    && typeof observation === "object"
+    && !Array.isArray(observation)
+    && observation.repository === APPROVED_REPOSITORY
+    && observation.commitSha === expectedHeadSha
+    && observation.environment === "preview"
+  ));
+  if (!matchingObservation) fail("founder_evidence_target_not_found");
+
   assertNoSensitiveKeys(payload);
-  return diagnostic;
+  return certification;
 }
 
 function requireCount(summary, key) {
@@ -304,15 +322,15 @@ export async function certifyWithBrowser({
     }
     if (new URL(page.url()).hostname !== approvedHost) fail("preview_host_changed_after_login");
 
-    const diagnosticResponse = await context.request.get(
-      new URL("/api/admin/certification/session-diagnostic", approvedUrl).toString(),
+    const founderEvidenceResponse = await context.request.get(
+      new URL("/api/admin/certification/evidence", approvedUrl).toString(),
       { headers: { Accept: "application/json" }, timeout: 30_000 },
     );
-    const diagnostic = await responseJson(diagnosticResponse, "session_diagnostic");
-    validateSessionDiagnostic(diagnostic);
+    const founderEvidence = await responseJson(founderEvidenceResponse, "founder_evidence");
+    validateFounderEvidence(founderEvidence, expectedHeadSha);
 
     const compactResponse = await context.request.get(
-      new URL("/api/admin/certification/evidence?probe=operational&format=compact", approvedUrl).toString(),
+      new URL("/api/admin/certification/evidence?format=compact", approvedUrl).toString(),
       { headers: { Accept: "application/json" }, timeout: 60_000 },
     );
     const compactEvidence = await responseJson(compactResponse, "compact_evidence");
