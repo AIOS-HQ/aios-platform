@@ -117,6 +117,13 @@ export function validatePreviewCredentials(email, password) {
   return { email, password };
 }
 
+export function validateVercelTrustedOidcToken(token) {
+  if (typeof token !== "string" || token.trim().length === 0) {
+    fail("missing_vercel_trusted_oidc_token");
+  }
+  return token;
+}
+
 export function validateSessionDiagnostic(payload) {
   const diagnostic = payload?.diagnostic;
   if (payload?.ok !== true || payload?.environment !== "preview" || !diagnostic) {
@@ -262,15 +269,20 @@ export async function certifyWithBrowser({
   prNumber,
   email,
   password,
+  vercelTrustedOidcToken,
   verifiedAt,
 }) {
   const approvedUrl = validatePreviewUrl(previewUrl);
   const credentials = validatePreviewCredentials(email, password);
+  const trustedOidcToken = validateVercelTrustedOidcToken(vercelTrustedOidcToken);
   const approvedHost = new URL(approvedUrl).hostname;
   const context = await browser.newContext({
     ignoreHTTPSErrors: false,
     locale: "en-US",
     recordVideo: undefined,
+    extraHTTPHeaders: {
+      "x-vercel-trusted-oidc-idp-token": trustedOidcToken,
+    },
   });
   try {
     const page = await context.newPage();
@@ -429,6 +441,7 @@ async function main() {
         prNumber: Number(process.env.PR_NUMBER),
         email: process.env.AIOS_PREVIEW_FOUNDER_EMAIL,
         password: process.env.AIOS_PREVIEW_FOUNDER_PASSWORD,
+        vercelTrustedOidcToken: process.env.VERCEL_TRUSTED_OIDC_IDP_TOKEN,
       });
       assertArtifactSafe(artifact, [
         process.env.AIOS_PREVIEW_FOUNDER_EMAIL,
