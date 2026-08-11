@@ -19,7 +19,6 @@ describe("admin certification session diagnostic route", () => {
     vi.resetModules();
     vi.clearAllMocks();
 
-    process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST = "aios-platform-git-test-air-bid.vercel.app";
     getCurrentUser.mockResolvedValue({ id: "founder-1" });
     currentUserIsAdmin.mockResolvedValue(true);
     getUser.mockResolvedValue({ data: { user: { id: "founder-1" } }, error: null });
@@ -68,6 +67,18 @@ describe("admin certification session diagnostic route", () => {
   it("fails closed for wrong preview origin", async () => {
     const { GET } = await import("@/app/api/admin/certification/session-diagnostic/route");
     const response = await GET(new Request("https://unexpected.example/api/admin/certification/session-diagnostic"));
+    expect(response.status).toBe(403);
+  });
+
+  it("fails closed for production hostname", async () => {
+    const { GET } = await import("@/app/api/admin/certification/session-diagnostic/route");
+    const response = await GET(new Request("https://aios-platform.vercel.app/api/admin/certification/session-diagnostic"));
+    expect(response.status).toBe(403);
+  });
+
+  it("fails closed for malformed hostname", async () => {
+    const { GET } = await import("@/app/api/admin/certification/session-diagnostic/route");
+    const response = await GET(new Request("https://aios-platform-foo_air-bid.vercel.app/api/admin/certification/session-diagnostic"));
     expect(response.status).toBe(403);
   });
 

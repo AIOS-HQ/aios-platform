@@ -6,11 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function resolveExpectedPreviewHost(value: string | null | undefined): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed.toLowerCase() : null;
-}
+const PRODUCTION_HOSTS = new Set([
+  "aios-platform-omega.vercel.app",
+  "aios-platform.vercel.app",
+]);
 
 function resolveRequestHost(request: Request): string | null {
   try {
@@ -19,6 +18,12 @@ function resolveRequestHost(request: Request): string | null {
   } catch {
     return null;
   }
+}
+
+function isApprovedPreviewHost(host: string | null): host is string {
+  if (!host) return false;
+  if (PRODUCTION_HOSTS.has(host)) return false;
+  return /^aios-platform-[a-z0-9-]+-air-bid\.vercel\.app$/.test(host);
 }
 
 export async function GET(request: Request) {
@@ -32,12 +37,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  const expectedPreviewHost = resolveExpectedPreviewHost(process.env.AIOS_VALIDATION_VERCEL_PREVIEW_HOST);
   const requestHost = resolveRequestHost(request);
-  const requestOriginMatchesConfiguredSiteOrigin =
-    Boolean(expectedPreviewHost)
-    && Boolean(requestHost)
-    && requestHost === expectedPreviewHost;
+  const requestOriginMatchesConfiguredSiteOrigin = isApprovedPreviewHost(requestHost);
 
   if (!requestOriginMatchesConfiguredSiteOrigin) {
     return NextResponse.json({ ok: false, error: "preview_origin_mismatch" }, { status: 403 });
