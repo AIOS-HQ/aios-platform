@@ -211,7 +211,9 @@ jobs:
             exit 1
           fi
 
-          runtime_run_attempt="$(jq -r '.run_attempt' <<<"$runtime_run_json")"
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" ]]; then
+            runtime_run_attempt="$(jq -r '.run_attempt' <<<"$runtime_run_json")"
+          fi
           migration_run_attempt="$(jq -r '.run_attempt' <<<"$migration_run_json")"
           migration_artifact_name="$(jq -r '.name' <<<"$migration_json")"
 

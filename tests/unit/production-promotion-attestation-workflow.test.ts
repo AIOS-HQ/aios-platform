@@ -49,6 +49,9 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain(".github/workflows/operational-preview-live-certification.yml");
     expect(workflow).toContain(".github/workflows/launch-validation.yml");
     expect(workflow).toContain("waiver_launch_validation_not_success");
+    expect(workflow).toContain("runtime_run_attempt=\"$(jq -r '[.workflow_runs[] | select(.id == ('\"$launch_run_id\"'|tonumber))][0].run_attempt // 1' <<<\"$launch_runs_json\")\"");
+    expect(workflow).toContain("if [[ \"$PREVIEW_CERTIFICATION_WAIVER\" == \"false\" ]]; then");
+    expect(workflow).toContain("runtime_run_attempt=\"$(jq -r '.run_attempt' <<<\"$runtime_run_json\")\"");
     expect(workflow).toContain("waiver_preview_deployment_not_found");
     expect(workflow).toContain("waiver_preview_deployment_not_success");
     expect(workflow).toContain("waiver_preview_url_not_approved");
