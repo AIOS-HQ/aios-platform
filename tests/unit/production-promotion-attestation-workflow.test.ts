@@ -13,6 +13,7 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("target_sha:");
     expect(workflow).toContain("promotion_request_id:");
     expect(workflow).toContain("runtime_artifact_id:");
+    expect(workflow).toContain("required: false");
     expect(workflow).toContain("preview_certification_waiver:");
     expect(workflow).toContain("migration_artifact_id:");
     expect(workflow).toContain("required: true");
@@ -47,12 +48,11 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("migration_workflow_not_success");
     expect(workflow).toContain(".github/workflows/operational-preview-live-certification.yml");
     expect(workflow).toContain(".github/workflows/launch-validation.yml");
-    expect(workflow).toContain("waiver_runtime_head_sha_mismatch");
-    expect(workflow).toContain("waiver_launch_validation_workflow_path_invalid");
-    expect(workflow).toContain("waiver_launch_validation_name_invalid");
+    expect(workflow).toContain("waiver_launch_validation_not_success");
     expect(workflow).toContain("waiver_preview_deployment_not_found");
     expect(workflow).toContain("waiver_preview_deployment_not_success");
     expect(workflow).toContain("waiver_preview_url_not_approved");
+    expect(workflow).toContain("actions/workflows/launch-validation.yml/runs");
     expect(workflow).toContain(".github/workflows/supabase-staging-migration-plan.yml");
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID/zip" > runtime-artifact.zip');
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID/zip" > migration-artifact.zip');
@@ -60,6 +60,7 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("promotion_request_id_mutable_alias");
     expect(workflow).toContain("preview_certification_contract_incompatibility");
     expect(workflow).toContain("previewRuntimeCertificationCompleted");
+    expect(workflow).toContain("if: ${{ inputs.preview_certification_waiver == 'false' }}");
   });
 
   it("composes, exports, validates and uploads immutable final attestation", () => {
