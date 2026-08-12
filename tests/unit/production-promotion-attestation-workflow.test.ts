@@ -13,6 +13,8 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("target_sha:");
     expect(workflow).toContain("promotion_request_id:");
     expect(workflow).toContain("runtime_artifact_id:");
+    expect(workflow).toContain("required: false");
+    expect(workflow).toContain("preview_certification_waiver:");
     expect(workflow).toContain("migration_artifact_id:");
     expect(workflow).toContain("required: true");
   });
@@ -31,6 +33,7 @@ describe("production promotion attestation workflow", () => {
   it("fails closed on immutable input validation", () => {
     expect(workflow).toContain("^[0-9a-f]{40}$");
     expect(workflow).toContain("^[1-9][0-9]*$");
+    expect(workflow).toContain("preview_certification_waiver_invalid");
     expect(workflow).toContain("promotion_request_id_mutable_alias");
     expect(workflow).toContain("latest");
     expect(workflow).toContain("head");
@@ -44,11 +47,23 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("runtime_workflow_not_success");
     expect(workflow).toContain("migration_workflow_not_success");
     expect(workflow).toContain(".github/workflows/operational-preview-live-certification.yml");
+    expect(workflow).toContain(".github/workflows/launch-validation.yml");
+    expect(workflow).toContain("waiver_launch_validation_not_success");
+    expect(workflow).toContain("runtime_run_attempt=\"$(jq -r '[.workflow_runs[] | select(.id == ('\"$launch_run_id\"'|tonumber))][0].run_attempt // 1' <<<\"$launch_runs_json\")\"");
+    expect(workflow).toContain("if [[ \"$PREVIEW_CERTIFICATION_WAIVER\" == \"false\" ]]; then");
+    expect(workflow).toContain("runtime_run_attempt=\"$(jq -r '.run_attempt' <<<\"$runtime_run_json\")\"");
+    expect(workflow).toContain("waiver_preview_deployment_not_found");
+    expect(workflow).toContain("waiver_preview_deployment_not_success");
+    expect(workflow).toContain("waiver_preview_url_not_approved");
+    expect(workflow).toContain("actions/workflows/launch-validation.yml/runs");
     expect(workflow).toContain(".github/workflows/supabase-staging-migration-plan.yml");
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID/zip" > runtime-artifact.zip');
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID/zip" > migration-artifact.zip');
     expect(workflow).not.toContain("download-artifact@v");
     expect(workflow).toContain("promotion_request_id_mutable_alias");
+    expect(workflow).toContain("preview_certification_contract_incompatibility");
+    expect(workflow).toContain("previewRuntimeCertificationCompleted");
+    expect(workflow).toContain("if: ${{ inputs.preview_certification_waiver == 'false' }}");
   });
 
   it("composes, exports, validates and uploads immutable final attestation", () => {
@@ -77,8 +92,11 @@ describe("production promotion attestation workflow", () => {
     expect(beforeExporter).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(afterExporter).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
 
+    expect(workflow).toContain("waiver_preview_url_not_approved");
     expect(workflow).not.toContain("azure");
-    expect(workflow).not.toContain("vercel");
-    expect(workflow).not.toContain("deployment");
+    expect(workflow).not.toContain("az containerapp update");
+    expect(workflow).not.toContain("az containerapp revision");
+    expect(workflow).not.toContain("azure/login");
+    expect(workflow).not.toContain("docker push");
   });
 });

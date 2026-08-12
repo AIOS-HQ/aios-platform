@@ -13,8 +13,16 @@ on:
         type: string
       runtime_artifact_id:
         description: "GitHub Actions runtime artifact numeric ID"
-        required: true
+        required: false
         type: string
+      preview_certification_waiver:
+        description: "Governed waiver when preview runtime certification artifact is unavailable"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
       migration_artifact_id:
         description: "GitHub Actions migration artifact numeric ID"
         required: true
@@ -33,6 +41,7 @@ jobs:
       TARGET_SHA: ${{ inputs.target_sha }}
       PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
       RUNTIME_ARTIFACT_ID: ${{ inputs.runtime_artifact_id }}
+      PREVIEW_CERTIFICATION_WAIVER: ${{ inputs.preview_certification_waiver }}
       MIGRATION_ARTIFACT_ID: ${{ inputs.migration_artifact_id }}
       REPO: AIOS-HQ/aios-platform
 
@@ -47,8 +56,20 @@ jobs:
             exit 1
           fi
 
-          if [[ ! "$RUNTIME_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
-            echo "runtime_artifact_id_invalid" >&2
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" ]]; then
+            if [[ ! "$RUNTIME_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+              echo "runtime_artifact_id_invalid" >&2
+              exit 1
+            fi
+          else
+            if [[ -n "${RUNTIME_ARTIFACT_ID// }" && ! "$RUNTIME_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+              echo "runtime_artifact_id_invalid" >&2
+              exit 1
+            fi
+          fi
+
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" != "true" && "$PREVIEW_CERTIFICATION_WAIVER" != "false" ]]; then
+            echo "preview_certification_waiver_invalid" >&2
             exit 1
           fi
 
@@ -94,12 +115,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          runtime_json="$(gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID")"
           migration_json="$(gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID")"
 
-          runtime_expired="$(jq -r '.expired' <<<"$runtime_json")"
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" ]]; then
+            runtime_json="$(gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID")"
+          else
+            runtime_json='{}'
+          fi
+
+          runtime_expired="$(jq -r '.expired // "false"' <<<"$runtime_json")"
           migration_expired="$(jq -r '.expired' <<<"$migration_json")"
-          if [[ "$runtime_expired" != "false" ]]; then
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" && "$runtime_expired" != "false" ]]; then
             echo "runtime_artifact_expired" >&2
             exit 1
           fi
@@ -108,9 +134,9 @@ jobs:
             exit 1
           fi
 
-          runtime_run_id="$(jq -r '.workflow_run.id' <<<"$runtime_json")"
+          runtime_run_id="$(jq -r '.workflow_run.id // empty' <<<"$runtime_json")"
           migration_run_id="$(jq -r '.workflow_run.id' <<<"$migration_json")"
-          if [[ -z "$runtime_run_id" || "$runtime_run_id" == "null" ]]; then
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" && ( -z "$runtime_run_id" || "$runtime_run_id" == "null" ) ]]; then
             echo "runtime_artifact_run_missing" >&2
             exit 1
           fi
@@ -119,12 +145,16 @@ jobs:
             exit 1
           fi
 
-          runtime_run_json="$(gh api "/repos/$REPO/actions/runs/$runtime_run_id")"
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" ]]; then
+            runtime_run_json="$(gh api "/repos/$REPO/actions/runs/$runtime_run_id")"
+          else
+            runtime_run_json='{}'
+          fi
           migration_run_json="$(gh api "/repos/$REPO/actions/runs/$migration_run_id")"
 
-          runtime_conclusion="$(jq -r '.conclusion' <<<"$runtime_run_json")"
+          runtime_conclusion="$(jq -r '.conclusion // "success"' <<<"$runtime_run_json")"
           migration_conclusion="$(jq -r '.conclusion' <<<"$migration_run_json")"
-          if [[ "$runtime_conclusion" != "success" ]]; then
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" && "$runtime_conclusion" != "success" ]]; then
             echo "runtime_workflow_not_success" >&2
             exit 1
           fi
@@ -133,20 +163,58 @@ jobs:
             exit 1
           fi
 
-          runtime_workflow_path="$(jq -r '.path' <<<"$runtime_run_json")"
+          runtime_workflow_path="$(jq -r '.path // empty' <<<"$runtime_run_json")"
           migration_workflow_path="$(jq -r '.path' <<<"$migration_run_json")"
-          if [[ "$runtime_workflow_path" != ".github/workflows/operational-preview-live-certification.yml" ]]; then
-            echo "runtime_workflow_path_invalid" >&2
-            exit 1
+          runtime_run_head_sha="$(jq -r '.head_sha // empty' <<<"$runtime_run_json")"
+          runtime_artifact_name="$(jq -r '.name // empty' <<<"$runtime_json")"
+
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" ]]; then
+            if [[ "$runtime_workflow_path" != ".github/workflows/operational-preview-live-certification.yml" ]]; then
+              echo "runtime_workflow_path_invalid" >&2
+              exit 1
+            fi
+            if [[ "$runtime_artifact_name" != operational-runtime-live-certification-pr-* ]]; then
+              echo "runtime_artifact_name_invalid" >&2
+              exit 1
+            fi
+          else
+            launch_runs_json="$(gh api "/repos/$REPO/actions/workflows/launch-validation.yml/runs?head_sha=$TARGET_SHA&event=pull_request&status=completed&per_page=50")"
+            launch_run_id="$(jq -r '[.workflow_runs[] | select(.conclusion == "success" and .path == ".github/workflows/launch-validation.yml" and .head_sha == env.TARGET_SHA)][0].id // empty' <<<"$launch_runs_json")"
+            if [[ -z "$launch_run_id" ]]; then
+              echo "waiver_launch_validation_not_success" >&2
+              exit 1
+            fi
+            runtime_run_id="$launch_run_id"
+            runtime_run_attempt="$(jq -r '[.workflow_runs[] | select(.id == ('"$launch_run_id"'|tonumber))][0].run_attempt // 1' <<<"$launch_runs_json")"
+            runtime_artifact_name="launch-validation-waiver-$TARGET_SHA-$launch_run_id"
+
+            deployments_json="$(gh api "/repos/$REPO/deployments?sha=$TARGET_SHA&per_page=100")"
+            preview_deployment_id="$(jq -r '[.[] | select(.environment == "Preview" and .sha == env.TARGET_SHA and .performed_via_github_app.slug == "vercel")][0].id // empty' <<<"$deployments_json")"
+            if [[ -z "$preview_deployment_id" ]]; then
+              echo "waiver_preview_deployment_not_found" >&2
+              exit 1
+            fi
+            statuses_json="$(gh api "/repos/$REPO/deployments/$preview_deployment_id/statuses?per_page=100")"
+            preview_url="$(jq -r '[.[] | select(.state == "success")][0].environment_url // empty' <<<"$statuses_json")"
+            if [[ -z "$preview_url" ]]; then
+              echo "waiver_preview_deployment_not_success" >&2
+              exit 1
+            fi
+            if [[ ! "$preview_url" =~ ^https://aios-platform-[a-z0-9-]+-air-bid\.vercel\.app/?$ ]]; then
+              echo "waiver_preview_url_not_approved" >&2
+              exit 1
+            fi
           fi
+
           if [[ "$migration_workflow_path" != ".github/workflows/supabase-staging-migration-plan.yml" ]]; then
             echo "migration_workflow_path_invalid" >&2
             exit 1
           fi
 
-          runtime_run_attempt="$(jq -r '.run_attempt' <<<"$runtime_run_json")"
+          if [[ "$PREVIEW_CERTIFICATION_WAIVER" == "false" ]]; then
+            runtime_run_attempt="$(jq -r '.run_attempt' <<<"$runtime_run_json")"
+          fi
           migration_run_attempt="$(jq -r '.run_attempt' <<<"$migration_run_json")"
-          runtime_artifact_name="$(jq -r '.name' <<<"$runtime_json")"
           migration_artifact_name="$(jq -r '.name' <<<"$migration_json")"
 
           echo "runtime_run_id=$runtime_run_id" >> "$GITHUB_OUTPUT"
@@ -155,8 +223,10 @@ jobs:
           echo "migration_run_id=$migration_run_id" >> "$GITHUB_OUTPUT"
           echo "migration_run_attempt=$migration_run_attempt" >> "$GITHUB_OUTPUT"
           echo "migration_artifact_name=$migration_artifact_name" >> "$GITHUB_OUTPUT"
+          echo "preview_certification_waiver=$PREVIEW_CERTIFICATION_WAIVER" >> "$GITHUB_OUTPUT"
 
       - name: Download runtime artifact by exact ID
+        if: ${{ inputs.preview_certification_waiver == 'false' }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -195,7 +265,9 @@ jobs:
           import { readFileSync, writeFileSync } from "node:fs";
           import { composeStagingPromotionEvidence } from "./scripts/ci/staging-promotion-evidence.mjs";
 
-          const runtimeArtifact = JSON.parse(readFileSync("runtime-artifact/operational-runtime-live-certification.json", "utf8"));
+          const runtimeArtifact = process.env.PREVIEW_CERTIFICATION_WAIVER === 'true'
+            ? {}
+            : JSON.parse(readFileSync("runtime-artifact/operational-runtime-live-certification.json", "utf8"));
           const migrationArtifact = JSON.parse(readFileSync("migration-artifact/supabase-staging-migration-plan.json", "utf8"));
 
           const composed = composeStagingPromotionEvidence({
@@ -207,6 +279,11 @@ jobs:
               runId: process.env.RUNTIME_RUN_ID,
               runAttempt: Number(process.env.RUNTIME_RUN_ATTEMPT),
               artifactName: process.env.RUNTIME_ARTIFACT_NAME,
+              waiver: process.env.PREVIEW_CERTIFICATION_WAIVER === 'true',
+              waiverReason: process.env.PREVIEW_CERTIFICATION_WAIVER === 'true'
+                ? 'preview_certification_contract_incompatibility'
+                : null,
+              previewRuntimeCertificationCompleted: process.env.PREVIEW_CERTIFICATION_WAIVER !== 'true',
             },
             migrationArtifactMeta: {
               artifactId: process.env.MIGRATION_ARTIFACT_ID,
@@ -223,6 +300,7 @@ jobs:
           RUNTIME_RUN_ID: ${{ steps.resolve_artifacts.outputs.runtime_run_id }}
           RUNTIME_RUN_ATTEMPT: ${{ steps.resolve_artifacts.outputs.runtime_run_attempt }}
           RUNTIME_ARTIFACT_NAME: ${{ steps.resolve_artifacts.outputs.runtime_artifact_name }}
+          PREVIEW_CERTIFICATION_WAIVER: ${{ steps.resolve_artifacts.outputs.preview_certification_waiver }}
           MIGRATION_ARTIFACT_ID: ${{ inputs.migration_artifact_id }}
           MIGRATION_RUN_ID: ${{ steps.resolve_artifacts.outputs.migration_run_id }}
           MIGRATION_RUN_ATTEMPT: ${{ steps.resolve_artifacts.outputs.migration_run_attempt }}

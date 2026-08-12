@@ -104,6 +104,8 @@ function validInput(overrides = {}) {
       runId: "33333",
       runAttempt: 1,
       artifactName: `operational-runtime-live-${SHA}-33333`,
+      waiver: false,
+      previewRuntimeCertificationCompleted: true,
     },
     migrationArtifactMeta: {
       artifactId: "44444",
@@ -248,5 +250,59 @@ describe("staging promotion evidence composer", () => {
     const composed = composeStagingPromotionEvidence(validInput(), { expectedTargetSha: SHA });
     expect("founderApproval" in composed).toBe(false);
     expect("harmonyGovernanceApproval" in composed).toBe(false);
+  });
+
+  it("supports governed waiver without claiming runtime certification passed", () => {
+    const input = validInput({
+      runtimeArtifact: {},
+      runtimeArtifactMeta: {
+        artifactId: "99999",
+        runId: "777777",
+        runAttempt: 1,
+        artifactName: `launch-validation-waiver-${SHA}-777777`,
+        waiver: true,
+        waiverReason: "preview_certification_contract_incompatibility",
+        previewRuntimeCertificationCompleted: false,
+      },
+    });
+
+    const composed = composeStagingPromotionEvidence(input, { expectedTargetSha: SHA });
+    expect(composed.runtimeCertification).toMatchObject({
+      status: "waived",
+      waiver: true,
+      waiverReason: "preview_certification_contract_incompatibility",
+      previewRuntimeCertificationCompleted: false,
+      evidenceId: null,
+      artifactId: null,
+      verifiedAt: null,
+    });
+  });
+
+  it("fails waiver when reason or completion flag is invalid", () => {
+    expect(() => composeStagingPromotionEvidence(validInput({
+      runtimeArtifact: {},
+      runtimeArtifactMeta: {
+        artifactId: "99999",
+        runId: "777777",
+        runAttempt: 1,
+        artifactName: `launch-validation-waiver-${SHA}-777777`,
+        waiver: true,
+        waiverReason: "wrong_reason",
+        previewRuntimeCertificationCompleted: false,
+      },
+    }), { expectedTargetSha: SHA })).toThrow(/runtime_waiver_reason_invalid/);
+
+    expect(() => composeStagingPromotionEvidence(validInput({
+      runtimeArtifact: {},
+      runtimeArtifactMeta: {
+        artifactId: "99999",
+        runId: "777777",
+        runAttempt: 1,
+        artifactName: `launch-validation-waiver-${SHA}-777777`,
+        waiver: true,
+        waiverReason: "preview_certification_contract_incompatibility",
+        previewRuntimeCertificationCompleted: true,
+      },
+    }), { expectedTargetSha: SHA })).toThrow(/runtime_waiver_completion_flag_invalid/);
   });
 });

@@ -92,7 +92,8 @@ function assertArtifactMeta(meta, family) {
   if (lowered.includes("latest") || lowered.includes("head") || lowered.includes("main")) {
     fail(`${family}_artifact_name_mutable_alias`);
   }
-  if (!lowered.includes(family === "runtime" ? "operational-runtime-live" : "supabase-staging-migration-plan")) {
+  const isRuntimeWaiver = family === "runtime" && meta.waiver === true;
+  if (!isRuntimeWaiver && !lowered.includes(family === "runtime" ? "operational-runtime-live" : "supabase-staging-migration-plan")) {
     fail(`${family}_artifact_family_mismatch`);
   }
   return {
@@ -100,6 +101,9 @@ function assertArtifactMeta(meta, family) {
     runId,
     runAttempt,
     artifactName: meta.artifactName,
+    waiver: meta.waiver === true,
+    waiverReason: meta.waiverReason ?? null,
+    previewRuntimeCertificationCompleted: meta.previewRuntimeCertificationCompleted,
   };
 }
 
@@ -133,32 +137,49 @@ export function composeStagingPromotionEvidence(input, options = {}) {
   const runtimeMeta = assertArtifactMeta(input.runtimeArtifactMeta, "runtime");
   const migrationMeta = assertArtifactMeta(input.migrationArtifactMeta, "migration");
 
-  assertNoSensitiveKeys(input.runtimeArtifact);
-  assertNoSensitiveValues(input.runtimeArtifact);
+  const runtimeWaived = runtimeMeta.waiver === true;
+
+  if (runtimeWaived) {
+    if (runtimeMeta.waiverReason !== "preview_certification_contract_incompatibility") {
+      fail("runtime_waiver_reason_invalid");
+    }
+    if (runtimeMeta.previewRuntimeCertificationCompleted !== false) {
+      fail("runtime_waiver_completion_flag_invalid");
+    }
+  } else if (runtimeMeta.previewRuntimeCertificationCompleted !== undefined && runtimeMeta.previewRuntimeCertificationCompleted !== true) {
+    fail("runtime_certification_completion_flag_invalid");
+  }
+
+  if (!runtimeWaived) {
+    assertNoSensitiveKeys(input.runtimeArtifact);
+    assertNoSensitiveValues(input.runtimeArtifact);
+  }
   assertNoSensitiveKeys(input.migrationArtifact);
   assertNoSensitiveValues(input.migrationArtifact);
 
-  const expectedSha = assertSha(options.expectedTargetSha ?? input.runtimeArtifact.headSha, "expected_target_sha_invalid");
+  const expectedSha = assertSha(options.expectedTargetSha ?? (runtimeWaived ? input.migrationArtifact?.targetSha : input.runtimeArtifact?.headSha), "expected_target_sha_invalid");
 
   const runtimeArtifact = input.runtimeArtifact;
-  if (runtimeArtifact.certification !== EXPECTED_RUNTIME_CERT) fail("runtime_certification_type_invalid");
-  if (runtimeArtifact.result !== "passed") fail("runtime_result_not_passed");
-  if (runtimeArtifact.previewUrlClassification !== "approved_vercel_preview") fail("runtime_preview_classification_invalid");
-  if (!Number.isInteger(runtimeArtifact.pr) || runtimeArtifact.pr < 1) fail("runtime_pr_invalid");
-  if (runtimeArtifact.authenticatedSession !== true) fail("runtime_unauthenticated");
-  if (runtimeArtifact.founderAuthorized !== true) fail("runtime_founder_unauthorized");
-  if (runtimeArtifact.originMatched !== true) fail("runtime_origin_mismatch");
-  const runtimeSha = assertSha(runtimeArtifact.headSha, "runtime_head_sha_invalid");
-  if (runtimeSha !== expectedSha) fail("runtime_target_sha_mismatch");
-  const compactEvidence = {
-    ok: true,
-    deployment: runtimeArtifact.deployment,
-    operationalRuntimeSummary: runtimeArtifact.operationalRuntimeSummary,
-    operationalRuntimeFoundation: runtimeArtifact.operationalRuntimeFoundation,
-  };
-  validateCompactEvidence(compactEvidence, expectedSha);
-  assertArtifactSafe(runtimeArtifact);
-  parseTimestampOrFail(runtimeArtifact.verifiedAt, "runtime_verified_at_invalid");
+  if (!runtimeWaived) {
+    if (runtimeArtifact.certification !== EXPECTED_RUNTIME_CERT) fail("runtime_certification_type_invalid");
+    if (runtimeArtifact.result !== "passed") fail("runtime_result_not_passed");
+    if (runtimeArtifact.previewUrlClassification !== "approved_vercel_preview") fail("runtime_preview_classification_invalid");
+    if (!Number.isInteger(runtimeArtifact.pr) || runtimeArtifact.pr < 1) fail("runtime_pr_invalid");
+    if (runtimeArtifact.authenticatedSession !== true) fail("runtime_unauthenticated");
+    if (runtimeArtifact.founderAuthorized !== true) fail("runtime_founder_unauthorized");
+    if (runtimeArtifact.originMatched !== true) fail("runtime_origin_mismatch");
+    const runtimeSha = assertSha(runtimeArtifact.headSha, "runtime_head_sha_invalid");
+    if (runtimeSha !== expectedSha) fail("runtime_target_sha_mismatch");
+    const compactEvidence = {
+      ok: true,
+      deployment: runtimeArtifact.deployment,
+      operationalRuntimeSummary: runtimeArtifact.operationalRuntimeSummary,
+      operationalRuntimeFoundation: runtimeArtifact.operationalRuntimeFoundation,
+    };
+    validateCompactEvidence(compactEvidence, expectedSha);
+    assertArtifactSafe(runtimeArtifact);
+    parseTimestampOrFail(runtimeArtifact.verifiedAt, "runtime_verified_at_invalid");
+  }
 
   const migrationArtifact = input.migrationArtifact;
   if (migrationArtifact.certification !== EXPECTED_MIGRATION_CERT) fail("migration_certification_type_invalid");
@@ -176,9 +197,12 @@ export function composeStagingPromotionEvidence(input, options = {}) {
   }
 
   const migrationSha = assertSha(migrationArtifact.targetSha, "migration_target_sha_invalid");
-  if (migrationSha !== runtimeSha) fail("artifact_target_sha_disagreement");
+  if (!runtimeWaived) {
+    const runtimeSha = assertSha(runtimeArtifact.headSha, "runtime_head_sha_invalid");
+    if (migrationSha !== runtimeSha) fail("artifact_target_sha_disagreement");
+  }
 
-  const runtimeEvidenceId = buildRuntimeEvidenceId(runtimeArtifact, runtimeMeta);
+  const runtimeEvidenceId = runtimeWaived ? null : buildRuntimeEvidenceId(runtimeArtifact, runtimeMeta);
   const migrationEvidenceId = buildMigrationEvidenceId(migrationArtifact, migrationMeta);
 
   const composed = {
@@ -186,14 +210,17 @@ export function composeStagingPromotionEvidence(input, options = {}) {
     targetSha: expectedSha,
     sourceEnvironment: "staging",
     runtimeCertification: {
-      status: "passed",
+      status: runtimeWaived ? "waived" : "passed",
       targetSha: expectedSha,
       certificationType: EXPECTED_RUNTIME_CERT,
       certificationSourceEnvironment: "staging",
       deploymentEnvironment: "preview",
       evidenceId: runtimeEvidenceId,
-      artifactId: `github-artifact:${runtimeMeta.artifactId}`,
-      verifiedAt: runtimeArtifact.verifiedAt,
+      artifactId: runtimeWaived ? null : `github-artifact:${runtimeMeta.artifactId}`,
+      verifiedAt: runtimeWaived ? null : runtimeArtifact.verifiedAt,
+      waiver: runtimeWaived,
+      waiverReason: runtimeWaived ? "preview_certification_contract_incompatibility" : null,
+      previewRuntimeCertificationCompleted: !runtimeWaived,
       workflowRun: {
         runId: runtimeMeta.runId,
         runAttempt: runtimeMeta.runAttempt,
