@@ -32,8 +32,8 @@ function runValidator(command: string, environment: Record<string, string>) {
 
 describe("Supabase staging migration plan", () => {
   it("locks every non-secret connection component to the staging project", () => {
-    expect(STAGING_PROJECT_REF).toBe("rorbiijpgahvwdrejpil");
-    expect(STAGING_USERNAME).toBe("postgres.rorbiijpgahvwdrejpil");
+    expect(STAGING_PROJECT_REF).toBe("rorbijjpgahvwdrejpil");
+    expect(STAGING_USERNAME).toBe("postgres.rorbijjpgahvwdrejpil");
     expect(STAGING_HOST).toBe("aws-0-ca-central-1.pooler.supabase.com");
     expect(STAGING_PORT).toBe("5432");
     expect(STAGING_DATABASE).toBe("postgres");

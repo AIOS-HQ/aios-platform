@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 
-export const STAGING_PROJECT_REF = "rorbiijpgahvwdrejpil";
+export const STAGING_PROJECT_REF = "rorbijjpgahvwdrejpil";
 export const STAGING_USERNAME = `postgres.${STAGING_PROJECT_REF}`;
 export const STAGING_HOST = "aws-0-ca-central-1.pooler.supabase.com";
 export const STAGING_PORT = "5432";
@@ -11,8 +11,8 @@ const EXPECTED_REPOSITORY = "AIOS-HQ/aios-platform";
 const SHA40 = /^[0-9a-f]{40}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 
-const EXPECTED_STAGING_PROJECT_REF = "rorbiijpgahvwdrejpil";
-const EXPECTED_STAGING_USERNAME = "postgres.rorbiijpgahvwdrejpil";
+const EXPECTED_STAGING_PROJECT_REF = "rorbijjpgahvwdrejpil";
+const EXPECTED_STAGING_USERNAME = "postgres.rorbijjpgahvwdrejpil";
 const EXPECTED_STAGING_HOST = "aws-0-ca-central-1.pooler.supabase.com";
 const EXPECTED_STAGING_PORT = "5432";
 const EXPECTED_STAGING_DATABASE = "postgres";
