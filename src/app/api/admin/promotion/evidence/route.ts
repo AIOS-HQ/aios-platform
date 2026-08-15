@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
@@ -26,6 +27,17 @@ type PromotionEvidenceBody = {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function stableMigrationEvidenceId(input: { targetSha: string; migrationEvidenceId: string; migrationArtifactId: string }) {
+  const digest = createHash("sha256")
+    .update(input.targetSha, "utf8")
+    .update("|")
+    .update(input.migrationEvidenceId, "utf8")
+    .update("|")
+    .update(input.migrationArtifactId, "utf8")
+    .digest("hex");
+  return `migration-${digest}`;
 }
 
 function parseBody(input: unknown): PromotionEvidenceBody | null {
@@ -77,7 +89,11 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
     target_environment: targetEnvironment,
     runtime_evidence_id: runtimeEvidenceId,
     runtime_artifact_id: runtimeArtifactId,
-    migration_evidence_id: migrationEvidenceId,
+    migration_evidence_id: stableMigrationEvidenceId({
+      targetSha,
+      migrationEvidenceId,
+      migrationArtifactId,
+    }),
     migration_artifact_id: migrationArtifactId,
     preview_certification_waiver: previewCertificationWaiver,
     preview_certification_waiver_reason: previewCertificationWaiverReason,

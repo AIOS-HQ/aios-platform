@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authState = vi.hoisted(() => ({
@@ -27,6 +28,14 @@ function request(body: unknown) {
   });
 }
 
+const expectedMigrationEvidenceId = `migration-${createHash("sha256")
+  .update("a".repeat(40), "utf8")
+  .update("|")
+  .update("migration-evidence-1", "utf8")
+  .update("|")
+  .update("migration-artifact-1", "utf8")
+  .digest("hex")}`;
+
 const validBody = {
   decision: "approved",
   promotion_request_id: "req-1",
@@ -51,6 +60,7 @@ describe("admin promotion evidence POST route", () => {
     writeFounderPromotionEvidence.mockResolvedValue({
       request: {
         ...validBody,
+        migration_evidence_id: expectedMigrationEvidenceId,
         created_by: "founder-1",
       },
       decision: {
@@ -97,6 +107,12 @@ describe("admin promotion evidence POST route", () => {
 
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
+    expect(writeFounderPromotionEvidence).toHaveBeenCalledWith(expect.objectContaining({
+      request: expect.objectContaining({
+        migration_evidence_id: expectedMigrationEvidenceId,
+      }),
+    }));
+
     expect(body.decision).toMatchObject({
       decision_source: "founder",
       actor_type: "founder",
