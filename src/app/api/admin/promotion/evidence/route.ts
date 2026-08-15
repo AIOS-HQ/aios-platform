@@ -16,10 +16,12 @@ type PromotionEvidenceBody = {
   target_sha: string;
   source_environment: string;
   target_environment: string;
-  runtime_evidence_id: string;
-  runtime_artifact_id: string;
+  runtime_evidence_id: string | null;
+  runtime_artifact_id: string | null;
   migration_evidence_id: string;
   migration_artifact_id: string;
+  preview_certification_waiver: boolean;
+  preview_certification_waiver_reason: string | null;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -41,6 +43,8 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
   const runtimeArtifactId = body.runtime_artifact_id;
   const migrationEvidenceId = body.migration_evidence_id;
   const migrationArtifactId = body.migration_artifact_id;
+  const previewCertificationWaiver = body.preview_certification_waiver;
+  const previewCertificationWaiverReason = body.preview_certification_waiver_reason;
 
   if (decision !== "approved" && decision !== "rejected") return null;
   if (!isNonEmptyString(promotionRequestId)) return null;
@@ -49,10 +53,19 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
   if (!isNonEmptyString(targetSha)) return null;
   if (!isNonEmptyString(sourceEnvironment)) return null;
   if (!isNonEmptyString(targetEnvironment)) return null;
-  if (!isNonEmptyString(runtimeEvidenceId)) return null;
-  if (!isNonEmptyString(runtimeArtifactId)) return null;
   if (!isNonEmptyString(migrationEvidenceId)) return null;
   if (!isNonEmptyString(migrationArtifactId)) return null;
+  if (typeof previewCertificationWaiver !== "boolean") return null;
+
+  if (previewCertificationWaiver === false) {
+    if (!isNonEmptyString(runtimeEvidenceId)) return null;
+    if (!isNonEmptyString(runtimeArtifactId)) return null;
+    if (previewCertificationWaiverReason !== null) return null;
+  } else {
+    if (runtimeEvidenceId !== null) return null;
+    if (runtimeArtifactId !== null) return null;
+    if (previewCertificationWaiverReason !== "preview_certification_contract_incompatibility") return null;
+  }
 
   return {
     decision,
@@ -66,6 +79,8 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
     runtime_artifact_id: runtimeArtifactId,
     migration_evidence_id: migrationEvidenceId,
     migration_artifact_id: migrationArtifactId,
+    preview_certification_waiver: previewCertificationWaiver,
+    preview_certification_waiver_reason: previewCertificationWaiverReason,
   };
 }
 
@@ -101,6 +116,8 @@ export async function POST(request: Request) {
         runtime_artifact_id: body.runtime_artifact_id,
         migration_evidence_id: body.migration_evidence_id,
         migration_artifact_id: body.migration_artifact_id,
+        preview_certification_waiver: body.preview_certification_waiver,
+        preview_certification_waiver_reason: body.preview_certification_waiver_reason,
         created_by: user.id,
       },
       actorId: user.id,

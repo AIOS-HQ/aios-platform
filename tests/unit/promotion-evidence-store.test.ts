@@ -36,6 +36,8 @@ const baseRequest = {
   runtime_artifact_id: "runtime-artifact-1",
   migration_evidence_id: "migration-evidence-1",
   migration_artifact_id: "migration-artifact-1",
+  preview_certification_waiver: false,
+  preview_certification_waiver_reason: null,
   created_by: "00000000-0000-0000-0000-000000000001",
 };
 
