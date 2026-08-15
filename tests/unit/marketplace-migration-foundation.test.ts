@@ -29,6 +29,10 @@ const promotionApprovalEvidence = readFileSync(
   "supabase/migrations/20260807250000_production_promotion_approval_evidence.sql",
   "utf8",
 );
+const promotionPreviewWaiver = readFileSync(
+  "supabase/migrations/20260814010000_production_promotion_preview_waiver.sql",
+  "utf8",
+);
 
 describe("marketplace migration foundation", () => {
   it("sorts the clean-database foundation before every dependent migration", () => {
@@ -87,7 +91,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 59");
+    expect(certification).toContain("migrations.length !== 60");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
@@ -203,6 +207,34 @@ describe("marketplace migration foundation", () => {
     expect(certification).toContain("rollback_newer_should_fail");
     expect(certification).toContain("rollback_nonexistent_should_fail");
     expect(certification).toContain("uninstall_with_dependents_should_fail");
+  });
+
+
+
+  it("certifies production-promotion preview waiver persistence contract", () => {
+    expect(promotionPreviewWaiver).toContain("add column if not exists preview_certification_waiver boolean not null default false");
+    expect(promotionPreviewWaiver).toContain("add column if not exists preview_certification_waiver_reason text null");
+    expect(promotionPreviewWaiver).toContain("alter column runtime_evidence_id drop not null");
+    expect(promotionPreviewWaiver).toContain("alter column runtime_artifact_id drop not null");
+    expect(promotionPreviewWaiver).toContain("production_promotion_requests_preview_waiver_semantics_check");
+    expect(promotionPreviewWaiver).toContain("preview_certification_waiver = false");
+    expect(promotionPreviewWaiver).toContain("runtime_evidence_id is not null");
+    expect(promotionPreviewWaiver).toContain("runtime_artifact_id is not null");
+    expect(promotionPreviewWaiver).toContain("preview_certification_waiver_reason is null");
+    expect(promotionPreviewWaiver).toContain("preview_certification_waiver = true");
+    expect(promotionPreviewWaiver).toContain("runtime_evidence_id is null");
+    expect(promotionPreviewWaiver).toContain("runtime_artifact_id is null");
+    expect(promotionPreviewWaiver).toContain("preview_certification_waiver_reason = 'preview_certification_contract_incompatibility'");
+    expect(promotionApprovalEvidence).toContain("migration_evidence_id text not null");
+    expect(promotionApprovalEvidence).toContain("migration_artifact_id text not null");
+    expect(promotionApprovalEvidence).toContain("production_promotion_requests_migration_evidence_id_check");
+    expect(promotionApprovalEvidence).toContain("production_promotion_requests_migration_artifact_id_check");
+    expect(promotionPreviewWaiver).not.toContain("drop constraint if exists production_promotion_requests_migration_evidence_id_check");
+    expect(promotionPreviewWaiver).not.toContain("drop constraint if exists production_promotion_requests_migration_artifact_id_check");
+    expect(promotionPreviewWaiver).not.toContain("alter column migration_evidence_id drop not null");
+    expect(promotionPreviewWaiver).not.toContain("alter column migration_artifact_id drop not null");
+    expect(promotionPreviewWaiver).toContain("drop constraint if exists production_promotion_requests_runtime_evidence_id_check");
+    expect(promotionPreviewWaiver).toContain("drop constraint if exists production_promotion_requests_runtime_artifact_id_check");
   });
 
   it("certifies production-promotion approval evidence persistence contract", () => {

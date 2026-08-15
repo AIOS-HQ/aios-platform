@@ -14,10 +14,12 @@ type PromotionRequestInsert = {
   target_sha: string;
   source_environment: string;
   target_environment: string;
-  runtime_evidence_id: string;
-  runtime_artifact_id: string;
+  runtime_evidence_id: string | null;
+  runtime_artifact_id: string | null;
   migration_evidence_id: string;
   migration_artifact_id: string;
+  preview_certification_waiver: boolean;
+  preview_certification_waiver_reason: string | null;
   created_by: string;
 };
 
@@ -225,15 +227,41 @@ function immutableId(value: string) {
   return normalized.length > 0 && !normalized.includes("latest") && !normalized.includes("head") && normalized !== "main";
 }
 
+function isGovernedWaiverReason(value: string | null) {
+  return value === "preview_certification_contract_incompatibility";
+}
+
+function hasValidWaiverRuntimeShape(request: PromotionRequestInsert) {
+  return request.runtime_evidence_id === null && request.runtime_artifact_id === null;
+}
+
+function hasValidNormalRuntimeShape(request: PromotionRequestInsert) {
+  return (
+    typeof request.runtime_evidence_id === "string"
+    && typeof request.runtime_artifact_id === "string"
+    && immutableId(request.runtime_evidence_id)
+    && immutableId(request.runtime_artifact_id)
+  );
+}
+
+function hasValidRuntimeEvidence(request: PromotionRequestInsert) {
+  if (request.preview_certification_waiver === true) {
+    return isGovernedWaiverReason(request.preview_certification_waiver_reason) && hasValidWaiverRuntimeShape(request);
+  }
+
+  return request.preview_certification_waiver_reason === null && hasValidNormalRuntimeShape(request);
+}
+
 function evaluateHarmonyDecision(request: PromotionRequestInsert): PromotionDecision {
+  const validRuntimeEvidence = hasValidRuntimeEvidence(request);
+
   const valid =
     request.repository === "AIOS-HQ/aios-platform" &&
     request.purpose === "production_promotion" &&
     isLowerHexSha40(request.target_sha) &&
     request.source_environment === "staging" &&
     request.target_environment === "production" &&
-    immutableId(request.runtime_evidence_id) &&
-    immutableId(request.runtime_artifact_id) &&
+    validRuntimeEvidence &&
     immutableId(request.migration_evidence_id) &&
     immutableId(request.migration_artifact_id);
 
@@ -244,7 +272,7 @@ async function getPersistedRequest(client: AdminClient, promotionRequestId: stri
   const result = await client
     .from("production_promotion_requests")
     .select(
-      "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,created_by",
+      "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,preview_certification_waiver,preview_certification_waiver_reason,created_by",
     )
     .eq("promotion_request_id", promotionRequestId)
     .single();
@@ -267,7 +295,7 @@ export async function writeFounderPromotionEvidence(input: PromotionEvidenceWrit
     .from("production_promotion_requests")
     .insert(input.request)
     .select(
-      "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,created_by",
+      "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,preview_certification_waiver,preview_certification_waiver_reason,created_by",
     )
     .single();
 
@@ -277,7 +305,7 @@ export async function writeFounderPromotionEvidence(input: PromotionEvidenceWrit
     const existingRequestResult = await admin
       .from("production_promotion_requests")
       .select(
-        "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,created_by",
+        "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,preview_certification_waiver,preview_certification_waiver_reason,created_by",
       )
       .eq("promotion_request_id", input.request.promotion_request_id)
       .single();

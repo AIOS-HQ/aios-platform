@@ -39,6 +39,8 @@ const validBody = {
   runtime_artifact_id: "runtime-artifact-1",
   migration_evidence_id: "migration-evidence-1",
   migration_artifact_id: "migration-artifact-1",
+  preview_certification_waiver: false,
+  preview_certification_waiver_reason: null,
 };
 
 describe("admin promotion evidence POST route", () => {
