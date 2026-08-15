@@ -91,7 +91,7 @@ describe("marketplace migration foundation", () => {
   });
 
   it("certifies complete migration history with current marketplace chain size", () => {
-    expect(certification).toContain("migrations.length !== 59");
+    expect(certification).toContain("migrations.length !== 60");
     expect(certification).toContain("migration_failed:${basename(path)}");
     expect(certification).toContain("non_local_postgres_rejected");
     expect(certification).toContain("persistent_database_environment_rejected");
