@@ -141,7 +141,29 @@ describe("admin promotion evidence POST route", () => {
     );
   });
 
-  it("ignores client-supplied promotion_request_id and preserves deterministic derivation", async () => {
+  it("accepts a client-supplied promotion_request_id only when it matches canonical derivation", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+
+    const supplied = {
+      ...validBody,
+      promotion_request_id: derivedPromotionRequestId(validBody),
+    };
+
+    const { POST } = await import("@/app/api/admin/promotion/evidence/route");
+    const response = await POST(request(supplied));
+
+    expect(response.status).toBe(200);
+    expect(writeFounderPromotionEvidence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          promotion_request_id: derivedPromotionRequestId(validBody),
+        }),
+      }),
+    );
+  });
+
+  it("rejects mismatched client-supplied promotion_request_id", async () => {
     authState.user = { id: "founder-1" };
     authState.admin = true;
 
@@ -153,14 +175,8 @@ describe("admin promotion evidence POST route", () => {
     const { POST } = await import("@/app/api/admin/promotion/evidence/route");
     const response = await POST(request(forged));
 
-    expect(response.status).toBe(200);
-    expect(writeFounderPromotionEvidence).toHaveBeenCalledWith(
-      expect.objectContaining({
-        request: expect.objectContaining({
-          promotion_request_id: derivedPromotionRequestId(validBody),
-        }),
-      }),
-    );
+    expect(response.status).toBe(400);
+    expect(writeFounderPromotionEvidence).not.toHaveBeenCalled();
   });
 
   it("ignores forged actorId and created_by from client payload", async () => {
