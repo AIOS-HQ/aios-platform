@@ -11,6 +11,7 @@ type PromotionDecision = "approved" | "rejected";
 
 type PromotionEvidenceBody = {
   decision: PromotionDecision;
+  promotion_request_id?: string;
   repository: string;
   purpose: string;
   target_sha: string;
@@ -51,6 +52,7 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
   const body = input as Record<string, unknown>;
 
   const decision = body.decision;
+  const promotionRequestId = body.promotion_request_id;
   const repository = body.repository;
   const purpose = body.purpose;
   const targetSha = body.target_sha;
@@ -64,6 +66,7 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
   const previewCertificationWaiverReason = body.preview_certification_waiver_reason;
 
   if (decision !== "approved" && decision !== "rejected") return null;
+  if (promotionRequestId !== undefined && !isNonEmptyString(promotionRequestId)) return null;
   if (!isNonEmptyString(repository)) return null;
   if (!isNonEmptyString(purpose)) return null;
   if (!isNonEmptyString(targetSha)) return null;
@@ -85,6 +88,7 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
 
   return {
     decision,
+    promotion_request_id: promotionRequestId,
     repository,
     purpose,
     target_sha: targetSha,
@@ -120,6 +124,12 @@ export async function POST(request: Request) {
 
   try {
     const promotionRequestId = derivePromotionRequestId(body);
+    if (
+      body.promotion_request_id !== undefined &&
+      body.promotion_request_id !== promotionRequestId
+    ) {
+      return NextResponse.json({ ok: false, error: "invalid_request" }, { status: 400 });
+    }
 
     const result = await writeFounderPromotionEvidence({
       request: {
