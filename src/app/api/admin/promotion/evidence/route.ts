@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { writeFounderPromotionEvidence } from "@/lib/promotion/evidence-store";
@@ -10,7 +11,6 @@ type PromotionDecision = "approved" | "rejected";
 
 type PromotionEvidenceBody = {
   decision: PromotionDecision;
-  promotion_request_id: string;
   repository: string;
   purpose: string;
   target_sha: string;
@@ -28,12 +28,29 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function derivePromotionRequestId(body: Omit<PromotionEvidenceBody, "decision">): string {
+  const tuple = [
+    body.repository,
+    body.purpose,
+    body.target_sha,
+    body.source_environment,
+    body.target_environment,
+    body.runtime_evidence_id ?? "",
+    body.runtime_artifact_id ?? "",
+    body.migration_evidence_id,
+    body.migration_artifact_id,
+    body.preview_certification_waiver ? "true" : "false",
+    body.preview_certification_waiver_reason ?? "",
+  ];
+
+  return `promotion-request:${createHash("sha256").update(tuple.join("|"), "utf8").digest("hex")}`;
+}
+
 function parseBody(input: unknown): PromotionEvidenceBody | null {
   if (!input || typeof input !== "object") return null;
   const body = input as Record<string, unknown>;
 
   const decision = body.decision;
-  const promotionRequestId = body.promotion_request_id;
   const repository = body.repository;
   const purpose = body.purpose;
   const targetSha = body.target_sha;
@@ -47,7 +64,6 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
   const previewCertificationWaiverReason = body.preview_certification_waiver_reason;
 
   if (decision !== "approved" && decision !== "rejected") return null;
-  if (!isNonEmptyString(promotionRequestId)) return null;
   if (!isNonEmptyString(repository)) return null;
   if (!isNonEmptyString(purpose)) return null;
   if (!isNonEmptyString(targetSha)) return null;
@@ -69,7 +85,6 @@ function parseBody(input: unknown): PromotionEvidenceBody | null {
 
   return {
     decision,
-    promotion_request_id: promotionRequestId,
     repository,
     purpose,
     target_sha: targetSha,
@@ -104,9 +119,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    const promotionRequestId = derivePromotionRequestId(body);
+
     const result = await writeFounderPromotionEvidence({
       request: {
-        promotion_request_id: body.promotion_request_id,
+        promotion_request_id: promotionRequestId,
         repository: body.repository,
         purpose: body.purpose,
         target_sha: body.target_sha,
