@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authState = vi.hoisted(() => ({
@@ -29,7 +30,6 @@ function request(body: unknown) {
 
 const validBody = {
   decision: "approved",
-  promotion_request_id: "req-1",
   repository: "AIOS-HQ/aios-platform",
   purpose: "production_promotion",
   target_sha: "a".repeat(40),
@@ -43,6 +43,24 @@ const validBody = {
   preview_certification_waiver_reason: null,
 };
 
+function derivedPromotionRequestId(body: Omit<typeof validBody, "decision">): string {
+  const tuple = [
+    body.repository,
+    body.purpose,
+    body.target_sha,
+    body.source_environment,
+    body.target_environment,
+    body.runtime_evidence_id ?? "",
+    body.runtime_artifact_id ?? "",
+    body.migration_evidence_id,
+    body.migration_artifact_id,
+    body.preview_certification_waiver ? "true" : "false",
+    body.preview_certification_waiver_reason ?? "",
+  ];
+
+  return `promotion-request:${createHash("sha256").update(tuple.join("|"), "utf8").digest("hex")}`;
+}
+
 describe("admin promotion evidence POST route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,10 +69,11 @@ describe("admin promotion evidence POST route", () => {
     writeFounderPromotionEvidence.mockResolvedValue({
       request: {
         ...validBody,
+        promotion_request_id: derivedPromotionRequestId(validBody),
         created_by: "founder-1",
       },
       decision: {
-        promotion_request_id: "req-1",
+        promotion_request_id: derivedPromotionRequestId(validBody),
         decision_source: "founder",
         decision: "approved",
         actor_type: "founder",
@@ -98,10 +117,50 @@ describe("admin promotion evidence POST route", () => {
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.decision).toMatchObject({
+      promotion_request_id: derivedPromotionRequestId(validBody),
       decision_source: "founder",
       actor_type: "founder",
       actor_id: "founder-1",
     });
+  });
+
+  it("derives promotion_request_id server-side from immutable inputs", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+
+    const { POST } = await import("@/app/api/admin/promotion/evidence/route");
+    const response = await POST(request(validBody));
+
+    expect(response.status).toBe(200);
+    expect(writeFounderPromotionEvidence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          promotion_request_id: derivedPromotionRequestId(validBody),
+        }),
+      }),
+    );
+  });
+
+  it("ignores client-supplied promotion_request_id and preserves deterministic derivation", async () => {
+    authState.user = { id: "founder-1" };
+    authState.admin = true;
+
+    const forged = {
+      ...validBody,
+      promotion_request_id: "forged-client-id",
+    };
+
+    const { POST } = await import("@/app/api/admin/promotion/evidence/route");
+    const response = await POST(request(forged));
+
+    expect(response.status).toBe(200);
+    expect(writeFounderPromotionEvidence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          promotion_request_id: derivedPromotionRequestId(validBody),
+        }),
+      }),
+    );
   });
 
   it("ignores forged actorId and created_by from client payload", async () => {
