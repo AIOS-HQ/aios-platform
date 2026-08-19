@@ -100,11 +100,12 @@ async function runSelectSingle(
   }
 
   const filtered = selected.eq("promotion_request_id", requestId);
-  if (!filtered || typeof filtered !== "object" || typeof (filtered as { maybeSingle?: unknown }).maybeSingle !== "function") {
+  const maybeSingleCandidate = (filtered as { maybeSingle?: unknown } | null)?.maybeSingle;
+  if (typeof maybeSingleCandidate !== "function") {
     throw new Error("diagnostic_eq_chain_invalid");
   }
 
-  return (filtered as { maybeSingle: () => Promise<{ data: unknown | null; error: unknown | null }> }).maybeSingle();
+  return (maybeSingleCandidate as () => Promise<{ data: unknown | null; error: unknown | null }>)();
 }
 
 export async function runPromotionPersistenceReadOnlyDiagnosticWithClient(
