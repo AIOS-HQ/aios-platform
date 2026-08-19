@@ -1,0 +1,114 @@
+name: production-promotion-persistence-diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      promotion_request_id:
+        description: "Exact promotion request ID to diagnose"
+        required: true
+        default: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    name: Run read-only promotion persistence diagnostic
+    if: ${{ github.repository == 'AIOS-HQ/aios-platform' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate immutable diagnostic input
+        shell: bash
+        env:
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${PROMOTION_REQUEST_ID// }" ]]; then
+            echo "promotion_request_id_missing" >&2
+            exit 1
+          fi
+
+          if [[ "$PROMOTION_REQUEST_ID" != "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a" ]]; then
+            echo "promotion_request_id_mismatch" >&2
+            exit 1
+          fi
+
+      - name: Checkout trusted main controls
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify checked out controls match current GitHub main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin main
+          expected_main_sha="$(git rev-parse origin/main)"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$expected_main_sha" != "$checked_out_sha" ]]; then
+            echo "trusted_main_mismatch" >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+
+      - name: Run read-only persistence diagnostic
+        shell: bash
+        env:
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          npx --no-install tsx scripts/ci/run-production-promotion-persistence-diagnostic.ts \
+            "$PROMOTION_REQUEST_ID" \
+            production-promotion-persistence-diagnostic.json
+
+      - name: Print diagnostic fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+
+          const diagnostic = JSON.parse(readFileSync("production-promotion-persistence-diagnostic.json", "utf8"));
+          const required = [
+            "requestId",
+            "adminReadAccess",
+            "productionPromotionRequestsQueryable",
+            "productionPromotionDecisionsQueryable",
+            "previewWaiverFieldsQueryable",
+            "waiverRuntimePathSupported",
+            "requestExists",
+            "founderDecisionExists",
+            "harmonyDecisionExists",
+          ];
+
+          for (const key of required) {
+            if (!(key in diagnostic)) {
+              throw new Error(`diagnostic_field_missing:${key}`);
+            }
+            console.log(`${key}=${diagnostic[key]}`);
+          }
+          NODE
+
+      - name: Upload diagnostic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-promotion-persistence-diagnostic-${{ github.run_id }}
+          path: production-promotion-persistence-diagnostic.json
+          if-no-files-found: error
+

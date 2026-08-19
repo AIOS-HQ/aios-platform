@@ -75,6 +75,7 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("npm ci");
     expect(workflow).toContain("scripts/ci/export-persisted-promotion-approval-evidence.ts");
     expect(workflow).toContain("npx --no-install tsx scripts/ci/export-persisted-promotion-approval-evidence.ts");
+    expect(workflow).toContain("Export persisted promotion approvals");
     expect(workflow).not.toContain("npx --yes tsx");
     expect(workflow).toContain("scripts/ci/produce-promotion-attestation.mjs");
     expect(workflow).toContain("scripts/ci/promotion-attestation-contract.mjs validate promotion-attestation.json");

@@ -7,11 +7,26 @@ import { producePromotionAttestation } from "../../scripts/ci/produce-promotion-
 const createClientMock = vi.hoisted(() => vi.fn());
 const loadSharedMock = vi.hoisted(() => vi.fn());
 const validateMock = vi.hoisted(() => vi.fn());
+const runDiagnosticMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@supabase/supabase-js", () => ({ createClient: createClientMock }));
 vi.mock("../../src/lib/promotion/approval-evidence-shared", () => ({
+  PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
   loadPersistedPromotionApprovalEvidenceWithClient: loadSharedMock,
+  runPromotionPersistenceReadOnlyDiagnosticWithClient: runDiagnosticMock,
 }));
+
+runDiagnosticMock.mockResolvedValue({
+    requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+    adminReadAccess: true,
+    productionPromotionRequestsQueryable: true,
+    productionPromotionDecisionsQueryable: true,
+    previewWaiverFieldsQueryable: true,
+    waiverRuntimePathSupported: true,
+    requestExists: true,
+    founderDecisionExists: true,
+    harmonyDecisionExists: true,
+  });
 vi.mock("../../scripts/ci/promotion-approval-evidence.mjs", () => ({
   validatePromotionApprovalEvidence: validateMock,
 }));
@@ -78,6 +93,17 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
     createClientMock.mockReturnValue({ from: vi.fn() });
     loadSharedMock.mockResolvedValue(rawMappedPayload);
     validateMock.mockReturnValue(normalizedPayload);
+    runDiagnosticMock.mockResolvedValue({
+      requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+      adminReadAccess: true,
+      productionPromotionRequestsQueryable: true,
+      productionPromotionDecisionsQueryable: true,
+      previewWaiverFieldsQueryable: true,
+      waiverRuntimePathSupported: true,
+      requestExists: true,
+      founderDecisionExists: true,
+      harmonyDecisionExists: true,
+    });
   });
 
   it("validates raw mapped payload then writes and returns original raw mapped JSON", async () => {
@@ -93,6 +119,7 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
       );
 
       expect(createClientMock).toHaveBeenCalledTimes(1);
+      expect(runDiagnosticMock).toHaveBeenCalledTimes(1);
       expect(loadSharedMock).toHaveBeenCalledTimes(1);
       expect(validateMock).toHaveBeenCalledWith(rawMappedPayload, { expectedSha: "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300" });
       expect(JSON.parse(readFileSync(out, "utf8"))).toEqual(rawMappedPayload);
@@ -184,6 +211,57 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
     await expect(exportPersistedPromotionApprovalEvidence("id", "a".repeat(40), join(tmpdir(), "x.json"))).rejects.toThrow(
       "founder_decision_missing",
     );
+    expect(runDiagnosticMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs read-only diagnostic before loading persisted approvals", async () => {
+    const order: string[] = [];
+    runDiagnosticMock.mockImplementation(async () => {
+      order.push("diagnostic");
+      return {
+        requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+        adminReadAccess: true,
+        productionPromotionRequestsQueryable: true,
+        productionPromotionDecisionsQueryable: true,
+        previewWaiverFieldsQueryable: true,
+        waiverRuntimePathSupported: false,
+        requestExists: false,
+        founderDecisionExists: false,
+        harmonyDecisionExists: false,
+      };
+    });
+    loadSharedMock.mockImplementation(async () => {
+      order.push("load");
+      return rawMappedPayload;
+    });
+
+    const { exportPersistedPromotionApprovalEvidence } = await import("../../scripts/ci/export-persisted-promotion-approval-evidence");
+    await exportPersistedPromotionApprovalEvidence("promotion-request:missing", "a".repeat(40), join(tmpdir(), "diag-order.json"));
+
+    expect(order).toEqual(["diagnostic", "load"]);
+  });
+
+  it("diagnoses missing rows and still fails closed afterward", async () => {
+    runDiagnosticMock.mockResolvedValue({
+      requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+      adminReadAccess: true,
+      productionPromotionRequestsQueryable: true,
+      productionPromotionDecisionsQueryable: true,
+      previewWaiverFieldsQueryable: true,
+      waiverRuntimePathSupported: false,
+      requestExists: false,
+      founderDecisionExists: false,
+      harmonyDecisionExists: false,
+    });
+    loadSharedMock.mockRejectedValue(new Error("promotion_request_missing"));
+
+    const { exportPersistedPromotionApprovalEvidence } = await import("../../scripts/ci/export-persisted-promotion-approval-evidence");
+    await expect(exportPersistedPromotionApprovalEvidence("promotion-request:missing", "a".repeat(40), join(tmpdir(), "x.json"))).rejects.toThrow(
+      "promotion_request_missing",
+    );
+
+    expect(runDiagnosticMock).toHaveBeenCalledTimes(1);
+    expect(loadSharedMock).toHaveBeenCalledTimes(1);
   });
 
   it("fails closed when expected SHA validation fails", async () => {

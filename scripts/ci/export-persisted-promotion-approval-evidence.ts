@@ -1,7 +1,9 @@
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import {
+  PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
   loadPersistedPromotionApprovalEvidenceWithClient,
+  runPromotionPersistenceReadOnlyDiagnosticWithClient,
   type PromotionApprovalEvidenceInput,
 } from "../../src/lib/promotion/approval-evidence-shared";
 import { validatePromotionApprovalEvidence } from "./promotion-approval-evidence.mjs";
@@ -22,6 +24,7 @@ export async function exportPersistedPromotionApprovalEvidence(
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  await runPromotionPersistenceReadOnlyDiagnosticWithClient(client, PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID);
   const mapped = await loadPersistedPromotionApprovalEvidenceWithClient(client, promotionRequestId);
   validatePromotionApprovalEvidence(mapped, { expectedSha: expectedTargetSha });
   writeFileSync(outputPath, `${JSON.stringify(mapped, null, 2)}\n`, "utf8");
