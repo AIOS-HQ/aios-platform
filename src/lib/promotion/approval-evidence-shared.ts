@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export const PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID = "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a";
+
 export type PromotionApprovalEvidenceInput = {
   subject: {
     repository: string;
@@ -56,7 +58,104 @@ type PersistedPromotionRequest = {
   runtime_artifact_id: string;
   migration_evidence_id: string;
   migration_artifact_id: string;
+  preview_certification_waiver: boolean;
+  preview_certification_waiver_reason: string | null;
 };
+
+export type PromotionPersistenceReadOnlyDiagnostic = {
+  requestId: string;
+  adminReadAccess: true;
+  productionPromotionRequestsQueryable: true;
+  productionPromotionDecisionsQueryable: true;
+  previewWaiverFieldsQueryable: true;
+  waiverRuntimePathSupported: boolean;
+  requestExists: boolean;
+  founderDecisionExists: boolean;
+  harmonyDecisionExists: boolean;
+};
+
+function hasSelectOnlyChain(value: unknown): value is {
+  select: (...args: unknown[]) => unknown;
+  eq: (...args: unknown[]) => unknown;
+} {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.select === "function" && typeof candidate.eq === "function";
+}
+
+async function runSelectSingle(
+  client: SupabaseClient,
+  table: "production_promotion_requests" | "production_promotion_decisions",
+  projection: string,
+  requestId: string,
+): Promise<{ data: unknown | null; error: unknown | null }> {
+  const root = client.from(table);
+  if (!hasSelectOnlyChain(root)) {
+    throw new Error("diagnostic_read_chain_invalid");
+  }
+
+  const selected = root.select(projection);
+  if (!hasSelectOnlyChain(selected)) {
+    throw new Error("diagnostic_select_chain_invalid");
+  }
+
+  const filtered = selected.eq("promotion_request_id", requestId);
+  if (!filtered || typeof filtered !== "object" || typeof (filtered as { maybeSingle?: unknown }).maybeSingle !== "function") {
+    throw new Error("diagnostic_eq_chain_invalid");
+  }
+
+  return (filtered as { maybeSingle: () => Promise<{ data: unknown | null; error: unknown | null }> }).maybeSingle();
+}
+
+export async function runPromotionPersistenceReadOnlyDiagnosticWithClient(
+  client: SupabaseClient,
+  requestId: string = PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
+): Promise<PromotionPersistenceReadOnlyDiagnostic> {
+  const requestProjection = "promotion_request_id,runtime_evidence_id,runtime_artifact_id,preview_certification_waiver,preview_certification_waiver_reason";
+  const requestResult = await runSelectSingle(client, "production_promotion_requests", requestProjection, requestId);
+  if (requestResult.error) throw new Error("promotion_requests_unqueryable");
+
+  const founderResult = await runSelectSingle(
+    client,
+    "production_promotion_decisions",
+    "promotion_request_id,decision_source",
+    requestId,
+  );
+  if (founderResult.error) throw new Error("promotion_decisions_unqueryable");
+
+  const harmonyResult = await runSelectSingle(
+    client,
+    "production_promotion_decisions",
+    "promotion_request_id,decision_source",
+    requestId,
+  );
+  if (harmonyResult.error) throw new Error("promotion_decisions_unqueryable");
+
+  const request = requestResult.data as Partial<PersistedPromotionRequest> | null;
+  const founder = founderResult.data as { decision_source?: unknown } | null;
+  const harmony = harmonyResult.data as { decision_source?: unknown } | null;
+
+  const waiverRuntimePathSupported = request
+    ? (
+      request.preview_certification_waiver === true
+        ? typeof request.runtime_evidence_id === "string" && request.runtime_evidence_id.length > 0
+          && typeof request.runtime_artifact_id === "string" && request.runtime_artifact_id.length > 0
+        : request.runtime_evidence_id === null && request.runtime_artifact_id === null
+    )
+    : false;
+
+  return {
+    requestId,
+    adminReadAccess: true,
+    productionPromotionRequestsQueryable: true,
+    productionPromotionDecisionsQueryable: true,
+    previewWaiverFieldsQueryable: true,
+    waiverRuntimePathSupported,
+    requestExists: request !== null,
+    founderDecisionExists: founder?.decision_source === "founder",
+    harmonyDecisionExists: harmony?.decision_source === "harmony",
+  };
+}
 
 type PersistedFounderDecision = {
   promotion_request_id: string;
