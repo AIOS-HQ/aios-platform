@@ -17,6 +17,8 @@ jobs:
     name: Run read-only promotion persistence diagnostic
     if: ${{ github.repository == 'AIOS-HQ/aios-platform' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    environment:
+      name: production
 
     steps:
       - name: Validate immutable diagnostic input
@@ -111,4 +113,3 @@ jobs:
           name: production-promotion-persistence-diagnostic-${{ github.run_id }}
           path: production-promotion-persistence-diagnostic.json
           if-no-files-found: error
-
