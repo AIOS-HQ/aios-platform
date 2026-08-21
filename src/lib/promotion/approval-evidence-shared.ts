@@ -108,12 +108,11 @@ async function runSelectSingle(
   }
 
   const filtered = selected.eq("promotion_request_id", requestId);
-  const maybeSingleCandidate = (filtered as { maybeSingle?: unknown } | null)?.maybeSingle;
-  if (typeof maybeSingleCandidate !== "function") {
+  if (!filtered || typeof filtered !== "object" || typeof (filtered as { maybeSingle?: unknown }).maybeSingle !== "function") {
     throw new Error("diagnostic_eq_chain_invalid");
   }
 
-  return (maybeSingleCandidate as () => Promise<{ data: unknown | null; error: unknown | null }>)();
+  return (filtered as unknown as { maybeSingle: () => Promise<{ data: unknown | null; error: unknown | null }> }).maybeSingle();
 }
 
 export async function runPromotionPersistenceReadOnlyDiagnosticWithClient(
