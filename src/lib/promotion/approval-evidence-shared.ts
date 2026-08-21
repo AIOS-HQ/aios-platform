@@ -74,7 +74,15 @@ export type PromotionPersistenceReadOnlyDiagnostic = {
   harmonyDecisionExists: boolean;
 };
 
-function hasSelectOnlyChain(value: unknown): value is {
+function hasSelectChain(value: unknown): value is {
+  select: (...args: unknown[]) => unknown;
+} {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.select === "function";
+}
+
+function hasSelectEqChain(value: unknown): value is {
   select: (...args: unknown[]) => unknown;
   eq: (...args: unknown[]) => unknown;
 } {
@@ -90,12 +98,12 @@ async function runSelectSingle(
   requestId: string,
 ): Promise<{ data: unknown | null; error: unknown | null }> {
   const root = client.from(table);
-  if (!hasSelectOnlyChain(root)) {
+  if (!hasSelectChain(root)) {
     throw new Error("diagnostic_read_chain_invalid");
   }
 
   const selected = root.select(projection);
-  if (!hasSelectOnlyChain(selected)) {
+  if (!hasSelectEqChain(selected)) {
     throw new Error("diagnostic_select_chain_invalid");
   }
 
