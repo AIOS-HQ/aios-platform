@@ -8,8 +8,11 @@ export const PRODUCTION_DATABASE = "postgres";
 export const APPROVED_FIRST_MIGRATION_FILE = "20260807250000_production_promotion_approval_evidence.sql";
 export const APPROVED_SECOND_MIGRATION_FILE = "20260814010000_production_promotion_preview_waiver.sql";
 export const PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID = "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a";
+export const AUTHORIZATION_MODE_PROMOTION_ATTESTATION = "promotion_attestation";
+export const AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN = "bootstrap_staging_migration_plan";
 
 const CERTIFICATION_NAME = "supabase-production-governed-migration";
+const STAGING_PLAN_CERTIFICATION_NAME = "supabase-staging-migration-plan";
 const EXPECTED_REPOSITORY = "AIOS-HQ/aios-platform";
 const EXPECTED_SUPABASE_URL_HOST = `${PRODUCTION_PROJECT_REF}.supabase.co`;
 const SHA40 = /^[0-9a-f]{40}$/;
@@ -128,6 +131,18 @@ function assertBoolean(value, code) {
   return value;
 }
 
+function assertAuthorizationMode(value, code) {
+  if (value !== AUTHORIZATION_MODE_PROMOTION_ATTESTATION && value !== AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN) {
+    fail(code);
+  }
+  return value;
+}
+
+function assertNonEmptyText(value, code) {
+  if (typeof value !== "string" || value.trim() === "") fail(code);
+  return value;
+}
+
 function assertMigrationFile(value, code) {
   if (typeof value !== "string") fail(code);
   const normalized = value.trim();
@@ -232,16 +247,81 @@ export function buildProductionMigrationEvidenceArtifact(input) {
   if (!projectIdentityVerified) fail("project_identity_not_verified");
   if (input.projectRef !== PRODUCTION_PROJECT_REF) fail("project_ref_mismatch");
 
-  const promotionArtifactId = assertRunIdentity(String(input.promotionArtifactId), "promotion_artifact_id_invalid");
-  const promotionWorkflowRunId = assertRunIdentity(String(input.promotionWorkflowRunId), "promotion_workflow_run_id_invalid");
-  const promotionWorkflowRunAttempt = Number(
-    assertRunIdentity(String(input.promotionWorkflowRunAttempt), "promotion_workflow_run_attempt_invalid"),
+  const authorizationMode = assertAuthorizationMode(
+    input.authorizationMode,
+    "authorization_mode_invalid",
   );
-  if (typeof input.promotionArtifactName !== "string" || input.promotionArtifactName.trim() === "") {
-    fail("promotion_artifact_name_invalid");
-  }
-  if (typeof input.promotionWorkflowRef !== "string" || input.promotionWorkflowRef.trim() === "") {
-    fail("promotion_workflow_ref_invalid");
+
+  let authorization;
+  if (authorizationMode === AUTHORIZATION_MODE_PROMOTION_ATTESTATION) {
+    const promotionArtifactId = assertRunIdentity(String(input.promotionArtifactId), "promotion_artifact_id_invalid");
+    const promotionWorkflowRunId = assertRunIdentity(String(input.promotionWorkflowRunId), "promotion_workflow_run_id_invalid");
+    const promotionWorkflowRunAttempt = Number(
+      assertRunIdentity(String(input.promotionWorkflowRunAttempt), "promotion_workflow_run_attempt_invalid"),
+    );
+    const promotionArtifactName = assertNonEmptyText(input.promotionArtifactName, "promotion_artifact_name_invalid");
+    const promotionWorkflowRef = assertNonEmptyText(input.promotionWorkflowRef, "promotion_workflow_ref_invalid");
+
+    authorization = {
+      mode: AUTHORIZATION_MODE_PROMOTION_ATTESTATION,
+      promotionAttestation: {
+        artifactId: promotionArtifactId,
+        artifactName: promotionArtifactName,
+        workflowRunId: promotionWorkflowRunId,
+        workflowRunAttempt: promotionWorkflowRunAttempt,
+        workflowRef: promotionWorkflowRef,
+      },
+    };
+  } else {
+    const stagingMigrationArtifactId = assertRunIdentity(
+      String(input.stagingMigrationArtifactId),
+      "staging_migration_artifact_id_invalid",
+    );
+    const stagingMigrationWorkflowRunId = assertRunIdentity(
+      String(input.stagingMigrationWorkflowRunId),
+      "staging_migration_workflow_run_id_invalid",
+    );
+    const stagingMigrationWorkflowRunAttempt = Number(
+      assertRunIdentity(
+        String(input.stagingMigrationWorkflowRunAttempt),
+        "staging_migration_workflow_run_attempt_invalid",
+      ),
+    );
+    const stagingMigrationArtifactName = assertNonEmptyText(
+      input.stagingMigrationArtifactName,
+      "staging_migration_artifact_name_invalid",
+    );
+    const stagingMigrationWorkflowRef = assertNonEmptyText(
+      input.stagingMigrationWorkflowRef,
+      "staging_migration_workflow_ref_invalid",
+    );
+    const stagingMigrationCertificationName = assertNonEmptyText(
+      input.stagingMigrationCertificationName,
+      "staging_migration_certification_name_invalid",
+    );
+    if (stagingMigrationCertificationName !== STAGING_PLAN_CERTIFICATION_NAME) {
+      fail("staging_migration_certification_name_invalid");
+    }
+    const stagingMigrationCertificationTargetSha = assertSha40(
+      input.stagingMigrationCertificationTargetSha,
+      "staging_migration_target_sha_invalid",
+    );
+    if (stagingMigrationCertificationTargetSha !== targetSha) {
+      fail("staging_migration_target_sha_mismatch");
+    }
+
+    authorization = {
+      mode: AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN,
+      bootstrapStagingMigrationPlan: {
+        artifactId: stagingMigrationArtifactId,
+        artifactName: stagingMigrationArtifactName,
+        workflowRunId: stagingMigrationWorkflowRunId,
+        workflowRunAttempt: stagingMigrationWorkflowRunAttempt,
+        workflowRef: stagingMigrationWorkflowRef,
+        certificationName: stagingMigrationCertificationName,
+        certificationTargetSha: stagingMigrationCertificationTargetSha,
+      },
+    };
   }
 
   const trustedControlSha = assertSha40(input.trustedControlSha, "trusted_control_sha_invalid");
@@ -273,13 +353,7 @@ export function buildProductionMigrationEvidenceArtifact(input) {
       projectRef: PRODUCTION_PROJECT_REF,
       verified: true,
     },
-    promotionAuthorization: {
-      artifactId: promotionArtifactId,
-      artifactName: input.promotionArtifactName,
-      workflowRunId: promotionWorkflowRunId,
-      workflowRunAttempt: promotionWorkflowRunAttempt,
-      workflowRef: input.promotionWorkflowRef,
-    },
+    authorization,
     appliedMigrationVersions,
     trustedControlSha,
     validatorSha256,
@@ -338,15 +412,57 @@ export function assertProductionMigrationEvidenceArtifact(artifact, options = {}
   if (artifact.projectIdentity.projectRef !== PRODUCTION_PROJECT_REF) fail("project_ref_mismatch");
   if (artifact.projectIdentity.verified !== true) fail("project_identity_not_verified");
 
-  if (!isObject(artifact.promotionAuthorization)) fail("promotion_authorization_missing");
-  assertRunIdentity(String(artifact.promotionAuthorization.artifactId), "promotion_artifact_id_invalid");
-  assertRunIdentity(String(artifact.promotionAuthorization.workflowRunId), "promotion_workflow_run_id_invalid");
-  assertRunIdentity(String(artifact.promotionAuthorization.workflowRunAttempt), "promotion_workflow_run_attempt_invalid");
-  if (typeof artifact.promotionAuthorization.artifactName !== "string" || !artifact.promotionAuthorization.artifactName.startsWith("promotion-attestation-")) {
-    fail("promotion_artifact_name_invalid");
+  if (!isObject(artifact.authorization)) fail("authorization_missing");
+  const authorizationMode = assertAuthorizationMode(
+    artifact.authorization.mode,
+    "authorization_mode_invalid",
+  );
+  if (options.expectedAuthorizationMode && authorizationMode !== options.expectedAuthorizationMode) {
+    fail("authorization_mode_mismatch");
   }
-  if (typeof artifact.promotionAuthorization.workflowRef !== "string" || artifact.promotionAuthorization.workflowRef.trim() === "") {
-    fail("promotion_workflow_ref_invalid");
+
+  if (authorizationMode === AUTHORIZATION_MODE_PROMOTION_ATTESTATION) {
+    if (!isObject(artifact.authorization.promotionAttestation)) fail("promotion_authorization_missing");
+    assertRunIdentity(String(artifact.authorization.promotionAttestation.artifactId), "promotion_artifact_id_invalid");
+    assertRunIdentity(String(artifact.authorization.promotionAttestation.workflowRunId), "promotion_workflow_run_id_invalid");
+    assertRunIdentity(String(artifact.authorization.promotionAttestation.workflowRunAttempt), "promotion_workflow_run_attempt_invalid");
+    if (
+      typeof artifact.authorization.promotionAttestation.artifactName !== "string"
+      || !artifact.authorization.promotionAttestation.artifactName.startsWith("promotion-attestation-")
+    ) {
+      fail("promotion_artifact_name_invalid");
+    }
+    if (
+      typeof artifact.authorization.promotionAttestation.workflowRef !== "string"
+      || artifact.authorization.promotionAttestation.workflowRef.trim() === ""
+    ) {
+      fail("promotion_workflow_ref_invalid");
+    }
+  } else {
+    if (!isObject(artifact.authorization.bootstrapStagingMigrationPlan)) fail("staging_migration_authorization_missing");
+    assertRunIdentity(String(artifact.authorization.bootstrapStagingMigrationPlan.artifactId), "staging_migration_artifact_id_invalid");
+    assertRunIdentity(String(artifact.authorization.bootstrapStagingMigrationPlan.workflowRunId), "staging_migration_workflow_run_id_invalid");
+    assertRunIdentity(String(artifact.authorization.bootstrapStagingMigrationPlan.workflowRunAttempt), "staging_migration_workflow_run_attempt_invalid");
+    if (
+      typeof artifact.authorization.bootstrapStagingMigrationPlan.artifactName !== "string"
+      || !artifact.authorization.bootstrapStagingMigrationPlan.artifactName.startsWith("supabase-staging-migration-plan-")
+    ) {
+      fail("staging_migration_artifact_name_invalid");
+    }
+    if (
+      typeof artifact.authorization.bootstrapStagingMigrationPlan.workflowRef !== "string"
+      || artifact.authorization.bootstrapStagingMigrationPlan.workflowRef.trim() === ""
+    ) {
+      fail("staging_migration_workflow_ref_invalid");
+    }
+    if (artifact.authorization.bootstrapStagingMigrationPlan.certificationName !== STAGING_PLAN_CERTIFICATION_NAME) {
+      fail("staging_migration_certification_name_invalid");
+    }
+    const stagingTargetSha = assertSha40(
+      artifact.authorization.bootstrapStagingMigrationPlan.certificationTargetSha,
+      "staging_migration_target_sha_invalid",
+    );
+    if (stagingTargetSha !== targetSha) fail("staging_migration_target_sha_mismatch");
   }
 
   if (!Array.isArray(artifact.appliedMigrationVersions)) fail("applied_migration_versions_invalid");
@@ -416,6 +532,7 @@ async function main() {
       environment: process.env.PRODUCTION_MIGRATION_ENVIRONMENT ?? "",
       result: process.env.PRODUCTION_MIGRATION_RESULT ?? "",
       mode: process.env.PRODUCTION_MIGRATION_MODE ?? "",
+      authorizationMode: process.env.PRODUCTION_MIGRATION_AUTHORIZATION_MODE ?? "",
       targetSha: process.env.TARGET_SHA ?? "",
       firstMigrationFile: process.env.FIRST_MIGRATION_FILE ?? "",
       secondMigrationFile: process.env.SECOND_MIGRATION_FILE ?? "",
@@ -429,6 +546,13 @@ async function main() {
       promotionWorkflowRunId: process.env.PROMOTION_WORKFLOW_RUN_ID ?? "",
       promotionWorkflowRunAttempt: process.env.PROMOTION_WORKFLOW_RUN_ATTEMPT ?? "",
       promotionWorkflowRef: process.env.PROMOTION_WORKFLOW_REF ?? "",
+      stagingMigrationArtifactId: process.env.STAGING_MIGRATION_ARTIFACT_ID ?? "",
+      stagingMigrationArtifactName: process.env.STAGING_MIGRATION_ARTIFACT_NAME ?? "",
+      stagingMigrationWorkflowRunId: process.env.STAGING_MIGRATION_WORKFLOW_RUN_ID ?? "",
+      stagingMigrationWorkflowRunAttempt: process.env.STAGING_MIGRATION_WORKFLOW_RUN_ATTEMPT ?? "",
+      stagingMigrationWorkflowRef: process.env.STAGING_MIGRATION_WORKFLOW_REF ?? "",
+      stagingMigrationCertificationName: process.env.STAGING_MIGRATION_CERTIFICATION_NAME ?? "",
+      stagingMigrationCertificationTargetSha: process.env.STAGING_MIGRATION_CERTIFICATION_TARGET_SHA ?? "",
       appliedMigrationVersions: process.env.MIGRATION_APPLIED_VERSIONS ?? "",
       trustedControlSha: process.env.TRUSTED_CONTROL_SHA ?? "",
       validatorSha256: process.env.TRUSTED_VALIDATOR_SHA256 ?? "",
@@ -457,6 +581,7 @@ async function main() {
       expectedTargetSha: process.env.TARGET_SHA ?? "",
       expectedFirstMigrationFile: process.env.FIRST_MIGRATION_FILE ?? "",
       expectedSecondMigrationFile: process.env.SECOND_MIGRATION_FILE ?? "",
+      expectedAuthorizationMode: process.env.PRODUCTION_MIGRATION_AUTHORIZATION_MODE ?? "",
     });
     return;
   }
@@ -473,4 +598,3 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exitCode = 1;
   });
 }
-

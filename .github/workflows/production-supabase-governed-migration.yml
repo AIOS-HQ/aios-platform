@@ -7,9 +7,21 @@ on:
         description: "Lowercase 40-char commit SHA whose migration controls are used"
         required: true
         type: string
+      authorization_mode:
+        description: "Governed authorization source for migration execution"
+        required: true
+        default: "promotion_attestation"
+        type: choice
+        options:
+          - "promotion_attestation"
+          - "bootstrap_staging_migration_plan"
       promotion_artifact_id:
         description: "GitHub Actions promotion attestation artifact numeric ID"
-        required: true
+        required: false
+        type: string
+      staging_migration_artifact_id:
+        description: "GitHub Actions staging migration plan artifact numeric ID (bootstrap only)"
+        required: false
         type: string
       first_migration_file:
         description: "First migration file in governed production range"
@@ -59,7 +71,9 @@ jobs:
         shell: bash
         env:
           TARGET_SHA: ${{ inputs.target_sha }}
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+          STAGING_MIGRATION_ARTIFACT_ID: ${{ inputs.staging_migration_artifact_id }}
           FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
           SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
           PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
@@ -71,9 +85,29 @@ jobs:
             exit 1
           fi
 
-          if [[ ! "$PROMOTION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
-            echo "promotion_artifact_id_invalid" >&2
+          if [[ "$AUTHORIZATION_MODE" != "promotion_attestation" && "$AUTHORIZATION_MODE" != "bootstrap_staging_migration_plan" ]]; then
+            echo "authorization_mode_invalid" >&2
             exit 1
+          fi
+
+          if [[ "$AUTHORIZATION_MODE" == "promotion_attestation" ]]; then
+            if [[ ! "$PROMOTION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+              echo "promotion_artifact_id_invalid" >&2
+              exit 1
+            fi
+            if [[ -n "${STAGING_MIGRATION_ARTIFACT_ID// }" ]]; then
+              echo "staging_migration_artifact_id_not_allowed" >&2
+              exit 1
+            fi
+          else
+            if [[ ! "$STAGING_MIGRATION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+              echo "staging_migration_artifact_id_invalid" >&2
+              exit 1
+            fi
+            if [[ -n "${PROMOTION_ARTIFACT_ID// }" ]]; then
+              echo "promotion_artifact_id_not_allowed" >&2
+              exit 1
+            fi
           fi
 
           if [[ "$FIRST_MIGRATION_FILE" != "$APPROVED_FIRST_MIGRATION_FILE" ]]; then
@@ -207,96 +241,188 @@ jobs:
             printf 'second_version=%s\n' "$second_version"
           } >>"$GITHUB_OUTPUT"
 
-      - name: Resolve promotion attestation artifact and canonical provenance
+      - name: Resolve governed authorization artifact and canonical provenance
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_SHA: ${{ inputs.target_sha }}
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+          STAGING_MIGRATION_ARTIFACT_ID: ${{ inputs.staging_migration_artifact_id }}
         run: |
           set -Eeuo pipefail
 
-          artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID")"
-          artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
-          if [[ "$artifact_expired" != "false" ]]; then
-            echo "promotion_artifact_expired" >&2
-            exit 1
-          fi
-
-          source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
-          if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
-            echo "promotion_artifact_run_missing" >&2
-            exit 1
-          fi
-
-          source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
-          source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
-          source_run_event="$(jq -r '.event' <<<"$source_run_json")"
-          source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
-          source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
-          source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
-          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
-
-          if [[ "$source_run_conclusion" != "success" ]]; then
-            echo "promotion_source_run_not_success" >&2
-            exit 1
-          fi
-
-          if [[ "$source_workflow_path" != ".github/workflows/production-promotion-attestation.yml" ]]; then
-            echo "promotion_source_workflow_invalid" >&2
-            exit 1
-          fi
-
-          if [[ "$source_run_event" != "workflow_dispatch" ]]; then
-            echo "promotion_source_event_invalid" >&2
-            exit 1
-          fi
-
-          if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
-            echo "promotion_source_run_attempt_invalid" >&2
-            exit 1
-          fi
-
-          if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "promotion_source_head_sha_invalid" >&2
-            exit 1
-          fi
-
-          if [[ "$source_run_head_sha" != "$TARGET_SHA" ]]; then
-            echo "promotion_source_sha_mismatch" >&2
-            exit 1
-          fi
-
-          expected_artifact_name="promotion-attestation-${TARGET_SHA}-${source_run_id}"
-          if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
-            echo "promotion_artifact_name_invalid" >&2
-            exit 1
-          fi
-
-          workflow_ref="AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@${source_run_head_sha}#run:${source_run_id}:attempt:${source_run_attempt}"
           {
-            printf 'PROMOTION_WORKFLOW_RUN_ID=%s\n' "$source_run_id"
-            printf 'PROMOTION_WORKFLOW_RUN_ATTEMPT=%s\n' "$source_run_attempt"
-            printf 'PROMOTION_WORKFLOW_REF=%s\n' "$workflow_ref"
-            printf 'PROMOTION_ARTIFACT_NAME=%s\n' "$artifact_name"
+            printf 'PROMOTION_WORKFLOW_RUN_ID=\n'
+            printf 'PROMOTION_WORKFLOW_RUN_ATTEMPT=\n'
+            printf 'PROMOTION_WORKFLOW_REF=\n'
+            printf 'PROMOTION_ARTIFACT_NAME=\n'
+            printf 'STAGING_MIGRATION_WORKFLOW_RUN_ID=\n'
+            printf 'STAGING_MIGRATION_WORKFLOW_RUN_ATTEMPT=\n'
+            printf 'STAGING_MIGRATION_WORKFLOW_REF=\n'
+            printf 'STAGING_MIGRATION_ARTIFACT_NAME=\n'
+            printf 'STAGING_MIGRATION_CERTIFICATION_NAME=\n'
+            printf 'STAGING_MIGRATION_CERTIFICATION_TARGET_SHA=\n'
           } >>"$GITHUB_ENV"
 
-      - name: Download promotion artifact by exact numeric ID
+          if [[ "$AUTHORIZATION_MODE" == "promotion_attestation" ]]; then
+            artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID")"
+            artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
+            if [[ "$artifact_expired" != "false" ]]; then
+              echo "promotion_artifact_expired" >&2
+              exit 1
+            fi
+
+            source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
+            if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
+              echo "promotion_artifact_run_missing" >&2
+              exit 1
+            fi
+
+            source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
+            source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
+            source_run_event="$(jq -r '.event' <<<"$source_run_json")"
+            source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
+            source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
+            source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
+            artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+
+            if [[ "$source_run_conclusion" != "success" ]]; then
+              echo "promotion_source_run_not_success" >&2
+              exit 1
+            fi
+
+            if [[ "$source_workflow_path" != ".github/workflows/production-promotion-attestation.yml" ]]; then
+              echo "promotion_source_workflow_invalid" >&2
+              exit 1
+            fi
+
+            if [[ "$source_run_event" != "workflow_dispatch" ]]; then
+              echo "promotion_source_event_invalid" >&2
+              exit 1
+            fi
+
+            if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
+              echo "promotion_source_run_attempt_invalid" >&2
+              exit 1
+            fi
+
+            if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "promotion_source_head_sha_invalid" >&2
+              exit 1
+            fi
+
+            if [[ "$source_run_head_sha" != "$TARGET_SHA" ]]; then
+              echo "promotion_source_sha_mismatch" >&2
+              exit 1
+            fi
+
+            expected_artifact_name="promotion-attestation-${TARGET_SHA}-${source_run_id}"
+            if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
+              echo "promotion_artifact_name_invalid" >&2
+              exit 1
+            fi
+
+            workflow_ref="AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@${source_run_head_sha}#run:${source_run_id}:attempt:${source_run_attempt}"
+            {
+              printf 'PROMOTION_WORKFLOW_RUN_ID=%s\n' "$source_run_id"
+              printf 'PROMOTION_WORKFLOW_RUN_ATTEMPT=%s\n' "$source_run_attempt"
+              printf 'PROMOTION_WORKFLOW_REF=%s\n' "$workflow_ref"
+              printf 'PROMOTION_ARTIFACT_NAME=%s\n' "$artifact_name"
+            } >>"$GITHUB_ENV"
+          else
+            artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$STAGING_MIGRATION_ARTIFACT_ID")"
+            artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
+            if [[ "$artifact_expired" != "false" ]]; then
+              echo "staging_migration_artifact_expired" >&2
+              exit 1
+            fi
+
+            source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
+            if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
+              echo "staging_migration_artifact_run_missing" >&2
+              exit 1
+            fi
+
+            source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
+            source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
+            source_run_event="$(jq -r '.event' <<<"$source_run_json")"
+            source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
+            source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
+            source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
+            artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+
+            if [[ "$source_run_conclusion" != "success" ]]; then
+              echo "staging_migration_source_run_not_success" >&2
+              exit 1
+            fi
+
+            if [[ "$source_workflow_path" != ".github/workflows/supabase-staging-migration-plan.yml" ]]; then
+              echo "staging_migration_source_workflow_invalid" >&2
+              exit 1
+            fi
+
+            if [[ "$source_run_event" != "workflow_dispatch" ]]; then
+              echo "staging_migration_source_event_invalid" >&2
+              exit 1
+            fi
+
+            if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
+              echo "staging_migration_source_run_attempt_invalid" >&2
+              exit 1
+            fi
+
+            if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "staging_migration_source_head_sha_invalid" >&2
+              exit 1
+            fi
+
+            expected_artifact_name="supabase-staging-migration-plan-${TARGET_SHA}-${source_run_id}"
+            if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
+              echo "staging_migration_artifact_name_invalid" >&2
+              exit 1
+            fi
+
+            workflow_ref="AIOS-HQ/aios-platform/.github/workflows/supabase-staging-migration-plan.yml@${source_run_head_sha}#run:${source_run_id}:attempt:${source_run_attempt}"
+            {
+              printf 'STAGING_MIGRATION_WORKFLOW_RUN_ID=%s\n' "$source_run_id"
+              printf 'STAGING_MIGRATION_WORKFLOW_RUN_ATTEMPT=%s\n' "$source_run_attempt"
+              printf 'STAGING_MIGRATION_WORKFLOW_REF=%s\n' "$workflow_ref"
+              printf 'STAGING_MIGRATION_ARTIFACT_NAME=%s\n' "$artifact_name"
+            } >>"$GITHUB_ENV"
+          fi
+
+      - name: Download governed authorization artifact by exact numeric ID
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+          STAGING_MIGRATION_ARTIFACT_ID: ${{ inputs.staging_migration_artifact_id }}
         run: |
           set -Eeuo pipefail
-          gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID/zip" > promotion-artifact.zip
-          mkdir -p promotion-artifact
-          unzip -o promotion-artifact.zip -d promotion-artifact >/dev/null
 
-      - name: Require extracted promotion attestation
+          if [[ "$AUTHORIZATION_MODE" == "promotion_attestation" ]]; then
+            gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID/zip" > promotion-artifact.zip
+            mkdir -p promotion-artifact
+            unzip -o promotion-artifact.zip -d promotion-artifact >/dev/null
+          else
+            gh api "/repos/$REPO/actions/artifacts/$STAGING_MIGRATION_ARTIFACT_ID/zip" > staging-migration-artifact.zip
+            mkdir -p staging-migration-artifact
+            unzip -o staging-migration-artifact.zip -d staging-migration-artifact >/dev/null
+          fi
+
+      - name: Require extracted governed authorization artifact payload
         shell: bash
+        env:
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
         run: |
           set -Eeuo pipefail
-          test -f promotion-artifact/promotion-attestation.json
+          if [[ "$AUTHORIZATION_MODE" == "promotion_attestation" ]]; then
+            test -f promotion-artifact/promotion-attestation.json
+          else
+            test -f staging-migration-artifact/supabase-staging-migration-plan.json
+          fi
 
       - name: Use Node 22
         uses: actions/setup-node@v4
@@ -312,14 +438,37 @@ jobs:
           set -Eeuo pipefail
           npm ci
 
-      - name: Validate promotion attestation contract before any database mutation
+      - name: Validate governed authorization contract before any database mutation
         shell: bash
         working-directory: control
         env:
           TARGET_SHA: ${{ inputs.target_sha }}
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
         run: |
           set -Eeuo pipefail
-          node scripts/ci/promotion-attestation-contract.mjs validate "$GITHUB_WORKSPACE/promotion-artifact/promotion-attestation.json" "$TARGET_SHA"
+          if [[ "$AUTHORIZATION_MODE" == "promotion_attestation" ]]; then
+            node scripts/ci/promotion-attestation-contract.mjs validate "$GITHUB_WORKSPACE/promotion-artifact/promotion-attestation.json" "$TARGET_SHA"
+          else
+            node --input-type=module <<'NODE'
+            import { readFileSync } from "node:fs";
+            import { assertStagingPlanCertificationArtifact } from "./scripts/ci/supabase-staging-plan.mjs";
+
+            const artifact = JSON.parse(readFileSync("../staging-migration-artifact/supabase-staging-migration-plan.json", "utf8"));
+            assertStagingPlanCertificationArtifact(artifact, { expectedTargetSha: process.env.TARGET_SHA });
+            if (artifact.certification !== "supabase-staging-migration-plan") {
+              throw new Error("staging_migration_certification_name_invalid");
+            }
+            if (artifact.targetSha !== process.env.TARGET_SHA) {
+              throw new Error("staging_migration_target_sha_mismatch");
+            }
+            process.stdout.write(`STAGING_MIGRATION_CERTIFICATION_NAME=${artifact.certification}\n`);
+            process.stdout.write(`STAGING_MIGRATION_CERTIFICATION_TARGET_SHA=${artifact.targetSha}\n`);
+            NODE
+            {
+              printf 'STAGING_MIGRATION_CERTIFICATION_NAME=%s\n' "supabase-staging-migration-plan"
+              printf 'STAGING_MIGRATION_CERTIFICATION_TARGET_SHA=%s\n' "$TARGET_SHA"
+            } >>"$GITHUB_ENV"
+          fi
 
       - name: Verify pinned CLI supports fail-closed dry run and apply
         shell: bash
@@ -348,6 +497,7 @@ jobs:
         id: pre_apply_state
         shell: bash
         env:
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
           SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
@@ -369,8 +519,32 @@ jobs:
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
+          tables_query="select (to_regclass('public.production_promotion_requests') is not null)::text || ',' || (to_regclass('public.production_promotion_decisions') is not null)::text;"
+          table_flags="$(psql "$database_uri" -Atqc "$tables_query")"
+          requests_table_exists="${table_flags%%,*}"
+          decisions_table_exists="${table_flags##*,}"
+
+          if [[ "$AUTHORIZATION_MODE" == "bootstrap_staging_migration_plan" ]]; then
+            if [[ "$requests_table_exists" == "t" || "$decisions_table_exists" == "t" ]]; then
+              echo "bootstrap_schema_already_present" >&2
+              exit 1
+            fi
+          else
+            if [[ "$requests_table_exists" != "t" || "$decisions_table_exists" != "t" ]]; then
+              echo "promotion_schema_missing_for_normal_mode" >&2
+              exit 1
+            fi
+          fi
+
           query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
           applied_csv="$(psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+
+          if [[ "$AUTHORIZATION_MODE" == "bootstrap_staging_migration_plan" ]]; then
+            if [[ -n "$applied_csv" ]]; then
+              echo "bootstrap_migration_state_not_pristine" >&2
+              exit 1
+            fi
+          fi
 
           case "$applied_csv" in
             "") ;;
@@ -513,6 +687,7 @@ jobs:
           PRODUCTION_MIGRATION_ENVIRONMENT: "production"
           PRODUCTION_MIGRATION_RESULT: "passed"
           PRODUCTION_MIGRATION_MODE: "apply"
+          PRODUCTION_MIGRATION_AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           PRODUCTION_MIGRATION_DRY_RUN_VALIDATED: "true"
           PRODUCTION_MIGRATION_APPLY_EXECUTED: "true"
           PRODUCTION_MIGRATION_UNRELATED_PENDING: "false"
@@ -523,6 +698,13 @@ jobs:
           PROMOTION_WORKFLOW_RUN_ID: ${{ env.PROMOTION_WORKFLOW_RUN_ID }}
           PROMOTION_WORKFLOW_RUN_ATTEMPT: ${{ env.PROMOTION_WORKFLOW_RUN_ATTEMPT }}
           PROMOTION_WORKFLOW_REF: ${{ env.PROMOTION_WORKFLOW_REF }}
+          STAGING_MIGRATION_ARTIFACT_ID: ${{ inputs.staging_migration_artifact_id }}
+          STAGING_MIGRATION_ARTIFACT_NAME: ${{ env.STAGING_MIGRATION_ARTIFACT_NAME }}
+          STAGING_MIGRATION_WORKFLOW_RUN_ID: ${{ env.STAGING_MIGRATION_WORKFLOW_RUN_ID }}
+          STAGING_MIGRATION_WORKFLOW_RUN_ATTEMPT: ${{ env.STAGING_MIGRATION_WORKFLOW_RUN_ATTEMPT }}
+          STAGING_MIGRATION_WORKFLOW_REF: ${{ env.STAGING_MIGRATION_WORKFLOW_REF }}
+          STAGING_MIGRATION_CERTIFICATION_NAME: ${{ env.STAGING_MIGRATION_CERTIFICATION_NAME }}
+          STAGING_MIGRATION_CERTIFICATION_TARGET_SHA: ${{ env.STAGING_MIGRATION_CERTIFICATION_TARGET_SHA }}
           MIGRATION_APPLIED_VERSIONS: ${{ steps.post_apply_state.outputs.applied_csv }}
         run: |
           set -Eeuo pipefail
@@ -538,6 +720,7 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
           FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
           SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          PRODUCTION_MIGRATION_AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
           PRODUCTION_MIGRATION_ARTIFACT_PATH: ${{ env.MIGRATION_EVIDENCE_PATH }}
