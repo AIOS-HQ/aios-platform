@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   APPROVED_FIRST_MIGRATION_FILE,
   APPROVED_SECOND_MIGRATION_FILE,
+  AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN,
+  AUTHORIZATION_MODE_PROMOTION_ATTESTATION,
   PRODUCTION_DATABASE,
   PRODUCTION_HOST,
   PRODUCTION_PORT,
@@ -28,6 +30,30 @@ function runValidator(command: string, environment: Record<string, string>) {
   });
 }
 
+function baseArtifactInput() {
+  return {
+    repository: "AIOS-HQ/aios-platform",
+    environment: "production",
+    result: "passed",
+    mode: "apply",
+    targetSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
+    firstMigrationFile: APPROVED_FIRST_MIGRATION_FILE,
+    secondMigrationFile: APPROVED_SECOND_MIGRATION_FILE,
+    dryRunValidated: true,
+    applyExecuted: true,
+    unrelatedPendingMigrations: false,
+    projectRef: PRODUCTION_PROJECT_REF,
+    projectIdentityVerified: true,
+    appliedMigrationVersions: "20260807250000,20260814010000",
+    trustedControlSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
+    validatorSha256: "a".repeat(64),
+    runId: "67890",
+    runAttempt: "1",
+    workflowRef: "AIOS-HQ/aios-platform/.github/workflows/production-supabase-governed-migration.yml@f313bf46b6283e3cb61004efebf4cb77912507b6",
+    verifiedAt: "2026-08-21T23:00:00.000Z",
+  };
+}
+
 describe("Supabase production governed migration", () => {
   it("locks approved project and migration range constants", () => {
     expect(PRODUCTION_PROJECT_REF).toBe("vgsqgxpwjnwssconsptn");
@@ -38,6 +64,8 @@ describe("Supabase production governed migration", () => {
     expect(APPROVED_FIRST_MIGRATION_FILE).toBe("20260807250000_production_promotion_approval_evidence.sql");
     expect(APPROVED_SECOND_MIGRATION_FILE).toBe("20260814010000_production_promotion_preview_waiver.sql");
     expect(PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID).toBe("promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a");
+    expect(AUTHORIZATION_MODE_PROMOTION_ATTESTATION).toBe("promotion_attestation");
+    expect(AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN).toBe("bootstrap_staging_migration_plan");
   });
 
   it("constructs production db URI internally from trusted constants", () => {
@@ -105,67 +133,70 @@ describe("Supabase production governed migration", () => {
     expect(sanitized).toContain("[REDACTED_DB_URI]");
   });
 
-  it("builds and validates immutable migration evidence artifact", () => {
+  it("builds and validates immutable migration evidence artifact for promotion-attestation authorization", () => {
     const artifact = buildProductionMigrationEvidenceArtifact({
-      repository: "AIOS-HQ/aios-platform",
-      environment: "production",
-      result: "passed",
-      mode: "apply",
-      targetSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
-      firstMigrationFile: APPROVED_FIRST_MIGRATION_FILE,
-      secondMigrationFile: APPROVED_SECOND_MIGRATION_FILE,
-      dryRunValidated: true,
-      applyExecuted: true,
-      unrelatedPendingMigrations: false,
-      projectRef: PRODUCTION_PROJECT_REF,
-      projectIdentityVerified: true,
+      ...baseArtifactInput(),
+      authorizationMode: AUTHORIZATION_MODE_PROMOTION_ATTESTATION,
       promotionArtifactId: "12345",
       promotionArtifactName: "promotion-attestation-f313bf46b6283e3cb61004efebf4cb77912507b6-12345",
       promotionWorkflowRunId: "12345",
       promotionWorkflowRunAttempt: "1",
       promotionWorkflowRef: "AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@f313bf46b6283e3cb61004efebf4cb77912507b6#run:12345:attempt:1",
-      appliedMigrationVersions: "20260807250000,20260814010000",
-      trustedControlSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
-      validatorSha256: "a".repeat(64),
-      runId: "67890",
-      runAttempt: "1",
-      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/production-supabase-governed-migration.yml@f313bf46b6283e3cb61004efebf4cb77912507b6",
-      verifiedAt: "2026-08-21T23:00:00.000Z",
     });
 
     expect(() => assertProductionMigrationEvidenceArtifact(artifact, {
       expectedTargetSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
       expectedFirstMigrationFile: APPROVED_FIRST_MIGRATION_FILE,
       expectedSecondMigrationFile: APPROVED_SECOND_MIGRATION_FILE,
+      expectedAuthorizationMode: AUTHORIZATION_MODE_PROMOTION_ATTESTATION,
     })).not.toThrow();
+  });
+
+  it("builds and validates immutable migration evidence artifact for bootstrap staging-plan authorization", () => {
+    const artifact = buildProductionMigrationEvidenceArtifact({
+      ...baseArtifactInput(),
+      authorizationMode: AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN,
+      stagingMigrationArtifactId: "67890",
+      stagingMigrationArtifactName: "supabase-staging-migration-plan-f313bf46b6283e3cb61004efebf4cb77912507b6-67890",
+      stagingMigrationWorkflowRunId: "67890",
+      stagingMigrationWorkflowRunAttempt: "2",
+      stagingMigrationWorkflowRef: "AIOS-HQ/aios-platform/.github/workflows/supabase-staging-migration-plan.yml@d856bcfaa190835d2cf1e573d47cf4f861a6f7ad#run:67890:attempt:2",
+      stagingMigrationCertificationName: "supabase-staging-migration-plan",
+      stagingMigrationCertificationTargetSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
+    });
+
+    expect(() => assertProductionMigrationEvidenceArtifact(artifact, {
+      expectedTargetSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
+      expectedFirstMigrationFile: APPROVED_FIRST_MIGRATION_FILE,
+      expectedSecondMigrationFile: APPROVED_SECOND_MIGRATION_FILE,
+      expectedAuthorizationMode: AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN,
+    })).not.toThrow();
+  });
+
+  it("fails closed on bootstrap staging-target mismatch", () => {
+    expect(() => buildProductionMigrationEvidenceArtifact({
+      ...baseArtifactInput(),
+      authorizationMode: AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN,
+      stagingMigrationArtifactId: "67890",
+      stagingMigrationArtifactName: "supabase-staging-migration-plan-f313bf46b6283e3cb61004efebf4cb77912507b6-67890",
+      stagingMigrationWorkflowRunId: "67890",
+      stagingMigrationWorkflowRunAttempt: "2",
+      stagingMigrationWorkflowRef: "AIOS-HQ/aios-platform/.github/workflows/supabase-staging-migration-plan.yml@d856bcfaa190835d2cf1e573d47cf4f861a6f7ad#run:67890:attempt:2",
+      stagingMigrationCertificationName: "supabase-staging-migration-plan",
+      stagingMigrationCertificationTargetSha: "02ab3a7a083c56feb17211fa62c85b3bacfce34a",
+    })).toThrow("staging_migration_target_sha_mismatch");
   });
 
   it("fails closed when unrelated pending migrations are reported", () => {
     expect(() => buildProductionMigrationEvidenceArtifact({
-      repository: "AIOS-HQ/aios-platform",
-      environment: "production",
-      result: "passed",
-      mode: "apply",
-      targetSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
-      firstMigrationFile: APPROVED_FIRST_MIGRATION_FILE,
-      secondMigrationFile: APPROVED_SECOND_MIGRATION_FILE,
-      dryRunValidated: true,
-      applyExecuted: true,
+      ...baseArtifactInput(),
+      authorizationMode: AUTHORIZATION_MODE_PROMOTION_ATTESTATION,
       unrelatedPendingMigrations: true,
-      projectRef: PRODUCTION_PROJECT_REF,
-      projectIdentityVerified: true,
       promotionArtifactId: "12345",
       promotionArtifactName: "promotion-attestation-f313bf46b6283e3cb61004efebf4cb77912507b6-12345",
       promotionWorkflowRunId: "12345",
       promotionWorkflowRunAttempt: "1",
       promotionWorkflowRef: "AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@f313bf46b6283e3cb61004efebf4cb77912507b6#run:12345:attempt:1",
-      appliedMigrationVersions: "20260807250000",
-      trustedControlSha: "f313bf46b6283e3cb61004efebf4cb77912507b6",
-      validatorSha256: "a".repeat(64),
-      runId: "67890",
-      runAttempt: "1",
-      workflowRef: "AIOS-HQ/aios-platform/.github/workflows/production-supabase-governed-migration.yml@f313bf46b6283e3cb61004efebf4cb77912507b6",
-      verifiedAt: "2026-08-21T23:00:00.000Z",
     })).toThrow("unrelated_pending_migrations_detected");
   });
 
