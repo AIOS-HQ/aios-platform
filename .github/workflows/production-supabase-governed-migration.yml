@@ -1,0 +1,578 @@
+name: production-supabase-governed-migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Lowercase 40-char commit SHA whose migration controls are used"
+        required: true
+        type: string
+      promotion_artifact_id:
+        description: "GitHub Actions promotion attestation artifact numeric ID"
+        required: true
+        type: string
+      first_migration_file:
+        description: "First migration file in governed production range"
+        required: true
+        default: "20260807250000_production_promotion_approval_evidence.sql"
+        type: string
+      second_migration_file:
+        description: "Second migration file in governed production range"
+        required: true
+        default: "20260814010000_production_promotion_preview_waiver.sql"
+        type: string
+      promotion_request_id:
+        description: "Immutable promotion request ID for post-apply read-only diagnostic"
+        required: true
+        default: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a"
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-supabase-governed-migration
+  cancel-in-progress: false
+
+jobs:
+  governed-production-migration:
+    name: Apply governed production Supabase migration range
+    if: ${{ github.repository == 'AIOS-HQ/aios-platform' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+    env:
+      REPO: AIOS-HQ/aios-platform
+      SUPABASE_CLI_VERSION: "2.109.1"
+      APPROVED_FIRST_MIGRATION_FILE: "20260807250000_production_promotion_approval_evidence.sql"
+      APPROVED_SECOND_MIGRATION_FILE: "20260814010000_production_promotion_preview_waiver.sql"
+      APPROVED_PROMOTION_REQUEST_ID: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a"
+      PRODUCTION_PROJECT_REF: "vgsqgxpwjnwssconsptn"
+      MIGRATION_EVIDENCE_PATH: artifacts/supabase-production-governed-migration.json
+      POST_APPLY_DIAGNOSTIC_PATH: artifacts/production-promotion-persistence-diagnostic-after-migration.json
+      AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED: "false"
+
+    steps:
+      - name: Validate immutable workflow_dispatch inputs
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+          FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
+          SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "target_sha_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$PROMOTION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+          if [[ "$FIRST_MIGRATION_FILE" != "$APPROVED_FIRST_MIGRATION_FILE" ]]; then
+            echo "first_migration_not_approved" >&2
+            exit 1
+          fi
+
+          if [[ "$SECOND_MIGRATION_FILE" != "$APPROVED_SECOND_MIGRATION_FILE" ]]; then
+            echo "second_migration_not_approved" >&2
+            exit 1
+          fi
+
+          if [[ "$PROMOTION_REQUEST_ID" != "$APPROVED_PROMOTION_REQUEST_ID" ]]; then
+            echo "promotion_request_id_mismatch" >&2
+            exit 1
+          fi
+
+          first_version="${FIRST_MIGRATION_FILE%%_*}"
+          second_version="${SECOND_MIGRATION_FILE%%_*}"
+          if [[ ! "$first_version" =~ ^[0-9]{14}$ ]] || [[ ! "$second_version" =~ ^[0-9]{14}$ ]]; then
+            echo "migration_filename_invalid" >&2
+            exit 1
+          fi
+          if [[ "$first_version" -ge "$second_version" ]]; then
+            echo "approved_migration_order_invalid" >&2
+            exit 1
+          fi
+
+      - name: Checkout trusted workflow controls
+        uses: actions/checkout@v4
+        with:
+          repository: AIOS-HQ/aios-platform
+          ref: refs/heads/main
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout exact migration target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          path: target
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Pin current protected-main controls
+        id: controls
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          control_sha="$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)"
+          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          [[ "$control_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$current_main_sha" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$control_sha" != "$current_main_sha" ]]; then
+            echo "trusted_main_mismatch" >&2
+            exit 1
+          fi
+
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test -f "$validator"
+          validator_sha256="$(sha256sum "$validator" | cut -d ' ' -f 1)"
+          [[ "$validator_sha256" =~ ^[0-9a-f]{64}$ ]]
+
+          {
+            printf 'control_sha=%s\n' "$control_sha"
+            printf 'validator_sha256=%s\n' "$validator_sha256"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Verify immutable target and approved migration range scope
+        id: range_scope
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
+          SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+
+          test "$(git -C "$GITHUB_WORKSPACE/target" rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+
+          test "$AIOS_SOCIAL_PUBLISHING_WORKER_ENABLED" = "false"
+          test -d "$GITHUB_WORKSPACE/target/supabase/migrations"
+
+          first_version="${FIRST_MIGRATION_FILE%%_*}"
+          second_version="${SECOND_MIGRATION_FILE%%_*}"
+
+          mapfile -t range_files < <(
+            find "$GITHUB_WORKSPACE/target/supabase/migrations" -maxdepth 1 -type f -name '*.sql' -printf '%f\n' |
+              sort |
+              awk -v first="$first_version" -v second="$second_version" '
+                {
+                  version=$0;
+                  sub(/_.*/, "", version);
+                  if (version >= first && version <= second) print $0;
+                }
+              '
+          )
+
+          if [[ "${#range_files[@]}" -ne 2 ]]; then
+            printf 'range_files=%s\n' "${range_files[*]-}" >&2
+            echo "unapproved_migrations_in_range" >&2
+            exit 1
+          fi
+
+          if [[ "${range_files[0]}" != "$FIRST_MIGRATION_FILE" ]] || [[ "${range_files[1]}" != "$SECOND_MIGRATION_FILE" ]]; then
+            printf 'range_files=%s\n' "${range_files[*]}" >&2
+            echo "unapproved_migrations_in_range" >&2
+            exit 1
+          fi
+
+          scoped_workdir="$RUNNER_TEMP/production-governed-target"
+          rm -rf "$scoped_workdir"
+          mkdir -p "$scoped_workdir/supabase/migrations"
+          cp "$GITHUB_WORKSPACE/target/supabase/migrations/$FIRST_MIGRATION_FILE" "$scoped_workdir/supabase/migrations/$FIRST_MIGRATION_FILE"
+          cp "$GITHUB_WORKSPACE/target/supabase/migrations/$SECOND_MIGRATION_FILE" "$scoped_workdir/supabase/migrations/$SECOND_MIGRATION_FILE"
+
+          scoped_count="$(find "$scoped_workdir/supabase/migrations" -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
+          test "$scoped_count" = "2"
+
+          {
+            printf 'scoped_workdir=%s\n' "$scoped_workdir"
+            printf 'first_version=%s\n' "$first_version"
+            printf 'second_version=%s\n' "$second_version"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Resolve promotion attestation artifact and canonical provenance
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+        run: |
+          set -Eeuo pipefail
+
+          artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID")"
+          artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
+          if [[ "$artifact_expired" != "false" ]]; then
+            echo "promotion_artifact_expired" >&2
+            exit 1
+          fi
+
+          source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
+          if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
+            echo "promotion_artifact_run_missing" >&2
+            exit 1
+          fi
+
+          source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
+          source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
+          source_run_event="$(jq -r '.event' <<<"$source_run_json")"
+          source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
+          source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
+          source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
+          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+
+          if [[ "$source_run_conclusion" != "success" ]]; then
+            echo "promotion_source_run_not_success" >&2
+            exit 1
+          fi
+
+          if [[ "$source_workflow_path" != ".github/workflows/production-promotion-attestation.yml" ]]; then
+            echo "promotion_source_workflow_invalid" >&2
+            exit 1
+          fi
+
+          if [[ "$source_run_event" != "workflow_dispatch" ]]; then
+            echo "promotion_source_event_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_source_run_attempt_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "promotion_source_head_sha_invalid" >&2
+            exit 1
+          fi
+
+          if [[ "$source_run_head_sha" != "$TARGET_SHA" ]]; then
+            echo "promotion_source_sha_mismatch" >&2
+            exit 1
+          fi
+
+          expected_artifact_name="promotion-attestation-${TARGET_SHA}-${source_run_id}"
+          if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
+            echo "promotion_artifact_name_invalid" >&2
+            exit 1
+          fi
+
+          workflow_ref="AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@${source_run_head_sha}#run:${source_run_id}:attempt:${source_run_attempt}"
+          {
+            printf 'PROMOTION_WORKFLOW_RUN_ID=%s\n' "$source_run_id"
+            printf 'PROMOTION_WORKFLOW_RUN_ATTEMPT=%s\n' "$source_run_attempt"
+            printf 'PROMOTION_WORKFLOW_REF=%s\n' "$workflow_ref"
+            printf 'PROMOTION_ARTIFACT_NAME=%s\n' "$artifact_name"
+          } >>"$GITHUB_ENV"
+
+      - name: Download promotion artifact by exact numeric ID
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+        run: |
+          set -Eeuo pipefail
+          gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID/zip" > promotion-artifact.zip
+          mkdir -p promotion-artifact
+          unzip -o promotion-artifact.zip -d promotion-artifact >/dev/null
+
+      - name: Require extracted promotion attestation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f promotion-artifact/promotion-attestation.json
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: control/package-lock.json
+
+      - name: Install locked dependencies from trusted main
+        shell: bash
+        working-directory: control
+        run: |
+          set -Eeuo pipefail
+          npm ci
+
+      - name: Validate promotion attestation contract before any database mutation
+        shell: bash
+        working-directory: control
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          set -Eeuo pipefail
+          node scripts/ci/promotion-attestation-contract.mjs validate "$GITHUB_WORKSPACE/promotion-artifact/promotion-attestation.json" "$TARGET_SHA"
+
+      - name: Verify pinned CLI supports fail-closed dry run and apply
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          help_output="$(npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push --help 2>&1)"
+          grep -F -- '--dry-run' <<<"$help_output" >/dev/null
+          grep -F -- '--include-all' <<<"$help_output" >/dev/null
+          unset help_output
+
+      - name: Preflight trusted production target and identity
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          node "$validator" preflight
+
+      - name: Verify migration range apply state before dry run
+        id: pre_apply_state
+        shell: bash
+        env:
+          FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
+          SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+
+          if ! command -v psql >/dev/null 2>&1; then
+            echo "psql_unavailable" >&2
+            exit 1
+          fi
+
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+
+          database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
+          first_version="${FIRST_MIGRATION_FILE%%_*}"
+          second_version="${SECOND_MIGRATION_FILE%%_*}"
+
+          query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
+          applied_csv="$(psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+
+          case "$applied_csv" in
+            "") ;;
+            "$first_version") ;;
+            "$first_version,$second_version")
+              echo "migration_range_already_applied" >&2
+              exit 1
+              ;;
+            *)
+              echo "migration_range_state_invalid" >&2
+              exit 1
+              ;;
+          esac
+
+          printf 'applied_csv=%s\n' "$applied_csv" >>"$GITHUB_OUTPUT"
+
+      - name: Dry-run approved production migration range only
+        shell: bash
+        env:
+          SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}
+          SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+
+          password="$SUPABASE_PRODUCTION_DB_PASSWORD"
+          encoded_password="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" encode-password)"
+          database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
+
+          set +e
+          dry_run_output="$(
+            npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
+              --db-url "$database_uri" \
+              --dry-run \
+              --include-all \
+              --workdir "$SCOPED_WORKDIR" \
+              --agent no \
+              --output-format text 2>&1
+          )"
+          dry_run_status=$?
+          set -e
+
+          printf '%s\n' "$dry_run_output" |
+            SUPABASE_PRODUCTION_DB_PASSWORD="$password" \
+            SUPABASE_PRODUCTION_DB_PASSWORD_ENCODED="$encoded_password" \
+            SUPABASE_PRODUCTION_DB_URI="$database_uri" \
+            node "$validator" sanitize
+
+          if [[ "$dry_run_status" -ne 0 ]]; then
+            echo "production_migration_dry_run_failed" >&2
+            exit 1
+          fi
+
+      - name: Apply approved production migration range only
+        shell: bash
+        env:
+          SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}
+          SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+
+          password="$SUPABASE_PRODUCTION_DB_PASSWORD"
+          encoded_password="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" encode-password)"
+          database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
+
+          set +e
+          apply_output="$(
+            npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
+              --db-url "$database_uri" \
+              --include-all \
+              --workdir "$SCOPED_WORKDIR" \
+              --agent no \
+              --output-format text 2>&1
+          )"
+          apply_status=$?
+          set -e
+
+          printf '%s\n' "$apply_output" |
+            SUPABASE_PRODUCTION_DB_PASSWORD="$password" \
+            SUPABASE_PRODUCTION_DB_PASSWORD_ENCODED="$encoded_password" \
+            SUPABASE_PRODUCTION_DB_URI="$database_uri" \
+            node "$validator" sanitize
+
+          if [[ "$apply_status" -ne 0 ]]; then
+            echo "production_migration_apply_failed" >&2
+            exit 1
+          fi
+
+      - name: Verify migration range applied exactly after apply
+        id: post_apply_state
+        shell: bash
+        env:
+          FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
+          SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+        run: |
+          set -Eeuo pipefail
+
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+
+          database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
+          first_version="${FIRST_MIGRATION_FILE%%_*}"
+          second_version="${SECOND_MIGRATION_FILE%%_*}"
+
+          query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
+          applied_csv="$(psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+          expected_csv="$first_version,$second_version"
+
+          if [[ "$applied_csv" != "$expected_csv" ]]; then
+            echo "migration_range_not_fully_applied" >&2
+            exit 1
+          fi
+
+          printf 'applied_csv=%s\n' "$applied_csv" >>"$GITHUB_OUTPUT"
+
+      - name: Build immutable production migration evidence artifact
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
+          SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+          PRODUCTION_MIGRATION_ARTIFACT_PATH: ${{ env.MIGRATION_EVIDENCE_PATH }}
+          PRODUCTION_MIGRATION_ENVIRONMENT: "production"
+          PRODUCTION_MIGRATION_RESULT: "passed"
+          PRODUCTION_MIGRATION_MODE: "apply"
+          PRODUCTION_MIGRATION_DRY_RUN_VALIDATED: "true"
+          PRODUCTION_MIGRATION_APPLY_EXECUTED: "true"
+          PRODUCTION_MIGRATION_UNRELATED_PENDING: "false"
+          PRODUCTION_MIGRATION_PROJECT_REF: ${{ env.PRODUCTION_PROJECT_REF }}
+          PRODUCTION_MIGRATION_PROJECT_IDENTITY_VERIFIED: "true"
+          PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+          PROMOTION_ARTIFACT_NAME: ${{ env.PROMOTION_ARTIFACT_NAME }}
+          PROMOTION_WORKFLOW_RUN_ID: ${{ env.PROMOTION_WORKFLOW_RUN_ID }}
+          PROMOTION_WORKFLOW_RUN_ATTEMPT: ${{ env.PROMOTION_WORKFLOW_RUN_ATTEMPT }}
+          PROMOTION_WORKFLOW_REF: ${{ env.PROMOTION_WORKFLOW_REF }}
+          MIGRATION_APPLIED_VERSIONS: ${{ steps.post_apply_state.outputs.applied_csv }}
+        run: |
+          set -Eeuo pipefail
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          node "$validator" write-artifact
+          test -f "$PRODUCTION_MIGRATION_ARTIFACT_PATH"
+
+      - name: Validate immutable production migration evidence artifact
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
+          SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
+          TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
+          PRODUCTION_MIGRATION_ARTIFACT_PATH: ${{ env.MIGRATION_EVIDENCE_PATH }}
+        run: |
+          set -Eeuo pipefail
+          validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
+          test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
+          test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
+          node "$validator" validate-artifact
+
+      - name: Upload immutable production migration evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-production-governed-migration-${{ inputs.target_sha }}-${{ github.run_id }}
+          path: ${{ env.MIGRATION_EVIDENCE_PATH }}
+          if-no-files-found: error
+
+      - name: Post-apply read-only production persistence diagnostic hook
+        shell: bash
+        working-directory: control
+        env:
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+          POST_APPLY_DIAGNOSTIC_PATH: ${{ github.workspace }}/${{ env.POST_APPLY_DIAGNOSTIC_PATH }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -Eeuo pipefail
+          npx --no-install tsx scripts/ci/run-production-promotion-persistence-diagnostic.ts \
+            "$PROMOTION_REQUEST_ID" \
+            "$POST_APPLY_DIAGNOSTIC_PATH"
+          test -f "$POST_APPLY_DIAGNOSTIC_PATH"
+
+      - name: Upload post-apply read-only diagnostic artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-promotion-persistence-diagnostic-after-migration-${{ github.run_id }}
+          path: ${{ env.POST_APPLY_DIAGNOSTIC_PATH }}
+          if-no-files-found: error
