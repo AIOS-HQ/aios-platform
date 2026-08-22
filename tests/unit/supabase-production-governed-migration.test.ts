@@ -58,7 +58,7 @@ describe("Supabase production governed migration", () => {
   it("locks approved project and migration range constants", () => {
     expect(PRODUCTION_PROJECT_REF).toBe("vgsqgxpwjnwssconsptn");
     expect(PRODUCTION_USERNAME).toBe("postgres.vgsqgxpwjnwssconsptn");
-    expect(PRODUCTION_HOST).toBe("db.vgsqgxpwjnwssconsptn.supabase.co");
+    expect(PRODUCTION_HOST).toBe("aws-1-us-west-2.pooler.supabase.com");
     expect(PRODUCTION_PORT).toBe("5432");
     expect(PRODUCTION_DATABASE).toBe("postgres");
     expect(APPROVED_FIRST_MIGRATION_FILE).toBe("20260807250000_production_promotion_approval_evidence.sql");
@@ -70,7 +70,7 @@ describe("Supabase production governed migration", () => {
 
   it("constructs production db URI internally from trusted constants", () => {
     const password = "prod! p@ss:/?#[]{}";
-    const uri = assembleProductionDatabaseUri(password);
+    const uri = assembleProductionDatabaseUri(password, "aws-1-us-west-2.pooler.supabase.com");
     const parsed = new URL(uri);
     expect(parsed.username).toBe(PRODUCTION_USERNAME);
     expect(parsed.hostname).toBe(PRODUCTION_HOST);
@@ -80,9 +80,15 @@ describe("Supabase production governed migration", () => {
     expect(encodeDatabasePassword("a b")).toBe("a%20b");
   });
 
+  it("fails closed on missing or mismatched configured production DB host during URI assembly", () => {
+    expect(() => assembleProductionDatabaseUri("configured", "")).toThrow("production_db_host_missing");
+    expect(() => assembleProductionDatabaseUri("configured", "db.vgsqgxpwjnwssconsptn.supabase.co")).toThrow("production_db_host_mismatch");
+  });
+
   it("fails closed when password or Supabase URL identity is missing/invalid", () => {
     const missingPassword = runValidator("preflight", {
       SUPABASE_PRODUCTION_DB_PASSWORD: "",
+      SUPABASE_PRODUCTION_DB_HOST: "aws-1-us-west-2.pooler.supabase.com",
       SUPABASE_URL: "https://vgsqgxpwjnwssconsptn.supabase.co",
     });
     expect(missingPassword.status).toBe(1);
@@ -90,15 +96,33 @@ describe("Supabase production governed migration", () => {
 
     const mismatchedUrl = runValidator("preflight", {
       SUPABASE_PRODUCTION_DB_PASSWORD: "configured",
+      SUPABASE_PRODUCTION_DB_HOST: "aws-1-us-west-2.pooler.supabase.com",
       SUPABASE_URL: "https://rorbijjpgahvwdrejpil.supabase.co",
     });
     expect(mismatchedUrl.status).toBe(1);
     expect(mismatchedUrl.stderr).toBe("supabase_project_ref_mismatch\n");
+
+    const missingHost = runValidator("preflight", {
+      SUPABASE_PRODUCTION_DB_PASSWORD: "configured",
+      SUPABASE_PRODUCTION_DB_HOST: "",
+      SUPABASE_URL: "https://vgsqgxpwjnwssconsptn.supabase.co",
+    });
+    expect(missingHost.status).toBe(1);
+    expect(missingHost.stderr).toBe("production_db_host_missing\n");
+
+    const mismatchedHost = runValidator("preflight", {
+      SUPABASE_PRODUCTION_DB_PASSWORD: "configured",
+      SUPABASE_PRODUCTION_DB_HOST: "db.vgsqgxpwjnwssconsptn.supabase.co",
+      SUPABASE_URL: "https://vgsqgxpwjnwssconsptn.supabase.co",
+    });
+    expect(mismatchedHost.status).toBe(1);
+    expect(mismatchedHost.stderr).toBe("production_db_host_mismatch\n");
   });
 
   it("reports deterministic boolean preflight output only", () => {
     const result = runValidator("preflight", {
       SUPABASE_PRODUCTION_DB_PASSWORD: "never-print",
+      SUPABASE_PRODUCTION_DB_HOST: "aws-1-us-west-2.pooler.supabase.com",
       SUPABASE_URL: "https://vgsqgxpwjnwssconsptn.supabase.co",
     });
 
@@ -106,6 +130,8 @@ describe("Supabase production governed migration", () => {
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("passwordPresent=true");
     expect(result.stdout).toContain("supabaseUrlProjectRefMatchesExpected=true");
+    expect(result.stdout).toContain("productionDbHostPresent=true");
+    expect(result.stdout).toContain("productionDbHostMatchesExpected=true");
     expect(result.stdout).toContain("targetHostMatchesExpected=true");
     expect(result.stdout).not.toContain("never-print");
     expect(result.stdout).not.toContain(PRODUCTION_HOST);
@@ -120,7 +146,7 @@ describe("Supabase production governed migration", () => {
   it("redacts secret material from command output", () => {
     const password = "secret password";
     const encoded = encodeDatabasePassword(password);
-    const uri = assembleProductionDatabaseUri(password);
+    const uri = assembleProductionDatabaseUri(password, "aws-1-us-west-2.pooler.supabase.com");
     const unexpectedUri = "postgresql://other:unsafe@db.example.invalid:5432/postgres";
     const output = `password=${password}\nencoded=${encoded}\nuri=${uri}\nunexpected=${unexpectedUri}\n`;
 
@@ -201,10 +227,16 @@ describe("Supabase production governed migration", () => {
   });
 
   it("preflight helper reports expected booleans", () => {
-    expect(trustedProductionPreflight("configured", "https://vgsqgxpwjnwssconsptn.supabase.co")).toMatchObject({
+    expect(trustedProductionPreflight(
+      "configured",
+      "https://vgsqgxpwjnwssconsptn.supabase.co",
+      "aws-1-us-west-2.pooler.supabase.com",
+    )).toMatchObject({
       passwordPresent: true,
       supabaseUrlPresent: true,
       supabaseUrlProjectRefMatchesExpected: true,
+      productionDbHostPresent: true,
+      productionDbHostMatchesExpected: true,
       targetProjectRefMatchesExpected: true,
       uriConstructedInternally: true,
     });
