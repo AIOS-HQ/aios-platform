@@ -483,7 +483,8 @@ jobs:
         shell: bash
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PRODUCTION_DB_HOST: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -492,7 +493,8 @@ jobs:
           validator="$GITHUB_WORKSPACE/control/scripts/ci/supabase-production-governed-migration.mjs"
           test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
           test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
-          node "$validator" preflight
+          production_db_host="${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}"
+          SUPABASE_PRODUCTION_DB_HOST="$production_db_host" node "$validator" preflight
 
       - name: Verify migration range apply state before dry run
         id: pre_apply_state
@@ -501,7 +503,8 @@ jobs:
           AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
           SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
-          SUPABASE_PRODUCTION_DB_HOST: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -517,7 +520,8 @@ jobs:
           test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
           test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
 
-          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$SUPABASE_PRODUCTION_DB_HOST" SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
+          production_db_host="${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}"
+          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$production_db_host" SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
@@ -567,7 +571,8 @@ jobs:
         shell: bash
         env:
           SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}
-          SUPABASE_PRODUCTION_DB_HOST: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -580,7 +585,8 @@ jobs:
 
           password="$SUPABASE_PRODUCTION_DB_PASSWORD"
           encoded_password="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" encode-password)"
-          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$SUPABASE_PRODUCTION_DB_HOST" SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
+          production_db_host="${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}"
+          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$production_db_host" SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
 
           set +e
           dry_run_output="$(
@@ -610,7 +616,8 @@ jobs:
         shell: bash
         env:
           SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}
-          SUPABASE_PRODUCTION_DB_HOST: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -623,7 +630,8 @@ jobs:
 
           password="$SUPABASE_PRODUCTION_DB_PASSWORD"
           encoded_password="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" encode-password)"
-          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$SUPABASE_PRODUCTION_DB_HOST" SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
+          production_db_host="${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}"
+          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$production_db_host" SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
 
           set +e
           apply_output="$(
@@ -654,7 +662,8 @@ jobs:
         env:
           FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
           SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
-          SUPABASE_PRODUCTION_DB_HOST: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
+          SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
           TRUSTED_CONTROL_SHA: ${{ steps.controls.outputs.control_sha }}
           TRUSTED_VALIDATOR_SHA256: ${{ steps.controls.outputs.validator_sha256 }}
@@ -665,7 +674,8 @@ jobs:
           test "$(git -C "$GITHUB_WORKSPACE/control" rev-parse HEAD)" = "$TRUSTED_CONTROL_SHA"
           test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
 
-          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$SUPABASE_PRODUCTION_DB_HOST" SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
+          production_db_host="${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}"
+          database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$production_db_host" SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
