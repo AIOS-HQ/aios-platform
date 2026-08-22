@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 
 export const PRODUCTION_PROJECT_REF = "vgsqgxpwjnwssconsptn";
 export const PRODUCTION_USERNAME = `postgres.${PRODUCTION_PROJECT_REF}`;
-export const PRODUCTION_HOST = `db.${PRODUCTION_PROJECT_REF}.supabase.co`;
+export const PRODUCTION_HOST = "aws-1-us-west-2.pooler.supabase.com";
 export const PRODUCTION_PORT = "5432";
 export const PRODUCTION_DATABASE = "postgres";
 export const APPROVED_FIRST_MIGRATION_FILE = "20260807250000_production_promotion_approval_evidence.sql";
@@ -38,23 +38,42 @@ export function extractProjectRefFromSupabaseUrl(supabaseUrl) {
   }
 }
 
-export function trustedProductionPreflight(password, supabaseUrl) {
+export function trustedProductionPreflight(password, supabaseUrl, configuredHost) {
+  const configuredProductionDbHost = typeof configuredHost === "string"
+    ? configuredHost.trim()
+    : "";
   const suppliedProjectRef = extractProjectRefFromSupabaseUrl(supabaseUrl);
   return {
     passwordPresent: typeof password === "string" && password.length > 0,
     supabaseUrlPresent: typeof supabaseUrl === "string" && supabaseUrl.trim().length > 0,
     supabaseUrlProjectRefMatchesExpected: suppliedProjectRef === PRODUCTION_PROJECT_REF,
+    productionDbHostPresent: configuredProductionDbHost.length > 0,
+    productionDbHostMatchesExpected: configuredProductionDbHost === PRODUCTION_HOST,
     targetProjectRefMatchesExpected: PRODUCTION_PROJECT_REF === "vgsqgxpwjnwssconsptn",
     targetUsernameMatchesExpected: PRODUCTION_USERNAME === "postgres.vgsqgxpwjnwssconsptn",
-    targetHostMatchesExpected: PRODUCTION_HOST === "db.vgsqgxpwjnwssconsptn.supabase.co",
+    targetHostMatchesExpected: PRODUCTION_HOST === "aws-1-us-west-2.pooler.supabase.com",
     targetPortMatchesExpected: PRODUCTION_PORT === "5432",
     targetDatabaseMatchesExpected: PRODUCTION_DATABASE === "postgres",
     uriConstructedInternally: true,
   };
 }
 
-function assertTrustedProductionTarget() {
-  const preflight = trustedProductionPreflight("configured", `https://${EXPECTED_SUPABASE_URL_HOST}`);
+function assertConfiguredProductionDbHost(configuredHost) {
+  if (typeof configuredHost !== "string" || configuredHost.trim() === "") {
+    throw new Error("production_db_host_missing");
+  }
+
+  const normalizedHost = configuredHost.trim();
+  if (normalizedHost !== PRODUCTION_HOST) {
+    throw new Error("production_db_host_mismatch");
+  }
+
+  return normalizedHost;
+}
+
+function assertTrustedProductionTarget(configuredHost) {
+  const trustedProductionDbHost = assertConfiguredProductionDbHost(configuredHost);
+  const preflight = trustedProductionPreflight("configured", `https://${EXPECTED_SUPABASE_URL_HOST}`, trustedProductionDbHost);
   if (
     !preflight.targetProjectRefMatchesExpected
     || !preflight.targetUsernameMatchesExpected
@@ -65,18 +84,20 @@ function assertTrustedProductionTarget() {
   ) {
     throw new Error("trusted_production_target_mismatch");
   }
+
+  return trustedProductionDbHost;
 }
 
-export function assembleProductionDatabaseUri(password) {
-  assertTrustedProductionTarget();
+export function assembleProductionDatabaseUri(password, configuredHost) {
+  const trustedProductionDbHost = assertTrustedProductionTarget(configuredHost);
   const encodedPassword = encodeDatabasePassword(password);
-  const uri = `postgresql://${PRODUCTION_USERNAME}:${encodedPassword}@${PRODUCTION_HOST}:${PRODUCTION_PORT}/${PRODUCTION_DATABASE}`;
+  const uri = `postgresql://${PRODUCTION_USERNAME}:${encodedPassword}@${trustedProductionDbHost}:${PRODUCTION_PORT}/${PRODUCTION_DATABASE}`;
   const parsed = new URL(uri);
   if (
     parsed.protocol !== "postgresql:"
     || parsed.username !== PRODUCTION_USERNAME
     || decodeURIComponent(parsed.password) !== password
-    || parsed.hostname !== PRODUCTION_HOST
+    || parsed.hostname !== trustedProductionDbHost
     || parsed.port !== PRODUCTION_PORT
     || parsed.pathname !== `/${PRODUCTION_DATABASE}`
     || parsed.search !== ""
@@ -494,17 +515,23 @@ async function main() {
     const preflight = trustedProductionPreflight(
       process.env.SUPABASE_PRODUCTION_DB_PASSWORD,
       process.env.SUPABASE_URL,
+      process.env.SUPABASE_PRODUCTION_DB_HOST,
     );
     for (const [key, value] of Object.entries(preflight)) console.info(`${key}=${value}`);
     if (!preflight.passwordPresent) throw new Error("missing_password");
     if (!preflight.supabaseUrlPresent) throw new Error("supabase_url_missing");
     if (!preflight.supabaseUrlProjectRefMatchesExpected) throw new Error("supabase_project_ref_mismatch");
-    assertTrustedProductionTarget();
+    if (!preflight.productionDbHostPresent) throw new Error("production_db_host_missing");
+    if (!preflight.productionDbHostMatchesExpected) throw new Error("production_db_host_mismatch");
+    assertTrustedProductionTarget(process.env.SUPABASE_PRODUCTION_DB_HOST ?? "");
     return;
   }
 
   if (command === "assemble") {
-    process.stdout.write(assembleProductionDatabaseUri(process.env.SUPABASE_PRODUCTION_DB_PASSWORD ?? ""));
+    process.stdout.write(assembleProductionDatabaseUri(
+      process.env.SUPABASE_PRODUCTION_DB_PASSWORD ?? "",
+      process.env.SUPABASE_PRODUCTION_DB_HOST ?? "",
+    ));
     return;
   }
 
