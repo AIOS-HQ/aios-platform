@@ -49,13 +49,16 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain(".github/workflows/operational-preview-live-certification.yml");
     expect(workflow).toContain(".github/workflows/launch-validation.yml");
     expect(workflow).toContain("waiver_launch_validation_not_success");
+    expect(workflow).toContain('.event == "pull_request" or .event == "push"');
     expect(workflow).toContain("runtime_run_attempt=\"$(jq -r '[.workflow_runs[] | select(.id == ('\"$launch_run_id\"'|tonumber))][0].run_attempt // 1' <<<\"$launch_runs_json\")\"");
     expect(workflow).toContain("if [[ \"$PREVIEW_CERTIFICATION_WAIVER\" == \"false\" ]]; then");
     expect(workflow).toContain("runtime_run_attempt=\"$(jq -r '.run_attempt' <<<\"$runtime_run_json\")\"");
-    expect(workflow).toContain("waiver_preview_deployment_not_found");
     expect(workflow).toContain("waiver_preview_deployment_not_success");
     expect(workflow).toContain("waiver_preview_url_not_approved");
-    expect(workflow).toContain("actions/workflows/launch-validation.yml/runs");
+    expect(workflow).toContain("actions/workflows/launch-validation.yml/runs?head_sha=$TARGET_SHA&status=completed&per_page=100");
+    expect(workflow).toContain("waiver_vercel_status_not_success");
+    expect(workflow).toContain("waiver_vercel_status_url_not_approved");
+    expect(workflow).toContain('gh api "/repos/$REPO/commits/$TARGET_SHA/status"');
     expect(workflow).toContain(".github/workflows/supabase-staging-migration-plan.yml");
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID/zip" > runtime-artifact.zip');
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID/zip" > migration-artifact.zip');

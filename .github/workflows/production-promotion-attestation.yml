@@ -178,8 +178,8 @@ jobs:
               exit 1
             fi
           else
-            launch_runs_json="$(gh api "/repos/$REPO/actions/workflows/launch-validation.yml/runs?head_sha=$TARGET_SHA&event=pull_request&status=completed&per_page=50")"
-            launch_run_id="$(jq -r '[.workflow_runs[] | select(.conclusion == "success" and .path == ".github/workflows/launch-validation.yml" and .head_sha == env.TARGET_SHA)][0].id // empty' <<<"$launch_runs_json")"
+            launch_runs_json="$(gh api "/repos/$REPO/actions/workflows/launch-validation.yml/runs?head_sha=$TARGET_SHA&status=completed&per_page=100")"
+            launch_run_id="$(jq -r '[.workflow_runs[] | select((.event == "pull_request" or .event == "push") and .conclusion == "success" and .path == ".github/workflows/launch-validation.yml" and .head_sha == env.TARGET_SHA)][0].id // empty' <<<"$launch_runs_json")"
             if [[ -z "$launch_run_id" ]]; then
               echo "waiver_launch_validation_not_success" >&2
               exit 1
@@ -190,19 +190,28 @@ jobs:
 
             deployments_json="$(gh api "/repos/$REPO/deployments?sha=$TARGET_SHA&per_page=100")"
             preview_deployment_id="$(jq -r '[.[] | select(.environment == "Preview" and .sha == env.TARGET_SHA and .performed_via_github_app.slug == "vercel")][0].id // empty' <<<"$deployments_json")"
-            if [[ -z "$preview_deployment_id" ]]; then
-              echo "waiver_preview_deployment_not_found" >&2
-              exit 1
-            fi
-            statuses_json="$(gh api "/repos/$REPO/deployments/$preview_deployment_id/statuses?per_page=100")"
-            preview_url="$(jq -r '[.[] | select(.state == "success")][0].environment_url // empty' <<<"$statuses_json")"
-            if [[ -z "$preview_url" ]]; then
-              echo "waiver_preview_deployment_not_success" >&2
-              exit 1
-            fi
-            if [[ ! "$preview_url" =~ ^https://aios-platform-[a-z0-9-]+-air-bid\.vercel\.app/?$ ]]; then
-              echo "waiver_preview_url_not_approved" >&2
-              exit 1
+            if [[ -n "$preview_deployment_id" ]]; then
+              statuses_json="$(gh api "/repos/$REPO/deployments/$preview_deployment_id/statuses?per_page=100")"
+              preview_url="$(jq -r '[.[] | select(.state == "success")][0].environment_url // empty' <<<"$statuses_json")"
+              if [[ -z "$preview_url" ]]; then
+                echo "waiver_preview_deployment_not_success" >&2
+                exit 1
+              fi
+              if [[ ! "$preview_url" =~ ^https://aios-platform-[a-z0-9-]+-air-bid\.vercel\.app/?$ ]]; then
+                echo "waiver_preview_url_not_approved" >&2
+                exit 1
+              fi
+            else
+              commit_statuses_json="$(gh api "/repos/$REPO/commits/$TARGET_SHA/status")"
+              vercel_status_url="$(jq -r '[.statuses[] | select(.context == "Vercel" and .state == "success")][0].target_url // empty' <<<"$commit_statuses_json")"
+              if [[ -z "$vercel_status_url" ]]; then
+                echo "waiver_vercel_status_not_success" >&2
+                exit 1
+              fi
+              if [[ ! "$vercel_status_url" =~ ^https://vercel\.com/air-bid/aios-platform/[A-Za-z0-9_-]+/?$ ]]; then
+                echo "waiver_vercel_status_url_not_approved" >&2
+                exit 1
+              fi
             fi
           fi
 
