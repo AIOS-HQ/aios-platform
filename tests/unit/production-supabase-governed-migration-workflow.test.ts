@@ -62,6 +62,16 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("staging_migration_target_sha_mismatch");
   });
 
+  it("keeps bootstrap contract-validation heredoc shell-safe", () => {
+    const block = workflow
+      .split("- name: Validate governed authorization contract before any database mutation")[1]
+      .split("- name: Verify pinned CLI supports fail-closed dry run and apply")[0];
+
+    expect(block).toContain("node --input-type=module <<'NODE'");
+    expect(block).toContain("\nNODE\n");
+    expect(block).not.toMatch(/\n +NODE\n/);
+  });
+
   it("enforces bootstrap-only schema absence and scoped migration range", () => {
     expect(workflow).toContain("bootstrap_schema_already_present");
     expect(workflow).toContain("promotion_schema_missing_for_normal_mode");
