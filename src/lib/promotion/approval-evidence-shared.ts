@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  M5_BOOTSTRAP_PROMOTION_REQUEST_ID,
+} from "@/lib/promotion/request-id";
 
-export const PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID = "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a";
+export const PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID = M5_BOOTSTRAP_PROMOTION_REQUEST_ID;
 
 export type PromotionApprovalEvidenceInput = {
   subject: {

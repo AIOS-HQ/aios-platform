@@ -326,6 +326,25 @@ jobs:
           MIGRATION_ARTIFACT_NAME: ${{ steps.resolve_artifacts.outputs.migration_artifact_name }}
           TARGET_SHA: ${{ inputs.target_sha }}
 
+      - name: Derive governed promotion request ID and fail closed on mismatch
+        id: derive_request_id
+        shell: bash
+        run: |
+          set -euo pipefail
+          derive_output="$(npx --no-install tsx scripts/ci/derive-governed-promotion-request-id.ts \
+            from-staging-evidence \
+            staging-promotion-evidence.json \
+            "$PROMOTION_REQUEST_ID")"
+
+          derived_promotion_request_id="$(awk -F= '/^derived_promotion_request_id=/{print $2}' <<<"$derive_output")"
+          if [[ -z "$derived_promotion_request_id" ]]; then
+            echo "promotion_request_derivation_output_invalid" >&2
+            exit 1
+          fi
+          printf 'derived_promotion_request_id=%s\n' "$derived_promotion_request_id" >> "$GITHUB_OUTPUT"
+        env:
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+
       - name: Export persisted promotion approvals
         shell: bash
         run: |
@@ -336,7 +355,7 @@ jobs:
             promotion-approval-evidence.json
         env:
           TARGET_SHA: ${{ inputs.target_sha }}
-          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+          PROMOTION_REQUEST_ID: ${{ steps.derive_request_id.outputs.derived_promotion_request_id }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 

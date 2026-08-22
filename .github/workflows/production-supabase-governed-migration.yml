@@ -36,7 +36,6 @@ on:
       promotion_request_id:
         description: "Immutable promotion request ID for post-apply read-only diagnostic"
         required: true
-        default: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a"
         type: string
 
 permissions:
@@ -60,7 +59,6 @@ jobs:
       SUPABASE_CLI_VERSION: "2.109.1"
       APPROVED_FIRST_MIGRATION_FILE: "20260807250000_production_promotion_approval_evidence.sql"
       APPROVED_SECOND_MIGRATION_FILE: "20260814010000_production_promotion_preview_waiver.sql"
-      APPROVED_PROMOTION_REQUEST_ID: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a"
       PRODUCTION_PROJECT_REF: "vgsqgxpwjnwssconsptn"
       MIGRATION_EVIDENCE_PATH: artifacts/supabase-production-governed-migration.json
       POST_APPLY_DIAGNOSTIC_PATH: artifacts/production-promotion-persistence-diagnostic-after-migration.json
@@ -120,8 +118,14 @@ jobs:
             exit 1
           fi
 
-          if [[ "$PROMOTION_REQUEST_ID" != "$APPROVED_PROMOTION_REQUEST_ID" ]]; then
-            echo "promotion_request_id_mismatch" >&2
+          if [[ -z "${PROMOTION_REQUEST_ID// }" ]]; then
+            echo "promotion_request_id_missing" >&2
+            exit 1
+          fi
+
+          lower_request_id="$(echo "$PROMOTION_REQUEST_ID" | tr '[:upper:]' '[:lower:]')"
+          if [[ "$lower_request_id" == *latest* ]] || [[ "$lower_request_id" == *head* ]] || [[ "$lower_request_id" == "main" ]]; then
+            echo "promotion_request_id_mutable_alias" >&2
             exit 1
           fi
 
@@ -470,6 +474,53 @@ jobs:
             } >>"$GITHUB_ENV"
           fi
 
+      - name: Derive governed promotion request ID and fail closed on mismatch
+        id: derive_request_id
+        shell: bash
+        working-directory: control
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+          AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
+          STAGING_MIGRATION_ARTIFACT_ID: ${{ inputs.staging_migration_artifact_id }}
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ "$AUTHORIZATION_MODE" == "promotion_attestation" ]]; then
+            derive_output="$(npx --no-install tsx scripts/ci/derive-governed-promotion-request-id.ts \
+              from-promotion-attestation \
+              "$GITHUB_WORKSPACE/promotion-artifact/promotion-attestation.json" \
+              "$PROMOTION_REQUEST_ID")"
+          else
+            derive_output="$(npx --no-install tsx scripts/ci/derive-governed-promotion-request-id.ts \
+              bootstrap-staging \
+              "$TARGET_SHA" \
+              "github-artifact:${STAGING_MIGRATION_ARTIFACT_ID}" \
+              "$GITHUB_WORKSPACE/staging-migration-artifact/supabase-staging-migration-plan.json" \
+              "$PROMOTION_REQUEST_ID")"
+          fi
+
+          derived_promotion_request_id="$(awk -F= '/^derived_promotion_request_id=/{print $2}' <<<"$derive_output")"
+          derived_migration_evidence_id="$(awk -F= '/^migration_evidence_id=/{print $2}' <<<"$derive_output")"
+          derived_migration_artifact_id="$(awk -F= '/^migration_artifact_id=/{print $2}' <<<"$derive_output")"
+
+          if [[ -z "$derived_promotion_request_id" || -z "$derived_migration_evidence_id" || -z "$derived_migration_artifact_id" ]]; then
+            echo "promotion_request_derivation_output_invalid" >&2
+            exit 1
+          fi
+
+          {
+            printf 'derived_promotion_request_id=%s\n' "$derived_promotion_request_id"
+            printf 'derived_migration_evidence_id=%s\n' "$derived_migration_evidence_id"
+            printf 'derived_migration_artifact_id=%s\n' "$derived_migration_artifact_id"
+          } >>"$GITHUB_OUTPUT"
+
+          {
+            printf 'DERIVED_PROMOTION_REQUEST_ID=%s\n' "$derived_promotion_request_id"
+            printf 'DERIVED_MIGRATION_EVIDENCE_ID=%s\n' "$derived_migration_evidence_id"
+            printf 'DERIVED_MIGRATION_ARTIFACT_ID=%s\n' "$derived_migration_artifact_id"
+          } >>"$GITHUB_ENV"
+
       - name: Verify pinned CLI supports fail-closed dry run and apply
         shell: bash
         run: |
@@ -817,7 +868,7 @@ jobs:
         shell: bash
         working-directory: control
         env:
-          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+          PROMOTION_REQUEST_ID: ${{ steps.derive_request_id.outputs.derived_promotion_request_id }}
           POST_APPLY_DIAGNOSTIC_PATH: ${{ github.workspace }}/${{ env.POST_APPLY_DIAGNOSTIC_PATH }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

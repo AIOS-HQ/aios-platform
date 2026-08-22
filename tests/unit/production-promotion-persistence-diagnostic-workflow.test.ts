@@ -11,8 +11,10 @@ describe("production promotion persistence diagnostic workflow", () => {
     expect(workflow).not.toContain("push:");
     expect(workflow).toContain("promotion_request_id:");
     expect(workflow).toContain("required: true");
-    expect(workflow).toContain("promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a");
-    expect(workflow).toContain("promotion_request_id_mismatch");
+    expect(workflow).toContain("promotion_request_id_missing");
+    expect(workflow).toContain("promotion_request_id_mutable_alias");
+    expect(workflow).toContain("derive-governed-promotion-request-id.ts m5-bootstrap-default");
+    expect(workflow).toContain("promotion_request_derivation_output_invalid");
   });
 
   it("runs only read-only diagnostic script and does not invoke attestation or promotion post", () => {
@@ -45,4 +47,3 @@ describe("production promotion persistence diagnostic workflow", () => {
     expect(workflow).toContain("harmonyDecisionExists");
   });
 });
-

@@ -9,7 +9,6 @@ import {
   PRODUCTION_HOST,
   PRODUCTION_PORT,
   PRODUCTION_PROJECT_REF,
-  PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
   PRODUCTION_USERNAME,
   assembleProductionDatabaseUri,
   assertProductionMigrationEvidenceArtifact,
@@ -63,7 +62,6 @@ describe("Supabase production governed migration", () => {
     expect(PRODUCTION_DATABASE).toBe("postgres");
     expect(APPROVED_FIRST_MIGRATION_FILE).toBe("20260807250000_production_promotion_approval_evidence.sql");
     expect(APPROVED_SECOND_MIGRATION_FILE).toBe("20260814010000_production_promotion_preview_waiver.sql");
-    expect(PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID).toBe("promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a");
     expect(AUTHORIZATION_MODE_PROMOTION_ATTESTATION).toBe("promotion_attestation");
     expect(AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN).toBe("bootstrap_staging_migration_plan");
   });

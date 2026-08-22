@@ -6,7 +6,6 @@ on:
       promotion_request_id:
         description: "Exact promotion request ID to diagnose"
         required: true
-        default: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a"
         type: string
 
 permissions:
@@ -33,8 +32,9 @@ jobs:
             exit 1
           fi
 
-          if [[ "$PROMOTION_REQUEST_ID" != "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a" ]]; then
-            echo "promotion_request_id_mismatch" >&2
+          lower_request_id="$(echo "$PROMOTION_REQUEST_ID" | tr '[:upper:]' '[:lower:]')"
+          if [[ "$lower_request_id" == *latest* ]] || [[ "$lower_request_id" == *head* ]] || [[ "$lower_request_id" == "main" ]]; then
+            echo "promotion_request_id_mutable_alias" >&2
             exit 1
           fi
 
@@ -67,10 +67,25 @@ jobs:
           set -euo pipefail
           npm ci
 
-      - name: Run read-only persistence diagnostic
+      - name: Derive governed promotion request ID and fail closed on mismatch
+        id: derive_request_id
         shell: bash
         env:
           PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+        run: |
+          set -euo pipefail
+          derive_output="$(npx --no-install tsx scripts/ci/derive-governed-promotion-request-id.ts m5-bootstrap-default "$PROMOTION_REQUEST_ID")"
+          derived_promotion_request_id="$(awk -F= '/^derived_promotion_request_id=/{print $2}' <<<"$derive_output")"
+          if [[ -z "$derived_promotion_request_id" ]]; then
+            echo "promotion_request_derivation_output_invalid" >&2
+            exit 1
+          fi
+          printf 'derived_promotion_request_id=%s\n' "$derived_promotion_request_id" >> "$GITHUB_OUTPUT"
+
+      - name: Run read-only persistence diagnostic
+        shell: bash
+        env:
+          PROMOTION_REQUEST_ID: ${{ steps.derive_request_id.outputs.derived_promotion_request_id }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |

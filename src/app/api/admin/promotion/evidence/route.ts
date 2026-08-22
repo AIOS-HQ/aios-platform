@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import { writeFounderPromotionEvidence } from "@/lib/promotion/evidence-store";
+import { derivePromotionRequestId } from "@/lib/promotion/request-id";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,24 +27,6 @@ type PromotionEvidenceBody = {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function derivePromotionRequestId(body: Omit<PromotionEvidenceBody, "decision">): string {
-  const tuple = [
-    body.repository,
-    body.purpose,
-    body.target_sha,
-    body.source_environment,
-    body.target_environment,
-    body.runtime_evidence_id ?? "",
-    body.runtime_artifact_id ?? "",
-    body.migration_evidence_id,
-    body.migration_artifact_id,
-    body.preview_certification_waiver ? "true" : "false",
-    body.preview_certification_waiver_reason ?? "",
-  ];
-
-  return `promotion-request:${createHash("sha256").update(tuple.join("|"), "utf8").digest("hex")}`;
 }
 
 function parseBody(input: unknown): PromotionEvidenceBody | null {
