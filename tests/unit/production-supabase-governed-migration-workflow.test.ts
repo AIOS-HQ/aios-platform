@@ -107,8 +107,9 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("bootstrap_schema_already_present");
     expect(workflow).toContain("promotion_schema_missing_for_normal_mode");
     expect(workflow).toContain("bootstrap_migration_state_not_pristine");
-    expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}");
-    expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST=\"$SUPABASE_PRODUCTION_DB_HOST\"");
+    expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}");
+    expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}");
+    expect(workflow).toContain("production_db_host=\"${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}\"");
     expect(workflow).not.toContain("getent ahostsv4");
     expect(workflow).toContain("unapproved_migrations_in_range");
     expect(workflow).toContain("scoped_workdir");
