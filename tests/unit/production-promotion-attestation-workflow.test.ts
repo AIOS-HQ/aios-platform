@@ -25,6 +25,8 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("actions: read");
     expect(workflow).toContain("github.repository == 'AIOS-HQ/aios-platform'");
     expect(workflow).toContain("github.ref == 'refs/heads/main'");
+    expect(workflow).toContain("environment:");
+    expect(workflow).toContain("name: production");
     expect(workflow).toContain("ref: main");
     expect(workflow).toContain("git fetch --no-tags --prune origin main");
     expect(workflow).toContain("trusted_main_mismatch");
