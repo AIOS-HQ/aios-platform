@@ -37,6 +37,8 @@ jobs:
     name: Compose production promotion attestation
     if: ${{ github.repository == 'AIOS-HQ/aios-platform' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    environment:
+      name: production
     env:
       TARGET_SHA: ${{ inputs.target_sha }}
       PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
