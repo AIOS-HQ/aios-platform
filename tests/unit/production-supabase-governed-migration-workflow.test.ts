@@ -1,8 +1,33 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 
 const workflowPath = ".github/workflows/production-supabase-governed-migration.yml";
 const workflow = readFileSync(workflowPath, "utf8");
+const require = createRequire(import.meta.url);
+const yaml = require("js-yaml") as { load: (source: string) => Record<string, unknown> };
+
+type WorkflowStep = {
+  name?: string;
+  run?: string;
+};
+
+type WorkflowJobs = {
+  "governed-production-migration"?: {
+    steps?: WorkflowStep[];
+  };
+};
+
+const parseWorkflow = () => yaml.load(workflow);
+
+const getContractValidationRunScript = () => {
+  const parsed = parseWorkflow();
+  const jobs = parsed.jobs as WorkflowJobs | undefined;
+  const steps = jobs?.["governed-production-migration"]?.steps ?? [];
+  const step = steps.find((candidate) => candidate.name === "Validate governed authorization contract before any database mutation");
+  return step?.run ?? "";
+};
 
 describe("production supabase governed migration workflow", () => {
   it("is workflow_dispatch only with immutable migration and authorization inputs", () => {
@@ -26,6 +51,13 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("authorization_mode_invalid");
     expect(workflow).toContain("promotion_artifact_id_not_allowed");
     expect(workflow).toContain("staging_migration_artifact_id_not_allowed");
+  });
+
+  it("parses as valid workflow YAML and retains workflow_dispatch trigger", () => {
+    const parsed = parseWorkflow();
+    const on = parsed.on as Record<string, unknown> | undefined;
+    expect(on).toBeDefined();
+    expect(on).toHaveProperty("workflow_dispatch");
   });
 
   it("pins production environment and trusted-main controls", () => {
@@ -62,14 +94,13 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("staging_migration_target_sha_mismatch");
   });
 
-  it("keeps bootstrap contract-validation heredoc shell-safe", () => {
-    const block = workflow
-      .split("- name: Validate governed authorization contract before any database mutation")[1]
-      .split("- name: Verify pinned CLI supports fail-closed dry run and apply")[0];
+  it("keeps bootstrap contract-validation heredoc valid after YAML parsing", () => {
+    const runScript = getContractValidationRunScript();
 
-    expect(block).toContain("node --input-type=module <<'NODE'");
-    expect(block).toContain("\nNODE\n");
-    expect(block).not.toMatch(/\n +NODE\n/);
+    expect(runScript).toContain("node --input-type=module <<'NODE'");
+    expect(runScript.split("\n")).toContain("NODE");
+    expect(runScript).not.toMatch(/\n\s+NODE\n/);
+    expect(() => execFileSync("bash", ["-n"], { input: runScript })).not.toThrow();
   });
 
   it("enforces bootstrap-only schema absence and scoped migration range", () => {
