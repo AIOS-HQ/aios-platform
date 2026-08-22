@@ -21,13 +21,15 @@ type WorkflowJobs = {
 
 const parseWorkflow = () => yaml.load(workflow);
 
-const getContractValidationRunScript = () => {
+const getStepRunScript = (stepName: string) => {
   const parsed = parseWorkflow();
   const jobs = parsed.jobs as WorkflowJobs | undefined;
   const steps = jobs?.["governed-production-migration"]?.steps ?? [];
-  const step = steps.find((candidate) => candidate.name === "Validate governed authorization contract before any database mutation");
+  const step = steps.find((candidate) => candidate.name === stepName);
   return step?.run ?? "";
 };
+
+const getContractValidationRunScript = () => getStepRunScript("Validate governed authorization contract before any database mutation");
 
 describe("production supabase governed migration workflow", () => {
   it("is workflow_dispatch only with immutable migration and authorization inputs", () => {
@@ -107,6 +109,10 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("bootstrap_schema_already_present");
     expect(workflow).toContain("promotion_schema_missing_for_normal_mode");
     expect(workflow).toContain("bootstrap_migration_state_not_pristine");
+    expect(workflow).toContain("SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}");
+    expect(workflow).toContain("scoped_workdir_missing");
+    expect(workflow).toContain("all_applied_versions_query");
+    expect(workflow).toContain("remote_applied_migration_missing_from_target");
     expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}");
     expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}");
     expect(workflow).toContain("production_db_host=\"${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}\"");
@@ -119,6 +125,16 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("migration_range_not_fully_applied");
     expect(workflow).toContain("to_regclass('public.production_promotion_requests')");
     expect(workflow).toContain("to_regclass('public.production_promotion_decisions')");
+  });
+
+  it("keeps pre-apply script shell-valid and backfills remote-applied history", () => {
+    const runScript = getStepRunScript("Verify migration range apply state before dry run");
+
+    expect(runScript).toContain("select version from supabase_migrations.schema_migrations order by version;");
+    expect(runScript).toContain("version_matches=(\"$target_migrations_dir/${applied_version}\"_*.sql)");
+    expect(runScript).toContain("remote_applied_migration_missing_from_target");
+    expect(runScript).toContain("cp \"${version_matches[0]}\" \"$SCOPED_WORKDIR/supabase/migrations/\"");
+    expect(() => execFileSync("bash", ["-n"], { input: runScript })).not.toThrow();
   });
 
   it("produces immutable evidence and read-only post-apply diagnostic only", () => {
