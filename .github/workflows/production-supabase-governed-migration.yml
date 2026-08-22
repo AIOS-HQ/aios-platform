@@ -522,11 +522,16 @@ jobs:
             echo "production_db_ipv4_unresolvable" >&2
             exit 1
           fi
+          if [[ "$database_uri" == *\?* ]]; then
+            database_uri_with_hostaddr="${database_uri}&hostaddr=${database_hostaddr}"
+          else
+            database_uri_with_hostaddr="${database_uri}?hostaddr=${database_hostaddr}"
+          fi
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
           tables_query="select (to_regclass('public.production_promotion_requests') is not null)::text || ',' || (to_regclass('public.production_promotion_decisions') is not null)::text;"
-          table_flags="$(PGHOSTADDR="$database_hostaddr" psql "$database_uri" -Atqc "$tables_query")"
+          table_flags="$(psql "$database_uri_with_hostaddr" -Atqc "$tables_query")"
           requests_table_exists="${table_flags%%,*}"
           decisions_table_exists="${table_flags##*,}"
 
@@ -543,7 +548,7 @@ jobs:
           fi
 
           query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
-          applied_csv="$(PGHOSTADDR="$database_hostaddr" psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+          applied_csv="$(psql "$database_uri_with_hostaddr" -Atqc "$query" | paste -sd, -)"
 
           if [[ "$AUTHORIZATION_MODE" == "bootstrap_staging_migration_plan" ]]; then
             if [[ -n "$applied_csv" ]]; then
@@ -584,11 +589,22 @@ jobs:
           password="$SUPABASE_PRODUCTION_DB_PASSWORD"
           encoded_password="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" encode-password)"
           database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
+          database_host="db.${PRODUCTION_PROJECT_REF}.supabase.co"
+          database_hostaddr="$(getent ahostsv4 "$database_host" | awk 'NR == 1 { print $1; exit }')"
+          if [[ ! "$database_hostaddr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "production_db_ipv4_unresolvable" >&2
+            exit 1
+          fi
+          if [[ "$database_uri" == *\?* ]]; then
+            database_uri_with_hostaddr="${database_uri}&hostaddr=${database_hostaddr}"
+          else
+            database_uri_with_hostaddr="${database_uri}?hostaddr=${database_hostaddr}"
+          fi
 
           set +e
           dry_run_output="$(
-            npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
-              --db-url "$database_uri" \
+              npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
+              --db-url "$database_uri_with_hostaddr" \
               --dry-run \
               --include-all \
               --workdir "$SCOPED_WORKDIR" \
@@ -601,7 +617,7 @@ jobs:
           printf '%s\n' "$dry_run_output" |
             SUPABASE_PRODUCTION_DB_PASSWORD="$password" \
             SUPABASE_PRODUCTION_DB_PASSWORD_ENCODED="$encoded_password" \
-            SUPABASE_PRODUCTION_DB_URI="$database_uri" \
+            SUPABASE_PRODUCTION_DB_URI="$database_uri_with_hostaddr" \
             node "$validator" sanitize
 
           if [[ "$dry_run_status" -ne 0 ]]; then
@@ -626,11 +642,22 @@ jobs:
           password="$SUPABASE_PRODUCTION_DB_PASSWORD"
           encoded_password="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" encode-password)"
           database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$password" node "$validator" assemble)"
+          database_host="db.${PRODUCTION_PROJECT_REF}.supabase.co"
+          database_hostaddr="$(getent ahostsv4 "$database_host" | awk 'NR == 1 { print $1; exit }')"
+          if [[ ! "$database_hostaddr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "production_db_ipv4_unresolvable" >&2
+            exit 1
+          fi
+          if [[ "$database_uri" == *\?* ]]; then
+            database_uri_with_hostaddr="${database_uri}&hostaddr=${database_hostaddr}"
+          else
+            database_uri_with_hostaddr="${database_uri}?hostaddr=${database_hostaddr}"
+          fi
 
           set +e
           apply_output="$(
-            npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
-              --db-url "$database_uri" \
+              npx --yes --cache "$RUNNER_TEMP/npm-cache" "supabase@$SUPABASE_CLI_VERSION" db push \
+              --db-url "$database_uri_with_hostaddr" \
               --include-all \
               --workdir "$SCOPED_WORKDIR" \
               --agent no \
@@ -642,7 +669,7 @@ jobs:
           printf '%s\n' "$apply_output" |
             SUPABASE_PRODUCTION_DB_PASSWORD="$password" \
             SUPABASE_PRODUCTION_DB_PASSWORD_ENCODED="$encoded_password" \
-            SUPABASE_PRODUCTION_DB_URI="$database_uri" \
+            SUPABASE_PRODUCTION_DB_URI="$database_uri_with_hostaddr" \
             node "$validator" sanitize
 
           if [[ "$apply_status" -ne 0 ]]; then
@@ -673,11 +700,16 @@ jobs:
             echo "production_db_ipv4_unresolvable" >&2
             exit 1
           fi
+          if [[ "$database_uri" == *\?* ]]; then
+            database_uri_with_hostaddr="${database_uri}&hostaddr=${database_hostaddr}"
+          else
+            database_uri_with_hostaddr="${database_uri}?hostaddr=${database_hostaddr}"
+          fi
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
           query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
-          applied_csv="$(PGHOSTADDR="$database_hostaddr" psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+          applied_csv="$(psql "$database_uri_with_hostaddr" -Atqc "$query" | paste -sd, -)"
           expected_csv="$first_version,$second_version"
 
           if [[ "$applied_csv" != "$expected_csv" ]]; then

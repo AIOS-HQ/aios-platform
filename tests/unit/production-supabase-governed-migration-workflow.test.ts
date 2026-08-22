@@ -109,7 +109,7 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("bootstrap_migration_state_not_pristine");
     expect(workflow).toContain("production_db_ipv4_unresolvable");
     expect(workflow).toContain("getent ahostsv4");
-    expect(workflow).toContain("PGHOSTADDR=\"$database_hostaddr\" psql");
+    expect(workflow).toContain("hostaddr=${database_hostaddr}");
     expect(workflow).toContain("unapproved_migrations_in_range");
     expect(workflow).toContain("scoped_workdir");
     expect(workflow).toContain("--dry-run");
