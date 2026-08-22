@@ -450,20 +450,20 @@ jobs:
             node scripts/ci/promotion-attestation-contract.mjs validate "$GITHUB_WORKSPACE/promotion-artifact/promotion-attestation.json" "$TARGET_SHA"
           else
             node --input-type=module <<'NODE'
-            import { readFileSync } from "node:fs";
-            import { assertStagingPlanCertificationArtifact } from "./scripts/ci/supabase-staging-plan.mjs";
+import { readFileSync } from "node:fs";
+import { assertStagingPlanCertificationArtifact } from "./scripts/ci/supabase-staging-plan.mjs";
 
-            const artifact = JSON.parse(readFileSync("../staging-migration-artifact/supabase-staging-migration-plan.json", "utf8"));
-            assertStagingPlanCertificationArtifact(artifact, { expectedTargetSha: process.env.TARGET_SHA });
-            if (artifact.certification !== "supabase-staging-migration-plan") {
-              throw new Error("staging_migration_certification_name_invalid");
-            }
-            if (artifact.targetSha !== process.env.TARGET_SHA) {
-              throw new Error("staging_migration_target_sha_mismatch");
-            }
-            process.stdout.write(`STAGING_MIGRATION_CERTIFICATION_NAME=${artifact.certification}\n`);
-            process.stdout.write(`STAGING_MIGRATION_CERTIFICATION_TARGET_SHA=${artifact.targetSha}\n`);
-            NODE
+const artifact = JSON.parse(readFileSync("../staging-migration-artifact/supabase-staging-migration-plan.json", "utf8"));
+assertStagingPlanCertificationArtifact(artifact, { expectedTargetSha: process.env.TARGET_SHA });
+if (artifact.certification !== "supabase-staging-migration-plan") {
+  throw new Error("staging_migration_certification_name_invalid");
+}
+if (artifact.targetSha !== process.env.TARGET_SHA) {
+  throw new Error("staging_migration_target_sha_mismatch");
+}
+process.stdout.write(`STAGING_MIGRATION_CERTIFICATION_NAME=${artifact.certification}\n`);
+process.stdout.write(`STAGING_MIGRATION_CERTIFICATION_TARGET_SHA=${artifact.targetSha}\n`);
+NODE
             {
               printf 'STAGING_MIGRATION_CERTIFICATION_NAME=%s\n' "supabase-staging-migration-plan"
               printf 'STAGING_MIGRATION_CERTIFICATION_TARGET_SHA=%s\n' "$TARGET_SHA"
