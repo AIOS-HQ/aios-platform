@@ -112,7 +112,9 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}");
     expect(workflow).toContain("scoped_workdir_missing");
     expect(workflow).toContain("all_applied_versions_query");
-    expect(workflow).toContain("remote_applied_migration_missing_from_target");
+    expect(workflow).toContain("remote_applied_migration_ambiguous_in_target");
+    expect(workflow).toContain("remote_applied_placeholder.sql");
+    expect(workflow).toContain("placeholder_history_count");
     expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}");
     expect(workflow).toContain("SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}");
     expect(workflow).toContain("production_db_host=\"${SUPABASE_PRODUCTION_DB_HOST_VAR:-$SUPABASE_PRODUCTION_DB_HOST_SECRET}\"");
@@ -132,8 +134,9 @@ describe("production supabase governed migration workflow", () => {
 
     expect(runScript).toContain("select version from supabase_migrations.schema_migrations order by version;");
     expect(runScript).toContain("version_matches=(\"$target_migrations_dir/${applied_version}\"_*.sql)");
-    expect(runScript).toContain("remote_applied_migration_missing_from_target");
-    expect(runScript).toContain("cp \"${version_matches[0]}\" \"$SCOPED_WORKDIR/supabase/migrations/\"");
+    expect(runScript).toContain("remote_applied_migration_ambiguous_in_target");
+    expect(runScript).toContain("placeholder_path=\"$SCOPED_WORKDIR/supabase/migrations/${applied_version}_remote_applied_placeholder.sql\"");
+    expect(runScript).toContain("Purpose: satisfy Supabase CLI local-history requirements without broadening governed apply scope.");
     expect(() => execFileSync("bash", ["-n"], { input: runScript })).not.toThrow();
   });
 
