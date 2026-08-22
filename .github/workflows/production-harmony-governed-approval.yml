@@ -1,0 +1,135 @@
+name: production-harmony-governed-approval
+
+on:
+  workflow_dispatch:
+    inputs:
+      promotion_request_id:
+        description: "Exact governed promotion request ID for Harmony approval"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  governed-harmony-approval:
+    name: Persist governed Harmony production promotion approval
+    if: ${{ github.repository == 'AIOS-HQ/aios-platform' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Validate immutable workflow_dispatch input
+        shell: bash
+        env:
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${PROMOTION_REQUEST_ID// }" ]]; then
+            echo "promotion_request_id_missing" >&2
+            exit 1
+          fi
+
+          lower_request_id="$(echo "$PROMOTION_REQUEST_ID" | tr '[:upper:]' '[:lower:]')"
+          if [[ "$lower_request_id" == *latest* ]] || [[ "$lower_request_id" == *head* ]] || [[ "$lower_request_id" == "main" ]]; then
+            echo "promotion_request_id_mutable_alias" >&2
+            exit 1
+          fi
+
+      - name: Checkout trusted main controls
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify checked out controls match current GitHub main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin main
+          expected_main_sha="$(git rev-parse origin/main)"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$expected_main_sha" != "$checked_out_sha" ]]; then
+            echo "trusted_main_mismatch" >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+
+      - name: Derive governed promotion request ID and fail closed on mismatch
+        id: derive_request_id
+        shell: bash
+        env:
+          PROMOTION_REQUEST_ID: ${{ inputs.promotion_request_id }}
+        run: |
+          set -euo pipefail
+          derive_output="$(npx --no-install tsx scripts/ci/derive-governed-promotion-request-id.ts m5-bootstrap-default "$PROMOTION_REQUEST_ID")"
+          derived_promotion_request_id="$(awk -F= '/^derived_promotion_request_id=/{print $2}' <<<"$derive_output")"
+          if [[ -z "$derived_promotion_request_id" ]]; then
+            echo "promotion_request_derivation_output_invalid" >&2
+            exit 1
+          fi
+          printf 'derived_promotion_request_id=%s\n' "$derived_promotion_request_id" >> "$GITHUB_OUTPUT"
+
+      - name: Execute governed Harmony approval persistence
+        shell: bash
+        env:
+          PROMOTION_REQUEST_ID: ${{ steps.derive_request_id.outputs.derived_promotion_request_id }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          npx --no-install tsx scripts/ci/run-governed-harmony-promotion-approval.ts \
+            "$PROMOTION_REQUEST_ID" \
+            production-harmony-governed-approval.json
+
+      - name: Print governed Harmony approval evidence fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+
+          const artifact = JSON.parse(readFileSync("production-harmony-governed-approval.json", "utf8"));
+          const required = [
+            "promotionRequestId",
+            "targetSha",
+            "migrationEvidenceId",
+            "migrationArtifactId",
+            "founderDecisionExistsBefore",
+            "harmonyDecisionExistsAfter",
+            "verifiedAt",
+          ];
+
+          for (const key of required) {
+            if (!(key in artifact)) {
+              throw new Error(`harmony_artifact_field_missing:${key}`);
+            }
+            console.log(`${key}=${artifact[key]}`);
+          }
+
+          if (!artifact.harmonyDecision || typeof artifact.harmonyDecision !== "object") {
+            throw new Error("harmony_decision_missing");
+          }
+          console.log(`harmonyDecisionSource=${artifact.harmonyDecision.source}`);
+          console.log(`harmonyDecisionEvidenceId=${artifact.harmonyDecision.evidenceId}`);
+          NODE
+
+      - name: Upload governed Harmony approval evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-harmony-governed-approval-${{ github.run_id }}
+          path: production-harmony-governed-approval.json
+          if-no-files-found: error
