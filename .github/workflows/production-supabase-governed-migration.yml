@@ -503,6 +503,7 @@ jobs:
           AUTHORIZATION_MODE: ${{ inputs.authorization_mode }}
           FIRST_MIGRATION_FILE: ${{ inputs.first_migration_file }}
           SECOND_MIGRATION_FILE: ${{ inputs.second_migration_file }}
+          SCOPED_WORKDIR: ${{ steps.range_scope.outputs.scoped_workdir }}
           SUPABASE_PRODUCTION_DB_HOST_VAR: ${{ vars.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_HOST_SECRET: ${{ secrets.SUPABASE_PRODUCTION_DB_HOST }}
           SUPABASE_PRODUCTION_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
@@ -524,6 +525,17 @@ jobs:
           database_uri="$(SUPABASE_PRODUCTION_DB_HOST="$production_db_host" SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
+          target_migrations_dir="$GITHUB_WORKSPACE/target/supabase/migrations"
+
+          if [[ -z "$SCOPED_WORKDIR" || ! -d "$SCOPED_WORKDIR/supabase/migrations" ]]; then
+            echo "scoped_workdir_missing" >&2
+            exit 1
+          fi
+
+          if [[ ! -d "$target_migrations_dir" ]]; then
+            echo "target_migrations_directory_missing" >&2
+            exit 1
+          fi
 
           tables_query="select (to_regclass('public.production_promotion_requests') is not null)::text || ',' || (to_regclass('public.production_promotion_decisions') is not null)::text;"
           table_flags="$(psql "$database_uri" -Atqc "$tables_query")"
@@ -541,6 +553,40 @@ jobs:
               exit 1
             fi
           fi
+
+          all_applied_versions_query="select version from supabase_migrations.schema_migrations order by version;"
+          all_applied_versions="$(psql "$database_uri" -Atqc "$all_applied_versions_query")"
+          synced_history_count=0
+
+          while IFS= read -r applied_version; do
+            if [[ -z "$applied_version" ]]; then
+              continue
+            fi
+
+            if [[ ! "$applied_version" =~ ^[0-9]{14}$ ]]; then
+              echo "remote_applied_migration_version_invalid" >&2
+              exit 1
+            fi
+
+            if [[ "$applied_version" == "$first_version" || "$applied_version" == "$second_version" ]]; then
+              continue
+            fi
+
+            shopt -s nullglob
+            version_matches=("$target_migrations_dir/${applied_version}"_*.sql)
+            shopt -u nullglob
+
+            if [[ "${#version_matches[@]}" -ne 1 ]]; then
+              printf 'missing_or_ambiguous_remote_applied_version=%s\n' "$applied_version" >&2
+              echo "remote_applied_migration_missing_from_target" >&2
+              exit 1
+            fi
+
+            cp "${version_matches[0]}" "$SCOPED_WORKDIR/supabase/migrations/"
+            synced_history_count=$((synced_history_count + 1))
+          done <<<"$all_applied_versions"
+
+          printf 'synced_history_count=%s\n' "$synced_history_count"
 
           query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
           applied_csv="$(psql "$database_uri" -Atqc "$query" | paste -sd, -)"
