@@ -516,11 +516,17 @@ jobs:
           test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
 
           database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
+          database_host="db.${PRODUCTION_PROJECT_REF}.supabase.co"
+          database_hostaddr="$(getent ahostsv4 "$database_host" | awk 'NR == 1 { print $1; exit }')"
+          if [[ ! "$database_hostaddr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "production_db_ipv4_unresolvable" >&2
+            exit 1
+          fi
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
           tables_query="select (to_regclass('public.production_promotion_requests') is not null)::text || ',' || (to_regclass('public.production_promotion_decisions') is not null)::text;"
-          table_flags="$(psql "$database_uri" -Atqc "$tables_query")"
+          table_flags="$(PGHOSTADDR="$database_hostaddr" psql "$database_uri" -Atqc "$tables_query")"
           requests_table_exists="${table_flags%%,*}"
           decisions_table_exists="${table_flags##*,}"
 
@@ -537,7 +543,7 @@ jobs:
           fi
 
           query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
-          applied_csv="$(psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+          applied_csv="$(PGHOSTADDR="$database_hostaddr" psql "$database_uri" -Atqc "$query" | paste -sd, -)"
 
           if [[ "$AUTHORIZATION_MODE" == "bootstrap_staging_migration_plan" ]]; then
             if [[ -n "$applied_csv" ]]; then
@@ -661,11 +667,17 @@ jobs:
           test "$(sha256sum "$validator" | cut -d ' ' -f 1)" = "$TRUSTED_VALIDATOR_SHA256"
 
           database_uri="$(SUPABASE_PRODUCTION_DB_PASSWORD="$SUPABASE_PRODUCTION_DB_PASSWORD" node "$validator" assemble)"
+          database_host="db.${PRODUCTION_PROJECT_REF}.supabase.co"
+          database_hostaddr="$(getent ahostsv4 "$database_host" | awk 'NR == 1 { print $1; exit }')"
+          if [[ ! "$database_hostaddr" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "production_db_ipv4_unresolvable" >&2
+            exit 1
+          fi
           first_version="${FIRST_MIGRATION_FILE%%_*}"
           second_version="${SECOND_MIGRATION_FILE%%_*}"
 
           query="select version from supabase_migrations.schema_migrations where version in ('$first_version','$second_version') order by version;"
-          applied_csv="$(psql "$database_uri" -Atqc "$query" | paste -sd, -)"
+          applied_csv="$(PGHOSTADDR="$database_hostaddr" psql "$database_uri" -Atqc "$query" | paste -sd, -)"
           expected_csv="$first_version,$second_version"
 
           if [[ "$applied_csv" != "$expected_csv" ]]; then
