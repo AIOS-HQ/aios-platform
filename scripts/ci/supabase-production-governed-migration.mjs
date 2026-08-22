@@ -7,7 +7,6 @@ export const PRODUCTION_PORT = "5432";
 export const PRODUCTION_DATABASE = "postgres";
 export const APPROVED_FIRST_MIGRATION_FILE = "20260807250000_production_promotion_approval_evidence.sql";
 export const APPROVED_SECOND_MIGRATION_FILE = "20260814010000_production_promotion_preview_waiver.sql";
-export const PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID = "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a";
 export const AUTHORIZATION_MODE_PROMOTION_ATTESTATION = "promotion_attestation";
 export const AUTHORIZATION_MODE_BOOTSTRAP_STAGING_PLAN = "bootstrap_staging_migration_plan";
 

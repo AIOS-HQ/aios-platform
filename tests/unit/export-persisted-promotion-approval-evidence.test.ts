@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { producePromotionAttestation } from "../../scripts/ci/produce-promotion-attestation.mjs";
 
+const DIAGNOSTIC_REQUEST_ID = "promotion-request:6c99fe3e86a4c298511351e98741f5d528172cd1bfc6f9ad2a213ce4e7842eb6";
+
 const createClientMock = vi.hoisted(() => vi.fn());
 const loadSharedMock = vi.hoisted(() => vi.fn());
 const validateMock = vi.hoisted(() => vi.fn());
@@ -11,13 +13,13 @@ const runDiagnosticMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@supabase/supabase-js", () => ({ createClient: createClientMock }));
 vi.mock("../../src/lib/promotion/approval-evidence-shared", () => ({
-  PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+  PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID: DIAGNOSTIC_REQUEST_ID,
   loadPersistedPromotionApprovalEvidenceWithClient: loadSharedMock,
   runPromotionPersistenceReadOnlyDiagnosticWithClient: runDiagnosticMock,
 }));
 
 runDiagnosticMock.mockResolvedValue({
-    requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+    requestId: DIAGNOSTIC_REQUEST_ID,
     adminReadAccess: true,
     productionPromotionRequestsQueryable: true,
     productionPromotionDecisionsQueryable: true,
@@ -94,7 +96,7 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
     loadSharedMock.mockResolvedValue(rawMappedPayload);
     validateMock.mockReturnValue(normalizedPayload);
     runDiagnosticMock.mockResolvedValue({
-      requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+      requestId: DIAGNOSTIC_REQUEST_ID,
       adminReadAccess: true,
       productionPromotionRequestsQueryable: true,
       productionPromotionDecisionsQueryable: true,
@@ -219,7 +221,7 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
     runDiagnosticMock.mockImplementation(async () => {
       order.push("diagnostic");
       return {
-        requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+        requestId: DIAGNOSTIC_REQUEST_ID,
         adminReadAccess: true,
         productionPromotionRequestsQueryable: true,
         productionPromotionDecisionsQueryable: true,
@@ -243,7 +245,7 @@ describe("exportPersistedPromotionApprovalEvidence", () => {
 
   it("diagnoses missing rows and still fails closed afterward", async () => {
     runDiagnosticMock.mockResolvedValue({
-      requestId: "promotion-request:6961a7a485ea1eec6927964cd6b56700a0c3ae930c3ff72d927cc71f7adb5b8a",
+      requestId: DIAGNOSTIC_REQUEST_ID,
       adminReadAccess: true,
       productionPromotionRequestsQueryable: true,
       productionPromotionDecisionsQueryable: true,

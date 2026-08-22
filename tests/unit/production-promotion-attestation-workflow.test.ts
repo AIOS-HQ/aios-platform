@@ -84,6 +84,10 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("npm ci");
     expect(workflow).toContain("scripts/ci/export-persisted-promotion-approval-evidence.ts");
     expect(workflow).toContain("npx --no-install tsx scripts/ci/export-persisted-promotion-approval-evidence.ts");
+    expect(workflow).toContain("scripts/ci/derive-governed-promotion-request-id.ts");
+    expect(workflow).toContain("from-staging-evidence");
+    expect(workflow).toContain("promotion_request_derivation_output_invalid");
+    expect(workflow).toContain("PROMOTION_REQUEST_ID: ${{ steps.derive_request_id.outputs.derived_promotion_request_id }}");
     expect(workflow).toContain("Export persisted promotion approvals");
     expect(workflow).not.toContain("npx --yes tsx");
     expect(workflow).toContain("scripts/ci/produce-promotion-attestation.mjs");

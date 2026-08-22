@@ -49,7 +49,8 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("promotion_request_id:");
     expect(workflow).toContain("first_migration_not_approved");
     expect(workflow).toContain("second_migration_not_approved");
-    expect(workflow).toContain("promotion_request_id_mismatch");
+    expect(workflow).toContain("promotion_request_id_missing");
+    expect(workflow).toContain("promotion_request_id_mutable_alias");
     expect(workflow).toContain("authorization_mode_invalid");
     expect(workflow).toContain("promotion_artifact_id_not_allowed");
     expect(workflow).toContain("staging_migration_artifact_id_not_allowed");
@@ -94,6 +95,10 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("assertStagingPlanCertificationArtifact");
     expect(workflow).toContain("staging_migration_certification_name_invalid");
     expect(workflow).toContain("staging_migration_target_sha_mismatch");
+    expect(workflow).toContain("scripts/ci/derive-governed-promotion-request-id.ts");
+    expect(workflow).toContain("from-promotion-attestation");
+    expect(workflow).toContain("bootstrap-staging");
+    expect(workflow).toContain("promotion_request_derivation_output_invalid");
   });
 
   it("keeps bootstrap contract-validation heredoc valid after YAML parsing", () => {
@@ -147,6 +152,7 @@ describe("production supabase governed migration workflow", () => {
     expect(workflow).toContain("PRODUCTION_MIGRATION_AUTHORIZATION_MODE");
     expect(workflow).toContain("STAGING_MIGRATION_CERTIFICATION_NAME");
     expect(workflow).toContain("run-production-promotion-persistence-diagnostic.ts");
+    expect(workflow).toContain("PROMOTION_REQUEST_ID: ${{ steps.derive_request_id.outputs.derived_promotion_request_id }}");
     expect(workflow).toContain("production-promotion-persistence-diagnostic-after-migration");
     expect(workflow).not.toContain("azure/login");
     expect(workflow).not.toContain("az containerapp");
