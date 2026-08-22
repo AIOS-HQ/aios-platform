@@ -59,6 +59,9 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("waiver_vercel_status_not_success");
     expect(workflow).toContain("waiver_vercel_status_url_not_approved");
     expect(workflow).toContain('gh api "/repos/$REPO/commits/$TARGET_SHA/status"');
+    expect(workflow).toContain("runtime_artifact_id=\"$RUNTIME_ARTIFACT_ID\"");
+    expect(workflow).toContain("runtime_artifact_id=\"$launch_run_id\"");
+    expect(workflow).toContain('echo "runtime_artifact_id=$runtime_artifact_id" >> "$GITHUB_OUTPUT"');
     expect(workflow).toContain(".github/workflows/supabase-staging-migration-plan.yml");
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$RUNTIME_ARTIFACT_ID/zip" > runtime-artifact.zip');
     expect(workflow).toContain('gh api "/repos/$REPO/actions/artifacts/$MIGRATION_ARTIFACT_ID/zip" > migration-artifact.zip');
@@ -66,6 +69,7 @@ describe("production promotion attestation workflow", () => {
     expect(workflow).toContain("promotion_request_id_mutable_alias");
     expect(workflow).toContain("preview_certification_contract_incompatibility");
     expect(workflow).toContain("previewRuntimeCertificationCompleted");
+    expect(workflow).toContain("RUNTIME_ARTIFACT_ID: ${{ steps.resolve_artifacts.outputs.runtime_artifact_id }}");
     expect(workflow).toContain("if: ${{ inputs.preview_certification_waiver == 'false' }}");
   });
 
