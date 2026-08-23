@@ -99,6 +99,7 @@ async function runSelectSingle(
   table: "production_promotion_requests" | "production_promotion_decisions",
   projection: string,
   requestId: string,
+  decisionSource?: "founder" | "harmony",
 ): Promise<{ data: unknown | null; error: unknown | null }> {
   const root = client.from(table);
   if (!hasSelectChain(root)) {
@@ -110,7 +111,8 @@ async function runSelectSingle(
     throw new Error("diagnostic_select_chain_invalid");
   }
 
-  const filtered = selected.eq("promotion_request_id", requestId);
+  const filteredByRequest = selected.eq("promotion_request_id", requestId);
+  const filtered = decisionSource ? filteredByRequest.eq("decision_source", decisionSource) : filteredByRequest;
   if (!filtered || typeof filtered !== "object" || typeof (filtered as { maybeSingle?: unknown }).maybeSingle !== "function") {
     throw new Error("diagnostic_eq_chain_invalid");
   }
@@ -131,6 +133,7 @@ export async function runPromotionPersistenceReadOnlyDiagnosticWithClient(
     "production_promotion_decisions",
     "promotion_request_id,decision_source",
     requestId,
+    "founder",
   );
   if (founderResult.error) throw new Error("promotion_decisions_unqueryable");
 
@@ -139,6 +142,7 @@ export async function runPromotionPersistenceReadOnlyDiagnosticWithClient(
     "production_promotion_decisions",
     "promotion_request_id,decision_source",
     requestId,
+    "harmony",
   );
   if (harmonyResult.error) throw new Error("promotion_decisions_unqueryable");
 
