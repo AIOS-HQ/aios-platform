@@ -17,20 +17,15 @@ function createReadOnlyClient(results: Result[]) {
   };
 
   let index = 0;
+  const eqCalls: Array<{ column: string; value: string }> = [];
   const from = vi.fn(() => {
     const selected = {
       select: vi.fn(() => selected),
       eq: vi.fn((column: string, value: string) => {
-        if (column === "promotion_request_id") {
-          return {
-            maybeSingle: vi.fn(async () => results[index++]),
-          };
-        }
-        if (column === "decision_source") {
-          return selected;
-        }
+        eqCalls.push({ column, value });
         return selected;
       }),
+      maybeSingle: vi.fn(async () => results[index++]),
     };
 
     return {
@@ -43,12 +38,13 @@ function createReadOnlyClient(results: Result[]) {
     client: { from } as unknown as { from: (table: string) => unknown },
     from,
     methods,
+    eqCalls,
   };
 }
 
 describe("promotion persistence read-only diagnostic", () => {
   it("uses only select/read operations and returns expected diagnostics", async () => {
-    const { client, from, methods } = createReadOnlyClient([
+    const { client, from, methods, eqCalls } = createReadOnlyClient([
       {
         data: {
           promotion_request_id: PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
@@ -66,6 +62,13 @@ describe("promotion persistence read-only diagnostic", () => {
     const result = await runPromotionPersistenceReadOnlyDiagnosticWithClient(client as never);
 
     expect(from).toHaveBeenCalledTimes(3);
+    expect(eqCalls).toEqual(
+      expect.arrayContaining([
+        { column: "promotion_request_id", value: PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID },
+        { column: "decision_source", value: "founder" },
+        { column: "decision_source", value: "harmony" },
+      ]),
+    );
     expect(result).toMatchObject({
       requestId: PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
       adminReadAccess: true,
