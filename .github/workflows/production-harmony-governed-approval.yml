@@ -91,7 +91,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          npx --no-install tsx scripts/ci/run-governed-harmony-promotion-approval.ts \
+          NODE_OPTIONS="--conditions=react-server" npx --no-install tsx scripts/ci/run-governed-harmony-promotion-approval.ts \
             "$PROMOTION_REQUEST_ID" \
             production-harmony-governed-approval.json
 
