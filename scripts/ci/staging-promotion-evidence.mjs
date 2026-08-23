@@ -209,6 +209,7 @@ export function composeStagingPromotionEvidence(input, options = {}) {
     repository: EXPECTED_REPOSITORY,
     targetSha: expectedSha,
     sourceEnvironment: "staging",
+    targetEnvironment: "production",
     runtimeCertification: {
       status: runtimeWaived ? "waived" : "passed",
       targetSha: expectedSha,

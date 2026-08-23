@@ -125,6 +125,7 @@ describe("staging promotion evidence composer", () => {
     expect(composed.repository).toBe("AIOS-HQ/aios-platform");
     expect(composed.targetSha).toBe(SHA);
     expect(composed.sourceEnvironment).toBe("staging");
+    expect(composed.targetEnvironment).toBe("production");
   });
 
   it("includes canonical six runtime components with certifiable summary totals and identities", () => {
@@ -267,6 +268,8 @@ describe("staging promotion evidence composer", () => {
     });
 
     const composed = composeStagingPromotionEvidence(input, { expectedTargetSha: SHA });
+    expect(composed.sourceEnvironment).toBe("staging");
+    expect(composed.targetEnvironment).toBe("production");
     expect(composed.runtimeCertification).toMatchObject({
       status: "waived",
       waiver: true,
