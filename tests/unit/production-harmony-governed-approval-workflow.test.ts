@@ -30,6 +30,7 @@ describe("production harmony governed approval workflow", () => {
     expect(workflow).toContain("derive-governed-promotion-request-id.ts m5-bootstrap-default");
     expect(workflow).toContain("promotion_request_derivation_output_invalid");
     expect(workflow).toContain("run-governed-harmony-promotion-approval.ts");
+    expect(workflow).toContain("NODE_OPTIONS=\"--conditions=react-server\"");
     expect(workflow).toContain("SUPABASE_URL: ${{ secrets.SUPABASE_URL }}");
     expect(workflow).toContain("NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}");
     expect(workflow).toContain("SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}");
