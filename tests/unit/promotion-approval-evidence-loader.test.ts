@@ -9,11 +9,37 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 type DbError = { code?: string; message?: string };
 
+function projectBySelect(data: unknown, projection: string | null): unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data) || !projection) return data;
+  const keys = projection
+    .split(",")
+    .map((key) => key.trim())
+    .filter(Boolean);
+
+  return keys.reduce<Record<string, unknown>>((acc, key) => {
+    if (key in (data as Record<string, unknown>)) {
+      acc[key] = (data as Record<string, unknown>)[key];
+    }
+    return acc;
+  }, {});
+}
+
 function makeBuilder(queue: Array<{ data: unknown; error: DbError | null }>) {
+  let selectedProjection: string | null = null;
   const chain: Record<string, unknown> = {
-    select: vi.fn(() => chain),
+    select: vi.fn((projection: string) => {
+      selectedProjection = projection;
+      return chain;
+    }),
     eq: vi.fn(() => chain),
-    single: vi.fn(async () => queue.shift() ?? { data: null, error: { message: "empty_queue" } }),
+    single: vi.fn(async () => {
+      const next = queue.shift() ?? { data: null, error: { message: "empty_queue" } };
+      if (next.error || next.data == null) return next;
+      return {
+        ...next,
+        data: projectBySelect(next.data, selectedProjection),
+      };
+    }),
   };
   return chain;
 }
