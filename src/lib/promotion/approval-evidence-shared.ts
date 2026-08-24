@@ -201,7 +201,7 @@ export async function loadPersistedPromotionApprovalEvidenceWithClient(
   const requestResult = await client
     .from("production_promotion_requests")
     .select(
-      "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id",
+      "promotion_request_id,repository,purpose,target_sha,source_environment,target_environment,runtime_evidence_id,runtime_artifact_id,migration_evidence_id,migration_artifact_id,preview_certification_waiver,preview_certification_waiver_reason",
     )
     .eq("promotion_request_id", promotionRequestId)
     .single();
