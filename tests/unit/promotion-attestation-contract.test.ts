@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { validatePromotionAttestation } from "../../scripts/ci/promotion-attestation-contract.mjs";
 
 const BASE_SHA = "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300";
+const GOVERNED_PREVIEW_WAIVER_REASON = "preview_certification_contract_incompatibility";
 
 function validAttestation() {
   return {
@@ -45,6 +46,21 @@ function validAttestation() {
   };
 }
 
+function validWaivedAttestation() {
+  return {
+    ...validAttestation(),
+    runtimeCertification: {
+      status: "waived",
+      targetSha: BASE_SHA,
+      evidenceId: null,
+      artifactId: null,
+      verifiedAt: null,
+      waiver: true,
+      waiverReason: GOVERNED_PREVIEW_WAIVER_REASON,
+    },
+  };
+}
+
 describe("promotion attestation contract", () => {
   it("accepts a canonical staging-to-production attestation bound to exact SHA", () => {
     const attestation = validAttestation();
@@ -53,6 +69,13 @@ describe("promotion attestation contract", () => {
     expect(result.targetSha).toBe(BASE_SHA);
     expect(result.sourceEnvironment).toBe("staging");
     expect(result.targetEnvironment).toBe("production");
+  });
+
+  it("accepts governed runtime waiver attestation when waiver contract is exact", () => {
+    const attestation = validWaivedAttestation();
+    const result = validatePromotionAttestation(attestation, { expectedSha: BASE_SHA });
+    expect(result.ok).toBe(true);
+    expect(result.targetSha).toBe(BASE_SHA);
   });
 
   it("fails closed on repository/environment/SHA mismatches", () => {
@@ -83,6 +106,36 @@ describe("promotion attestation contract", () => {
     expect(() =>
       validatePromotionAttestation({ ...validAttestation(), runtimeCertification: { ...validAttestation().runtimeCertification, artifactId: "latest-runtime" } }),
     ).toThrow(/runtime_artifact_invalid/);
+  });
+
+  it("fails closed on mixed waiver/runtime states", () => {
+    expect(() =>
+      validatePromotionAttestation({
+        ...validWaivedAttestation(),
+        runtimeCertification: { ...validWaivedAttestation().runtimeCertification, evidenceId: "runtime-evidence-001" },
+      }),
+    ).toThrow(/runtime_evidence_invalid/);
+
+    expect(() =>
+      validatePromotionAttestation({
+        ...validWaivedAttestation(),
+        runtimeCertification: { ...validWaivedAttestation().runtimeCertification, verifiedAt: "2026-08-08T10:00:00.000Z" },
+      }),
+    ).toThrow(/runtime_verified_at_invalid/);
+
+    expect(() =>
+      validatePromotionAttestation({
+        ...validWaivedAttestation(),
+        runtimeCertification: { ...validWaivedAttestation().runtimeCertification, waiverReason: "wrong_reason" },
+      }),
+    ).toThrow(/runtime_waiver_reason_invalid/);
+
+    expect(() =>
+      validatePromotionAttestation({
+        ...validAttestation(),
+        runtimeCertification: { ...validAttestation().runtimeCertification, waiver: true },
+      }),
+    ).toThrow(/runtime_waiver_flag_unexpected/);
   });
 
   it("fails closed on missing founder/governance approvals", () => {
