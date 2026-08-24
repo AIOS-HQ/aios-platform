@@ -80,11 +80,40 @@ function validInput() {
   };
 }
 
+function validWaivedInput() {
+  const input = validInput();
+  input.stagingPromotionEvidence.runtimeCertification = {
+    ...input.stagingPromotionEvidence.runtimeCertification,
+    status: "waived",
+    evidenceId: null,
+    artifactId: null,
+    verifiedAt: null,
+    waiver: true,
+    waiverReason: "preview_certification_contract_incompatibility",
+  };
+  input.promotionApprovalEvidence.subject.previewCertificationWaiver = true;
+  input.promotionApprovalEvidence.subject.previewCertificationWaiverReason = "preview_certification_contract_incompatibility";
+  input.promotionApprovalEvidence.subject.runtimeEvidenceId = null;
+  input.promotionApprovalEvidence.subject.runtimeArtifactId = null;
+  input.promotionApprovalEvidence.founderApproval.runtimeEvidenceId = null;
+  input.promotionApprovalEvidence.founderApproval.runtimeArtifactId = null;
+  input.promotionApprovalEvidence.harmonyGovernanceApproval.runtimeEvidenceId = null;
+  input.promotionApprovalEvidence.harmonyGovernanceApproval.runtimeArtifactId = null;
+  return input;
+}
+
 describe("producePromotionAttestation", () => {
   it("valid composition passes M5A contract", () => {
     const produced = producePromotionAttestation(validInput());
     const contract = validatePromotionAttestation(produced, { expectedSha: SHA });
     expect(contract.ok).toBe(true);
+  });
+
+  it("valid waiver composition passes M5A contract", () => {
+    const produced = producePromotionAttestation(validWaivedInput());
+    const contract = validatePromotionAttestation(produced, { expectedSha: SHA });
+    expect(contract.ok).toBe(true);
+    expect(produced.runtimeCertification.status).toBe("waived");
   });
 
   it("fails closed on target SHA mismatch", () => {

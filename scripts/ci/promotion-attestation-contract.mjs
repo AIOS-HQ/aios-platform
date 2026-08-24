@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 const EXPECTED_REPO = "AIOS-HQ/aios-platform";
 const EXPECTED_SOURCE_ENV = "staging";
 const EXPECTED_TARGET_ENV = "production";
+const GOVERNED_PREVIEW_WAIVER_REASON = "preview_certification_contract_incompatibility";
 const SHA40 = /^[0-9a-f]{40}$/;
 
 function fail(code) {
@@ -92,10 +93,22 @@ export function validatePromotionAttestation(attestation, options = {}) {
 
   const runtime = attestation.runtimeCertification;
   if (!isObject(runtime)) fail("runtime_certification_missing");
-  if (runtime.status !== "passed") fail("runtime_certification_failed");
   if (assertExactSha(runtime.targetSha, "runtime_target_sha_invalid") !== targetSha) fail("runtime_target_sha_mismatch");
-  assertImmutableEvidenceRef(runtime.evidenceId, "runtime_evidence_invalid");
-  assertImmutableEvidenceRef(runtime.artifactId, "runtime_artifact_invalid");
+
+  if (runtime.status === "waived") {
+    if (runtime.evidenceId !== null) fail("runtime_evidence_invalid");
+    if (runtime.artifactId !== null) fail("runtime_artifact_invalid");
+    if (runtime.verifiedAt !== null) fail("runtime_verified_at_invalid");
+    if (runtime.waiverReason !== GOVERNED_PREVIEW_WAIVER_REASON) fail("runtime_waiver_reason_invalid");
+    if (runtime.waiver !== true) fail("runtime_waiver_flag_invalid");
+  } else {
+    if (runtime.status !== "passed") fail("runtime_certification_failed");
+    assertImmutableEvidenceRef(runtime.evidenceId, "runtime_evidence_invalid");
+    assertImmutableEvidenceRef(runtime.artifactId, "runtime_artifact_invalid");
+    parseTimestampOrFail(runtime.verifiedAt, "runtime_verified_at_invalid");
+    if (runtime.waiver === true) fail("runtime_waiver_flag_unexpected");
+    if (runtime.waiverReason != null) fail("runtime_waiver_reason_unexpected");
+  }
 
   const migration = attestation.migrationPlanCertification;
   if (!isObject(migration)) fail("migration_plan_certification_missing");
@@ -119,7 +132,6 @@ export function validatePromotionAttestation(attestation, options = {}) {
 
   const issuedAt = parseTimestampOrFail(attestation.issuedAt, "issued_at_invalid");
   const verifiedAt = parseTimestampOrFail(attestation.verifiedAt, "verified_at_invalid");
-  parseTimestampOrFail(runtime.verifiedAt, "runtime_verified_at_invalid");
   parseTimestampOrFail(migration.verifiedAt, "migration_verified_at_invalid");
   parseTimestampOrFail(founder.approvedAt, "founder_approved_at_invalid");
   parseTimestampOrFail(governance.approvedAt, "governance_approved_at_invalid");
