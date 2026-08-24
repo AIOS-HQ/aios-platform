@@ -35,6 +35,8 @@ const requestRow = {
   runtime_artifact_id: "github-artifact:22222",
   migration_evidence_id: "migration-evidence:456",
   migration_artifact_id: "github-artifact:33333",
+  preview_certification_waiver: false,
+  preview_certification_waiver_reason: null,
 };
 
 const founderRow = {
@@ -83,9 +85,38 @@ describe("loadPersistedPromotionApprovalEvidence", () => {
     expect(mapped.harmonyGovernanceApproval.decision).toBe(harmonyRow.decision);
     expect(mapped.harmonyGovernanceApproval.agentId).toBe(harmonyRow.agent_id);
     expect(mapped.harmonyGovernanceApproval.governancePolicyVersion).toBe(harmonyRow.policy_version);
+    expect(mapped.subject.previewCertificationWaiver).toBe(false);
+    expect(mapped.subject.previewCertificationWaiverReason).toBe(null);
     expect(contract.subject.targetSha).toBe(requestRow.target_sha);
     expect(contract.founderApproval.evidenceId).toBe(founderRow.evidence_id);
     expect(contract.harmonyGovernanceApproval.evidenceId).toBe(harmonyRow.evidence_id);
+  });
+
+  it("maps waiver-mode persisted rows with null runtime ids", async () => {
+    const waiverRow = {
+      ...requestRow,
+      runtime_evidence_id: null,
+      runtime_artifact_id: null,
+      preview_certification_waiver: true,
+      preview_certification_waiver_reason: "preview_certification_contract_incompatibility",
+    };
+
+    const admin = makeAdmin({
+      production_promotion_requests: [{ data: waiverRow, error: null }],
+      production_promotion_decisions: [{ data: founderRow, error: null }, { data: harmonyRow, error: null }],
+    });
+    createAdminClientMock.mockReturnValue(admin as unknown as ReturnType<typeof createAdminClientMock>);
+
+    const { loadPersistedPromotionApprovalEvidence } = await import("@/lib/promotion/approval-evidence-loader");
+    const mapped = await loadPersistedPromotionApprovalEvidence(waiverRow.promotion_request_id);
+    const contract = validatePromotionApprovalEvidence(mapped, { expectedSha: waiverRow.target_sha });
+
+    expect(mapped.subject.previewCertificationWaiver).toBe(true);
+    expect(mapped.subject.previewCertificationWaiverReason).toBe("preview_certification_contract_incompatibility");
+    expect(mapped.subject.runtimeEvidenceId).toBe(null);
+    expect(mapped.subject.runtimeArtifactId).toBe(null);
+    expect(contract.subject.runtimeEvidenceId).toBe(null);
+    expect(contract.subject.runtimeArtifactId).toBe(null);
   });
 
   it("fails closed when founder decision is missing", async () => {

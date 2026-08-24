@@ -16,6 +16,8 @@ function validInput(overrides = {}) {
       sourceEnvironment: "staging",
       targetEnvironment: "production",
       promotionRequestId: "promotion-request:abc123",
+      previewCertificationWaiver: false,
+      previewCertificationWaiverReason: null,
       runtimeEvidenceId: "runtime-evidence:123",
       runtimeArtifactId: "github-artifact:22222",
       migrationEvidenceId: "migration-evidence:456",
@@ -92,6 +94,91 @@ describe("promotion approval evidence contract", () => {
       .toThrow(/harmony_request_id_mismatch/);
     expect(() => validatePromotionApprovalEvidence(validInput({ subject: { ...validInput().subject, runtimeEvidenceId: "latest" } }), { expectedSha: SHA }))
       .toThrow(/runtime_evidence_id_invalid/);
+  });
+
+  it("accepts waiver mode with null runtime ids and governed waiver reason", () => {
+    const waived = validInput({
+      subject: {
+        ...validInput().subject,
+        previewCertificationWaiver: true,
+        previewCertificationWaiverReason: "preview_certification_contract_incompatibility",
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+      founderApproval: {
+        ...validInput().founderApproval,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+      harmonyGovernanceApproval: {
+        ...validInput().harmonyGovernanceApproval,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+    });
+
+    const out = validatePromotionApprovalEvidence(waived, { expectedSha: SHA });
+    expect(out.subject.previewCertificationWaiver).toBe(true);
+    expect(out.subject.previewCertificationWaiverReason).toBe("preview_certification_contract_incompatibility");
+    expect(out.subject.runtimeEvidenceId).toBe(null);
+    expect(out.subject.runtimeArtifactId).toBe(null);
+  });
+
+  it("fails closed on mixed waiver/non-waiver runtime evidence combinations", () => {
+    expect(() => validatePromotionApprovalEvidence(validInput({
+      subject: {
+        ...validInput().subject,
+        previewCertificationWaiver: true,
+        previewCertificationWaiverReason: "preview_certification_contract_incompatibility",
+        runtimeEvidenceId: "runtime-evidence:123",
+      },
+      founderApproval: {
+        ...validInput().founderApproval,
+        runtimeEvidenceId: "runtime-evidence:123",
+      },
+      harmonyGovernanceApproval: {
+        ...validInput().harmonyGovernanceApproval,
+        runtimeEvidenceId: "runtime-evidence:123",
+      },
+    }), { expectedSha: SHA })).toThrow(/runtime_evidence_id_invalid/);
+
+    expect(() => validatePromotionApprovalEvidence(validInput({
+      subject: {
+        ...validInput().subject,
+        previewCertificationWaiver: true,
+        previewCertificationWaiverReason: "wrong_reason",
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+      founderApproval: {
+        ...validInput().founderApproval,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+      harmonyGovernanceApproval: {
+        ...validInput().harmonyGovernanceApproval,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+    }), { expectedSha: SHA })).toThrow(/preview_certification_waiver_reason_invalid/);
+
+    expect(() => validatePromotionApprovalEvidence(validInput({
+      subject: {
+        ...validInput().subject,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+      founderApproval: {
+        ...validInput().founderApproval,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+      harmonyGovernanceApproval: {
+        ...validInput().harmonyGovernanceApproval,
+        runtimeEvidenceId: null,
+        runtimeArtifactId: null,
+      },
+    }), { expectedSha: SHA })).toThrow(/runtime_evidence_id_invalid/);
   });
 
   it("fails closed for Founder missing/invalid authority/decision/actor/target/evidence linkage", () => {

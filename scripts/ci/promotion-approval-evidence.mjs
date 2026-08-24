@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 const EXPECTED_REPOSITORY = "AIOS-HQ/aios-platform";
+const GOVERNED_PREVIEW_WAIVER_REASON = "preview_certification_contract_incompatibility";
 const SHA40 = /^[0-9a-f]{40}$/;
 
 function fail(code) {
@@ -77,6 +78,44 @@ function assertImmutableRef(value, code) {
   return ref;
 }
 
+function assertPreviewWaiverMode(mode, reason, prefix) {
+  if (typeof mode !== "boolean") fail(`${prefix}_preview_certification_waiver_invalid`);
+
+  const normalizedReason = reason ?? null;
+  if (mode === true) {
+    if (normalizedReason !== GOVERNED_PREVIEW_WAIVER_REASON) {
+      fail(`${prefix}_preview_certification_waiver_reason_invalid`);
+    }
+  } else if (normalizedReason !== null) {
+    fail(`${prefix}_preview_certification_waiver_reason_unexpected`);
+  }
+
+  return {
+    previewCertificationWaiver: mode,
+    previewCertificationWaiverReason: normalizedReason,
+  };
+}
+
+function assertRuntimeShapeByMode(runtimeEvidenceId, runtimeArtifactId, previewCertificationWaiver, prefix) {
+  if (previewCertificationWaiver) {
+    if (runtimeEvidenceId !== null) fail(`${prefix}_runtime_evidence_id_invalid`);
+    if (runtimeArtifactId !== null) fail(`${prefix}_runtime_artifact_id_invalid`);
+    return {
+      runtimeEvidenceId: null,
+      runtimeArtifactId: null,
+    };
+  }
+
+  return {
+    runtimeEvidenceId: assertImmutableRef(runtimeEvidenceId, `${prefix}_runtime_evidence_id_invalid`),
+    runtimeArtifactId: assertImmutableRef(runtimeArtifactId, `${prefix}_runtime_artifact_id_invalid`),
+  };
+}
+
+function normalizeNullable(value) {
+  return value ?? "";
+}
+
 function assertSubject(subject, expectedSha) {
   if (!isObject(subject)) fail("subject_missing");
   if (subject.repository !== EXPECTED_REPOSITORY) fail("repository_mismatch");
@@ -88,8 +127,17 @@ function assertSubject(subject, expectedSha) {
   if (targetSha !== expectedSha) fail("target_sha_mismatch");
 
   const promotionRequestId = assertImmutableRef(subject.promotionRequestId, "promotion_request_id_invalid");
-  const runtimeEvidenceId = assertImmutableRef(subject.runtimeEvidenceId, "runtime_evidence_id_invalid");
-  const runtimeArtifactId = assertImmutableRef(subject.runtimeArtifactId, "runtime_artifact_id_invalid");
+  const waiverMode = assertPreviewWaiverMode(
+    subject.previewCertificationWaiver,
+    subject.previewCertificationWaiverReason,
+    "subject",
+  );
+  const runtime = assertRuntimeShapeByMode(
+    subject.runtimeEvidenceId,
+    subject.runtimeArtifactId,
+    waiverMode.previewCertificationWaiver,
+    "runtime",
+  );
   const migrationEvidenceId = assertImmutableRef(subject.migrationEvidenceId, "migration_evidence_id_invalid");
   const migrationArtifactId = assertImmutableRef(subject.migrationArtifactId, "migration_artifact_id_invalid");
 
@@ -100,10 +148,12 @@ function assertSubject(subject, expectedSha) {
     sourceEnvironment: "staging",
     targetEnvironment: "production",
     promotionRequestId,
-    runtimeEvidenceId,
-    runtimeArtifactId,
+    runtimeEvidenceId: runtime.runtimeEvidenceId,
+    runtimeArtifactId: runtime.runtimeArtifactId,
     migrationEvidenceId,
     migrationArtifactId,
+    previewCertificationWaiver: waiverMode.previewCertificationWaiver,
+    previewCertificationWaiverReason: waiverMode.previewCertificationWaiverReason,
   };
 }
 
@@ -122,10 +172,17 @@ function assertFounderEvidence(founder, subject) {
     fail("founder_request_id_mismatch");
   }
   if (assertSha(founder.targetSha, "founder_target_sha_invalid") !== subject.targetSha) fail("founder_target_sha_mismatch");
-  if (assertImmutableRef(founder.runtimeEvidenceId, "founder_runtime_evidence_id_invalid") !== subject.runtimeEvidenceId) {
+  const founderRuntime = assertRuntimeShapeByMode(
+    founder.runtimeEvidenceId,
+    founder.runtimeArtifactId,
+    subject.previewCertificationWaiver,
+    "founder",
+  );
+
+  if (founderRuntime.runtimeEvidenceId !== subject.runtimeEvidenceId) {
     fail("founder_runtime_evidence_mismatch");
   }
-  if (assertImmutableRef(founder.runtimeArtifactId, "founder_runtime_artifact_id_invalid") !== subject.runtimeArtifactId) {
+  if (founderRuntime.runtimeArtifactId !== subject.runtimeArtifactId) {
     fail("founder_runtime_artifact_mismatch");
   }
   if (assertImmutableRef(founder.migrationEvidenceId, "founder_migration_evidence_id_invalid") !== subject.migrationEvidenceId) {
@@ -159,10 +216,17 @@ function assertHarmonyEvidence(harmony, subject) {
     fail("harmony_request_id_mismatch");
   }
   if (assertSha(harmony.targetSha, "harmony_target_sha_invalid") !== subject.targetSha) fail("harmony_target_sha_mismatch");
-  if (assertImmutableRef(harmony.runtimeEvidenceId, "harmony_runtime_evidence_id_invalid") !== subject.runtimeEvidenceId) {
+  const harmonyRuntime = assertRuntimeShapeByMode(
+    harmony.runtimeEvidenceId,
+    harmony.runtimeArtifactId,
+    subject.previewCertificationWaiver,
+    "harmony",
+  );
+
+  if (harmonyRuntime.runtimeEvidenceId !== subject.runtimeEvidenceId) {
     fail("harmony_runtime_evidence_mismatch");
   }
-  if (assertImmutableRef(harmony.runtimeArtifactId, "harmony_runtime_artifact_id_invalid") !== subject.runtimeArtifactId) {
+  if (harmonyRuntime.runtimeArtifactId !== subject.runtimeArtifactId) {
     fail("harmony_runtime_artifact_mismatch");
   }
   if (assertImmutableRef(harmony.migrationEvidenceId, "harmony_migration_evidence_id_invalid") !== subject.migrationEvidenceId) {
@@ -185,8 +249,8 @@ function buildBundleId(subject, founderApproval, harmonyApproval) {
   const material = [
     subject.promotionRequestId,
     subject.targetSha,
-    subject.runtimeEvidenceId,
-    subject.runtimeArtifactId,
+    normalizeNullable(subject.runtimeEvidenceId),
+    normalizeNullable(subject.runtimeArtifactId),
     subject.migrationEvidenceId,
     subject.migrationArtifactId,
     founderApproval.evidenceId,
