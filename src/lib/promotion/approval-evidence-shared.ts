@@ -13,10 +13,12 @@ export type PromotionApprovalEvidenceInput = {
     sourceEnvironment: string;
     targetEnvironment: string;
     promotionRequestId: string;
-    runtimeEvidenceId: string;
-    runtimeArtifactId: string;
+    runtimeEvidenceId: string | null;
+    runtimeArtifactId: string | null;
     migrationEvidenceId: string;
     migrationArtifactId: string;
+    previewCertificationWaiver: boolean;
+    previewCertificationWaiverReason: string | null;
   };
   founderApproval: {
     promotionRequestId: string;
@@ -28,8 +30,8 @@ export type PromotionApprovalEvidenceInput = {
     actorId: string;
     evidenceId: string;
     approvedAt: string;
-    runtimeEvidenceId: string;
-    runtimeArtifactId: string;
+    runtimeEvidenceId: string | null;
+    runtimeArtifactId: string | null;
     migrationEvidenceId: string;
     migrationArtifactId: string;
   };
@@ -43,8 +45,8 @@ export type PromotionApprovalEvidenceInput = {
     evidenceId: string;
     approvedAt: string;
     governancePolicyVersion: string;
-    runtimeEvidenceId: string;
-    runtimeArtifactId: string;
+    runtimeEvidenceId: string | null;
+    runtimeArtifactId: string | null;
     migrationEvidenceId: string;
     migrationArtifactId: string;
   };
@@ -57,8 +59,8 @@ type PersistedPromotionRequest = {
   target_sha: string;
   source_environment: string;
   target_environment: string;
-  runtime_evidence_id: string;
-  runtime_artifact_id: string;
+  runtime_evidence_id: string | null;
+  runtime_artifact_id: string | null;
   migration_evidence_id: string;
   migration_artifact_id: string;
   preview_certification_waiver: boolean;
@@ -153,9 +155,9 @@ export async function runPromotionPersistenceReadOnlyDiagnosticWithClient(
   const waiverRuntimePathSupported = request
     ? (
       request.preview_certification_waiver === true
-        ? typeof request.runtime_evidence_id === "string" && request.runtime_evidence_id.length > 0
+        ? request.runtime_evidence_id === null && request.runtime_artifact_id === null
+        : typeof request.runtime_evidence_id === "string" && request.runtime_evidence_id.length > 0
           && typeof request.runtime_artifact_id === "string" && request.runtime_artifact_id.length > 0
-        : request.runtime_evidence_id === null && request.runtime_artifact_id === null
     )
     : false;
 
@@ -264,6 +266,8 @@ export async function loadPersistedPromotionApprovalEvidenceWithClient(
       runtimeArtifactId: request.runtime_artifact_id,
       migrationEvidenceId: request.migration_evidence_id,
       migrationArtifactId: request.migration_artifact_id,
+      previewCertificationWaiver: request.preview_certification_waiver,
+      previewCertificationWaiverReason: request.preview_certification_waiver_reason,
     },
     founderApproval: {
       promotionRequestId: request.promotion_request_id,

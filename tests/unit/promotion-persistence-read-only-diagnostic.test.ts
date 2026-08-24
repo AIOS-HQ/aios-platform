@@ -48,8 +48,8 @@ describe("promotion persistence read-only diagnostic", () => {
       {
         data: {
           promotion_request_id: PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
-          runtime_evidence_id: "runtime-evidence-1",
-          runtime_artifact_id: "runtime-artifact-1",
+          runtime_evidence_id: null,
+          runtime_artifact_id: null,
           preview_certification_waiver: true,
           preview_certification_waiver_reason: "preview_certification_contract_incompatibility",
         },
@@ -107,5 +107,25 @@ describe("promotion persistence read-only diagnostic", () => {
     expect(methods.upsert).not.toHaveBeenCalled();
     expect(methods.delete).not.toHaveBeenCalled();
     expect(methods.rpc).not.toHaveBeenCalled();
+  });
+
+  it("supports non-waiver runtime evidence path", async () => {
+    const { client } = createReadOnlyClient([
+      {
+        data: {
+          promotion_request_id: PRODUCTION_PROMOTION_DIAGNOSTIC_REQUEST_ID,
+          runtime_evidence_id: "runtime-evidence-1",
+          runtime_artifact_id: "github-artifact:11111",
+          preview_certification_waiver: false,
+          preview_certification_waiver_reason: null,
+        },
+        error: null,
+      },
+      { data: { decision_source: "founder" }, error: null },
+      { data: { decision_source: "harmony" }, error: null },
+    ]);
+
+    const result = await runPromotionPersistenceReadOnlyDiagnosticWithClient(client as never);
+    expect(result.waiverRuntimePathSupported).toBe(true);
   });
 });

@@ -41,6 +41,8 @@ const rawMappedPayload = {
     sourceEnvironment: "staging",
     targetEnvironment: "production",
     promotionRequestId: "promotion-request:abc123",
+    previewCertificationWaiver: false,
+    previewCertificationWaiverReason: null,
     runtimeEvidenceId: "runtime-evidence:123",
     runtimeArtifactId: "github-artifact:22222",
     migrationEvidenceId: "migration-evidence:456",
