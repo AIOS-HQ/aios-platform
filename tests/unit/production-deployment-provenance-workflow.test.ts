@@ -129,6 +129,19 @@ describe("production deployment provenance producer wiring", () => {
     expect(workflow).not.toContain('authorization: bearer');
   });
 
+  it("binds governed build-and-deploy job to production environment for certification secrets", () => {
+    const buildDeployEnvironmentIndex = workflow.indexOf("build-and-deploy:\n");
+    const productionEnvironmentIndex = workflow.indexOf("environment:\n      name: production");
+    const postLiveProbeIndex = workflow.indexOf("- name: Execute authenticated production post-live probe");
+
+    expect(buildDeployEnvironmentIndex).toBeGreaterThan(-1);
+    expect(productionEnvironmentIndex).toBeGreaterThan(buildDeployEnvironmentIndex);
+    expect(postLiveProbeIndex).toBeGreaterThan(productionEnvironmentIndex);
+
+    expect(workflow).toContain('AIOS_PRODUCTION_CERT_FOUNDER_EMAIL: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_EMAIL }}');
+    expect(workflow).toContain('AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD }}');
+  });
+
   it("builds M5E-1 input from canonical M5D provenance and validates then uploads immutable artifact", () => {
     expect(workflow).toContain('- name: Build M5E-1 production post-live evidence input');
     expect(workflow).toContain('const deploymentProvenance = JSON.parse(readFileSync("production-deployment-provenance.json", "utf8"));');
