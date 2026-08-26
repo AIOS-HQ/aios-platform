@@ -19,6 +19,10 @@ on:
         description: "GitHub Actions promotion attestation artifact numeric ID"
         required: true
         type: string
+      deployment_provenance_artifact_id:
+        description: "Optional existing production deployment provenance artifact numeric ID (certification-only path)"
+        required: false
+        type: string
 
 jobs:
   docker-pr-validation:
@@ -77,14 +81,17 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       github.repository == 'AIOS-HQ/aios-platform' &&
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' &&
+      inputs.deployment_provenance_artifact_id == ''
     runs-on: ubuntu-latest
-    environment:
-      name: production
     permissions:
       id-token: write
       contents: read
       actions: read
+
+    outputs:
+      deployment_provenance_artifact_id: ${{ steps.upload_deployment_provenance.outputs.artifact-id }}
+      production_fqdn: ${{ steps.resolve_production_fqdn.outputs.production_fqdn }}
 
     env:
       CONTAINER_APP_NAME: aios-runtime
@@ -253,21 +260,6 @@ jobs:
           set -euo pipefail
           cp scripts/ci/production-deployment-provenance.mjs "$RUNNER_TEMP/production-deployment-provenance.mjs"
 
-      - name: Preserve trusted production post-live certification controls
-        shell: bash
-        run: |
-          set -euo pipefail
-          TRUSTED_CERT_DIR="$RUNNER_TEMP/trusted-production-certification-controls"
-          mkdir -p "$TRUSTED_CERT_DIR/scripts/ci"
-          cp scripts/ci/production-post-live-probe.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs"
-          cp scripts/ci/production-post-live-evidence.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs"
-          cp package.json "$TRUSTED_CERT_DIR/package.json"
-          cp package-lock.json "$TRUSTED_CERT_DIR/package-lock.json"
-          sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs" > "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"
-          sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs" > "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"
-          sha256sum "$TRUSTED_CERT_DIR/package-lock.json" > "$TRUSTED_CERT_DIR/package-lock.json.sha256"
-          echo "TRUSTED_CERT_DIR=$TRUSTED_CERT_DIR" >> "$GITHUB_ENV"
-
       - name: Checkout exact deployment target SHA
         uses: actions/checkout@v4
         with:
@@ -283,14 +275,6 @@ jobs:
             echo "deployment_checkout_sha_mismatch" >&2
             exit 1
           fi
-
-      - name: Verify trusted production post-live certification control hashes
-        shell: bash
-        run: |
-          set -euo pipefail
-          sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"
-          sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"
-          sha256sum -c "$TRUSTED_CERT_DIR/package-lock.json.sha256"
 
       - name: Azure Login
         uses: azure/login@v2
@@ -468,6 +452,7 @@ jobs:
             > production-deployment-provenance.json
 
       - name: Upload immutable production deployment provenance artifact
+        id: upload_deployment_provenance
         uses: actions/upload-artifact@v4
         with:
           name: production-deployment-provenance-${{ inputs.target_sha }}-${{ github.run_id }}
@@ -475,6 +460,7 @@ jobs:
           if-no-files-found: error
 
       - name: Resolve deployed production FQDN from Azure
+        id: resolve_production_fqdn
         shell: bash
         run: |
           set -euo pipefail
@@ -489,7 +475,434 @@ jobs:
             exit 1
           fi
 
-          echo "PRODUCTION_FQDN=$production_fqdn" >> "$GITHUB_ENV"
+          echo "production_fqdn=$production_fqdn" >> "$GITHUB_OUTPUT"
+
+  resolve-production-fqdn-certification-only:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'AIOS-HQ/aios-platform' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.deployment_provenance_artifact_id != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      production_fqdn: ${{ steps.resolve_production_fqdn.outputs.production_fqdn }}
+
+    env:
+      CONTAINER_APP_NAME: aios-runtime
+      RESOURCE_GROUP: aios-core-rg
+      TARGET_SHA: ${{ inputs.target_sha }}
+      PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+      DEPLOYMENT_PROVENANCE_ARTIFACT_ID: ${{ inputs.deployment_provenance_artifact_id }}
+
+    steps:
+      - name: Validate immutable certification-only inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "target_sha_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$PROMOTION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$DEPLOYMENT_PROVENANCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "deployment_provenance_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+      - name: Azure Login (read-only production target resolution)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AIOSRUNTIME_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AIOSRUNTIME_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AIOSRUNTIME_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve deployed production FQDN from Azure
+        id: resolve_production_fqdn
+        shell: bash
+        run: |
+          set -euo pipefail
+          production_fqdn="$(az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)"
+
+          if [[ -z "$production_fqdn" || "$production_fqdn" == "null" ]]; then
+            echo "production_fqdn_missing" >&2
+            exit 1
+          fi
+
+          echo "production_fqdn=$production_fqdn" >> "$GITHUB_OUTPUT"
+
+  post-live-certification:
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'AIOS-HQ/aios-platform' &&
+      github.ref == 'refs/heads/main' &&
+      (
+        (inputs.deployment_provenance_artifact_id == '' && needs.build-and-deploy.result == 'success') ||
+        (inputs.deployment_provenance_artifact_id != '' && needs.resolve-production-fqdn-certification-only.result == 'success')
+      )
+    needs:
+      - build-and-deploy
+      - resolve-production-fqdn-certification-only
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+      actions: read
+
+    env:
+      TARGET_SHA: ${{ inputs.target_sha }}
+      PROMOTION_ARTIFACT_ID: ${{ inputs.promotion_artifact_id }}
+      DEPLOYMENT_PROVENANCE_ARTIFACT_ID_INPUT: ${{ inputs.deployment_provenance_artifact_id }}
+      DEPLOYMENT_JOB_PROVENANCE_ARTIFACT_ID: ${{ needs.build-and-deploy.outputs.deployment_provenance_artifact_id }}
+      DEPLOYMENT_JOB_PRODUCTION_FQDN: ${{ needs.build-and-deploy.outputs.production_fqdn }}
+      CERT_ONLY_PRODUCTION_FQDN: ${{ needs.resolve-production-fqdn-certification-only.outputs.production_fqdn }}
+      REPO: AIOS-HQ/aios-platform
+
+    steps:
+      - name: Validate immutable workflow_dispatch inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "target_sha_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$PROMOTION_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+          if [[ -n "${DEPLOYMENT_PROVENANCE_ARTIFACT_ID_INPUT:-}" && ! "$DEPLOYMENT_PROVENANCE_ARTIFACT_ID_INPUT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "deployment_provenance_artifact_id_invalid" >&2
+            exit 1
+          fi
+
+      - name: Checkout trusted current-main controls
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify controls are pinned to current GitHub main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin main
+          current_main_sha="$(git rev-parse origin/main)"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$current_main_sha" != "$checked_out_sha" ]]; then
+            echo "trusted_main_mismatch" >&2
+            exit 1
+          fi
+          echo "CURRENT_MAIN_SHA=$current_main_sha" >> "$GITHUB_ENV"
+
+      - name: Require target SHA belongs to current main history
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$TARGET_SHA^{commit}" 2>/dev/null || { echo "target_sha_not_found" >&2; exit 1; }
+          git merge-base --is-ancestor "$TARGET_SHA" "$CURRENT_MAIN_SHA" || { echo "target_sha_not_in_main_history" >&2; exit 1; }
+
+      - name: Resolve promotion artifact by exact numeric ID and verify canonical provenance
+        id: resolve_promotion_artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID")"
+          artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
+          if [[ "$artifact_expired" != "false" ]]; then
+            echo "promotion_artifact_expired" >&2
+            exit 1
+          fi
+
+          source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
+          if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
+            echo "promotion_artifact_run_missing" >&2
+            exit 1
+          fi
+
+          source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
+          source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
+          source_run_event="$(jq -r '.event' <<<"$source_run_json")"
+          source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
+          source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
+          source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
+          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+
+          if [[ "$source_run_conclusion" != "success" ]]; then
+            echo "promotion_source_run_not_success" >&2
+            exit 1
+          fi
+
+          if [[ "$source_workflow_path" != ".github/workflows/production-promotion-attestation.yml" ]]; then
+            echo "promotion_source_workflow_invalid" >&2
+            exit 1
+          fi
+
+          if [[ "$source_run_event" != "workflow_dispatch" ]]; then
+            echo "promotion_source_event_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
+            echo "promotion_source_run_attempt_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "promotion_source_head_sha_invalid" >&2
+            exit 1
+          fi
+
+          expected_artifact_name="promotion-attestation-${TARGET_SHA}-${source_run_id}"
+          if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
+            echo "promotion_artifact_name_invalid" >&2
+            exit 1
+          fi
+
+          workflow_ref="AIOS-HQ/aios-platform/.github/workflows/production-promotion-attestation.yml@${source_run_head_sha}#run:${source_run_id}:attempt:${source_run_attempt}"
+
+          echo "SOURCE_RUN_ID=$source_run_id" >> "$GITHUB_ENV"
+          echo "SOURCE_RUN_ATTEMPT=$source_run_attempt" >> "$GITHUB_ENV"
+          echo "SOURCE_RUN_HEAD_SHA=$source_run_head_sha" >> "$GITHUB_ENV"
+          echo "PROMOTION_ARTIFACT_NAME=$artifact_name" >> "$GITHUB_ENV"
+          echo "PROMOTION_WORKFLOW_REF=$workflow_ref" >> "$GITHUB_ENV"
+
+      - name: Download promotion artifact by exact numeric ID
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$REPO/actions/artifacts/$PROMOTION_ARTIFACT_ID/zip" > promotion-artifact.zip
+          mkdir -p promotion-artifact
+          unzip -o promotion-artifact.zip -d promotion-artifact >/dev/null
+
+      - name: Require extracted promotion-attestation.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f promotion-artifact/promotion-attestation.json
+
+      - name: Build and validate M5C-1 live-promotion-guard input
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const promotionAttestation = JSON.parse(readFileSync("promotion-artifact/promotion-attestation.json", "utf8"));
+          const payload = {
+            repository: "AIOS-HQ/aios-platform",
+            deploymentTargetSha: process.env.TARGET_SHA,
+            promotionAttestation,
+            promotionArtifact: {
+              artifactId: process.env.PROMOTION_ARTIFACT_ID,
+              workflowRunId: process.env.SOURCE_RUN_ID,
+              workflowRunAttempt: Number(process.env.SOURCE_RUN_ATTEMPT),
+              attestedSha: process.env.TARGET_SHA,
+              artifactName: process.env.PROMOTION_ARTIFACT_NAME,
+              workflowRef: process.env.PROMOTION_WORKFLOW_REF,
+            },
+          };
+          writeFileSync("live-promotion-guard-input.json", `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+          NODE
+
+          node scripts/ci/live-promotion-guard.mjs validate live-promotion-guard-input.json "$TARGET_SHA" > "$RUNNER_TEMP/live-promotion-guard-output.json"
+
+      - name: Preserve trusted production post-live certification controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          TRUSTED_CERT_DIR="$RUNNER_TEMP/trusted-production-certification-controls"
+          mkdir -p "$TRUSTED_CERT_DIR/scripts/ci"
+          cp scripts/ci/production-post-live-probe.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs"
+          cp scripts/ci/production-post-live-evidence.mjs "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs"
+          cp package.json "$TRUSTED_CERT_DIR/package.json"
+          cp package-lock.json "$TRUSTED_CERT_DIR/package-lock.json"
+          sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-probe.mjs" > "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"
+          sha256sum "$TRUSTED_CERT_DIR/scripts/ci/production-post-live-evidence.mjs" > "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"
+          sha256sum "$TRUSTED_CERT_DIR/package-lock.json" > "$TRUSTED_CERT_DIR/package-lock.json.sha256"
+          echo "TRUSTED_CERT_DIR=$TRUSTED_CERT_DIR" >> "$GITHUB_ENV"
+
+      - name: Verify trusted production post-live certification control hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-probe.mjs.sha256"
+          sha256sum -c "$TRUSTED_CERT_DIR/production-post-live-evidence.mjs.sha256"
+          sha256sum -c "$TRUSTED_CERT_DIR/package-lock.json.sha256"
+
+      - name: Resolve certification source inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${DEPLOYMENT_PROVENANCE_ARTIFACT_ID_INPUT:-}" ]]; then
+            resolved_deployment_provenance_artifact_id="$DEPLOYMENT_PROVENANCE_ARTIFACT_ID_INPUT"
+            resolved_production_fqdn="$CERT_ONLY_PRODUCTION_FQDN"
+          else
+            resolved_deployment_provenance_artifact_id="$DEPLOYMENT_JOB_PROVENANCE_ARTIFACT_ID"
+            resolved_production_fqdn="$DEPLOYMENT_JOB_PRODUCTION_FQDN"
+          fi
+
+          if [[ ! "$resolved_deployment_provenance_artifact_id" =~ ^[1-9][0-9]*$ ]]; then
+            echo "deployment_provenance_artifact_id_unresolved" >&2
+            exit 1
+          fi
+
+          if [[ -z "$resolved_production_fqdn" || "$resolved_production_fqdn" == "null" ]]; then
+            echo "production_fqdn_unresolved" >&2
+            exit 1
+          fi
+
+          if [[ ! "$resolved_production_fqdn" =~ ^[a-z0-9.-]+$ || "$resolved_production_fqdn" != *.* ]]; then
+            echo "production_fqdn_invalid" >&2
+            exit 1
+          fi
+
+          echo "DEPLOYMENT_PROVENANCE_ARTIFACT_ID=$resolved_deployment_provenance_artifact_id" >> "$GITHUB_ENV"
+          echo "PRODUCTION_FQDN=$resolved_production_fqdn" >> "$GITHUB_ENV"
+
+      - name: Resolve deployment provenance artifact by exact numeric ID and verify canonical provenance
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          artifact_json="$(gh api "/repos/$REPO/actions/artifacts/$DEPLOYMENT_PROVENANCE_ARTIFACT_ID")"
+          artifact_expired="$(jq -r '.expired' <<<"$artifact_json")"
+          if [[ "$artifact_expired" != "false" ]]; then
+            echo "deployment_provenance_artifact_expired" >&2
+            exit 1
+          fi
+
+          source_run_id="$(jq -r '.workflow_run.id' <<<"$artifact_json")"
+          if [[ -z "$source_run_id" || "$source_run_id" == "null" ]]; then
+            echo "deployment_provenance_artifact_run_missing" >&2
+            exit 1
+          fi
+
+          source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
+          source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
+          source_run_event="$(jq -r '.event' <<<"$source_run_json")"
+          source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
+          source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
+          source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
+          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+
+          if [[ "$source_run_conclusion" != "success" ]]; then
+            echo "deployment_provenance_source_run_not_success" >&2
+            exit 1
+          fi
+
+          if [[ "$source_workflow_path" != ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml" ]]; then
+            echo "deployment_provenance_source_workflow_invalid" >&2
+            exit 1
+          fi
+
+          if [[ "$source_run_event" != "workflow_dispatch" ]]; then
+            echo "deployment_provenance_source_event_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_attempt" =~ ^[1-9][0-9]*$ ]]; then
+            echo "deployment_provenance_source_run_attempt_invalid" >&2
+            exit 1
+          fi
+
+          if [[ ! "$source_run_head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "deployment_provenance_source_head_sha_invalid" >&2
+            exit 1
+          fi
+
+          expected_artifact_name="production-deployment-provenance-${TARGET_SHA}-${source_run_id}"
+          if [[ "$artifact_name" != "$expected_artifact_name" ]]; then
+            echo "deployment_provenance_artifact_name_invalid" >&2
+            exit 1
+          fi
+
+      - name: Download deployment provenance artifact by exact numeric ID
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/$REPO/actions/artifacts/$DEPLOYMENT_PROVENANCE_ARTIFACT_ID/zip" > deployment-provenance-artifact.zip
+          mkdir -p deployment-provenance-artifact
+          unzip -o deployment-provenance-artifact.zip -d deployment-provenance-artifact >/dev/null
+
+      - name: Require extracted production-deployment-provenance.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f deployment-provenance-artifact/production-deployment-provenance.json
+
+      - name: Validate extracted deployment provenance contract for post-live certification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          function fail(code) {
+            console.error(code);
+            process.exit(1);
+          }
+
+          const payload = JSON.parse(readFileSync("deployment-provenance-artifact/production-deployment-provenance.json", "utf8"));
+
+          if (payload.repository !== "AIOS-HQ/aios-platform") fail("deployment_provenance_repository_invalid");
+          if (payload.sourceEnvironment !== "staging") fail("deployment_provenance_source_environment_invalid");
+          if (payload.targetEnvironment !== "production") fail("deployment_provenance_target_environment_invalid");
+          if (payload.targetSha !== process.env.TARGET_SHA) fail("deployment_provenance_target_sha_mismatch");
+
+          const promotionArtifactId = String(payload?.promotionAuthorization?.promotionArtifactId ?? "");
+          if (promotionArtifactId !== process.env.PROMOTION_ARTIFACT_ID) fail("deployment_provenance_promotion_artifact_mismatch");
+
+          if (payload?.livePromotionGuard?.ok !== true) fail("deployment_provenance_live_guard_invalid");
+          if (payload?.livePromotionGuard?.promotionAuthorized !== true) fail("deployment_provenance_live_guard_unauthorized");
+          if (payload?.livePromotionGuard?.deploymentTargetSha !== process.env.TARGET_SHA) fail("deployment_provenance_live_guard_target_mismatch");
+
+          if (payload?.containerImage?.imageTag !== process.env.TARGET_SHA) fail("deployment_provenance_image_tag_mismatch");
+          if (!/^sha256:[0-9a-f]{64}$/.test(String(payload?.containerImage?.imageDigest ?? ""))) fail("deployment_provenance_image_digest_invalid");
+
+          if (payload?.azureProductionTarget?.resourceGroup !== "aios-core-rg") fail("deployment_provenance_resource_group_invalid");
+          if (payload?.azureProductionTarget?.containerApp !== "aios-runtime") fail("deployment_provenance_container_app_invalid");
+
+          const workflowRef = String(payload?.deploymentWorkflow?.workflowRef ?? "");
+          if (!workflowRef.startsWith("AIOS-HQ/aios-platform/.github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml@")) {
+            fail("deployment_provenance_workflow_ref_invalid");
+          }
+          if (!workflowRef.includes("#run:")) fail("deployment_provenance_workflow_ref_invalid");
+
+          const deploymentEvidenceId = String(payload?.deploymentEvidenceId ?? "");
+          if (!deploymentEvidenceId.startsWith("production-deployment-evidence:")) fail("deployment_provenance_evidence_id_invalid");
+
+          writeFileSync("production-deployment-provenance.json", `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+          writeFileSync("deployment-evidence-id.txt", `${deploymentEvidenceId}\n`, "utf8");
+          NODE
 
       - name: Install trusted certification dependencies
         shell: bash
@@ -556,7 +969,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          deployment_evidence_id="$(jq -r '.deploymentEvidenceId' production-deployment-provenance.json)"
+          deployment_evidence_id="$(tr -d '\n' < deployment-evidence-id.txt)"
           if [[ -z "$deployment_evidence_id" || "$deployment_evidence_id" == "null" ]]; then
             echo "deployment_evidence_id_missing" >&2
             exit 1
