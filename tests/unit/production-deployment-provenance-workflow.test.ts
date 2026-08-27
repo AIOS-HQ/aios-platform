@@ -100,7 +100,7 @@ describe("production deployment and post-live certification workflow wiring", ()
     expect(postLiveCertificationBlock).toContain("deployment_provenance_source_workflow_invalid");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_source_event_invalid");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_source_build_and_deploy_job_missing");
-    expect(postLiveCertificationBlock).toContain("deployment_provenance_source_build_and_deploy_not_success");
+    expect(postLiveCertificationBlock).toContain('node scripts/ci/deployment-provenance-source-boundary.mjs validate');
     expect(postLiveCertificationBlock).toContain("deployment_provenance_artifact_name_invalid");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_target_sha_mismatch");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_promotion_artifact_mismatch");
@@ -109,10 +109,12 @@ describe("production deployment and post-live certification workflow wiring", ()
     expect(postLiveCertificationBlock).toContain("deployment_provenance_evidence_id_invalid");
   });
 
-  it("accepts historical monolithic runs by requiring source build-and-deploy success instead of overall run success", () => {
+  it("accepts historical monolithic runs by requiring source Gate 7 boundary validation instead of overall run success", () => {
     expect(postLiveCertificationBlock).toContain('gh api "/repos/$REPO/actions/runs/$source_run_id/jobs?per_page=100"');
     expect(postLiveCertificationBlock).toContain('select(.name == "build-and-deploy")');
-    expect(postLiveCertificationBlock).toContain("source_build_and_deploy_conclusion");
+    expect(postLiveCertificationBlock).toContain("source_build_and_deploy_job_json");
+    expect(postLiveCertificationBlock).toContain('source-build-and-deploy-job.json');
+    expect(postLiveCertificationBlock).toContain('source-gate7-boundary-validation.json');
     expect(postLiveCertificationBlock).not.toContain("deployment_provenance_source_run_not_success");
   });
 
