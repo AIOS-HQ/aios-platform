@@ -197,6 +197,9 @@ function createLoginDiagnostics() {
     submitReadyObserved: false,
     submitAttempted: false,
     loginAlertObserved: false,
+    loginFormErrorObserved: false,
+    loginCallbackAlertObserved: false,
+    globalAlertObserved: false,
     loginInvalidObserved: false,
     navToHarmonyObserved: false,
     finalPathname: null,
@@ -273,7 +276,9 @@ async function waitForLoginOutcome({
   pollMs,
   diagnostics,
 }) {
-  const alertLocator = page.locator('[role="alert"], #login-form-message');
+  const loginFormErrorLocator = page.locator("#login-form-message");
+  const callbackAlertLocator = page.locator('p[role="alert"]:not(#login-form-message)');
+  const globalAlertLocator = page.locator('[role="alert"]:not(#login-form-message)');
   const invalidLocator = page.locator('input[aria-invalid="true"]');
   const deadline = Date.now() + timeoutMs;
 
@@ -297,15 +302,20 @@ async function waitForLoginOutcome({
     }
 
     if (currentUrl.pathname.startsWith("/login")) {
-      const [alertVisible, invalidVisible] = await Promise.all([
-        locatorVisible(alertLocator),
+      const [loginFormErrorVisible, callbackAlertVisible, globalAlertVisible, invalidVisible] = await Promise.all([
+        locatorVisible(loginFormErrorLocator),
+        locatorVisible(callbackAlertLocator),
+        locatorVisible(globalAlertLocator),
         locatorVisible(invalidLocator),
       ]);
 
-      diagnostics.loginAlertObserved ||= alertVisible;
+      diagnostics.loginAlertObserved ||= loginFormErrorVisible || globalAlertVisible;
+      diagnostics.loginFormErrorObserved ||= loginFormErrorVisible;
+      diagnostics.loginCallbackAlertObserved ||= callbackAlertVisible;
+      diagnostics.globalAlertObserved ||= globalAlertVisible;
       diagnostics.loginInvalidObserved ||= invalidVisible;
 
-      if (alertVisible || invalidVisible) {
+      if (loginFormErrorVisible || invalidVisible) {
         return "auth_rejected";
       }
     }
@@ -322,6 +332,9 @@ function sanitizeFailureDetails(details) {
     submitReadyObserved: Boolean(details.submitReadyObserved),
     submitAttempted: Boolean(details.submitAttempted),
     loginAlertObserved: Boolean(details.loginAlertObserved),
+    loginFormErrorObserved: Boolean(details.loginFormErrorObserved),
+    loginCallbackAlertObserved: Boolean(details.loginCallbackAlertObserved),
+    globalAlertObserved: Boolean(details.globalAlertObserved),
     loginInvalidObserved: Boolean(details.loginInvalidObserved),
     navToHarmonyObserved: Boolean(details.navToHarmonyObserved),
     finalPathname: typeof details.finalPathname === "string" ? details.finalPathname : null,
