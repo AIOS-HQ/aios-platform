@@ -95,12 +95,25 @@ describe("production deployment and post-live certification workflow wiring", ()
 
   it("fails closed on certification-only provenance contract validation", () => {
     expect(postLiveCertificationBlock).toContain("deployment_provenance_artifact_id_unresolved");
+    expect(postLiveCertificationBlock).toContain("deployment_provenance_artifact_expired");
+    expect(postLiveCertificationBlock).toContain("deployment_provenance_artifact_run_missing");
+    expect(postLiveCertificationBlock).toContain("deployment_provenance_source_workflow_invalid");
+    expect(postLiveCertificationBlock).toContain("deployment_provenance_source_event_invalid");
+    expect(postLiveCertificationBlock).toContain("deployment_provenance_source_build_and_deploy_job_missing");
+    expect(postLiveCertificationBlock).toContain("deployment_provenance_source_build_and_deploy_not_success");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_artifact_name_invalid");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_target_sha_mismatch");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_promotion_artifact_mismatch");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_live_guard_unauthorized");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_workflow_ref_invalid");
     expect(postLiveCertificationBlock).toContain("deployment_provenance_evidence_id_invalid");
+  });
+
+  it("accepts historical monolithic runs by requiring source build-and-deploy success instead of overall run success", () => {
+    expect(postLiveCertificationBlock).toContain('gh api "/repos/$REPO/actions/runs/$source_run_id/jobs?per_page=100"');
+    expect(postLiveCertificationBlock).toContain('select(.name == "build-and-deploy")');
+    expect(postLiveCertificationBlock).toContain("source_build_and_deploy_conclusion");
+    expect(postLiveCertificationBlock).not.toContain("deployment_provenance_source_run_not_success");
   });
 
   it("keeps immutable M5E evidence generation and six-component fail-closed runtime proof", () => {
