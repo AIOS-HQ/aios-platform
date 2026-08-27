@@ -61,7 +61,9 @@ function fakeBrowser({
   hydrationDelayMs = 0,
   submitEnabled = true,
   redirectDelayMs = 0,
-  loginAlertVisible = false,
+  loginFormErrorVisible = false,
+  callbackAlertVisible = false,
+  globalAlertVisible = false,
   invalidInputVisible = false,
   consoleErrorCount = 0,
   pageErrorCount = 0,
@@ -124,12 +126,20 @@ function fakeBrowser({
         return true;
       },
       async isVisible() {
-        if (selector === '[role="alert"], #login-form-message') return loginAlertVisible;
+        if (selector === "#login-form-message") return loginFormErrorVisible;
+        if (selector === 'p[role="alert"]:not(#login-form-message)') return callbackAlertVisible;
+        if (selector === '[role="alert"]:not(#login-form-message)') {
+          return callbackAlertVisible || globalAlertVisible;
+        }
         if (selector === 'input[aria-invalid="true"]') return invalidInputVisible;
         return true;
       },
       async count() {
-        if (selector === '[role="alert"], #login-form-message') return loginAlertVisible ? 1 : 0;
+        if (selector === "#login-form-message") return loginFormErrorVisible ? 1 : 0;
+        if (selector === 'p[role="alert"]:not(#login-form-message)') return callbackAlertVisible ? 1 : 0;
+        if (selector === '[role="alert"]:not(#login-form-message)') {
+          return callbackAlertVisible || globalAlertVisible ? 1 : 0;
+        }
         if (selector === 'input[aria-invalid="true"]') return invalidInputVisible ? 1 : 0;
         return 1;
       },
@@ -507,11 +517,66 @@ describe("production post-live probe", () => {
     expect(browser.state.responseStatuses).toEqual([401, 200]);
   });
 
-  it("detects explicit authentication rejection on login form", async () => {
+  it("does not classify unrelated visible alerts as authentication rejection", async () => {
+    await expect(async () => {
+      await probeProductionPostLive({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          globalAlertVisible: true,
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 240,
+          pollIntervalMs: 20,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_login_redirect_timeout",
+      details: expect.objectContaining({
+        globalAlertObserved: true,
+        loginFormErrorObserved: false,
+        loginInvalidObserved: false,
+      }),
+    });
+  });
+
+  it("does not classify callback banner alerts as password rejection", async () => {
+    await expect(async () => {
+      await probeProductionPostLive({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          callbackAlertVisible: true,
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 240,
+          pollIntervalMs: 20,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_login_redirect_timeout",
+      details: expect.objectContaining({
+        loginCallbackAlertObserved: true,
+        loginFormErrorObserved: false,
+        loginInvalidObserved: false,
+      }),
+    });
+  });
+
+  it("detects explicit authentication rejection from login-form error and invalid state", async () => {
     await expectFailure("production_login_auth_rejected", () => probeProductionPostLive({
       browser: fakeBrowser({
         postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
-        loginAlertVisible: true,
+        loginFormErrorVisible: true,
+        invalidInputVisible: true,
       }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
