@@ -17,7 +17,11 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
 
   return (
     <form action={action} className="space-y-4" noValidate>
-      <FormMessage state={state} id="login-form-message" />
+      <FormMessage
+        state={state}
+        id="login-form-message"
+        diagnosticCode={state.status === "error" ? state.meta?.authErrorCode : undefined}
+      />
       {redirectTo ? <input type="hidden" name="redirect" value={redirectTo} /> : null}
       <div className="space-y-2">
         <Label htmlFor="email">{t("fields.email")}</Label>

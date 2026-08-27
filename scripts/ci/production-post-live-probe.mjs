@@ -38,6 +38,18 @@ const DEFAULT_LOGIN_POLL_INTERVAL_MS = 250;
 const DEFAULT_EVIDENCE_SESSION_RETRY_COUNT = 3;
 const DEFAULT_EVIDENCE_SESSION_RETRY_DELAY_MS = 1_000;
 
+const ALLOWED_AUTH_ERROR_CODES = new Set([
+  "invalid_credentials",
+  "email_not_confirmed",
+  "user_banned",
+  "over_request_rate_limit",
+  "over_email_send_rate_limit",
+  "captcha_failed",
+  "validation_failed",
+  "auth_server_error",
+  "unknown_auth_error",
+]);
+
 export class ProductionPostLiveProbeFailure extends Error {
   constructor(code, details = null) {
     super(code);
@@ -201,6 +213,7 @@ function createLoginDiagnostics() {
     loginCallbackAlertObserved: false,
     globalAlertObserved: false,
     loginInvalidObserved: false,
+    loginAuthErrorCode: null,
     navToHarmonyObserved: false,
     finalPathname: null,
     finalOriginMatched: null,
@@ -269,6 +282,27 @@ async function locatorVisible(locator) {
   return false;
 }
 
+async function locatorAttribute(locator, name) {
+  try {
+    if (typeof locator?.first === "function" && typeof locator.first()?.getAttribute === "function") {
+      return await locator.first().getAttribute(name);
+    }
+    if (typeof locator?.getAttribute === "function") {
+      return await locator.getAttribute(name);
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function normalizeAuthErrorCode(value) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!ALLOWED_AUTH_ERROR_CODES.has(normalized)) return null;
+  return normalized;
+}
+
 async function waitForLoginOutcome({
   page,
   expectedOrigin,
@@ -309,11 +343,20 @@ async function waitForLoginOutcome({
         locatorVisible(invalidLocator),
       ]);
 
+      let normalizedAuthErrorCode = null;
+      if (loginFormErrorVisible) {
+        const rawAuthErrorCode = await locatorAttribute(loginFormErrorLocator, "data-auth-error-code");
+        normalizedAuthErrorCode = normalizeAuthErrorCode(rawAuthErrorCode);
+      }
+
       diagnostics.loginAlertObserved ||= loginFormErrorVisible || globalAlertVisible;
       diagnostics.loginFormErrorObserved ||= loginFormErrorVisible;
       diagnostics.loginCallbackAlertObserved ||= callbackAlertVisible;
       diagnostics.globalAlertObserved ||= globalAlertVisible;
       diagnostics.loginInvalidObserved ||= invalidVisible;
+      if (!diagnostics.loginAuthErrorCode && normalizedAuthErrorCode) {
+        diagnostics.loginAuthErrorCode = normalizedAuthErrorCode;
+      }
 
       if (loginFormErrorVisible || invalidVisible) {
         return "auth_rejected";
@@ -336,6 +379,7 @@ function sanitizeFailureDetails(details) {
     loginCallbackAlertObserved: Boolean(details.loginCallbackAlertObserved),
     globalAlertObserved: Boolean(details.globalAlertObserved),
     loginInvalidObserved: Boolean(details.loginInvalidObserved),
+    loginAuthErrorCode: normalizeAuthErrorCode(details.loginAuthErrorCode),
     navToHarmonyObserved: Boolean(details.navToHarmonyObserved),
     finalPathname: typeof details.finalPathname === "string" ? details.finalPathname : null,
     finalOriginMatched: typeof details.finalOriginMatched === "boolean" ? details.finalOriginMatched : null,

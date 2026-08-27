@@ -62,6 +62,7 @@ function fakeBrowser({
   submitEnabled = true,
   redirectDelayMs = 0,
   loginFormErrorVisible = false,
+  loginFormAuthErrorCode = null,
   callbackAlertVisible = false,
   globalAlertVisible = false,
   invalidInputVisible = false,
@@ -133,6 +134,12 @@ function fakeBrowser({
         }
         if (selector === 'input[aria-invalid="true"]') return invalidInputVisible;
         return true;
+      },
+      async getAttribute(name) {
+        if (selector === "#login-form-message" && name === "data-auth-error-code") {
+          return loginFormAuthErrorCode;
+        }
+        return null;
       },
       async count() {
         if (selector === "#login-form-message") return loginFormErrorVisible ? 1 : 0;
@@ -572,6 +579,60 @@ describe("production post-live probe", () => {
   });
 
   it("detects explicit authentication rejection from login-form error and invalid state", async () => {
+    await expect(async () => {
+      await probeProductionPostLive({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          loginFormErrorVisible: true,
+          loginFormAuthErrorCode: "invalid_credentials",
+          invalidInputVisible: true,
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 500,
+          pollIntervalMs: 20,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_login_auth_rejected",
+      details: expect.objectContaining({
+        loginAuthErrorCode: "invalid_credentials",
+      }),
+    });
+  });
+
+  it("drops non-allowlisted login-form auth error code from diagnostics", async () => {
+    await expect(async () => {
+      await probeProductionPostLive({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          loginFormErrorVisible: true,
+          loginFormAuthErrorCode: "raw_message_with_sensitive_text",
+          invalidInputVisible: true,
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 500,
+          pollIntervalMs: 20,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_login_auth_rejected",
+      details: expect.objectContaining({
+        loginAuthErrorCode: null,
+      }),
+    });
+  });
+
+  it("fails when login form rejects without a normalized auth code", async () => {
     await expectFailure("production_login_auth_rejected", () => probeProductionPostLive({
       browser: fakeBrowser({
         postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,

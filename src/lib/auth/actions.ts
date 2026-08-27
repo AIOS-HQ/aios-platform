@@ -6,6 +6,7 @@ import { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { env, isSupabaseConfigured } from "@/lib/env";
 import { safeRedirectPath } from "@/lib/auth/redirects";
+import { normalizeAuthErrorCode } from "@/lib/auth/error-codes";
 import type { ActionState } from "@/lib/types";
 
 /** Maps a Supabase auth error to a localized, user-friendly message. */
@@ -34,17 +35,29 @@ export async function signIn(
   const redirectTo = safeRedirectPath(formData.get("redirect") ?? formData.get("next"));
 
   if (!email || !password) {
-    return { status: "error", message: t("missingFields") };
+    return {
+      status: "error",
+      message: t("missingFields"),
+      meta: { authErrorCode: "validation_failed" },
+    };
   }
 
   if (!isSupabaseConfigured()) {
-    return { status: "error", message: t("notConfigured") };
+    return {
+      status: "error",
+      message: t("notConfigured"),
+      meta: { authErrorCode: "auth_server_error" },
+    };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return { status: "error", message: await authErrorMessage(error) };
+    return {
+      status: "error",
+      message: await authErrorMessage(error),
+      meta: { authErrorCode: normalizeAuthErrorCode(error) },
+    };
   }
 
   redirect(redirectTo);
