@@ -56,35 +56,110 @@ function fakeBrowser({
   postUrl = `https://${FQDN}/harmony`,
   initialUrl = null,
   status = 200,
+  statusSequence = null,
   responsePayload = payload(),
+  hydrationDelayMs = 0,
+  submitEnabled = true,
+  redirectDelayMs = 0,
+  loginAlertVisible = false,
+  invalidInputVisible = false,
+  consoleErrorCount = 0,
+  pageErrorCount = 0,
+  relevantFailedRequestCount = 0,
 } = {}) {
   const state = {
     filledSelectors: [],
     gotUrls: [],
     requestUrls: [],
+    responseStatuses: [],
     closed: false,
+    gotoAt: 0,
+    requestAttempt: 0,
+    listeners: {
+      console: [],
+      pageerror: [],
+      requestfailed: [],
+      response: [],
+    },
   };
+
+  function emit(event, payload) {
+    const handlers = state.listeners[event] ?? [];
+    for (const handler of handlers) {
+      handler(payload);
+    }
+  }
+
+  function statusForAttempt(attempt) {
+    if (Array.isArray(statusSequence) && statusSequence.length > 0) {
+      const value = statusSequence[Math.min(attempt, statusSequence.length - 1)];
+      return Number(value) || 0;
+    }
+    return status;
+  }
+
+  function makeLocator(selector) {
+    return {
+      async fill() {
+        state.filledSelectors.push(selector);
+      },
+      async click() {
+        state.filledSelectors.push(selector);
+        if (redirectDelayMs > 0) {
+          setTimeout(() => {
+            page.currentUrl = postUrl;
+          }, redirectDelayMs);
+          return;
+        }
+        page.currentUrl = postUrl;
+      },
+      async waitFor() {
+        return;
+      },
+      async isEnabled() {
+        if (selector === 'button[type="submit"]') {
+          if (!submitEnabled) return false;
+          return Date.now() - state.gotoAt >= hydrationDelayMs;
+        }
+        return true;
+      },
+      async isVisible() {
+        if (selector === '[role="alert"], #login-form-message') return loginAlertVisible;
+        if (selector === 'input[aria-invalid="true"]') return invalidInputVisible;
+        return true;
+      },
+      async count() {
+        if (selector === '[role="alert"], #login-form-message') return loginAlertVisible ? 1 : 0;
+        if (selector === 'input[aria-invalid="true"]') return invalidInputVisible ? 1 : 0;
+        return 1;
+      },
+      first() {
+        return makeLocator(selector);
+      },
+    };
+  }
 
   const page = {
     currentUrl: "",
+    on(event, handler) {
+      state.listeners[event].push(handler);
+    },
     async goto(url) {
       state.gotUrls.push(url);
+      state.gotoAt = Date.now();
       this.currentUrl = initialUrl ?? url;
+      for (let i = 0; i < consoleErrorCount; i += 1) {
+        emit("console", { type: () => "error" });
+      }
+      for (let i = 0; i < pageErrorCount; i += 1) {
+        emit("pageerror", new Error("page_error"));
+      }
+      for (let i = 0; i < relevantFailedRequestCount; i += 1) {
+        emit("requestfailed", { url: () => `https://${FQDN}/login` });
+      }
     },
     locator(selector) {
-      return {
-        fill: async () => {
-          state.filledSelectors.push(selector);
-        },
-        click: async () => {
-          state.filledSelectors.push(selector);
-          page.currentUrl = postUrl;
-        },
-      };
-    },
-    async waitForURL(predicate) {
-      const ok = predicate(new URL(page.currentUrl));
-      if (!ok) throw new Error("wait_fail");
+      return makeLocator(selector);
     },
     url() {
       return page.currentUrl;
@@ -98,9 +173,16 @@ function fakeBrowser({
     request: {
       async get(url) {
         state.requestUrls.push(url);
+        const currentStatus = statusForAttempt(state.requestAttempt);
+        state.requestAttempt += 1;
+        state.responseStatuses.push(currentStatus);
+        emit("response", {
+          url: () => url,
+          status: () => currentStatus,
+        });
         return {
-          status: () => status,
-          ok: () => status >= 200 && status < 300,
+          status: () => currentStatus,
+          ok: () => currentStatus >= 200 && currentStatus < 300,
           async json() {
             return responsePayload;
           },
@@ -180,21 +262,29 @@ describe("production post-live probe", () => {
     expect(browser.state.filledSelectors).toEqual([]);
   });
 
-  it("fails closed on 401/403 and invalid evidence guarantees", async () => {
-    await expectFailure("operational_evidence_unauthorized", () => probeProductionPostLive({
-      browser: fakeBrowser({ status: 401 }).value,
+  it("fails closed on unrecoverable session establishment and invalid evidence guarantees", async () => {
+    await expectFailure("production_login_session_not_established", () => probeProductionPostLive({
+      browser: fakeBrowser({ statusSequence: [401, 401, 401] }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
       email: "founder@example.invalid",
       password: "x",
+      timingOverrides: {
+        evidenceSessionRetryCount: 3,
+        evidenceSessionRetryDelayMs: 1,
+      },
     }));
 
-    await expectFailure("operational_evidence_forbidden", () => probeProductionPostLive({
-      browser: fakeBrowser({ status: 403 }).value,
+    await expectFailure("production_login_session_not_established", () => probeProductionPostLive({
+      browser: fakeBrowser({ statusSequence: [403, 403, 403] }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
       email: "founder@example.invalid",
       password: "x",
+      timingOverrides: {
+        evidenceSessionRetryCount: 3,
+        evidenceSessionRetryDelayMs: 1,
+      },
     }));
 
     await expectFailure("operational_runtime_live_sha_mismatch", () => probeProductionPostLive({
@@ -369,6 +459,155 @@ describe("production post-live probe", () => {
       email: leakedEmail,
       password: leakedPassword,
     }));
+  });
+
+  it("handles delayed hydration and still logs in successfully", async () => {
+    const browser = fakeBrowser({ hydrationDelayMs: 50 });
+    const result = await probeProductionPostLive({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 500,
+        pollIntervalMs: 20,
+      },
+    });
+
+    expect(result.authenticatedSession).toBe(true);
+    expect(result.loginDiagnostics.submitReadyObserved).toBe(true);
+    expect(result.loginDiagnostics.submitAttempted).toBe(true);
+    expect(result.loginDiagnostics.navToHarmonyObserved).toBe(true);
+  });
+
+  it("handles successful auth with delayed redirect and delayed session establishment", async () => {
+    const browser = fakeBrowser({
+      redirectDelayMs: 120,
+      statusSequence: [401, 200],
+    });
+
+    const result = await probeProductionPostLive({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 700,
+        pollIntervalMs: 20,
+        evidenceSessionRetryCount: 3,
+        evidenceSessionRetryDelayMs: 10,
+      },
+    });
+
+    expect(result.authenticatedSession).toBe(true);
+    expect(browser.state.responseStatuses).toEqual([401, 200]);
+  });
+
+  it("detects explicit authentication rejection on login form", async () => {
+    await expectFailure("production_login_auth_rejected", () => probeProductionPostLive({
+      browser: fakeBrowser({
+        postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+        loginAlertVisible: true,
+      }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 500,
+        pollIntervalMs: 20,
+      },
+    }));
+  });
+
+  it("fails when login submit never becomes interactive", async () => {
+    await expectFailure("production_login_submit_not_ready", () => probeProductionPostLive({
+      browser: fakeBrowser({ submitEnabled: false }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 200,
+        pollIntervalMs: 20,
+      },
+    }));
+  });
+
+  it("fails with redirect timeout when neither success nor explicit rejection is observed", async () => {
+    await expectFailure("production_login_redirect_timeout", () => probeProductionPostLive({
+      browser: fakeBrowser({ postUrl: `https://${FQDN}/login?redirect=%2Fharmony` }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 240,
+        pollIntervalMs: 20,
+      },
+    }));
+  });
+
+  it("emits only safe non-secret diagnostics on failure", async () => {
+    const email = "safe@example.invalid";
+    const password = "safe-secret";
+
+    await expect(async () => {
+      await probeProductionPostLive({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          consoleErrorCount: 2,
+          pageErrorCount: 1,
+          relevantFailedRequestCount: 1,
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email,
+        password,
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 220,
+          pollIntervalMs: 20,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_login_redirect_timeout",
+      details: expect.objectContaining({
+        submitReadyObserved: true,
+        submitAttempted: true,
+        consoleErrorCount: 2,
+        pageErrorCount: 1,
+        failedRelevantRequestCount: 1,
+      }),
+    });
+
+    try {
+      await probeProductionPostLive({
+        browser: fakeBrowser({ postUrl: `https://${FQDN}/login?redirect=%2Fharmony` }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email,
+        password,
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 220,
+          pollIntervalMs: 20,
+        },
+      });
+    } catch (error) {
+      const serialized = JSON.stringify(error.details ?? {}).toLowerCase();
+      expect(serialized).not.toContain(email);
+      expect(serialized).not.toContain(password);
+      expect(serialized).not.toContain("cookie");
+      expect(serialized).not.toContain("token");
+      expect(serialized).not.toContain("authorization");
+    }
   });
 
   it("exports typed failure for callers", () => {
