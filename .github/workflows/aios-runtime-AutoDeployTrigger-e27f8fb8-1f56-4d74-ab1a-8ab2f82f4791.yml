@@ -805,15 +805,22 @@ jobs:
           fi
 
           source_run_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id")"
-          source_run_conclusion="$(jq -r '.conclusion' <<<"$source_run_json")"
           source_run_event="$(jq -r '.event' <<<"$source_run_json")"
           source_run_attempt="$(jq -r '.run_attempt' <<<"$source_run_json")"
           source_run_head_sha="$(jq -r '.head_sha' <<<"$source_run_json")"
           source_workflow_path="$(jq -r '.path' <<<"$source_run_json")"
           artifact_name="$(jq -r '.name' <<<"$artifact_json")"
 
-          if [[ "$source_run_conclusion" != "success" ]]; then
-            echo "deployment_provenance_source_run_not_success" >&2
+          source_run_jobs_json="$(gh api "/repos/$REPO/actions/runs/$source_run_id/jobs?per_page=100")"
+          source_build_and_deploy_conclusion="$(jq -r '[.jobs[] | select(.name == "build-and-deploy")][0].conclusion // ""' <<<"$source_run_jobs_json")"
+
+          if [[ -z "$source_build_and_deploy_conclusion" ]]; then
+            echo "deployment_provenance_source_build_and_deploy_job_missing" >&2
+            exit 1
+          fi
+
+          if [[ "$source_build_and_deploy_conclusion" != "success" ]]; then
+            echo "deployment_provenance_source_build_and_deploy_not_success" >&2
             exit 1
           fi
 
