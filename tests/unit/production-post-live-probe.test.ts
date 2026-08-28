@@ -11,15 +11,9 @@ import {
 const SHA = "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300";
 const FQDN = "aios-runtime-prod.eastus.azurecontainerapps.io";
 const SUPABASE_URL = "https://vgsqgxpwjnwssconsptn.supabase.co";
+const SUPABASE_PUBLIC_KEY = "sb_publishable_runtime_config_stub";
 const CONDITION_ID = "a".repeat(64);
 const OUTCOME_ID = "b".repeat(64);
-
-const DEFAULT_DERIVED_PUBLIC_CONFIG = {
-  supabasePublicAuthKey: "sb_publishable_runtime_config_stub",
-  keyType: "publishable",
-  expectedProjectRef: "vgsqgxpwjnwssconsptn",
-  projectMatchVerified: true,
-} as const;
 
 const DIRECT_AUTH_SUCCESS_RESULT = {
   outcome: "AUTH_SUCCESS",
@@ -29,18 +23,15 @@ const DIRECT_AUTH_SUCCESS_RESULT = {
 async function probeWithDefaults(
   overrides: Parameters<typeof probeProductionPostLive>[0],
   options?: {
-    derivePublicSupabaseAuthConfig?: Parameters<typeof probeProductionPostLive>[0]["derivePublicSupabaseAuthConfig"];
     directSupabaseAuthDiagnostic?: Parameters<typeof probeProductionPostLive>[0]["directSupabaseAuthDiagnostic"];
   },
 ) {
-  const derivePublicSupabaseAuthConfig = options?.derivePublicSupabaseAuthConfig
-    ?? (async () => DEFAULT_DERIVED_PUBLIC_CONFIG);
   const directSupabaseAuthDiagnostic = options?.directSupabaseAuthDiagnostic
     ?? (async () => DIRECT_AUTH_SUCCESS_RESULT);
 
   return probeProductionPostLive({
     supabaseUrl: SUPABASE_URL,
-    derivePublicSupabaseAuthConfig,
+    supabasePublicAuthKey: SUPABASE_PUBLIC_KEY,
     directSupabaseAuthDiagnostic,
     ...overrides,
   });
@@ -324,6 +315,56 @@ describe("production post-live probe", () => {
     expect(result.loginDiagnostics.directSupabaseProjectMatchVerified).toBe(true);
     expect(browser.state.newContextCalls).toBe(1);
     expect(browser.state.gotUrls[0]).toBe(`https://${FQDN}/login?redirect=%2Fharmony`);
+  });
+
+  it("does not require runtime asset scraping for deterministic public-key auth", async () => {
+    const browser = fakeBrowser();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new Error("network_blocked");
+    };
+
+    try {
+      const result = await probeWithDefaults({
+        browser: browser.value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+      });
+
+      expect(result.loginDiagnostics.directSupabaseAuthOutcome).toBe("AUTH_SUCCESS");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("fails closed when deterministic public key is missing", async () => {
+    const browser = fakeBrowser();
+    await expectFailure("production_supabase_public_key_missing", () => probeWithDefaults({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      supabasePublicAuthKey: "",
+      email: "founder@example.invalid",
+      password: "x",
+    }));
+
+    expect(browser.state.newContextCalls).toBe(0);
+  });
+
+  it("fails closed when Supabase URL does not match governed production project", async () => {
+    const browser = fakeBrowser();
+    await expectFailure("production_supabase_project_mismatch", () => probeWithDefaults({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      supabaseUrl: "https://wrongproject.supabase.co",
+      email: "founder@example.invalid",
+      password: "x",
+    }));
+
+    expect(browser.state.newContextCalls).toBe(0);
   });
 
   it("reuses normal password login selectors and same browser context request flow", async () => {

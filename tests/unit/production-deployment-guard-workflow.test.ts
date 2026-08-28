@@ -77,8 +77,10 @@ describe("production deployment guard workflow wiring", () => {
     expect(workflow).toContain("IMAGE_TAG: ${{ inputs.target_sha }}");
 
     expect(buildBlock).not.toContain("SUPABASE_URL");
+    expect(buildBlock).not.toContain("AIOS_PRODUCTION_SUPABASE_PUBLIC_KEY");
     expect(buildBlock).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(workflow).toContain('SUPABASE_URL: ${{ secrets.SUPABASE_URL }}');
+    expect(workflow).toContain('AIOS_PRODUCTION_SUPABASE_PUBLIC_KEY: ${{ secrets.AIOS_PRODUCTION_SUPABASE_PUBLIC_KEY }}');
     expect(workflow).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 });
