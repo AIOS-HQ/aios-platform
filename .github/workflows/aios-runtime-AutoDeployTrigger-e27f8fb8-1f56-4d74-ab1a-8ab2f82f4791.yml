@@ -921,12 +921,13 @@ jobs:
       - name: Execute authenticated production post-live probe
         shell: bash
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           AIOS_PRODUCTION_CERT_FOUNDER_EMAIL: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_EMAIL }}
           AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD }}
         run: |
           set -euo pipefail
 
-          if [[ -z "${AIOS_PRODUCTION_CERT_FOUNDER_EMAIL:-}" || -z "${AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD:-}" ]]; then
+          if [[ -z "${SUPABASE_URL:-}" || -z "${AIOS_PRODUCTION_CERT_FOUNDER_EMAIL:-}" || -z "${AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD:-}" ]]; then
             echo "production_cert_credentials_missing" >&2
             exit 1
           fi

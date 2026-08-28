@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ProductionPostLiveProbeFailure,
   buildProductionOriginFromFqdn,
+  normalizeDirectSupabaseAuthError,
   probeProductionPostLive,
   validateProductionFqdn,
   validateTargetSha,
@@ -9,8 +10,41 @@ import {
 
 const SHA = "e34a7fb2bc8ee8cc9f1f5c1a4273f49e541ef300";
 const FQDN = "aios-runtime-prod.eastus.azurecontainerapps.io";
+const SUPABASE_URL = "https://vgsqgxpwjnwssconsptn.supabase.co";
 const CONDITION_ID = "a".repeat(64);
 const OUTCOME_ID = "b".repeat(64);
+
+const DEFAULT_DERIVED_PUBLIC_CONFIG = {
+  supabasePublicAuthKey: "sb_publishable_runtime_config_stub",
+  keyType: "publishable",
+  expectedProjectRef: "vgsqgxpwjnwssconsptn",
+  projectMatchVerified: true,
+} as const;
+
+const DIRECT_AUTH_SUCCESS_RESULT = {
+  outcome: "AUTH_SUCCESS",
+  authenticated: true,
+} as const;
+
+async function probeWithDefaults(
+  overrides: Parameters<typeof probeProductionPostLive>[0],
+  options?: {
+    derivePublicSupabaseAuthConfig?: Parameters<typeof probeProductionPostLive>[0]["derivePublicSupabaseAuthConfig"];
+    directSupabaseAuthDiagnostic?: Parameters<typeof probeProductionPostLive>[0]["directSupabaseAuthDiagnostic"];
+  },
+) {
+  const derivePublicSupabaseAuthConfig = options?.derivePublicSupabaseAuthConfig
+    ?? (async () => DEFAULT_DERIVED_PUBLIC_CONFIG);
+  const directSupabaseAuthDiagnostic = options?.directSupabaseAuthDiagnostic
+    ?? (async () => DIRECT_AUTH_SUCCESS_RESULT);
+
+  return probeProductionPostLive({
+    supabaseUrl: SUPABASE_URL,
+    derivePublicSupabaseAuthConfig,
+    directSupabaseAuthDiagnostic,
+    ...overrides,
+  });
+}
 
 function payload(overrides = {}) {
   return {
@@ -76,6 +110,7 @@ function fakeBrowser({
     requestUrls: [],
     responseStatuses: [],
     closed: false,
+    newContextCalls: 0,
     gotoAt: 0,
     requestAttempt: 0,
     listeners: {
@@ -215,6 +250,7 @@ function fakeBrowser({
     state,
     value: {
       async newContext() {
+        state.newContextCalls += 1;
         return context;
       },
     },
@@ -237,9 +273,62 @@ describe("production post-live probe", () => {
     expect(buildProductionOriginFromFqdn(FQDN)).toBe(`https://${FQDN}/`);
   });
 
+  it("normalizes direct supabase auth errors", () => {
+    expect(normalizeDirectSupabaseAuthError({ code: "invalid_credentials", status: 400 })).toBe("invalid_credentials");
+    expect(normalizeDirectSupabaseAuthError({ code: "over_request_rate_limit", status: 429 })).toBe("over_request_rate_limit");
+    expect(normalizeDirectSupabaseAuthError({ code: "some_new_error", status: 400 })).toBe("unknown_auth_error");
+    expect(normalizeDirectSupabaseAuthError({ code: "unexpected_failure", status: 500 })).toBe("auth_server_error");
+  });
+
+  it("skips browser probe when direct supabase auth rejects credentials", async () => {
+    const browser = fakeBrowser();
+
+    await expect(async () => {
+      await probeWithDefaults({
+        browser: browser.value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+      }, {
+        directSupabaseAuthDiagnostic: async () => ({
+          outcome: "invalid_credentials",
+          authenticated: false,
+        }),
+      });
+    }).rejects.toMatchObject({
+      code: "production_direct_supabase_auth_rejected",
+      details: expect.objectContaining({
+        directSupabaseAuthAttempted: true,
+        directSupabaseAuthOutcome: "invalid_credentials",
+      }),
+    });
+
+    expect(browser.state.newContextCalls).toBe(0);
+    expect(browser.state.gotUrls).toEqual([]);
+  });
+
+  it("continues to browser probe after direct supabase auth success", async () => {
+    const browser = fakeBrowser();
+    const result = await probeWithDefaults({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      verifiedAt: "2026-08-10T11:00:00.000Z",
+    });
+
+    expect(result.loginDiagnostics.directSupabaseAuthAttempted).toBe(true);
+    expect(result.loginDiagnostics.directSupabaseAuthOutcome).toBe("AUTH_SUCCESS");
+    expect(result.loginDiagnostics.directSupabaseProjectMatchVerified).toBe(true);
+    expect(browser.state.newContextCalls).toBe(1);
+    expect(browser.state.gotUrls[0]).toBe(`https://${FQDN}/login?redirect=%2Fharmony`);
+  });
+
   it("reuses normal password login selectors and same browser context request flow", async () => {
     const browser = fakeBrowser();
-    const result = await probeProductionPostLive({
+    const result = await probeWithDefaults({
       browser: browser.value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -269,7 +358,7 @@ describe("production post-live probe", () => {
 
   it("fails closed before filling credentials on cross-origin pre-login redirect", async () => {
     const browser = fakeBrowser({ initialUrl: "https://evil.example/login?redirect=%2Fharmony" });
-    await expectFailure("pre_login_origin_mismatch", () => probeProductionPostLive({
+    await expectFailure("pre_login_origin_mismatch", () => probeWithDefaults({
       browser: browser.value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -280,7 +369,7 @@ describe("production post-live probe", () => {
   });
 
   it("fails closed on unrecoverable session establishment and invalid evidence guarantees", async () => {
-    await expectFailure("production_login_session_not_established", () => probeProductionPostLive({
+    await expectFailure("production_login_session_not_established", () => probeWithDefaults({
       browser: fakeBrowser({ statusSequence: [401, 401, 401] }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -292,7 +381,7 @@ describe("production post-live probe", () => {
       },
     }));
 
-    await expectFailure("production_login_session_not_established", () => probeProductionPostLive({
+    await expectFailure("production_login_session_not_established", () => probeWithDefaults({
       browser: fakeBrowser({ statusSequence: [403, 403, 403] }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -304,7 +393,7 @@ describe("production post-live probe", () => {
       },
     }));
 
-    await expectFailure("operational_runtime_live_sha_mismatch", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_live_sha_mismatch", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: payload({ certification: { details: { operationalRuntimeLive: { ...payload().certification.details.operationalRuntimeLive, deploymentSha: "a".repeat(40) } } } }) }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -312,7 +401,7 @@ describe("production post-live probe", () => {
       password: "x",
     }));
 
-    await expectFailure("operational_runtime_live_environment_mismatch", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_live_environment_mismatch", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: payload({ certification: { details: { operationalRuntimeLive: { ...payload().certification.details.operationalRuntimeLive, deploymentEnvironment: "staging" } } } }) }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -324,7 +413,7 @@ describe("production post-live probe", () => {
   it("requires six healthy entries with canonical latency and a single runtimeConditionId", async () => {
     const p = payload();
     p.certification.details.operationalRuntimeLive.foundation[0].latencyBucket = "";
-    await expectFailure("operational_runtime_live_latency_invalid", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_live_latency_invalid", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: p }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -334,7 +423,7 @@ describe("production post-live probe", () => {
 
     const p2 = payload();
     p2.certification.details.operationalRuntimeLive.foundation[1].runtimeConditionId = "cond-2";
-    await expectFailure("operational_runtime_live_condition_mismatch", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_live_condition_mismatch", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: p2 }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -344,7 +433,7 @@ describe("production post-live probe", () => {
 
     const p3 = payload();
     p3.certification.details.operationalRuntimeLive.foundation[2].status = "degraded";
-    await expectFailure("operational_runtime_live_component_not_healthy", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_live_component_not_healthy", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: p3 }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -364,7 +453,7 @@ describe("production post-live probe", () => {
         },
       },
     });
-    await expectFailure("operational_runtime_condition_id_invalid", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_condition_id_invalid", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: badCondition }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -382,7 +471,7 @@ describe("production post-live probe", () => {
         },
       },
     });
-    await expectFailure("operational_runtime_outcome_id_invalid", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_outcome_id_invalid", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: badOutcome }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -402,7 +491,7 @@ describe("production post-live probe", () => {
         },
       },
     });
-    await expectFailure("operational_runtime_live_condition_mismatch", () => probeProductionPostLive({
+    await expectFailure("operational_runtime_live_condition_mismatch", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: mismatch }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -413,7 +502,7 @@ describe("production post-live probe", () => {
 
   it("never leaks credential-like fields in the allowlisted output", async () => {
     const browser = fakeBrowser();
-    const result = await probeProductionPostLive({
+    const result = await probeWithDefaults({
       browser: browser.value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -448,7 +537,7 @@ describe("production post-live probe", () => {
       },
     });
 
-    await expectFailure("credential_email_leaked", () => probeProductionPostLive({
+    await expectFailure("credential_email_leaked", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: emailLeakPayload }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -469,7 +558,7 @@ describe("production post-live probe", () => {
       },
     });
 
-    await expectFailure("credential_password_leaked", () => probeProductionPostLive({
+    await expectFailure("credential_password_leaked", () => probeWithDefaults({
       browser: fakeBrowser({ responsePayload: passwordLeakPayload }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -480,7 +569,7 @@ describe("production post-live probe", () => {
 
   it("handles delayed hydration and still logs in successfully", async () => {
     const browser = fakeBrowser({ hydrationDelayMs: 50 });
-    const result = await probeProductionPostLive({
+    const result = await probeWithDefaults({
       browser: browser.value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -505,7 +594,7 @@ describe("production post-live probe", () => {
       statusSequence: [401, 200],
     });
 
-    const result = await probeProductionPostLive({
+    const result = await probeWithDefaults({
       browser: browser.value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -526,7 +615,7 @@ describe("production post-live probe", () => {
 
   it("does not classify unrelated visible alerts as authentication rejection", async () => {
     await expect(async () => {
-      await probeProductionPostLive({
+      await probeWithDefaults({
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           globalAlertVisible: true,
@@ -553,7 +642,7 @@ describe("production post-live probe", () => {
 
   it("does not classify callback banner alerts as password rejection", async () => {
     await expect(async () => {
-      await probeProductionPostLive({
+      await probeWithDefaults({
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           callbackAlertVisible: true,
@@ -580,7 +669,7 @@ describe("production post-live probe", () => {
 
   it("detects explicit authentication rejection from login-form error and invalid state", async () => {
     await expect(async () => {
-      await probeProductionPostLive({
+      await probeWithDefaults({
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           loginFormErrorVisible: true,
@@ -607,7 +696,7 @@ describe("production post-live probe", () => {
 
   it("drops non-allowlisted login-form auth error code from diagnostics", async () => {
     await expect(async () => {
-      await probeProductionPostLive({
+      await probeWithDefaults({
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           loginFormErrorVisible: true,
@@ -633,7 +722,7 @@ describe("production post-live probe", () => {
   });
 
   it("fails when login form rejects without a normalized auth code", async () => {
-    await expectFailure("production_login_auth_rejected", () => probeProductionPostLive({
+    await expectFailure("production_login_auth_rejected", () => probeWithDefaults({
       browser: fakeBrowser({
         postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
         loginFormErrorVisible: true,
@@ -652,7 +741,7 @@ describe("production post-live probe", () => {
   });
 
   it("fails when login submit never becomes interactive", async () => {
-    await expectFailure("production_login_submit_not_ready", () => probeProductionPostLive({
+    await expectFailure("production_login_submit_not_ready", () => probeWithDefaults({
       browser: fakeBrowser({ submitEnabled: false }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -666,7 +755,7 @@ describe("production post-live probe", () => {
   });
 
   it("fails with redirect timeout when neither success nor explicit rejection is observed", async () => {
-    await expectFailure("production_login_redirect_timeout", () => probeProductionPostLive({
+    await expectFailure("production_login_redirect_timeout", () => probeWithDefaults({
       browser: fakeBrowser({ postUrl: `https://${FQDN}/login?redirect=%2Fharmony` }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -685,7 +774,7 @@ describe("production post-live probe", () => {
     const password = "safe-secret";
 
     await expect(async () => {
-      await probeProductionPostLive({
+      await probeWithDefaults({
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           consoleErrorCount: 2,
@@ -714,7 +803,7 @@ describe("production post-live probe", () => {
     });
 
     try {
-      await probeProductionPostLive({
+      await probeWithDefaults({
         browser: fakeBrowser({ postUrl: `https://${FQDN}/login?redirect=%2Fharmony` }).value,
         productionFqdn: FQDN,
         targetSha: SHA,
