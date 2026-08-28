@@ -1,22 +1,29 @@
 import { describe, expect, it } from "vitest";
+import type { AuthError } from "@supabase/supabase-js";
 import {
   NORMALIZED_AUTH_ERROR_CODES,
   normalizeAuthErrorCode,
 } from "../../src/lib/auth/error-codes";
 
+type AuthErrorLike = Pick<AuthError, "code" | "status">;
+
+function authErrorFixture(code: AuthErrorLike["code"], status: AuthErrorLike["status"]): AuthErrorLike {
+  return { code, status };
+}
+
 describe("auth error code normalization", () => {
   it("maps invalid_credentials directly", () => {
-    expect(normalizeAuthErrorCode({ code: "invalid_credentials", status: 400 } as any)).toBe("invalid_credentials");
+    expect(normalizeAuthErrorCode(authErrorFixture("invalid_credentials", 400))).toBe("invalid_credentials");
   });
 
   it("maps known allow-listed Supabase auth codes directly", () => {
     const mapped = [
-      normalizeAuthErrorCode({ code: "email_not_confirmed", status: 400 } as any),
-      normalizeAuthErrorCode({ code: "user_banned", status: 403 } as any),
-      normalizeAuthErrorCode({ code: "over_request_rate_limit", status: 429 } as any),
-      normalizeAuthErrorCode({ code: "over_email_send_rate_limit", status: 429 } as any),
-      normalizeAuthErrorCode({ code: "captcha_failed", status: 400 } as any),
-      normalizeAuthErrorCode({ code: "validation_failed", status: 400 } as any),
+      normalizeAuthErrorCode(authErrorFixture("email_not_confirmed", 400)),
+      normalizeAuthErrorCode(authErrorFixture("user_banned", 403)),
+      normalizeAuthErrorCode(authErrorFixture("over_request_rate_limit", 429)),
+      normalizeAuthErrorCode(authErrorFixture("over_email_send_rate_limit", 429)),
+      normalizeAuthErrorCode(authErrorFixture("captcha_failed", 400)),
+      normalizeAuthErrorCode(authErrorFixture("validation_failed", 400)),
     ];
 
     expect(mapped).toEqual([
@@ -30,19 +37,18 @@ describe("auth error code normalization", () => {
   });
 
   it("maps unknown codes and raw text to unknown_auth_error", () => {
-    expect(normalizeAuthErrorCode({ code: "some_new_code", status: 400 } as any)).toBe("unknown_auth_error");
-    expect(normalizeAuthErrorCode({ code: "Incorrect email or password.", status: 400 } as any)).toBe("unknown_auth_error");
+    expect(normalizeAuthErrorCode(authErrorFixture("some_new_code", 400))).toBe("unknown_auth_error");
+    expect(normalizeAuthErrorCode(authErrorFixture("Incorrect email or password.", 400))).toBe("unknown_auth_error");
   });
 
   it("maps upstream server failures to auth_server_error", () => {
-    expect(normalizeAuthErrorCode({ code: "unexpected_failure", status: 500 } as any)).toBe("auth_server_error");
-    expect(normalizeAuthErrorCode({ code: undefined, status: 503 } as any)).toBe("auth_server_error");
+    expect(normalizeAuthErrorCode(authErrorFixture("unexpected_failure", 500))).toBe("auth_server_error");
+    expect(normalizeAuthErrorCode(authErrorFixture(undefined, 503))).toBe("auth_server_error");
   });
 
   it("exposes only allow-listed normalized codes", () => {
     for (const code of NORMALIZED_AUTH_ERROR_CODES) {
-      expect(normalizeAuthErrorCode({ code, status: 400 } as any)).toBe(code);
+      expect(normalizeAuthErrorCode(authErrorFixture(code, 400))).toBe(code);
     }
   });
 });
-
