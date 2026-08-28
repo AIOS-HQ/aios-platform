@@ -4,6 +4,16 @@ import { describe, expect, it } from "vitest";
 const workflowPath = ".github/workflows/aios-runtime-AutoDeployTrigger-e27f8fb8-1f56-4d74-ab1a-8ab2f82f4791.yml";
 const workflow = readFileSync(workflowPath, "utf8");
 
+function block(startMarker: string, endMarker: string) {
+  const start = workflow.indexOf(startMarker);
+  const end = workflow.indexOf(endMarker);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  return workflow.slice(start, end);
+}
+
+const buildBlock = block("\n  build-and-deploy:\n", "\n  resolve-production-fqdn-certification-only:\n");
+
 describe("production deployment guard workflow wiring", () => {
   it("preserves PR docker validation and removes automatic main-push production deploy", () => {
     expect(workflow).toContain("docker-pr-validation:");
@@ -66,7 +76,9 @@ describe("production deployment guard workflow wiring", () => {
     expect(workflow).toContain("deployment_checkout_sha_mismatch");
     expect(workflow).toContain("IMAGE_TAG: ${{ inputs.target_sha }}");
 
-    expect(workflow).not.toContain("SUPABASE_URL");
+    expect(buildBlock).not.toContain("SUPABASE_URL");
+    expect(buildBlock).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(workflow).toContain('SUPABASE_URL: ${{ secrets.SUPABASE_URL }}');
     expect(workflow).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 });

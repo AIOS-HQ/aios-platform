@@ -61,9 +61,11 @@ describe("production deployment and post-live certification workflow wiring", ()
 
   it("binds post-live certification job to production environment and keeps secrets environment-scoped", () => {
     expect(postLiveCertificationBlock).toContain("environment:\n      name: production");
+    expect(postLiveCertificationBlock).toContain('SUPABASE_URL: ${{ secrets.SUPABASE_URL }}');
     expect(postLiveCertificationBlock).toContain('AIOS_PRODUCTION_CERT_FOUNDER_EMAIL: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_EMAIL }}');
     expect(postLiveCertificationBlock).toContain('AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD: ${{ secrets.AIOS_PRODUCTION_CERT_FOUNDER_PASSWORD }}');
     expect(postLiveCertificationBlock).toContain("- name: Execute authenticated production post-live probe");
+    expect(postLiveCertificationBlock).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
   it("keeps post-live certification non-deploying and without azure login", () => {
