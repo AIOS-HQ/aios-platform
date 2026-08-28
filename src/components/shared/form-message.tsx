@@ -5,9 +5,11 @@ import type { ActionState } from "@/lib/types";
 export function FormMessage({
   state,
   id,
+  diagnosticCode,
 }: {
   state: ActionState;
   id?: string;
+  diagnosticCode?: string;
 }) {
   if (state.status === "idle" || !state.message) return null;
   const isError = state.status === "error";
@@ -15,6 +17,7 @@ export function FormMessage({
     <p
       id={id}
       role={isError ? "alert" : "status"}
+      data-auth-error-code={isError && diagnosticCode ? diagnosticCode : undefined}
       className={cn(
         "rounded-md px-3 py-2 text-sm",
         isError
