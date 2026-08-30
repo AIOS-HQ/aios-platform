@@ -279,6 +279,7 @@ async function fetchOperationalEvidence({
   mode,
 }) {
   let sawUnauthorized = false;
+  let sawForbidden = false;
 
   for (let attempt = 1; attempt <= evidenceSessionRetryCount; attempt += 1) {
     let response;
@@ -302,7 +303,7 @@ async function fetchOperationalEvidence({
       ? response.status()
       : response.status;
 
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       sawUnauthorized = true;
       if (attempt < evidenceSessionRetryCount) {
         await sleep(evidenceSessionRetryDelayMs);
@@ -311,7 +312,19 @@ async function fetchOperationalEvidence({
       if (mode === "strict") {
         fail("production_login_session_not_established", loginDiagnostics);
       }
-      return { kind: "unauthorized" };
+      return { kind: "session_not_established" };
+    }
+
+    if (status === 403) {
+      sawForbidden = true;
+      if (attempt < evidenceSessionRetryCount) {
+        await sleep(evidenceSessionRetryDelayMs);
+        continue;
+      }
+      if (mode === "strict") {
+        fail("production_certification_evidence_forbidden", loginDiagnostics);
+      }
+      return { kind: "evidence_forbidden" };
     }
 
     if (!(status >= 200 && status < 300)) {
@@ -341,7 +354,14 @@ async function fetchOperationalEvidence({
     if (mode === "strict") {
       fail("production_login_session_not_established", loginDiagnostics);
     }
-    return { kind: "unauthorized" };
+    return { kind: "session_not_established" };
+  }
+
+  if (sawForbidden) {
+    if (mode === "strict") {
+      fail("production_certification_evidence_forbidden", loginDiagnostics);
+    }
+    return { kind: "evidence_forbidden" };
   }
 
   if (mode === "strict") {
@@ -756,8 +776,10 @@ export async function probeProductionPostLive({
 
       if (sessionProof.kind === "success") {
         evidencePayload = sessionProof.payload;
-      } else if (sessionProof.kind === "unauthorized") {
+      } else if (sessionProof.kind === "session_not_established") {
         fail("production_login_session_not_established", loginDiagnostics);
+      } else if (sessionProof.kind === "evidence_forbidden") {
+        fail("production_certification_evidence_forbidden", loginDiagnostics);
       } else if (loginOutcome === "timeout") {
         fail("production_login_redirect_timeout", loginDiagnostics);
       } else {

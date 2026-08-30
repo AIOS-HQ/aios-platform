@@ -447,7 +447,7 @@ describe("production post-live probe", () => {
       },
     }));
 
-    await expectFailure("production_login_session_not_established", () => probeWithDefaults({
+    await expectFailure("production_certification_evidence_forbidden", () => probeWithDefaults({
       browser: fakeBrowser({ statusSequence: [403, 403, 403] }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
@@ -728,6 +728,34 @@ describe("production post-live probe", () => {
     expect(result.loginDiagnostics.navToHarmonyObserved).toBe(true);
   });
 
+  it("fails with evidence-forbidden when /harmony is stable but admin endpoint denies authorization", async () => {
+    await expect(async () => {
+      await probeWithDefaults({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/harmony`,
+          statusSequence: [403, 403, 403],
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 300,
+          pollIntervalMs: 20,
+          evidenceSessionRetryCount: 3,
+          evidenceSessionRetryDelayMs: 10,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_certification_evidence_forbidden",
+      details: expect.objectContaining({
+        navToHarmonyObserved: true,
+        finalPathname: "/harmony",
+      }),
+    });
+  });
+
   it("fails with session-not-established when post-submit evidence endpoint stays unauthorized", async () => {
     await expectFailure("production_login_session_not_established", () => probeWithDefaults({
       browser: fakeBrowser({
@@ -746,6 +774,33 @@ describe("production post-live probe", () => {
         evidenceSessionRetryDelayMs: 10,
       },
     }));
+  });
+
+  it("never classifies evidence endpoint 403 as session-not-established", async () => {
+    await expect(async () => {
+      await probeWithDefaults({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          statusSequence: [403, 403, 403],
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 240,
+          pollIntervalMs: 20,
+          evidenceSessionRetryCount: 3,
+          evidenceSessionRetryDelayMs: 10,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_certification_evidence_forbidden",
+      details: expect.objectContaining({
+        navToHarmonyObserved: false,
+      }),
+    });
   });
 
   it("does not classify unrelated visible alerts as authentication rejection", async () => {
