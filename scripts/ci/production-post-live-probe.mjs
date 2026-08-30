@@ -164,20 +164,6 @@ function requireCertifiableOperationalLive(payload, targetSha) {
   };
 }
 
-async function responseJson(response, label) {
-  const status = typeof response.status === "function" ? response.status() : response.status;
-  if (status === 401) fail(`${label}_unauthorized`);
-  if (status === 403) fail(`${label}_forbidden`);
-  if (!response.ok()) fail(`${label}_request_failed`);
-  let payload;
-  try {
-    payload = await response.json();
-  } catch {
-    fail(`${label}_invalid_json`);
-  }
-  return payload;
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -229,6 +215,7 @@ function createLoginDiagnostics() {
     consoleErrorCount: 0,
     pageErrorCount: 0,
     failedRelevantRequestCount: 0,
+    failedRelevantRequestRoutes: [],
     relevantResponseStatuses: [],
   };
 }
@@ -243,7 +230,14 @@ function classifyRelevantRoute(url, expectedOrigin) {
   if (url.pathname.startsWith("/login")) return "login";
   if (url.pathname.startsWith("/harmony")) return "harmony";
   if (url.pathname.startsWith("/api/admin/certification/evidence")) return "evidence";
+  if (url.pathname.startsWith("/auth") || url.pathname.startsWith("/api/auth")) return "auth";
   return null;
+}
+
+function rememberRelevantFailedRoute(diagnostics, route) {
+  if (diagnostics.failedRelevantRequestRoutes.length >= 12) return;
+  if (diagnostics.failedRelevantRequestRoutes.includes(route)) return;
+  diagnostics.failedRelevantRequestRoutes.push(route);
 }
 
 function attachPageDiagnostics(page, expectedOrigin, diagnostics) {
@@ -262,7 +256,9 @@ function attachPageDiagnostics(page, expectedOrigin, diagnostics) {
   page.on("requestfailed", (request) => {
     const parsed = parseUrlSafe(typeof request?.url === "function" ? request.url() : "");
     const route = classifyRelevantRoute(parsed, expectedOrigin);
-    if (route) diagnostics.failedRelevantRequestCount += 1;
+    if (!route) return;
+    diagnostics.failedRelevantRequestCount += 1;
+    rememberRelevantFailedRoute(diagnostics, route);
   });
 
   page.on("response", (response) => {
@@ -272,6 +268,87 @@ function attachPageDiagnostics(page, expectedOrigin, diagnostics) {
     const status = typeof response.status === "function" ? response.status() : response.status;
     rememberRelevantResponse(diagnostics, route, status);
   });
+}
+
+async function fetchOperationalEvidence({
+  context,
+  productionOrigin,
+  loginDiagnostics,
+  evidenceSessionRetryCount,
+  evidenceSessionRetryDelayMs,
+  mode,
+}) {
+  let sawUnauthorized = false;
+
+  for (let attempt = 1; attempt <= evidenceSessionRetryCount; attempt += 1) {
+    let response;
+    try {
+      response = await context.request.get(
+        new URL("/api/admin/certification/evidence?probe=operational", productionOrigin).toString(),
+        { headers: { Accept: "application/json" }, timeout: 60_000 },
+      );
+    } catch {
+      if (mode === "strict") {
+        fail("operational_evidence_request_failed", loginDiagnostics);
+      }
+      if (attempt < evidenceSessionRetryCount) {
+        await sleep(evidenceSessionRetryDelayMs);
+        continue;
+      }
+      return { kind: "indeterminate" };
+    }
+
+    const status = typeof response.status === "function"
+      ? response.status()
+      : response.status;
+
+    if (status === 401 || status === 403) {
+      sawUnauthorized = true;
+      if (attempt < evidenceSessionRetryCount) {
+        await sleep(evidenceSessionRetryDelayMs);
+        continue;
+      }
+      if (mode === "strict") {
+        fail("production_login_session_not_established", loginDiagnostics);
+      }
+      return { kind: "unauthorized" };
+    }
+
+    if (!(status >= 200 && status < 300)) {
+      if (mode === "strict") {
+        fail("operational_evidence_request_failed", loginDiagnostics);
+      }
+      return { kind: "indeterminate" };
+    }
+
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      if (mode === "strict") {
+        fail("operational_evidence_invalid_json", loginDiagnostics);
+      }
+      return { kind: "indeterminate" };
+    }
+
+    return {
+      kind: "success",
+      payload,
+    };
+  }
+
+  if (sawUnauthorized) {
+    if (mode === "strict") {
+      fail("production_login_session_not_established", loginDiagnostics);
+    }
+    return { kind: "unauthorized" };
+  }
+
+  if (mode === "strict") {
+    fail("operational_evidence_request_failed", loginDiagnostics);
+  }
+
+  return { kind: "indeterminate" };
 }
 
 async function locatorVisible(locator) {
@@ -514,6 +591,11 @@ function sanitizeFailureDetails(details) {
     consoleErrorCount: Number.isInteger(details.consoleErrorCount) ? details.consoleErrorCount : 0,
     pageErrorCount: Number.isInteger(details.pageErrorCount) ? details.pageErrorCount : 0,
     failedRelevantRequestCount: Number.isInteger(details.failedRelevantRequestCount) ? details.failedRelevantRequestCount : 0,
+    failedRelevantRequestRoutes: Array.isArray(details.failedRelevantRequestRoutes)
+      ? details.failedRelevantRequestRoutes
+          .filter((route) => route === "login" || route === "harmony" || route === "evidence" || route === "auth")
+          .slice(0, 12)
+      : [],
     relevantResponseStatuses: Array.isArray(details.relevantResponseStatuses)
       ? details.relevantResponseStatuses
           .filter((entry) => entry && typeof entry === "object")
@@ -654,38 +736,47 @@ export async function probeProductionPostLive({
       fail("production_login_auth_rejected", loginDiagnostics);
     }
 
-    if (loginOutcome === "timeout") {
-      fail("production_login_redirect_timeout", loginDiagnostics);
-    }
+    let evidencePayload = null;
+    const finalUrl = parseUrlSafe(page.url());
+    const stableHarmonyReached = Boolean(
+      finalUrl
+      && finalUrl.origin === expectedOrigin
+      && finalUrl.pathname.startsWith("/harmony"),
+    );
 
-    const finalUrl = new URL(page.url());
-    if (finalUrl.origin !== expectedOrigin || !finalUrl.pathname.startsWith("/harmony")) {
-      fail("post_login_redirect_invalid", loginDiagnostics);
-    }
+    if (loginOutcome === "timeout" || !stableHarmonyReached) {
+      const sessionProof = await fetchOperationalEvidence({
+        context,
+        productionOrigin,
+        loginDiagnostics,
+        evidenceSessionRetryCount,
+        evidenceSessionRetryDelayMs,
+        mode: "proof",
+      });
 
-    let evidenceResponse = null;
-    for (let attempt = 1; attempt <= evidenceSessionRetryCount; attempt += 1) {
-      evidenceResponse = await context.request.get(
-        new URL("/api/admin/certification/evidence?probe=operational", productionOrigin).toString(),
-        { headers: { Accept: "application/json" }, timeout: 60_000 },
-      );
-
-      const status = typeof evidenceResponse.status === "function"
-        ? evidenceResponse.status()
-        : evidenceResponse.status;
-
-      if (status === 401 || status === 403) {
-        if (attempt < evidenceSessionRetryCount) {
-          await sleep(evidenceSessionRetryDelayMs);
-          continue;
-        }
+      if (sessionProof.kind === "success") {
+        evidencePayload = sessionProof.payload;
+      } else if (sessionProof.kind === "unauthorized") {
         fail("production_login_session_not_established", loginDiagnostics);
+      } else if (loginOutcome === "timeout") {
+        fail("production_login_redirect_timeout", loginDiagnostics);
+      } else {
+        fail("post_login_redirect_invalid", loginDiagnostics);
       }
-
-      break;
     }
 
-    const evidencePayload = await responseJson(evidenceResponse, "operational_evidence");
+    if (!evidencePayload) {
+      const evidenceResult = await fetchOperationalEvidence({
+        context,
+        productionOrigin,
+        loginDiagnostics,
+        evidenceSessionRetryCount,
+        evidenceSessionRetryDelayMs,
+        mode: "strict",
+      });
+      evidencePayload = evidenceResult.payload;
+    }
+
     const {
       operationalRuntimeSummary,
       operationalRuntimeFoundation,

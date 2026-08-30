@@ -79,6 +79,8 @@ function payload(overrides = {}) {
 
 function fakeBrowser({
   postUrl = `https://${FQDN}/harmony`,
+  postSubmitFollowupUrl = null,
+  postSubmitFollowupDelayMs = 0,
   initialUrl = null,
   status = 200,
   statusSequence = null,
@@ -94,6 +96,7 @@ function fakeBrowser({
   consoleErrorCount = 0,
   pageErrorCount = 0,
   relevantFailedRequestCount = 0,
+  relevantFailedRequestRoutes = null,
 } = {}) {
   const state = {
     filledSelectors: [],
@@ -127,6 +130,13 @@ function fakeBrowser({
     return status;
   }
 
+  function routeToUrl(route) {
+    if (route === "harmony") return `https://${FQDN}/harmony`;
+    if (route === "evidence") return `https://${FQDN}/api/admin/certification/evidence?probe=operational`;
+    if (route === "auth") return `https://${FQDN}/auth/callback`;
+    return `https://${FQDN}/login`;
+  }
+
   function makeLocator(selector) {
     return {
       async fill() {
@@ -137,10 +147,20 @@ function fakeBrowser({
         if (redirectDelayMs > 0) {
           setTimeout(() => {
             page.currentUrl = postUrl;
+            if (postSubmitFollowupUrl) {
+              setTimeout(() => {
+                page.currentUrl = postSubmitFollowupUrl;
+              }, postSubmitFollowupDelayMs);
+            }
           }, redirectDelayMs);
           return;
         }
         page.currentUrl = postUrl;
+        if (postSubmitFollowupUrl) {
+          setTimeout(() => {
+            page.currentUrl = postSubmitFollowupUrl;
+          }, postSubmitFollowupDelayMs);
+        }
       },
       async waitFor() {
         return;
@@ -198,7 +218,12 @@ function fakeBrowser({
         emit("pageerror", new Error("page_error"));
       }
       for (let i = 0; i < relevantFailedRequestCount; i += 1) {
-        emit("requestfailed", { url: () => `https://${FQDN}/login` });
+        emit("requestfailed", { url: () => routeToUrl("login") });
+      }
+      if (Array.isArray(relevantFailedRequestRoutes)) {
+        for (const route of relevantFailedRequestRoutes) {
+          emit("requestfailed", { url: () => routeToUrl(route) });
+        }
       }
     },
     locator(selector) {
@@ -654,12 +679,82 @@ describe("production post-live probe", () => {
     expect(browser.state.responseStatuses).toEqual([401, 200]);
   });
 
+  it("uses authenticated evidence endpoint as alternate session proof when /harmony is not stable", async () => {
+    const browser = fakeBrowser({
+      postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+      status: 200,
+    });
+
+    const result = await probeWithDefaults({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 240,
+        pollIntervalMs: 20,
+      },
+    });
+
+    expect(result.authenticatedSession).toBe(true);
+    expect(result.loginDiagnostics.navToHarmonyObserved).toBe(false);
+    expect(browser.state.requestUrls).toContain(`https://${FQDN}/api/admin/certification/evidence?probe=operational`);
+  });
+
+  it("accepts transient /harmony navigation when evidence endpoint proves session", async () => {
+    const browser = fakeBrowser({
+      postUrl: `https://${FQDN}/harmony`,
+      postSubmitFollowupUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+      postSubmitFollowupDelayMs: 0,
+      status: 200,
+    });
+
+    const result = await probeWithDefaults({
+      browser: browser.value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 300,
+        pollIntervalMs: 20,
+      },
+    });
+
+    expect(result.authenticatedSession).toBe(true);
+    expect(result.loginDiagnostics.navToHarmonyObserved).toBe(true);
+  });
+
+  it("fails with session-not-established when post-submit evidence endpoint stays unauthorized", async () => {
+    await expectFailure("production_login_session_not_established", () => probeWithDefaults({
+      browser: fakeBrowser({
+        postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+        statusSequence: [401, 401, 401],
+      }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+      timingOverrides: {
+        loginHydrationTimeoutMs: 300,
+        loginRedirectTimeoutMs: 240,
+        pollIntervalMs: 20,
+        evidenceSessionRetryCount: 3,
+        evidenceSessionRetryDelayMs: 10,
+      },
+    }));
+  });
+
   it("does not classify unrelated visible alerts as authentication rejection", async () => {
     await expect(async () => {
       await probeWithDefaults({
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           globalAlertVisible: true,
+          status: 500,
         }).value,
         productionFqdn: FQDN,
         targetSha: SHA,
@@ -687,6 +782,7 @@ describe("production post-live probe", () => {
         browser: fakeBrowser({
           postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
           callbackAlertVisible: true,
+          status: 500,
         }).value,
         productionFqdn: FQDN,
         targetSha: SHA,
@@ -797,7 +893,10 @@ describe("production post-live probe", () => {
 
   it("fails with redirect timeout when neither success nor explicit rejection is observed", async () => {
     await expectFailure("production_login_redirect_timeout", () => probeWithDefaults({
-      browser: fakeBrowser({ postUrl: `https://${FQDN}/login?redirect=%2Fharmony` }).value,
+      browser: fakeBrowser({
+        postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+        status: 500,
+      }).value,
       productionFqdn: FQDN,
       targetSha: SHA,
       email: "founder@example.invalid",
@@ -821,6 +920,7 @@ describe("production post-live probe", () => {
           consoleErrorCount: 2,
           pageErrorCount: 1,
           relevantFailedRequestCount: 1,
+          status: 500,
         }).value,
         productionFqdn: FQDN,
         targetSha: SHA,
@@ -845,7 +945,10 @@ describe("production post-live probe", () => {
 
     try {
       await probeWithDefaults({
-        browser: fakeBrowser({ postUrl: `https://${FQDN}/login?redirect=%2Fharmony` }).value,
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          status: 500,
+        }).value,
         productionFqdn: FQDN,
         targetSha: SHA,
         email,
@@ -864,6 +967,33 @@ describe("production post-live probe", () => {
       expect(serialized).not.toContain("token");
       expect(serialized).not.toContain("authorization");
     }
+  });
+
+  it("records safe route-level failed request diagnostics", async () => {
+    await expect(async () => {
+      await probeWithDefaults({
+        browser: fakeBrowser({
+          postUrl: `https://${FQDN}/login?redirect=%2Fharmony`,
+          status: 500,
+          relevantFailedRequestRoutes: ["harmony", "evidence", "auth"],
+        }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+        timingOverrides: {
+          loginHydrationTimeoutMs: 300,
+          loginRedirectTimeoutMs: 220,
+          pollIntervalMs: 20,
+        },
+      });
+    }).rejects.toMatchObject({
+      code: "production_login_redirect_timeout",
+      details: expect.objectContaining({
+        failedRelevantRequestCount: 3,
+        failedRelevantRequestRoutes: ["harmony", "evidence", "auth"],
+      }),
+    });
   });
 
   it("exports typed failure for callers", () => {
