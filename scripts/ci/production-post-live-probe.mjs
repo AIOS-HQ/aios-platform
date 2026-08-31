@@ -114,12 +114,83 @@ export function buildProductionOriginFromFqdn(fqdn) {
   return new URL(`https://${validateProductionFqdn(fqdn)}/`).toString();
 }
 
-function requireCertifiableOperationalLive(payload, targetSha) {
+function normalizeOperationalStatus(value) {
+  return ["healthy", "degraded", "blocked", "unavailable", "unknown"].includes(value) ? value : "unknown";
+}
+
+function normalizeOperationalSafeCode(value) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return /^[a-z0-9_:-]+$/i.test(normalized) ? normalized : null;
+}
+
+function normalizeOperationalSafeMessage(value) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return /^[a-z0-9_:-]+$/i.test(normalized) ? normalized : null;
+}
+
+function extractSafeOperationalRuntimeSummary(live) {
+  const summary = live && typeof live.summary === "object" ? live.summary : {};
+  const foundation = Array.isArray(live?.foundation) ? live.foundation : [];
+
+  const byComponent = new Map();
+  for (const entry of foundation) {
+    if (!entry || typeof entry !== "object" || !REQUIRED_COMPONENTS.includes(entry.component)) {
+      continue;
+    }
+    byComponent.set(entry.component, {
+      component: entry.component,
+      status: normalizeOperationalStatus(entry.status),
+      safeErrorCode: normalizeOperationalSafeCode(entry.safeErrorCode),
+      safeMessage: normalizeOperationalSafeMessage(entry.safeMessage),
+      latencyBucket:
+        typeof entry.latencyBucket === "string" && CANONICAL_LATENCY_BUCKETS.has(entry.latencyBucket)
+          ? entry.latencyBucket
+          : null,
+    });
+  }
+
+  const safeFoundation = REQUIRED_COMPONENTS.map((component) =>
+    byComponent.get(component)
+    ?? {
+      component,
+      status: "unknown",
+      safeErrorCode: null,
+      safeMessage: null,
+      latencyBucket: null,
+    });
+
+  return {
+    operationalRuntimeSummary: {
+      componentCount: Number.isInteger(summary.componentCount) ? summary.componentCount : safeFoundation.length,
+      healthy: Number.isInteger(summary.healthy) ? summary.healthy : 0,
+      degraded: Number.isInteger(summary.degraded) ? summary.degraded : 0,
+      blocked: Number.isInteger(summary.blocked) ? summary.blocked : 0,
+      unavailable: Number.isInteger(summary.unavailable) ? summary.unavailable : 0,
+      unknown: Number.isInteger(summary.unknown) ? summary.unknown : 0,
+      certifiable: live?.certifiable === true,
+    },
+    operationalRuntimeFoundation: safeFoundation,
+  };
+}
+
+function requireCertifiableOperationalLive(payload, targetSha, diagnostics = null) {
   const live = payload?.certification?.details?.operationalRuntimeLive;
   if (!live || typeof live !== "object") fail("operational_runtime_live_missing");
   if (live.deploymentSha !== targetSha) fail("operational_runtime_live_sha_mismatch");
   if (live.deploymentEnvironment !== "production") fail("operational_runtime_live_environment_mismatch");
-  if (live.certifiable !== true) fail("operational_runtime_live_not_certifiable");
+  if (live.certifiable !== true) {
+    const safeSummary = extractSafeOperationalRuntimeSummary(live);
+    if (diagnostics && typeof diagnostics === "object") {
+      diagnostics.operationalRuntimeSummary = safeSummary.operationalRuntimeSummary;
+      diagnostics.operationalRuntimeFoundation = safeSummary.operationalRuntimeFoundation;
+      fail("operational_runtime_live_not_certifiable", diagnostics);
+    }
+    fail("operational_runtime_live_not_certifiable", safeSummary);
+  }
 
   const summary = live.summary;
   if (!summary || typeof summary !== "object") fail("operational_runtime_live_summary_invalid");
@@ -625,6 +696,45 @@ function sanitizeFailureDetails(details) {
           }))
           .slice(0, 12)
       : [],
+    operationalRuntimeSummary:
+      details.operationalRuntimeSummary && typeof details.operationalRuntimeSummary === "object"
+        ? {
+          componentCount: Number.isInteger(details.operationalRuntimeSummary.componentCount)
+            ? details.operationalRuntimeSummary.componentCount
+            : 0,
+          healthy: Number.isInteger(details.operationalRuntimeSummary.healthy)
+            ? details.operationalRuntimeSummary.healthy
+            : 0,
+          degraded: Number.isInteger(details.operationalRuntimeSummary.degraded)
+            ? details.operationalRuntimeSummary.degraded
+            : 0,
+          blocked: Number.isInteger(details.operationalRuntimeSummary.blocked)
+            ? details.operationalRuntimeSummary.blocked
+            : 0,
+          unavailable: Number.isInteger(details.operationalRuntimeSummary.unavailable)
+            ? details.operationalRuntimeSummary.unavailable
+            : 0,
+          unknown: Number.isInteger(details.operationalRuntimeSummary.unknown)
+            ? details.operationalRuntimeSummary.unknown
+            : 0,
+          certifiable: details.operationalRuntimeSummary.certifiable === true,
+        }
+        : null,
+    operationalRuntimeFoundation: Array.isArray(details.operationalRuntimeFoundation)
+      ? details.operationalRuntimeFoundation
+          .filter((entry) => entry && typeof entry === "object" && REQUIRED_COMPONENTS.includes(entry.component))
+          .map((entry) => ({
+            component: entry.component,
+            status: normalizeOperationalStatus(entry.status),
+            safeErrorCode: normalizeOperationalSafeCode(entry.safeErrorCode),
+            safeMessage: normalizeOperationalSafeMessage(entry.safeMessage),
+            latencyBucket:
+              typeof entry.latencyBucket === "string" && CANONICAL_LATENCY_BUCKETS.has(entry.latencyBucket)
+                ? entry.latencyBucket
+                : null,
+          }))
+          .slice(0, REQUIRED_COMPONENTS.length)
+      : [],
   };
   return allowed;
 }
@@ -807,6 +917,7 @@ export async function probeProductionPostLive({
     } = requireCertifiableOperationalLive(
       evidencePayload,
       normalizedTargetSha,
+      loginDiagnostics,
     );
 
     if (typeof runtimeConditionId !== "string" || !/^[0-9a-f]{64}$/.test(runtimeConditionId)) {
