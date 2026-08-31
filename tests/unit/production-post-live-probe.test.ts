@@ -508,6 +508,139 @@ describe("production post-live probe", () => {
     }));
   });
 
+  it("emits safe six-component operational summary before failing on non-certifiable runtime", async () => {
+    const nonCertifiablePayload = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            certifiable: false,
+            summary: {
+              componentCount: 6,
+              healthy: 5,
+              degraded: 1,
+              blocked: 0,
+              unavailable: 0,
+              unknown: 0,
+            },
+            foundation: payload().certification.details.operationalRuntimeLive.foundation.map((entry, index) => ({
+              ...entry,
+              status: index === 2 ? "degraded" : "healthy",
+              safeErrorCode: index === 2 ? "connector_state_degraded" : null,
+              safeMessage: index === 2 ? "connector_runtime_degraded" : "component_ok",
+            })),
+          },
+        },
+      },
+    });
+
+    await expect(async () => {
+      await probeWithDefaults({
+        browser: fakeBrowser({ responsePayload: nonCertifiablePayload }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+      });
+    }).rejects.toMatchObject({
+      code: "operational_runtime_live_not_certifiable",
+      details: expect.objectContaining({
+        operationalRuntimeSummary: {
+          componentCount: 6,
+          healthy: 5,
+          degraded: 1,
+          blocked: 0,
+          unavailable: 0,
+          unknown: 0,
+          certifiable: false,
+        },
+        operationalRuntimeFoundation: expect.arrayContaining([
+          expect.objectContaining({
+            component: "connector_runtime",
+            status: "degraded",
+            safeErrorCode: "connector_state_degraded",
+            safeMessage: "connector_runtime_degraded",
+            latencyBucket: "under_1s",
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it("retains successful certification flow when certifiable runtime evidence is returned", async () => {
+    const result = await probeWithDefaults({
+      browser: fakeBrowser({ responsePayload: payload() }).value,
+      productionFqdn: FQDN,
+      targetSha: SHA,
+      email: "founder@example.invalid",
+      password: "x",
+    });
+
+    expect(result.authenticatedSession).toBe(true);
+    expect(result.operationalRuntimeSummary.componentCount).toBe(6);
+    expect(result.operationalRuntimeSummary.healthy).toBe(6);
+    expect(result.operationalRuntimeFoundation).toHaveLength(6);
+  });
+
+  it("emits no sensitive fields in non-certifiable diagnostic summary", async () => {
+    const injectedToken = "sensitive_token_value";
+    const injectedEmail = "sensitive@example.invalid";
+
+    const nonCertifiablePayload = payload({
+      certification: {
+        details: {
+          operationalRuntimeLive: {
+            ...payload().certification.details.operationalRuntimeLive,
+            certifiable: false,
+            summary: {
+              componentCount: 6,
+              healthy: 0,
+              degraded: 0,
+              blocked: 0,
+              unavailable: 0,
+              unknown: 6,
+            },
+            foundation: payload().certification.details.operationalRuntimeLive.foundation.map((entry, index) => ({
+              ...entry,
+              status: "unknown",
+              safeErrorCode: index === 0 ? "probe_execution_failed" : null,
+              safeMessage: index === 0 ? "message_with_space_and_@" : "ok_component",
+              token: injectedToken,
+              email: injectedEmail,
+            })),
+          },
+        },
+      },
+    });
+
+    try {
+      await probeWithDefaults({
+        browser: fakeBrowser({ responsePayload: nonCertifiablePayload }).value,
+        productionFqdn: FQDN,
+        targetSha: SHA,
+        email: "founder@example.invalid",
+        password: "x",
+      });
+      throw new Error("expected failure");
+    } catch (error) {
+      const typed = error as ProductionPostLiveProbeFailure;
+      expect(typed.code).toBe("operational_runtime_live_not_certifiable");
+      const details = JSON.parse(JSON.stringify(typed.details));
+      const serialized = JSON.stringify(details);
+
+      expect(serialized).not.toContain(injectedToken);
+      expect(serialized).not.toContain(injectedEmail);
+      expect(details.operationalRuntimeFoundation).toHaveLength(6);
+      expect(details.operationalRuntimeFoundation[0]).toEqual({
+        component: "harmony_orchestration",
+        status: "unknown",
+        safeErrorCode: "probe_execution_failed",
+        safeMessage: null,
+        latencyBucket: "under_1s",
+      });
+    }
+  });
+
   it("requires runtimeCondition.conditionId and outcomeId bindings", async () => {
     const badCondition = payload({
       certification: {
