@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { currentUserIsAdmin } from "@/lib/auth/roles";
 import type { ActionState } from "@/lib/types";
-import { upsertConnection } from "@/lib/integrations/connections";
+import { getConnections, upsertConnection } from "@/lib/integrations/connections";
 import { getConnector } from "@/lib/integrations/connectors";
 
 /**
@@ -36,6 +36,14 @@ export async function connectApiKeyAction(
   }
   if (!token) return { status: "error", message: t("errors.missingToken") };
 
+  const existing = (await getConnections(user.id)).filter(
+    (connection) => connection.provider === provider,
+  );
+  if (existing.length > 1) {
+    return { status: "error", message: t("errors.saveFailed") };
+  }
+  const resolvedAccount = account || existing[0]?.external_account || null;
+
   let ok = false;
   try {
     ok = await upsertConnection({
@@ -43,7 +51,7 @@ export async function connectApiKeyAction(
       provider,
       status: "connected",
       scopes: null,
-      external_account: account || null,
+      external_account: resolvedAccount,
       access_token: token,
       refresh_token: null,
       expires_at: null,

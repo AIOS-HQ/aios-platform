@@ -16,11 +16,15 @@ export function ConnectKeyForm({
   tokenLabel,
   accountLabel,
   accountPlaceholder,
+  submitLabel,
+  pendingLabel,
 }: {
   provider: string;
   tokenLabel: string;
   accountLabel: string;
   accountPlaceholder: string;
+  submitLabel?: string;
+  pendingLabel?: string;
 }) {
   const t = useTranslations("diagnostics");
   const [state, action] = useActionState(connectApiKeyAction, idleState);
@@ -57,7 +61,9 @@ export function ConnectKeyForm({
           placeholder={accountPlaceholder}
         />
       </div>
-      <SubmitButton pendingLabel={t("connecting")}>{t("connect")}</SubmitButton>
+      <SubmitButton pendingLabel={pendingLabel ?? t("connecting")}>
+        {submitLabel ?? t("connect")}
+      </SubmitButton>
     </form>
   );
 }

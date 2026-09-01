@@ -505,6 +505,14 @@ function ConnectorCard({
               </a>
             </Button>
           ) : null}
+          {c.connected && c.auth === "api_key" ? (
+            <Button asChild variant="outline" size="sm" className="h-7">
+              <a href={`/settings/diagnostics#${c.id}-update`}>
+                <KeyRound className="size-3.5" />
+                Update key
+              </a>
+            </Button>
+          ) : null}
           {hasDetails ? (
             <Button variant="ghost" size="sm" className="h-7" onClick={onToggle} aria-expanded={open}>
               Details

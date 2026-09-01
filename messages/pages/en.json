@@ -667,6 +667,8 @@
     "readOnlyNote": "Read-only. Harmony never changes anything here without your approval.",
     "connect": "Connect",
     "connecting": "Connecting",
+    "update": "Update connection",
+    "updating": "Updating",
     "disconnect": "Disconnect",
     "disconnectError": "Something went wrong. Please try again.",
     "connectedToast": "Connected.",
@@ -728,6 +730,10 @@
     "connectHint": {
       "supabase": "Add a Supabase Management API token and project ref to run read-only diagnostics.",
       "vercel": "Add a Vercel access token and project ID to run read-only diagnostics."
+    },
+    "updateHint": {
+      "supabase": "Update the saved Supabase diagnostics token or project ref without disconnecting first.",
+      "vercel": "Update the saved Vercel diagnostics token or project ID without disconnecting first."
     },
     "tokenLabel": {
       "supabase": "Supabase Management API token",

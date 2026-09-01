@@ -667,6 +667,8 @@
     "readOnlyNote": "Solo lectura. Harmony nunca cambia nada aquí sin tu aprobación.",
     "connect": "Conectar",
     "connecting": "Conectando",
+    "update": "Actualizar conexión",
+    "updating": "Actualizando",
     "disconnect": "Desconectar",
     "disconnectError": "Algo salió mal. Inténtalo de nuevo.",
     "connectedToast": "Conectado.",
@@ -728,6 +730,10 @@
     "connectHint": {
       "supabase": "Añade un token de la API de gestión de Supabase y el ref del proyecto para ejecutar diagnósticos de solo lectura.",
       "vercel": "Añade un token de acceso de Vercel y el ID del proyecto para ejecutar diagnósticos de solo lectura."
+    },
+    "updateHint": {
+      "supabase": "Actualiza el token de diagnóstico de Supabase guardado o el ref del proyecto sin desconectar primero.",
+      "vercel": "Actualiza el token de diagnóstico de Vercel guardado o el ID del proyecto sin desconectar primero."
     },
     "tokenLabel": {
       "supabase": "Token de la API de gestión de Supabase",
