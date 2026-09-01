@@ -109,11 +109,11 @@ export default async function DiagnosticsPage() {
         ) : null}
 
         {sections.map((s) => (
-          <Card key={s.provider} className="overflow-hidden">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <div className="space-y-1">
-                <CardTitle>{s.name}</CardTitle>
-                <CardDescription>{t("readOnlyNote")}</CardDescription>
+            <Card key={s.provider} className="overflow-hidden">
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <CardTitle>{s.name}</CardTitle>
+                  <CardDescription>{t("readOnlyNote")}</CardDescription>
               </div>
               {s.result.connected ? (
                 <DisconnectButton
@@ -125,24 +125,37 @@ export default async function DiagnosticsPage() {
             </CardHeader>
             <CardContent className="p-5 pt-0">
               {s.result.connected ? (
-                <ExecutiveList>
-                  {s.result.items.map((it) => (
-                    <li
-                      key={it.id}
-                      className="flex flex-col gap-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <span className="flex items-center gap-2">
-                        {it.ok ? (
-                          <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
-                        ) : (
-                          <XCircle className="size-4 text-destructive" aria-hidden="true" />
-                        )}
-                        {t(`capabilities.${it.id}`)}
-                      </span>
-                      <span className="min-w-0 break-words text-muted-foreground sm:text-right">{it.detail}</span>
-                    </li>
-                  ))}
-                </ExecutiveList>
+                <div className="flex flex-col gap-4">
+                  <ExecutiveList>
+                    {s.result.items.map((it) => (
+                      <li
+                        key={it.id}
+                        className="flex flex-col gap-2 p-4 text-sm sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <span className="flex items-center gap-2">
+                          {it.ok ? (
+                            <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
+                          ) : (
+                            <XCircle className="size-4 text-destructive" aria-hidden="true" />
+                          )}
+                          {t(`capabilities.${it.id}`)}
+                        </span>
+                        <span className="min-w-0 break-words text-muted-foreground sm:text-right">{it.detail}</span>
+                      </li>
+                    ))}
+                  </ExecutiveList>
+                  <div id={`${s.provider}-update`} className="flex flex-col gap-3 rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">{t(`updateHint.${s.provider}`)}</p>
+                    <ConnectKeyForm
+                      provider={s.provider}
+                      tokenLabel={t(`tokenLabel.${s.provider}`)}
+                      accountLabel={t(`accountLabel.${s.provider}`)}
+                      accountPlaceholder={s.accountPlaceholder}
+                      submitLabel={t("update")}
+                      pendingLabel={t("updating")}
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-col gap-3">
                   <p className="text-sm text-muted-foreground">
