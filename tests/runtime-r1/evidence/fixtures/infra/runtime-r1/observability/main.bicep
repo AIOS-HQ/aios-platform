@@ -1,0 +1,1 @@
+param serviceBusNamespaceResourceId string
