@@ -1,7 +1,49 @@
 {
   "companyBuilder": {
     "title": "Company Builder",
-    "subtitle": "Describe the company you want AIOS to build and review an execution preview before any action.",
+    "subtitle": "Work with Harmony to shape your company strategy and review an executive execution briefing before any action.",
+    "phase2": {
+      "title": "Executive Strategy Session",
+      "subtitle": "Harmony guides a focused conversation to understand your company direction.",
+      "guidance": "Share short answers; Harmony will progressively refine your company blueprint.",
+      "progress": "Question {current} of {total} · {percent}% complete",
+      "summaryTitle": "Current understanding",
+      "previewTitle": "Executive Execution Briefing",
+      "previewSubtitle": "A confidence-focused preview of how AIOS would approach your company build.",
+      "emptyPreview": "Complete the conversation to see Harmony's executive briefing.",
+      "actions": {
+        "preview": "Generate Executive Briefing"
+      },
+      "prompts": {
+        "vision": "What kind of company do you want Harmony to help you build?",
+        "industry": "Which industry should this company operate in?",
+        "services": "What products or services should it deliver?",
+        "customers": "Who are the primary target customers?",
+        "goals": "What business outcomes matter most in the first year?",
+        "scale": "What level of scale do you want to reach first?",
+        "geography": "Which regions or markets should this company serve?",
+        "differentiation": "How should this company stand out from competitors?",
+        "operations": "What operational style should Harmony prioritize?"
+      },
+      "placeholders": {
+        "vision": "Example: Build a compliance-led services company with recurring contracts.",
+        "industry": "Example: Healthcare, Legal, SaaS",
+        "list": "Comma-separated list",
+        "scale": "Example: Reach $1M ARR in 18 months",
+        "geography": "Example: US and LATAM",
+        "differentiation": "Example: Faster onboarding with human-in-the-loop quality controls"
+      },
+      "briefing": {
+        "understandingTitle": "What Harmony understood",
+        "intentSignalsTitle": "Business intent signals",
+        "marketplaceTitle": "Marketplace Intelligence alignment",
+        "reusable": "Likely reusable capabilities",
+        "newLikely": "Capabilities likely requiring future creation",
+        "phasesTitle": "Proposed execution phases",
+        "approvalBoundary": "Execution is stopped at approval boundary: {state}.",
+        "none": "No strong signal yet"
+      }
+    },
     "phase1": {
       "requestTitle": "Describe Your Company Intent",
       "requestSubtitle": "Capture customer intent in a structured company build request.",
