@@ -1,7 +1,64 @@
 {
   "companyBuilder": {
     "title": "Company Builder",
-    "subtitle": "Describe the company you want AIOS to build and review an execution preview before any action.",
+    "subtitle": "Work with Harmony to shape your company strategy and review an executive briefing before any action.",
+    "phase2": {
+      "title": "Executive Strategy Session",
+      "subtitle": "Harmony guides a focused conversation to understand your company direction.",
+      "guidance": "Share concise answers; Harmony will translate them into a strategic executive briefing.",
+      "progress": "Question {current} of {total} · {percent}% complete",
+      "summaryTitle": "Current understanding",
+      "previewTitle": "Executive Briefing",
+      "previewSubtitle": "A strategic narrative of how AIOS would approach your company build.",
+      "emptyPreview": "Complete the strategy conversation to generate Harmony's executive briefing.",
+      "actions": {
+        "preview": "Generate Executive Briefing"
+      },
+      "prompts": {
+        "vision": "What kind of business should Harmony help you build?",
+        "industry": "Which industry context should we prioritize?",
+        "services": "What products or services should this company deliver first?",
+        "customers": "Who are the priority customer segments?",
+        "goals": "Which outcomes matter most in phase 1?",
+        "scale": "What scale target is most important near term?",
+        "geography": "Which markets should this company serve first?",
+        "differentiation": "How should this business stand out from alternatives?",
+        "operations": "What operating preferences should guide execution?"
+      },
+      "placeholders": {
+        "vision": "Example: Build a recurring-revenue operations consultancy for SMB growth leaders.",
+        "industry": "Example: Legal, Healthcare, SaaS",
+        "list": "Comma-separated list",
+        "scale": "Example: Reach 100 active customers in year one",
+        "geography": "Example: US and LATAM",
+        "differentiation": "Example: Premium strategic support with faster turnaround"
+      },
+      "briefing": {
+        "executiveSummaryTitle": "Executive Summary",
+        "strategicInsightsTitle": "Strategic Insights",
+        "opportunitiesTitle": "Key Opportunities",
+        "risksTitle": "Primary Risks",
+        "recommendedPrioritiesTitle": "Recommended Priorities",
+        "alternativeStrategiesTitle": "Alternative Strategies",
+        "strategicOptionsTitle": "Strategic Options",
+        "comparativeAnalysisTitle": "Comparative Analysis",
+        "recommendedStrategyTitle": "Recommended Strategy",
+        "executiveDecisionSummaryTitle": "Executive Decision Summary",
+        "capabilitySummaryTitle": "Capability Summary",
+        "capabilityMapTitle": "Capability Map",
+        "marketplaceReuseSummaryTitle": "Marketplace Reuse Summary",
+        "capabilityGapsTitle": "Capability Gaps",
+        "recommendedBuildSequenceTitle": "Recommended Build Sequence",
+        "optionComplexity": "Complexity",
+        "optionHorizon": "Time horizon",
+        "optionConfidence": "Confidence",
+        "marketplaceFindingsTitle": "Marketplace Intelligence Findings",
+        "confidenceTitle": "Confidence Assessment",
+        "nextDecisionsTitle": "Next Executive Decisions",
+        "approvalBoundary": "Execution remains blocked at approval boundary: {state}.",
+        "none": "No strong signal yet"
+      }
+    },
     "phase1": {
       "requestTitle": "Describe Your Company Intent",
       "requestSubtitle": "Capture customer intent in a structured company build request.",
